@@ -36,19 +36,29 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
 - **Event 01: Harbor Line, Tunnel 7.** A 2.1 km lit tunnel loop with no traffic.
 - **Event 02: Roosevelt Blvd.** A mile of the Boulevard between Harbison and Cottman, with a U-turn at each end. It has live traffic in the race lanes, express lanes dropping under the Cottman bridge, working signals, and four speed cameras.
 
-Both events are 2 laps with 7 cars. Floating chevrons warn you about hard corners.
+- **Event 03: The Bridge Run.** Center City to Camden, 3 laps. It starts beside City Hall, runs down Market St, and turns up 6th past Independence Mall and the Liberty Bell. Then it climbs onto the Ben Franklin Bridge for a 1.3 km straightaway over the Delaware. You U-turn at the Camden toll plaza, come back over the bridge, and return along Race St through Chinatown and down 15th past LOVE Park. It has live traffic, working signals, and two speed cameras.
+
+Harbor Line and Roosevelt Blvd are 2 laps; The Bridge Run is 3. Every event has 7 cars, and floating chevrons warn you about hard corners.
 
 ## Power-ups
 
 - **Cyan: Refill.** Fills your boost.
 - **Violet: Long Boost.** Boost drains slower for 8 s.
 - **Amber: Overdrive.** Raises top speed for 5 s.
+- **Red: Slingshot.** An instant burst of speed plus hard acceleration for 1.4 s.
+- **Green: Shield.** For 6 s, walls and contact don't slow you, and you shove other cars aside.
+- **Pink: Shockwave.** Slows and pushes every car near you and knocks out part of their boost. Shields block it.
+- **Blue: Grip Tires.** 45% more cornering grip for 8 s.
 
-Rivals grab them too.
+Rivals grab them too, including the Shockwave.
 
 ## Cars
 
-Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four
+Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond
+
+- **Bell 76:** blue and gold, the highest top speed and the biggest boost in the game. Built for the bridge.
+- **Passyunk R:** a light hot hatch with the most grip and acceleration.
+- **Richmond:** the heaviest vehicle, a pickup truck that shoves everything else out of the way.
 
 Each car has its own speed, grip, boost, and weight. Press **Specs** for the full sheet.
 
@@ -63,7 +73,7 @@ Each car has its own speed, grip, boost, and weight. Press **Specs** for the ful
 | THE CLOSER | Cruises early, then empties its boost late in the race |
 | WILDCARD | Brakes late, makes random mistakes, fires random boost bursts |
 
-Each start, rivals **draw a chassis from the archive** (no duplicate picks on the grid) weighted for the event: grip and balance on Harbor Line, top speed and nitro on the Boulevard. They **slow for upcoming corners**, **fight each other** (THE WALL blocks any chaser, LEECH drafts whoever is ahead, BRUISER sideswipes side-by-side traffic), and **score power-up detours** instead of blindly swerving.
+Each start, rivals **draw a chassis from the archive** (no duplicate picks on the grid) weighted for the event: grip and balance on Harbor Line, top speed and nitro on the Boulevard and the Bridge Run. They **slow for upcoming corners**, **fight each other** (THE WALL blocks any chaser, LEECH drafts whoever is ahead, BRUISER sideswipes side-by-side traffic), and **score power-up detours** instead of blindly swerving.
 
 ## Saved in your browser
 

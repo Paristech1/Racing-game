@@ -146,7 +146,8 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .turn i{display:block;font-style:normal;font-weight:900;font-stretch:62%;font-size:64px;line-height:.8;color:#ffb347;text-shadow:0 0 18px rgba(255,138,26,.8);animation:tpulse .5s ease-in-out infinite alternate}
 #hud .turn span{display:inline-block;margin-top:4px;font-size:13px;font-weight:800;letter-spacing:.06em;color:#ffd9a8;background:rgba(6,8,12,.55);padding:2px 8px}
 @keyframes tpulse{from{opacity:.55;letter-spacing:.02em}to{opacity:1;letter-spacing:.14em}}
-#hud .fxl{margin-top:6px;display:flex;gap:10px;justify-content:center;font-size:12px;min-height:14px}
+#hud .fxl{margin-top:6px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:12px;min-height:14px}
+#hud .fxl b{display:inline;font-size:12px;font-weight:800;font-stretch:80%;line-height:1.2;letter-spacing:.04em}
 #hud .gh{display:block;font-size:12px;font-weight:600;color:var(--dim);margin-top:2px}
 #hud .gh.ahead{color:#9fd3ff}
 @media (min-width:900px){ .foot{right:auto;width:560px} #select .hl{max-width:9em} }

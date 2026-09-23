@@ -179,12 +179,13 @@ const RIVAL_CAR_PREF={
  closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['bell','noctis','vanta','kern','sovereign']},
  wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour']}
 };
+let RIVAL_BOSS=false;
 function buildRivalForEvent(rival,eventId,taken){
  const eb=EVENT_CAR_BIAS[eventId]||EVENT_CAR_BIAS.tunnel, rp=RIVAL_CAR_PREF[rival.id]||{};
  let best=null, bestSc=-1e9;
  for(const c of CARS){
   if(taken.includes(c.id)) continue;
-  if(c.id==='overload'&&Math.random()<.85) continue; // the 3,000 hp car only shows up on a rival's grid now and then
+  if(c.id==='overload'&&!RIVAL_BOSS) continue; // the 3,000 hp car only shows up on a rival's grid now and then (rolled once per race)
   const pref=rp.ids&&rp.ids.includes(c.id)?9:0;
   const sc=c.grip*(eb.gripW||1)*(rp.gripW||1)+c.top*(eb.topW||1)*(rp.topW||1)+c.nitro*18*(eb.nitroW||1)*(rp.nitroW||1)+pref+Math.random()*4;
   if(sc>bestSc){ bestSc=sc; best=c; }
@@ -1531,7 +1532,18 @@ const EVENTS=[
    specs:'10.0 KM / 1 LAP / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
    note:'one lap.\nall of it.',load:'Midnight Express. Ten kilometers, one lap, no shortcuts.'}
 ];
-EVENTS.forEach(e=>{ Object.assign(e,e.build()); });
+/* Events are built on demand and released when you move to another one. Building every city at boot held
+   eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
+let SETUP_READY=false;
+function finishEvent(e){ if(e._ready||!e.scene) return; e._ready=true; if(e.setup) e.setup(); addChevrons(e); }
+function ensureEvent(e){ if(!e.scene){ Object.assign(e,e.build()); e._ready=false; } if(SETUP_READY) finishEvent(e); return e; }
+function releaseEvent(e){ const S=e.scene; if(!S) return; if(fxGroup.parent===S) S.remove(fxGroup);
+  S.traverse(o=>{ if(o.geometry) o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(!m) return;
+    ['map','emissiveMap','normalMap','roughnessMap','bumpMap'].forEach(k=>{ if(m[k]&&m[k].dispose) m[k].dispose(); }); m.dispose(); }); });
+  if(S.background&&S.background.dispose) S.background.dispose();
+  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns'].forEach(k=>delete e[k]); e._ready=false; }
+function releaseOthers(){ EVENTS.forEach(e=>{ if(e.scene&&e.scene!==RS) releaseEvent(e); }); }
+ensureEvent(EVENTS[0]);
 const KO_MAPS=[
  {id:'arena',eventId:'ko',name:'City Hall Arena',km:'1.7'},
  {id:'dockside',eventId:'dockside',name:'Dockside Dash',km:'1.3'},
@@ -1543,8 +1555,10 @@ function bindKoTrack(i){
   koMapI=(i+KO_MAPS.length)%KO_MAPS.length;
   const map=KO_MAPS[koMapI], base=EVENTS.find(e=>e.id==='ko'), track=EVENTS.find(e=>e.id===map.eventId);
   if(!base||!track) return;
+  ensureEvent(track);
   EV=Object.assign({},base,{name:'The Gauntlet · '+map.name,load:`Twelve cars on ${map.name}. Sector checkpoints on long maps.`,track:track.track,scene:track.scene,traffic:track.traffic,update:track.update,sNear:track.sNear,koScreen:track.koScreen,cams:track.cams,pickups:track.pickups,turns:track.turns,chevrons:track.chevrons,resetTraffic:track.resetTraffic,id:'ko',knockout:true});
   RS=EV.scene; TR=EV.track; RS.add(fxGroup); traffic=EV.traffic||[]; if(EV.resetTraffic) EV.resetTraffic();
+  releaseOthers();
 }
 /* ---- power-ups on the racing surface (any car can grab them) ---- */
 const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},long:{c:0xb28cff,css:'#b28cff',label:'Long Boost',tag:'LONG BOOST'},over:{c:0xffb020,css:'#ffb020',label:'Overdrive',tag:'OVERDRIVE'},
@@ -1588,32 +1602,32 @@ function addChevrons(ev){
     ev.chevrons.push({m:big,y:big.position.y,i:ev.chevrons.length,big:true});
   });
 }
-addPickups(EVENTS[0],[[300,-3,'refill'],[460,0,'sling'],[620,3,'over'],[790,-3,'shield'],[950,0,'long'],[1120,3,'grip'],[1280,-3,'refill'],[1450,0,'shock'],[1600,3,'over'],[1760,-3,'sling'],[1900,0,'long']]);
-addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[1000,0,'over'],[1400,-3.4,'refill'],[1800,3.4,'over'],[2200,0,'long'],[2700,-3.4,'over'],[3100,3.4,'refill'],
+EVENTS[0].setup=()=>addPickups(EVENTS[0],[[300,-3,'refill'],[460,0,'sling'],[620,3,'over'],[790,-3,'shield'],[950,0,'long'],[1120,3,'grip'],[1280,-3,'refill'],[1450,0,'shock'],[1600,3,'over'],[1760,-3,'sling'],[1900,0,'long']]);
+EVENTS[1].setup=()=>addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[1000,0,'over'],[1400,-3.4,'refill'],[1800,3.4,'over'],[2200,0,'long'],[2700,-3.4,'over'],[3100,3.4,'refill'],
   [400,0,'sling'],[780,-3.4,'shield'],[1200,3.4,'grip'],[1600,0,'shock'],[2000,-3.4,'sling'],[2450,3.4,'shield'],[2900,0,'shock']]);
-{ const at=EVENTS[2].sNear;
+EVENTS[2].setup=()=>{ const at=EVENTS[2].sNear;
   addPickups(EVENTS[2],[[at(200,20),-3.6,'refill'],[at(470,20),3.6,'sling'],[at(640,20),0,'grip'],[at(720,-150),0,'shield'],[at(880,-300),-3.6,'over'],
     [at(1150,-300),3.6,'long'],[at(1380,-300),0,'sling'],[at(1640,-300),-3.6,'shock'],[at(1880,-300),0,'grip'],[at(1700,-340),3.6,'refill'],
     [at(1400,-340),0,'over'],[at(1100,-340),-3.6,'sling'],[at(560,-340),3.6,'shield'],[at(200,-340),0,'shock'],[at(-80,-160),0,'grip']]); }
-{ const at=EVENTS[4].sNear;
+EVENTS[4].setup=()=>{ const at=EVENTS[4].sNear;
   addPickups(EVENTS[4],[[at(150,20),-3.6,'refill'],[at(330,20),3.6,'sling'],[at(430,-90),0,'shield'],[at(430,-250),-3.6,'shock'],
     [at(320,-340),3.6,'over'],[at(160,-340),0,'grip'],[at(10,-340),-3.6,'long'],[at(-80,-230),3.6,'sling'],[at(-80,-80),0,'refill']]); }
-{ const at=EVENTS[3].sNear;
+EVENTS[3].setup=()=>{ const at=EVENTS[3].sNear;
   addPickups(EVENTS[3],[[at(-20,-1300),-3.6,'refill'],[at(-20,-950),3.6,'sling'],[at(200,-800),0,'shield'],[at(560,-800),-3.6,'grip'],[at(720,-600),3.6,'over'],
     [at(720,-420),0,'refill'],[at(900,-300),-3.6,'long'],[at(1200,-300),3.6,'sling'],[at(1500,-300),0,'shock'],[at(1800,-300),-3.6,'grip'],
     [at(2030,-100),3.6,'shield'],[at(2030,250),0,'refill'],[at(1600,470),-3.6,'over'],[at(1300,470),3.6,'sling'],[at(1000,470),0,'shock'],
     [at(600,470),-3.6,'refill'],[at(250,470),3.6,'shield'],[at(-80,200),0,'grip'],[at(-80,-300),-3.6,'long'],[at(-80,-650),3.6,'shock'],[at(-80,-1100),0,'over']]); }
-{ const at=EVENTS[5].sNear;
+EVENTS[5].setup=()=>{ const at=EVENTS[5].sNear;
   addPickups(EVENTS[5],[[at(160,-320),-3.4,'refill'],[at(280,-320),3.4,'sling'],[at(340,-260),0,'grip'],[at(240,-200),-3.4,'over'],[at(80,-230),3.4,'shield'],
     [at(40,-320),0,'long'],[at(-40,-280),-3.4,'shock'],[at(120,-250),3.4,'refill'],[at(300,-250),0,'sling']]); }
-{ const at=EVENTS[6].sNear;
+EVENTS[6].setup=()=>{ const at=EVENTS[6].sNear;
   addPickups(EVENTS[6],[[at(200,20),-3.6,'refill'],[at(430,-120),3.6,'sling'],[at(430,-340),0,'shield'],[at(160,-340),-3.6,'grip'],[at(-80,120),3.6,'over'],
     [at(-80,470),0,'long'],[at(430,470),-3.6,'refill'],[at(720,470),3.6,'shock'],[at(720,200),0,'sling'],[at(430,20),-3.6,'over']]); }
-{ const at=EVENTS[7].sNear;
+EVENTS[7].setup=()=>{ const at=EVENTS[7].sNear;
   addPickups(EVENTS[7],[[at(-20,-1700),-3.6,'refill'],[at(-20,-950),3.6,'sling'],[at(400,-800),0,'shield'],[at(720,-500),-3.6,'grip'],[at(1200,-300),3.6,'long'],
     [at(1800,-300),0,'over'],[at(2300,-300),-3.6,'sling'],[at(2480,-320),3.6,'shock'],[at(900,-340),0,'refill'],[at(-80,250),-3.6,'shield'],
     [at(2030,200),3.6,'grip'],[at(1600,470),0,'long'],[at(720,470),-3.6,'over'],[at(-80,-900),3.6,'sling']]); }
-EVENTS.forEach(addChevrons);
+SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; }); }
 function worldFx(dt){
   (EV.pickups||[]).forEach(p=>{ p.gem.rotation.y+=dt*2.2; p.gem.rotation.x+=dt*.7; p.gem.position.y=1.3+Math.sin(ghostT*3+p.s)*.22; p.ring.scale.setScalar(1+Math.sin(ghostT*4+p.s)*.08);
@@ -1761,7 +1775,7 @@ bolt.frustumCulled=false; fxGroup.add(bolt);
 function boltAt(p){ bolt.position.set(p.x,p.y+30,p.z); boltT=.45; }
 const shieldGeo=new THREE.SphereGeometry(1,24,16), shieldMat=new THREE.MeshBasicMaterial({color:0x7dff9a,transparent:true,opacity:.16,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false});
 function setEvent(i){
-  EVI=(i+EVENTS.length)%EVENTS.length; EV=EVENTS[EVI]; RS=EV.scene; TR=EV.track; RS.add(fxGroup);
+  EVI=(i+EVENTS.length)%EVENTS.length; EV=ensureEvent(EVENTS[EVI]); RS=EV.scene; TR=EV.track; RS.add(fxGroup); releaseOthers();
   traffic=EV.traffic; EV.traffic.forEach(o=>{ o.m.group.visible=true; }); if(EV.resetTraffic) EV.resetTraffic();
   slData.forEach(d=>d.s=-1e9);
 }
@@ -2476,7 +2490,7 @@ function startLoading(){
 function endGhost(){ if(ghostCar){ ghostCar.scene.remove(ghostCar.group); ghostCar=null; } }
 function startRace(){
   clearRacers();
-  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id];
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id]; RIVAL_BOSS=Math.random()<.15;
   if(EV.knockout){ // every car in the archive on one grid; the six personas spread across the eleven rivals
     const others=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5), per=['apex','wall','leech','bruiser','closer','wild'], pSlot=6+Math.floor(Math.random()*4);
     for(let i=0,oi=0;i<12;i++){ const dist=-5-i*5.5, x=i%2?2.6:-2.6;

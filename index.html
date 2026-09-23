@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AFTERHOURS — Issue 01</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/afterhours.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Cover -->
+    <section id="screen-cover" class="screen active">
+      <div class="cover-vignette"></div>
+      <div class="cover-content">
+        <p class="eyebrow">Underground Motorsport Quarterly</p>
+        <h1>AFTERHOURS</h1>
+        <p class="issue">Issue 01 — Winter Circuit</p>
+        <p class="cover-tagline">Harbor Line. The Boulevard. No witnesses.</p>
+        <button id="btn-open-issue" class="btn-primary">Open the issue</button>
+      </div>
+    </section>
+
+    <!-- Car Select -->
+    <section id="screen-select" class="screen">
+      <div class="select-header">
+        <span class="eyebrow">Select your machine</span>
+        <span id="select-page-num" class="mono">01 / 03</span>
+      </div>
+      <div class="magazine-page" id="car-page">
+        <div class="car-page-left">
+          <h2 id="car-name">Kage R</h2>
+          <p id="car-tagline" class="car-tagline">Cold steel. Quiet violence.</p>
+          <dl class="car-stats" id="car-stats"></dl>
+          <div class="car-history" id="car-history"></div>
+        </div>
+        <div class="car-page-right">
+          <p id="car-copy" class="car-copy"></p>
+          <div class="event-picker">
+            <label class="eyebrow">Event</label>
+            <select id="event-select">
+              <option value="tunnel">Harbor Line — Tunnel 7</option>
+              <option value="boulevard">Event 02 — The Boulevard</option>
+            </select>
+          </div>
+          <button id="btn-race" class="btn-primary">Enter the race</button>
+        </div>
+      </div>
+      <div class="select-nav">
+        <button id="btn-prev-car" aria-label="Previous car">‹</button>
+        <button id="btn-next-car" aria-label="Next car">›</button>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <section id="screen-loading" class="screen">
+      <div class="loading-inner">
+        <p class="eyebrow" id="loading-event">Harbor Line — Tunnel 7</p>
+        <h2 id="loading-car">Kage R</h2>
+        <div class="progress-track"><div id="loading-bar"></div></div>
+        <p class="loading-hint mono">Tunnel lights warming up…</p>
+      </div>
+    </section>
+
+    <!-- Race HUD -->
+    <section id="screen-race" class="screen">
+      <div class="hud-top">
+        <div class="hud-block">
+          <span class="hud-label">LAP</span>
+          <span id="hud-lap" class="hud-value">1 / 2</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">POS</span>
+          <span id="hud-pos" class="hud-value">1 / 4</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">TIME</span>
+          <span id="hud-time" class="hud-value mono">0:00.0</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">WALLS</span>
+          <span id="hud-walls" class="hud-value">0</span>
+        </div>
+      </div>
+      <div class="boost-meter">
+        <div id="boost-fill"></div>
+        <span class="boost-label">BOOST</span>
+      </div>
+      <div id="draft-indicator" class="draft-indicator hidden">DRAFT</div>
+      <div class="touch-controls">
+        <button id="touch-left" class="touch-btn">◀</button>
+        <button id="touch-brake" class="touch-btn brake">BRAKE</button>
+        <button id="touch-boost" class="touch-btn boost">BOOST</button>
+        <button id="touch-right" class="touch-btn">▶</button>
+      </div>
+      <p class="controls-hint desktop-only">Steer: ← → / A D · Brake: ↓ S · Boost: Space</p>
+    </section>
+
+    <!-- Results -->
+    <section id="screen-results" class="screen">
+      <div class="results-inner">
+        <p class="eyebrow">Race Report</p>
+        <h2 id="results-headline">You took the line.</h2>
+        <div class="results-place" id="results-place">P1</div>
+        <dl class="results-stats">
+          <div><dt>Total time</dt><dd id="results-time" class="mono">—</dd></div>
+          <div><dt>Best lap</dt><dd id="results-best" class="mono">—</dd></div>
+          <div><dt>Wall hits</dt><dd id="results-walls">—</dd></div>
+          <div><dt>Event</dt><dd id="results-event">—</dd></div>
+        </dl>
+        <div id="win-stamp" class="win-stamp hidden">WIN</div>
+        <div class="results-actions">
+          <button id="btn-retry" class="btn-primary">Race again</button>
+          <button id="btn-menu" class="btn-ghost">Back to issue</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="flash-overlay" class="flash-overlay hidden"></div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

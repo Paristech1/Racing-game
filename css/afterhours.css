@@ -165,3 +165,12 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .pos.danger{color:#ff4a3d;animation:tpulse .35s ease-in-out infinite alternate}
 #hud .board .out{text-decoration:line-through;opacity:.35}
 #hud .board .m-ko{color:#ff4a3d;animation:tpulse .35s ease-in-out infinite alternate}
+
+/* speed stages */
+#hud .stg{display:flex;gap:4px;justify-content:center;margin-top:6px}
+#hud .stg i{width:18px;height:4px;background:rgba(255,255,255,.16);transition:background .2s,box-shadow .2s}
+#hud .stg i.on{background:#9fd3ff;box-shadow:0 0 8px #9fd3ff}
+#hud .stg.s3 i.on{background:#ffb347;box-shadow:0 0 10px #ff8a1a}
+#hud .stg.s4 i.on{background:#ff4a3d;box-shadow:0 0 12px #ff4a3d}
+#hud #hSpd{transition:color .25s}
+#hud #hSpd.s3{color:#ffe0b8} #hud #hSpd.s4{color:#ffc0b8;text-shadow:0 0 18px rgba(255,74,61,.5)}

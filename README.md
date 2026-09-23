@@ -82,13 +82,19 @@ Your car's class adds a twist. **Heavy** cars (Richmond, Dune-R, Sovereign, Gran
 
 ## Cars
 
-Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Split 63
+Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Split 63 · Overload 3K
 
 - **Bell 76:** blue and gold, the highest top speed and the biggest boost in the game. Built for the bridge.
 - **Passyunk R:** a light hot hatch with the most grip and acceleration.
 - **Richmond:** the heaviest vehicle, a pickup truck that shoves everything else out of the way.
 - **Zenkai 37:** a red widebody coupe with fender flares, a bolted wing, hood vents and six-spoke wheels.
 - **Split 63:** a black split-window restomod with chrome bumpers, side-exit pipes and red-lipped wheels.
+- **Overload 3K:** a 3,000 hp quad-motor electric hypercar with a bubble canopy, dorsal fin, cyan light blade and swan-neck wing. It's the fastest thing in the game. Rivals only bring it now and then (you'll get a warning), but it's always in the Gauntlet.
+
+Every car has metallic-flake paint under a clear coat, and details down to the wheels:
+- LED running lights and projector headlights, taillight clusters and a third brake light.
+- Mirrors, panel gaps, door handles, window trim, license plates, exhaust tips and a rear diffuser.
+- Treaded tires with lettered sidewalls, slotted brake rotors, deep rim barrels and lug nuts, plus contact shadows.
 
 Each car has its own speed, grip, boost, and weight. Press **Specs** for the full sheet.
 
@@ -122,6 +128,7 @@ Each persona bends differently. Wildcard and Bruiser go all-in quickly, and The 
 - **4× MSAA** through the whole post-processing chain (WebGL2), then bloom and a cinematic grade: split-tone color, vignette, edge chromatic aberration, and radial speed blur that ramps with speed and boost.
 - **Wet asphalt:** puddled roughness and normal maps on the roads, plus long light streaks under every streetlight, tunnel strip and taillight.
 - **Rain nights:** open-air events have a 45% chance of rain, shown on the loading screen. You get rain streaks, tire spray, a rain audio bed, wetter roads and stronger reflections. Rain stops inside tunnels.
+- **Speed stages:** headlight beams, beam cones, speed streaks, taillight trails and speed blur stay calm when you're cruising. They step up at about 90, 130 and 160 mph, and one more stage while boosting. A 4-pip meter under the speedometer shows the stage, turning amber and then red.
 - **Light and atmosphere:** volumetric cones under streetlights, headlight beams and road throw from every car, taillight trails at speed, exhaust flames while boosting, and a night-sky dome with stars, a moon and clouds lit by the city.
 
 ## Saved in your browser

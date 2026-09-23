@@ -200,7 +200,8 @@ const EVENT_CAR_BIAS={
  grand:{gripW:1.02,topW:1.1,nitroW:1.12},
  dockside:{gripW:1.08,topW:1.05,nitroW:1.06},
  skyline:{gripW:1.05,topW:1.08,nitroW:1.1},
- midnight:{gripW:1,topW:1.12,nitroW:1.14}
+ midnight:{gripW:1,topW:1.12,nitroW:1.14},
+ philly:{gripW:1.02,topW:1.16,nitroW:1.12}
 };
 const RIVAL_CAR_PREF={
  apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk']},
@@ -1150,12 +1151,25 @@ const MIDNIGHT_CFG={banner:'EVENT 07 · MIDNIGHT EXPRESS',start:[-20,-1950],
   roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
   cams:[[-20,-1050,1,0],[400,-800,0,1],[400,470,0,-1]],
   tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-2268,z1:-835}};
+/* Event 08: Philly landmark tour — long straights, technical turns, every car on the grid (≈8.2 km / lap). */
+const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1280],
+  corners:[[-20,-700,35],[780,-700,35],[780,-280,40],[2420,-280,25],[2420,450,35],[-80,450,35],[-80,-1280,35]],
+  yAt:(x,z)=>z<-250&&z>-360&&x>760?bridgeY(x):(z>400&&x>-100&&x<820?12+(z-400)*.008:0), zMin:-2400, ZS:[-880,-800,...ZS_BASE,450,560,650], jerseyMaxX:2450, toll:true,
+  trackX:(x,zc)=>(x===-20&&zc>-1280&&zc<-700)||(x===-80&&zc>-1280&&zc<450)||(x===780&&zc>-700&&zc<-250)||(x===2420&&zc>-280&&zc<450),
+  trackZ:(z,xc)=>(z===-700&&xc>-20&&xc<780)||(z===-1280&&xc>-80&&xc<20)||(z===450&&xc>-80&&xc<2420),
+  skip:[[-80,70,-880,-700]], excl:[],
+  gantries:[[-20,-1100,'ROOSEVELT BLVD','NORTHEAST PHILLY  ↑'],[420,-700,'SCHUYLKILL','EXPRESSWAY EAST  →'],[1550,-280,'BEN FRANKLIN BRIDGE','CAMDEN · DELAWARE  ↑'],
+    [2420,120,'SPORTS COMPLEX','WELCOME TO SOUTH PHILLY'],[-80,280,'BROAD STREET','CITY HALL · LOVE PARK'],[-80,-550,'ART MUSEUM','ROCKY STEPS  ← 1 MI'],[-20,-1180,'PHILLY CLASSIC','FULL GRID · ALL CARS']],
+  roads:[{ew:1,c:-700,dir:1,a:-20,b:780},{ew:1,c:-1280,dir:-1,a:-80,b:20},{ew:1,c:450,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:780,dir:1,a:-700,b:-280},{ew:0,c:2420,dir:-1,a:-280,b:450}],
+  cams:[[-20,-1150,1,0],[420,-700,0,1],[1680,-280,0,1],[-80,320,0,-1]],
+  decoBridge:true, skyline:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1340,z1:-735}};
 function buildKnockout(){ return buildCity(GAUNTLET_CFG); }
 function buildDockside(){ return buildCity(DOCKSIDE_CFG); }
 function buildSkyline(){ return buildCity(SKYLINE_CFG); }
 function buildMidnight(){ return buildCity(MIDNIGHT_CFG); }
 function buildBridge(){ return buildCity(BRIDGE_CFG); }
 function buildGrand(){ return buildCity(GRAND_CFG); }
+function buildPhiladelphia(){ return buildCity(PHILLY_CFG); }
 function buildCity(C){
   const V=(x,z)=>new THREE.Vector2(x,z);
   const path=filletPath(V(C.start[0],C.start[1]),C.corners.map(([x,z,r])=>[V(x,z),r]),1);
@@ -1427,7 +1441,17 @@ function buildCity(C){
   if(C.decoBridge) decoBridge();
   if(C.dockside) docksideDress();
   if(C.skyline) skylineDress();
+  if(C.philly) phillyDress();
   const arena=C.arena?arenaDress():null;
+
+  function phillyDress(){
+    const stepM=new THREE.MeshStandardMaterial({color:0x7a7670,roughness:.92});
+    for(let i=0;i<14;i++) boxM(16,.32,3.4,stepM,-118,.16+i*.32,-548-i*.75);
+    const heroM=new THREE.MeshStandardMaterial({color:0x6a4a2a,metalness:.7,roughness:.35});
+    mesh(new THREE.CylinderGeometry(.55,.75,2.2,8),heroM,-118,3.4,-565);
+    mesh(new THREE.SphereGeometry(.65,10,8),heroM,-118,4.7,-565);
+    const rt=mesh(new THREE.PlaneGeometry(7,1.4),new THREE.MeshBasicMaterial({map:CT(signCanvas2('READING TERMINAL','MARKET · 12TH & ARCH',{bg:'#0a0d12',color:'#ffd86a'})),toneMapped:false}),205,8.2,-55); rt.rotation.y=Math.PI;
+  }
 
   function docksideDress(){
     const stackM=new THREE.MeshStandardMaterial({color:0x1a4a6a,metalness:.55,roughness:.4});
@@ -1582,7 +1606,11 @@ const EVENTS=[
   {id:'midnight',build:buildMidnight,open:true,laps:1,name:'Midnight Express',kick:'Event 07',loc:'All night',when:'Blvd, bridge, Camden, tunnel',
    caption:'The longest, fastest, most playful course in one lap: long boost-friendly straights, the Harbor Line tunnel, sweeping bends, and a high-speed run to the line.',
    specs:'10.6 KM / 1 LAP / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
-   note:'one lap.\nall of it.',load:'Midnight Express. Ten kilometers, one lap, no shortcuts.'}
+   note:'one lap.\nall of it.',load:'Midnight Express. Ten kilometers, one lap, no shortcuts.'},
+  {id:'philly',build:buildPhiladelphia,open:true,fullGrid:true,laps:3,name:'Philly Classic',kick:'Event 08',loc:'City to Camden',when:'Roosevelt Blvd to the Ben Franklin Bridge',
+   caption:'Three laps through the landmarks: Roosevelt Blvd, the Schuylkill straight, a full sprint over the Ben Franklin Bridge, Broad Street past City Hall and LOVE Park, then back up 15th. Every car in the archive starts on the same grid.',
+   specs:'8.2 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
+   note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
@@ -1681,6 +1709,11 @@ EVENTS[7].setup=()=>{ const at=EVENTS[7].sNear;
   addPickups(EVENTS[7],[[at(-20,-1700),-3.6,'refill'],[at(-20,-950),3.6,'sling'],[at(400,-800),0,'shield'],[at(720,-500),-3.6,'grip'],[at(1200,-300),3.6,'long'],
     [at(1800,-300),0,'over'],[at(2300,-300),-3.6,'sling'],[at(2480,-50),3.6,'shock'],[at(2480,300),0,'refill'],[at(1600,470),-3.6,'shield'],
     [at(1000,470),3.6,'grip'],[at(500,470),0,'long'],[at(-80,250),-3.6,'over'],[at(-80,-400),3.6,'sling'],[at(-80,-1200),0,'refill'],[at(-80,-2000),-3.6,'shock']]); }
+EVENTS[8].setup=()=>{ const at=EVENTS[8].sNear;
+  addPickups(EVENTS[8],[[at(-20,-1150),-3.4,'refill'],[at(-20,-850),3.4,'long'],[at(200,-700),0,'sling'],[at(520,-700),-3.4,'over'],[at(780,-480),3.4,'grip'],
+    [at(1100,-280),0,'refill'],[at(1550,-280),-3.4,'long'],[at(2000,-280),3.4,'over'],[at(2420,80),0,'shield'],[at(2420,350),-3.4,'sling'],
+    [at(1200,450),3.4,'long'],[at(400,450),0,'refill'],[at(-80,380),-3.4,'grip'],[at(-80,50),3.4,'over'],[at(-80,-400),0,'shock'],
+    [at(-20,-1150),0,'desperate',{last:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1680,-280),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; }); }
 function worldFx(dt){
@@ -2602,6 +2635,15 @@ function startRace(){
       if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
       const car=others[oi], P=R_(per[oi%6]); oi++;
       addRacer(Object.assign({},car,{id:P.id,chassisId:car.id,tag:car.name,color:P.color,car:car.name,P:Object.assign({},P.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.02); }
+  } else if(EV.fullGrid){
+    const lineup=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5);
+    const pSlot=4+Math.floor(Math.random()*Math.max(1,lineup.length-8));
+    lineup.splice(pSlot,0,me);
+    const per=['apex','wall','leech','bruiser','closer','wild'];
+    lineup.forEach((car,i)=>{ const dist=-5-i*5.2, x=i%2?2.8:-2.8;
+      if(car.id===me.id){ player=addRacer(me,true,dist,x,1); return; }
+      const shell=R_(per[i%6]);
+      addRacer(Object.assign({},car,{chassisId:car.id,tag:car.name,car:car.name,P:Object.assign({},shell.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.025); });
   } else {
   const grid=[
    ['apex',-5,-2.6,.99],['closer',-11,2.6,.985],['wall',-17,-2.6,.975],

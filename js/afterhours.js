@@ -140,10 +140,10 @@ CARS.push(
 );
 CARS.push(
  {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,paint:0xffc20e,metal:.55,rough:.12,rim:0x1a1b1e,caliper:0x121314,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
-  top:106,acc:35,grip:34,nitro:1.4,mass:.95,nosVmax:1.33,
+  top:112,acc:42,grip:34,nitro:1.52,mass:.46,nosVmax:1.4,nosAccMul:2.2,
   kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
   caption:'Volcano yellow, a teardrop canopy and a snorkel on the roof. The wing stands up at speed and it still pulls.',
-  specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.9S / FASTEST CAR IN THE ARCHIVE',
+  specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.5S / LIGHTEST · FASTEST LAUNCH IN THE ARCHIVE',
   rival:'Rival note: nothing in the archive touches it flat out. Beat it in the corners or not at all.',
   note:'fastest\nthing here.', notePos:{l:'60%',t:'34%'},
   cam:{p:[4.4,1.0,-3.9],l:[0,.5,-.2],roll:.07,fov:31}}
@@ -164,7 +164,7 @@ const SHEETS={
  overload:{engine:'Four axial-flux e-motors, 2.2 MW',power:'3,000 hp',torque:'2,900 lb-ft',zero:'1.4 s',vmax:'268 mph',weight:'4,300 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed, two-stage'},
  granfour:{engine:'4.0L twin-turbo V8',power:'690 hp',torque:'680 lb-ft',zero:'3.1 s',vmax:'199 mph',weight:'4,400 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
  wisp:{engine:'Triple e-motors, carbon tub',power:'920 hp',torque:'780 lb-ft',zero:'1.8 s',vmax:'228 mph',weight:'1,980 lb',drive:'All-wheel drive',gearbox:'Single-speed'},
- volcano:{engine:'3.8L twin-turbo V8 + e-motor (IPAS)',power:'1,350 hp',torque:'1,090 lb-ft',zero:'1.9 s',vmax:'285 mph',weight:'3,050 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
+ volcano:{engine:'3.8L twin-turbo V8 + e-motor (IPAS)',power:'1,350 hp',torque:'1,090 lb-ft',zero:'1.5 s',vmax:'290 mph',weight:'2,425 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
  stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
@@ -2557,7 +2557,7 @@ function renderSheet(dir){
   $('#shKick').textContent=`Spec sheet, ${String(page+1).padStart(2,'0')} of ${String(CARS.length).padStart(2,'0')}`;
   $('#shName').textContent=d.name;
   const rows=[['Engine',sh.engine],['Power',sh.power],['Torque',sh.torque],['0–60 mph',sh.zero],['Top speed',sh.vmax],['Weight',sh.weight],['Drivetrain',sh.drive],['Gearbox',sh.gearbox]];
-  const bars=[['Speed',d.top/106],['Acceleration',d.acc/39],['Grip',d.grip/36],['Boost',d.nitro/1.55],['Weight',(d.mass||1)/2],['Handling',(d.grip/36)*(1.15-((d.mass||1)-1)*.35)]];
+  const bars=[['Speed',d.top/112],['Acceleration',d.acc/42],['Grip',d.grip/36],['Boost',d.nitro/1.55],['Weight',(d.mass||1)/2],['Handling',(d.grip/36)*(1.15-((d.mass||1)-1)*.35)]];
   $('#shBody').innerHTML=rows.map((r,i)=>`<div class="srow sline" style="--sx:${(dir||1)*30}px;animation-delay:${i*35}ms"><span>${r[0]}</span><b>${esc(r[1]||'—')}</b></div>`).join('')+
     `<div class="sbars">${bars.map(b=>`<div class="sbar">${b[0]}<i><b data-w="${Math.round(clamp(b[1],0,1)*100)}"></b></i></div>`).join('')}</div>`;
   $('#shPg').textContent=`${String(page+1).padStart(2,'0')} / ${String(CARS.length).padStart(2,'0')}`;

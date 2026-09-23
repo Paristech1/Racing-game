@@ -120,6 +120,24 @@ CARS.push(
   note:'don\'t\nfloor it.', notePos:{l:'60%',t:'34%'}, plate:'3000HP',
   cam:{p:[4.8,.9,-4.2],l:[0,.45,-.2],roll:.08,fov:30}}
 );
+CARS.push(
+ {id:'wisp',name:'WISP 07',body:'hatch',paint:0xe8f4ff,metal:.35,rough:.18,rim:0xc8dce8,caliper:0x7dffef,wing:true,world:'flash',
+  top:97,acc:39,grip:29,nitro:1.55,mass:.52,nitroRegenMul:.28,nosVmax:1.42,nosAccMul:2.05,nosDrainMul:1.18,
+  kick:'Carbon tub',loc:'South Street, Loading Bay 2',when:'Tuesday, 01:08',
+  caption:'Weighed on a freight scale. The clerk thought the scale was broken.',
+  specs:'TRIPLE E-MOTOR / 920 HP / 1,980 LB / 0–60 IN 1.8S',
+  rival:'Rival note: it launches like a railgun. Boost takes forever to come back.',
+  note:'feather.\nviolent.', notePos:{l:'62%',t:'35%'},
+  cam:{p:[-4.0,.85,3.6],l:[0,.55,.35],roll:-.05,fov:32}},
+ {id:'stratos',name:'STRATOS V',body:'hyper',hyper:true,paint:0xff6a1a,metal:.65,rough:.16,rim:0x14161a,caliper:0xffd23b,wing:true,livery:0xffd23b,accent:0xff6a1a,spokes:5,world:'ice',
+  top:102,acc:29,grip:35,nitro:1.42,mass:1.08,nosVmax:1.28,
+  kick:'Wind-tunnel',loc:'Delaware Ave Overpass',when:'Pre-dawn, 04:55',
+  caption:'Built for sustained flat-out. The wing is not for show.',
+  specs:'HYBRID V8 + E-AXLE / 1,180 HP / ACTIVE AERO / 0–60 IN 2.0S',
+  rival:'Rival note: Apex can\'t match it on the long pulls. Don\'t fight it in the esses.',
+  note:'hold\nflat.', notePos:{l:'58%',t:'33%'},
+  cam:{p:[4.2,1.05,-4.0],l:[0,.5,-.15],roll:.07,fov:31}}
+);
 // full spec sheets (slide-up panel)
 const SHEETS={
  kage:{engine:'4.0L flat-plane V8, twin-turbo',power:'1,040 hp',torque:'780 lb-ft',zero:'2.3 s',vmax:'221 mph',weight:'3,120 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
@@ -134,7 +152,9 @@ const SHEETS={
  zenkai:{engine:'3.7L twin-turbo V6',power:'640 hp',torque:'560 lb-ft',zero:'3.2 s',vmax:'198 mph',weight:'3,300 lb',drive:'Rear-wheel drive',gearbox:'6-speed manual'},
  split:{engine:'6.2L supercharged V8',power:'755 hp',torque:'715 lb-ft',zero:'3.0 s',vmax:'201 mph',weight:'3,450 lb',drive:'Rear-wheel drive',gearbox:'7-speed manual'},
  overload:{engine:'Four axial-flux e-motors, 2.2 MW',power:'3,000 hp',torque:'2,900 lb-ft',zero:'1.4 s',vmax:'268 mph',weight:'4,300 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed, two-stage'},
- granfour:{engine:'4.0L twin-turbo V8',power:'690 hp',torque:'680 lb-ft',zero:'3.1 s',vmax:'199 mph',weight:'4,400 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'}
+ granfour:{engine:'4.0L twin-turbo V8',power:'690 hp',torque:'680 lb-ft',zero:'3.1 s',vmax:'199 mph',weight:'4,400 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
+ wisp:{engine:'Triple e-motors, carbon tub',power:'920 hp',torque:'780 lb-ft',zero:'1.8 s',vmax:'228 mph',weight:'1,980 lb',drive:'All-wheel drive',gearbox:'Single-speed'},
+ stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
 const LAPS=2; // default; an event can set its own laps
@@ -176,8 +196,8 @@ const RIVAL_CAR_PREF={
  wall:{gripW:1.05,topW:1,ids:['granfour','dune','sovereign','vanta']},
  leech:{gripW:.95,topW:1.05,nitroW:1.15,ids:['zenkai','noctis','sovereign','kage','vanta']},
  bruiser:{gripW:.92,topW:1.02,ids:['richmond','dune','sovereign','granfour','noctis']},
- closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['bell','noctis','vanta','kern','sovereign']},
- wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour']}
+ closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['bell','noctis','vanta','kern','sovereign','stratos']},
+ wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour','wisp']}
 };
 let RIVAL_BOSS=false;
 function buildRivalForEvent(rival,eventId,taken){
@@ -207,6 +227,8 @@ function nearestAlongside(r,span){
 }
 function scorePickup(r,p,P,s0,L){
  if(p.cd>0) return -999;
+ if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return -999;
+ if(p.lastOnly){ const n=EV.knockout?koActive().length:racers.filter(x=>!x.finished).length; if(standings().indexOf(r)+1!==n) return -999; }
  let dd=p.s-s0; if(dd<0) dd+=L;
  if(dd<5||dd>72) return -999;
  const lat=Math.abs(p.x-r.x), det=lat*1.35+dd*.045;
@@ -215,6 +237,8 @@ function scorePickup(r,p,P,s0,L){
  if(p.type==='long'&&(P.nitro==='pass'||P.nitro==='reserve')) val+=2.5;
  if(p.type==='over'&&(P.nitro==='eager'||P.nitro==='burst')) val+=3;
  if(r.nitro<.35) val+=4;
+ if(p.type==='desperate') val+=14;
+ if(p.type==='wispflux'||p.type==='stratossurge') val+=6;
  if(r.def.id==='wild') val+=2;
  if(r.def.id==='apex'&&lat>3.2) val-=3;
  return val-det*(1.1-P.risk*.35);
@@ -1563,18 +1587,20 @@ function bindKoTrack(i){
 /* ---- power-ups on the racing surface (any car can grab them) ---- */
 const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},long:{c:0xb28cff,css:'#b28cff',label:'Long Boost',tag:'LONG BOOST'},over:{c:0xffb020,css:'#ffb020',label:'Overdrive',tag:'OVERDRIVE'},
   sling:{c:0xff3b4a,css:'#ff3b4a',label:'Slingshot',tag:'SLINGSHOT'},shield:{c:0x7dff9a,css:'#7dff9a',label:'Shield',tag:'SHIELD'},
-  shock:{c:0xff6fd8,css:'#ff6fd8',label:'Shockwave',tag:'SHOCKWAVE'},grip:{c:0x4f7bff,css:'#4f7bff',label:'Grip Tires',tag:'GRIP'}};
-const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip.';
+  shock:{c:0xff6fd8,css:'#ff6fd8',label:'Shockwave',tag:'SHOCKWAVE'},grip:{c:0x4f7bff,css:'#4f7bff',label:'Grip Tires',tag:'GRIP'},
+  wispflux:{c:0x7dffef,css:'#7dffef',label:'Feather Flux',tag:'FEATHER FLUX'},stratossurge:{c:0xff9a3c,css:'#ff9a3c',label:'Strato Surge',tag:'STRATO SURGE'},
+  desperate:{c:0xff4466,css:'#ff4466',label:'Desperation',tag:'LAST-CHANCE'}};
+const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux and Strato Surge gems are locked to Wisp 07 and Stratos V. The red Last-Chance gem only works for whoever is in last place (random rescue or a long flat-out boost).';
 const puGeo=new THREE.OctahedronGeometry(.62,0), puRing=new THREE.TorusGeometry(1.15,.07,6,28);
 function addPickups(ev,list){
   ev.pickups=[]; const f=mkF();
-  list.forEach(([s,x,type])=>{ frame(s,f,ev.track); const T=PU_TYPES[type];
+  list.forEach(item=>{ const s=item[0],x=item[1],type=item[2],opts=item[3]||{}; frame(s,f,ev.track); const T=PU_TYPES[type];
     const g=new THREE.Group(); g.position.copy(f.p).addScaledVector(f.r,x);
-    const gem=new THREE.Mesh(puGeo,new THREE.MeshStandardMaterial({color:T.c,emissive:T.c,emissiveIntensity:1.5,metalness:.3,roughness:.2})); gem.position.y=1.3; g.add(gem);
-    const gl=glowSprite(T.c,3.4); gl.position.y=1.3; g.add(gl);
-    const ring=new THREE.Mesh(puRing,new THREE.MeshBasicMaterial({color:T.c,toneMapped:false,transparent:true,opacity:.75})); ring.rotation.x=Math.PI/2; ring.position.y=.07; g.add(ring);
+    const gem=new THREE.Mesh(puGeo,new THREE.MeshStandardMaterial({color:T.c,emissive:T.c,emissiveIntensity:opts.sig?2.1:1.5,metalness:.3,roughness:.2})); gem.position.y=1.3; g.add(gem);
+    const gl=glowSprite(T.c,opts.last?4.2:3.4); gl.position.y=1.3; g.add(gl);
+    const ring=new THREE.Mesh(puRing,new THREE.MeshBasicMaterial({color:T.c,toneMapped:false,transparent:true,opacity:opts.last?.88:.75})); ring.rotation.x=Math.PI/2; ring.position.y=.07; g.add(ring);
     const lab=addLabel(g,T.tag,T.css); lab.position.y=2.55;
-    ev.scene.add(g); ev.pickups.push({s,x,type,g,gem,ring,cd:0}); });
+    ev.scene.add(g); ev.pickups.push({s,x,type,g,gem,ring,cd:0,carId:opts.car||null,lastOnly:!!opts.last,sig:!!opts.sig}); });
 }
 /* ---- floating chevrons ahead of the brutal corners ---- */
 function chevCanvas(dir){ return canvasTex(256,160,(g)=>{ g.fillStyle='rgba(6,8,12,.72)'; g.fillRect(6,6,244,148); g.strokeStyle='#ff9d2a'; g.lineWidth=5; g.strokeRect(6,6,244,148);
@@ -1602,8 +1628,8 @@ function addChevrons(ev){
     ev.chevrons.push({m:big,y:big.position.y,i:ev.chevrons.length,big:true});
   });
 }
-EVENTS[0].setup=()=>addPickups(EVENTS[0],[[300,-3,'refill'],[460,0,'sling'],[620,3,'over'],[790,-3,'shield'],[950,0,'long'],[1120,3,'grip'],[1280,-3,'refill'],[1450,0,'shock'],[1600,3,'over'],[1760,-3,'sling'],[1900,0,'long']]);
-EVENTS[1].setup=()=>addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[1000,0,'over'],[1400,-3.4,'refill'],[1800,3.4,'over'],[2200,0,'long'],[2700,-3.4,'over'],[3100,3.4,'refill'],
+EVENTS[0].setup=()=>addPickups(EVENTS[0],[[300,-3,'refill'],[460,0,'sling'],[540,-3,'wispflux',{car:'wisp',sig:1}],[620,3,'over'],[790,-3,'shield'],[950,0,'long'],[980,3,'stratossurge',{car:'stratos',sig:1}],[1120,3,'grip'],[1280,-3,'refill'],[1420,0,'desperate',{last:1}],[1450,0,'shock'],[1600,3,'over'],[1760,-3,'sling'],[1900,0,'long']]);
+EVENTS[1].setup=()=>addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[720,-3.4,'wispflux',{car:'wisp',sig:1}],[1000,0,'over'],[1400,-3.4,'refill'],[1800,3.4,'over'],[2100,0,'desperate',{last:1}],[2200,0,'long'],[2700,-3.4,'over'],[2950,3.4,'stratossurge',{car:'stratos',sig:1}],[3100,3.4,'refill'],
   [400,0,'sling'],[780,-3.4,'shield'],[1200,3.4,'grip'],[1600,0,'shock'],[2000,-3.4,'sling'],[2450,3.4,'shield'],[2900,0,'shock']]);
 EVENTS[2].setup=()=>{ const at=EVENTS[2].sNear;
   addPickups(EVENTS[2],[[at(200,20),-3.6,'refill'],[at(470,20),3.6,'sling'],[at(640,20),0,'grip'],[at(720,-150),0,'shield'],[at(880,-300),-3.6,'over'],
@@ -1637,7 +1663,11 @@ function worldFx(dt){
 function checkPickups(r){
   if(!EV.pickups) return; const L=TR.L, s0=((r.dist%L)+L)%L;
   r.puCd=r.puCd||{}; // every car can take each pickup once per pass; the gem just blinks when someone does
-  EV.pickups.forEach((p,i)=>{ if((r.puCd[i]||-1)>ghostT) return; let d=Math.abs(s0-p.s); d=Math.min(d,L-d);
+  const n=EV.knockout?koActive().length:racers.filter(x=>!x.finished).length, place=standings().indexOf(r)+1;
+  EV.pickups.forEach((p,i)=>{ if((r.puCd[i]||-1)>ghostT) return;
+    if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return;
+    if(p.lastOnly&&place!==n) return;
+    let d=Math.abs(s0-p.s); d=Math.min(d,L-d);
     if(d<2.8&&Math.abs(r.x-p.x)<2.8){ r.puCd[i]=ghostT+6; p.cd=.35; p.g.visible=false; applyPU(r,(EV.knockout&&KO&&!KO.done&&KO.mod&&KO.mod.pu)||p.type); } });
 }
 /* ---- power-ups play differently by race position and car ----
@@ -1651,7 +1681,10 @@ const PU_VARIANTS={
  sling:{front:['Kick','A small shove forward.'],pack:['Slingshot','Launched forward.'],chase:['Catapult','Launched and towed toward the car ahead.']},
  shield:{front:['Rear Guard','Hits from behind and shockwaves bounce off for 9s.'],pack:['Shield','Walls and contact can\'t slow you for 6s.'],chase:['Battering Ram','Shielded for 5s. Hit a car from behind to steal its speed.']},
  shock:{front:['Wake','Everyone behind you loses speed.'],pack:['Shockwave','Every car around you loses speed.'],chase:['Lightning','The leaders get struck, wherever they are.']},
- grip:{front:['Grip Tires','45% more grip for 8s.'],pack:['Slicks','More grip and no scrub through corners for 8s.'],chase:['Rails','80% more grip, and walls can\'t slow you for 6s.']}
+ grip:{front:['Grip Tires','45% more grip for 8s.'],pack:['Slicks','More grip and no scrub through corners for 8s.'],chase:['Rails','80% more grip, and walls can\'t slow you for 6s.']},
+ wispflux:{front:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.'],pack:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.'],chase:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.']},
+ stratossurge:{front:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],pack:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],chase:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.']},
+ desperate:{front:['Last-Chance','Last place only: random rescue.'],pack:['Last-Chance','Last place only: random rescue.'],chase:['Last-Chance','Last place only: random rescue.']}
 };
 const BR_LABEL={front:'front-runner',pack:'midpack',chase:'from the back'};
 function carClass(d){ const m=d.mass||1; if(m>=1.35) return 'heavy'; if(d.grip>=32) return 'nimble'; if((d.nitro||1)>=1.2||d.top>=92) return 'muscle'; return 'balanced'; }
@@ -1659,6 +1692,7 @@ function bracketOf(r){ if(mode!=='race'||!racers.length) return 'pack'; const n=
 function nextAhead(r,maxD){ let best=null,bd=maxD; for(const o of racers){ if(o===r||o.finished) continue; const g=o.dist-r.dist; if(g>2&&g<bd){ bd=g; best=o; } } return best; }
 function shieldVs(c,o){ if(!(c.fxShield>0)) return false; return c.shieldMode==='rear'?o.dist<c.dist:true; }
 function applyPU(r,type){
+  if(type==='wispflux'||type==='stratossurge'||type==='desperate') return applySigPU(r,type);
   const br=bracketOf(r), cls=carClass(r.def), V=PU_VARIANTS[type][br], jack=Math.random()<.125||koMod('jackpot'), J=jack?1.5:1;
   let twist='';
   r.fxName=r.fxName||{};
@@ -1706,6 +1740,36 @@ function applyPU(r,type){
     tone(jack?1040:880,.12,.25,'triangle'); setTimeout(()=>tone(jack?1560:1320,.18,.22,'triangle'),90); if(jack) setTimeout(()=>tone(2080,.22,.2,'triangle'),200); flash(jack?.35:.18); }
   else if(player&&type!=='shock'&&Math.abs(r.dist-player.dist)<70&&r.def.tag) persona(r,`${r.def.tag} grabbed ${jack?'a jackpot ':''}${V[0]}.`);
   if(r.isP) tapeLog('powerup',{who:'YOU',tag:(jack?'Jackpot ':'')+V[0]});
+}
+function applySigPU(r,type){
+  const br=bracketOf(r), V=PU_VARIANTS[type][br]; r.fxName=r.fxName||{}; let title=V[0], body=V[1];
+  if(type==='wispflux'){
+    r.nitro=Math.max(r.nitro,1.12); r.fxWisp=5.5; r.fxNosMul=5.5; r.gripMul=1.9; r.fxGrip=5.5; r.noScrub=true;
+    body='Feather-light grip and boost hits like a cannon for 5.5s. Tank refills slowly — spend it here.';
+  } else if(type==='stratossurge'){
+    r.nitro=Math.max(r.nitro,.9); r.overMul=1.28; r.fxOver=7; r.fxLong=7; r.drainMul=.2; r.draftRange=44; r.overAcc=6;
+    body='Top speed, long boost, and mega draft for 7s. Built for holding flat.';
+  } else if(type==='desperate'){
+    const roll=Math.random();
+    if(roll<.38){
+      title='Hail Mary Boost'; r.fxLong=11; r.drainMul=0; r.nitro=Math.max(r.nitro,1.35); r.fxRegen=4;
+      body='Last place only: boost does not drain for 11s, tank overfilled.';
+    } else if(roll<.72){
+      title='Desperation Catapult'; r.fxSling=1.6; r.v=Math.min(r.v+28,r.def.top*1.35);
+      const t=nextAhead(r,200); if(t){ r.towT=3.2; r.towTarget=t; }
+      body='Last place only: launched forward and towed toward the pack.';
+    } else {
+      title='Chaos Draw'; const pick=['refill','long','over','sling','grip'][Math.floor(Math.random()*5)];
+      applyPU(r,pick); r.fxName.desperate=title;
+      if(r.isP) toast(`Last-Chance: rerolled into ${(r.fxName[pick]||pick)}.`); return;
+    }
+  }
+  r.fxName[type==='desperate'?'desperate':type]=title;
+  r.puLog=r.puLog||{}; r.puLog[`${type}/${br}`]=(r.puLog[`${type}/${br}`]||0)+1;
+  if(mode!=='race') return;
+  if(r.isP){ toast(`${title}. ${body}`); tone(type==='desperate'?720:960,.14,.28,'triangle'); flash(type==='desperate'?.32:.2); }
+  else if(player&&Math.abs(r.dist-player.dist)<70&&r.def.tag) persona(r,`${r.def.tag} grabbed ${title}.`);
+  if(r.isP) tapeLog('powerup',{who:'YOU',tag:title});
 }
 // shockwave modes: ring hits cars around you, wake only cars behind, lightning strikes the leaders anywhere
 const swF=mkF(), swV=new THREE.Vector3();
@@ -2088,9 +2152,11 @@ function stepRacer(r,dt,inp){
     r._nos=nitro;
   }
   r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*9)):steer;
-  const vmax=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*(nitro?1.22:1)*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
+  const nosVmax=d.nosVmax||1.22, nosV=nitro?nosVmax*(r.fxWisp>0?1.1:1):1;
+  const vmax=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
   let a=d.acc*Math.max(0,1-r.v/vmax); if(r.v>vmax) a=-10;
-  if(nitro) a+=14*d.nitro*(r.fxNosMul>0?1.2:1);
+  const nosAcc=(d.nosAccMul||1)*(r.fxNosMul>0?1.35:1)*(r.fxWisp>0?1.12:1);
+  if(nitro) a+=14*d.nitro*nosAcc;
   if(r.fxOver>0) a+=5+(r.overAcc||0);
   if(r.towT>0&&r.towTarget){ const g=r.towTarget.dist-r.dist; if(g>8&&g<220) a+=16; else r.towT=0; }
   if(r.fxSling>0) a+=22;
@@ -2098,16 +2164,17 @@ function stepRacer(r,dt,inp){
   if(brakeAmt>0) a=-40*brakeAmt;
   if(mode==='race'&&raceT<r.startDelay) a=0;
   r.v=Math.max(0,r.v+a*dt);
-  if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(r.fxLong>0?(r.drainMul!==undefined?r.drainMul:.35):1));
+  if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(d.nosDrainMul||1)*(r.fxLong>0?(r.drainMul!==undefined?r.drainMul:.35):1));
   else if(r.nitro>1) r.nitro=Math.max(1,r.nitro-.015*dt);
   r.nosOn=nitro;
-  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','towT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
+  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','towT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
   const ac=r.v*r.v*k*.5, sa=r.steer*G*Math.min(1,r.v/18);
   r.vx+=(sa+ac-r.vx*3.2)*dt;
   r.x+=r.vx*dt;
   r.slip=clamp((Math.abs(ac)-G*.72)/(G*.4),0,1)*(r.v>30?1:0) + (brake&&r.v>35?.6:0);
   if(r.fxGrip>0&&r.noScrub) r.slip*=.3;
-  const regen=r.noRegen&&r.fxOver>0?0:(.035+r.slip*.12)*dt*(r.isP?1:1.2)*(r.fxRegen>0?2.5:1)*(koMod('nitro')?2:1);
+  const regenMul=d.nitroRegenMul!==undefined?d.nitroRegenMul:1;
+  const regen=r.noRegen&&r.fxOver>0?0:(.035+r.slip*.12)*dt*(r.isP?1:1.2)*(r.fxRegen>0?2.5:1)*regenMul*(koMod('nitro')?2:1);
   r.nitro=Math.min(Math.max(1,r.nitro),r.nitro+regen);
   const lim=W-1.1; r.hitCd-=dt;
   if(Math.abs(r.x)>lim){ const sd=Math.sign(r.x); r.x=sd*lim;
@@ -2427,7 +2494,7 @@ function renderSheet(dir){
   $('#shKick').textContent=`Spec sheet, ${String(page+1).padStart(2,'0')} of ${String(CARS.length).padStart(2,'0')}`;
   $('#shName').textContent=d.name;
   const rows=[['Engine',sh.engine],['Power',sh.power],['Torque',sh.torque],['0–60 mph',sh.zero],['Top speed',sh.vmax],['Weight',sh.weight],['Drivetrain',sh.drive],['Gearbox',sh.gearbox]];
-  const bars=[['Speed',d.top/94],['Acceleration',d.acc/26],['Grip',d.grip/36],['Boost',d.nitro/1.3],['Weight',(d.mass||1)/1.8],['Handling',(d.grip/36)*(1.15-((d.mass||1)-1)*.35)]];
+  const bars=[['Speed',d.top/102],['Acceleration',d.acc/39],['Grip',d.grip/36],['Boost',d.nitro/1.55],['Weight',(d.mass||1)/2],['Handling',(d.grip/36)*(1.15-((d.mass||1)-1)*.35)]];
   $('#shBody').innerHTML=rows.map((r,i)=>`<div class="srow sline" style="--sx:${(dir||1)*30}px;animation-delay:${i*35}ms"><span>${r[0]}</span><b>${esc(r[1]||'—')}</b></div>`).join('')+
     `<div class="sbars">${bars.map(b=>`<div class="sbar">${b[0]}<i><b data-w="${Math.round(clamp(b[1],0,1)*100)}"></b></i></div>`).join('')}</div>`;
   $('#shPg').textContent=`${String(page+1).padStart(2,'0')} / ${String(CARS.length).padStart(2,'0')}`;

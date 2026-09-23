@@ -240,7 +240,7 @@ function nearestAlongside(r,span){
 function scorePickup(r,p,P,s0,L){
  if(p.cd>0) return -999;
  if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return -999;
- if(p.lastOnly){ const n=EV.knockout?koActive().length:racers.filter(x=>!x.finished).length; if(standings().indexOf(r)+1!==n) return -999; }
+ if(p.lastOnly) return -999;
  let dd=p.s-s0; if(dd<0) dd+=L;
  if(dd<5||dd>72) return -999;
  const lat=Math.abs(p.x-r.x), det=lat*1.35+dd*.045;
@@ -1646,7 +1646,7 @@ const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},lo
   shock:{c:0xff6fd8,css:'#ff6fd8',label:'Shockwave',tag:'SHOCKWAVE'},grip:{c:0x4f7bff,css:'#4f7bff',label:'Grip Tires',tag:'GRIP'},
   wispflux:{c:0x7dffef,css:'#7dffef',label:'Feather Flux',tag:'FEATHER FLUX'},stratossurge:{c:0xff9a3c,css:'#ff9a3c',label:'Strato Surge',tag:'STRATO SURGE'},
   desperate:{c:0xff4466,css:'#ff4466',label:'Desperation',tag:'LAST-CHANCE'}};
-const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux and Strato Surge gems are locked to Wisp 07 and Stratos V. The red Last-Chance gem only works for whoever is in last place (random rescue or a long flat-out boost).';
+const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux and Strato Surge gems are locked to Wisp 07 and Stratos V. The red Last-Chance gem hunts whoever is in last place and flies to them — no need to hit the line.';
 const puGeo=new THREE.OctahedronGeometry(.62,0), puRing=new THREE.TorusGeometry(1.15,.07,6,28);
 function addPickups(ev,list){
   ev.pickups=[]; const f=mkF();
@@ -1656,7 +1656,7 @@ function addPickups(ev,list){
     const gl=glowSprite(T.c,opts.last?4.2:3.4); gl.position.y=1.3; g.add(gl);
     const ring=new THREE.Mesh(puRing,new THREE.MeshBasicMaterial({color:T.c,toneMapped:false,transparent:true,opacity:opts.last?.88:.75})); ring.rotation.x=Math.PI/2; ring.position.y=.07; g.add(ring);
     const lab=addLabel(g,T.tag,T.css); lab.position.y=2.55;
-    ev.scene.add(g); ev.pickups.push({s,x,type,g,gem,ring,cd:0,carId:opts.car||null,lastOnly:!!opts.last,sig:!!opts.sig}); });
+    ev.scene.add(g); ev.pickups.push({s,x,homeS:s,homeX:x,type,g,gem,ring,cd:0,homing:false,carId:opts.car||null,lastOnly:!!opts.last,sig:!!opts.sig}); });
 }
 /* ---- floating chevrons ahead of the brutal corners ---- */
 function chevCanvas(dir){ return canvasTex(256,160,(g)=>{ g.fillStyle='rgba(6,8,12,.72)'; g.fillRect(6,6,244,148); g.strokeStyle='#ff9d2a'; g.lineWidth=5; g.strokeRect(6,6,244,148);
@@ -1715,19 +1715,60 @@ EVENTS[8].setup=()=>{ const at=EVENTS[8].sNear;
     [at(1200,450),3.4,'long'],[at(400,450),0,'refill'],[at(-80,380),-3.4,'grip'],[at(-80,50),3.4,'over'],[at(-80,-400),0,'shock'],
     [at(-20,-1150),0,'desperate',{last:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1680,-280),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
-function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; }); }
+const puHomF=mkF(), puHomT=new THREE.Vector3();
+function lastPlaceRacer(){
+  if(mode!=='race'||!racers.length) return null;
+  const st=standings(), n=EV.knockout?koActive().length:racers.filter(x=>!x.finished&&!x.out).length;
+  if(n<1) return null;
+  const r=st[n-1];
+  return r&&r.finished?null:r;
+}
+function trackGapSigned(a,b,L){ let d=b-a; while(d>L/2) d-=L; while(d<-L/2) d+=L; return d; }
+function placePickupMesh(p,s,x){ frame(s,puHomF,TR); p.g.position.copy(puHomF.p).addScaledVector(puHomF.r,x); p.g.position.y=puHomF.p.y; }
+function racerPickupPoint(r,out){ frame(r.dist,puHomF,TR); out.copy(puHomF.p).addScaledVector(puHomF.r,r.x); out.y+=1.3; }
+function grantPickup(r,p,i){
+  r.puCd=r.puCd||{}; r.puCd[i]=ghostT+6; p.cd=.35; p.g.visible=false; p.homing=false; p.s=p.homeS; p.x=p.homeX;
+  applyPU(r,(EV.knockout&&KO&&!KO.done&&KO.mod&&KO.mod.pu)||p.type);
+}
+function updateHomingPickups(dt){
+  if(mode!=='race'||!EV.pickups||!TR) return;
+  const last=lastPlaceRacer(), L=TR.L;
+  EV.pickups.forEach((p,i)=>{
+    if(!p.lastOnly||p.cd>0||!p.g.visible) return;
+    if(!last){ p.homing=false; placePickupMesh(p,p.homeS,p.homeX); return; }
+    last.puCd=last.puCd||{};
+    if((last.puCd[i]||-1)>ghostT) return;
+    const sLast=((last.dist%L)+L)%L, along=Math.abs(trackGapSigned(p.s,sLast,L));
+    if(!p.homing){
+      if(along>240){ placePickupMesh(p,p.homeS,p.homeX); return; }
+      p.homing=true;
+      if(last.isP&&!p.chaseWarn){ p.chaseWarn=true; toast('Last-Chance is coming to you.'); tone(640,.12,.22,'sine'); }
+    }
+    const gap=trackGapSigned(p.s,sLast,L);
+    const chase=Math.min(Math.abs(gap),(last.v+110)*dt);
+    if(chase>0) p.s=((p.s+Math.sign(gap||1)*chase)%L+L)%L;
+    p.x=lerp(p.x,last.x,1-Math.exp(-dt*4.2));
+    placePickupMesh(p,p.s,p.x);
+    racerPickupPoint(last,puHomT);
+    p.g.position.lerp(puHomT,1-Math.exp(-dt*7.5));
+    p.gem.position.y=1.3+Math.sin(ghostT*5+i)*.35;
+    if(p.g.position.distanceTo(puHomT)<3.6||along<5) grantPickup(last,p,i);
+  });
+}
+function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; p.homing=false; p.chaseWarn=false; p.s=p.homeS; p.x=p.homeX; }); }
 function worldFx(dt){
-  (EV.pickups||[]).forEach(p=>{ p.gem.rotation.y+=dt*2.2; p.gem.rotation.x+=dt*.7; p.gem.position.y=1.3+Math.sin(ghostT*3+p.s)*.22; p.ring.scale.setScalar(1+Math.sin(ghostT*4+p.s)*.08);
-    if(p.cd>0){ p.cd-=dt; if(p.cd<=0) p.g.visible=true; } });
+  updateHomingPickups(dt);
+  (EV.pickups||[]).forEach(p=>{ if(p.lastOnly&&p.homing){ p.gem.rotation.y+=dt*3.4; p.gem.rotation.x+=dt*1.1; p.ring.scale.setScalar(1.15+Math.sin(ghostT*6)*.12); return; }
+    p.gem.rotation.y+=dt*2.2; p.gem.rotation.x+=dt*.7; p.gem.position.y=1.3+Math.sin(ghostT*3+p.s)*.22; p.ring.scale.setScalar(1+Math.sin(ghostT*4+p.s)*.08);
+    if(p.cd>0){ p.cd-=dt; if(p.cd<=0){ p.g.visible=true; p.homing=false; p.chaseWarn=false; p.s=p.homeS; p.x=p.homeX; } } });
   (EV.chevrons||[]).forEach(c=>{ c.m.material.opacity=c.big?.6+.4*Math.max(0,Math.sin(ghostT*5)):.3+.7*Math.max(0,Math.sin(ghostT*7-c.i*.8)); c.m.position.y=c.y+Math.sin(ghostT*2+c.i)*.12; });
 }
 function checkPickups(r){
   if(!EV.pickups) return; const L=TR.L, s0=((r.dist%L)+L)%L;
   r.puCd=r.puCd||{}; // every car can take each pickup once per pass; the gem just blinks when someone does
-  const n=EV.knockout?koActive().length:racers.filter(x=>!x.finished).length, place=standings().indexOf(r)+1;
   EV.pickups.forEach((p,i)=>{ if((r.puCd[i]||-1)>ghostT) return;
+    if(p.lastOnly) return;
     if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return;
-    if(p.lastOnly&&place!==n) return;
     let d=Math.abs(s0-p.s); d=Math.min(d,L-d);
     if(d<2.8&&Math.abs(r.x-p.x)<2.8){ r.puCd[i]=ghostT+6; p.cd=.35; p.g.visible=false; applyPU(r,(EV.knockout&&KO&&!KO.done&&KO.mod&&KO.mod.pu)||p.type); } });
 }

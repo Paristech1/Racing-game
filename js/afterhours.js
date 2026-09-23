@@ -2180,11 +2180,19 @@ function poseTraffic(o,dt){ poseAt(o.m.group,o.dist,o.x,0,0); o.m.wheels.forEach
 let ghostRec=[], ghostAcc=0, ghostData=null, ghostCar=null, ghostIdx=0;
 function ghostKey(){ return 'afterhours.ghost.'+EV.id; }
 function loadGhost(){ try{ ghostData=JSON.parse(localStorage.getItem(ghostKey())||'null'); }catch(e){ ghostData=null; } return ghostData; }
+function ghostifyMaterial(mat){
+  if(!mat) return mat;
+  const ghostOne=m=>{
+    if(!m||typeof m.clone!=='function') return m;
+    const c=m.clone(); c.transparent=true; c.opacity=.28; c.depthWrite=false; return c;
+  };
+  return Array.isArray(mat)?mat.map(ghostOne):ghostOne(mat);
+}
 function spawnGhost(){
   if(ghostCar){ ghostCar.scene.remove(ghostCar.group); ghostCar=null; }
   if(!ghostData||!ghostData.s||ghostData.s.length<4) return;
   const def=CARS.find(c=>c.id===ghostData.car)||CARS[0], m=buildCar(def);
-  m.group.traverse(o=>{ if(o.material&&!o.isSprite){ o.material=o.material.clone(); o.material.transparent=true; o.material.opacity=.28; o.material.depthWrite=false; } if(o.isSprite) o.visible=false; });
+  m.group.traverse(o=>{ if(o.isSprite){ o.visible=false; return; } if(o.material) o.material=ghostifyMaterial(o.material); });
   RS.add(m.group); ghostCar={group:m.group,scene:RS,wheels:m.wheels}; ghostIdx=0;
 }
 function ghostState(t){

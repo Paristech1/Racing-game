@@ -1413,7 +1413,17 @@ function buildCity(C){
   if(C.decoBridge) decoBridge();
   if(C.dockside) docksideDress();
   if(C.skyline) skylineDress();
+  if(C.philly) phillyDress();
   const arena=C.arena?arenaDress():null;
+
+  function phillyDress(){
+    const stepM=new THREE.MeshStandardMaterial({color:0x7a7670,roughness:.92});
+    for(let i=0;i<14;i++) boxM(16,.32,3.4,stepM,-118,.16+i*.32,-548-i*.75);
+    const heroM=new THREE.MeshStandardMaterial({color:0x6a4a2a,metalness:.7,roughness:.35});
+    mesh(new THREE.CylinderGeometry(.55,.75,2.2,8),heroM,-118,3.4,-565);
+    mesh(new THREE.SphereGeometry(.65,10,8),heroM,-118,4.7,-565);
+    const rt=mesh(new THREE.PlaneGeometry(7,1.4),new THREE.MeshBasicMaterial({map:CT(signCanvas2('READING TERMINAL','MARKET · 12TH & ARCH',{bg:'#0a0d12',color:'#ffd86a'})),toneMapped:false}),205,8.2,-55); rt.rotation.y=Math.PI;
+  }
 
   function docksideDress(){
     const stackM=new THREE.MeshStandardMaterial({color:0x1a4a6a,metalness:.55,roughness:.4});

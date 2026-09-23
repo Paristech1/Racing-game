@@ -2780,11 +2780,13 @@ function studioPtrTarget(e){
   if(sheetOpen||mode!=='select'&&mode!=='results') return false;
   if(e.target.closest('button')) return false;
   const t=e.target;
-  if(t===canvas||t.id==='sStage'||t.closest('#select')||t.closest('#results')) return true;
-  return false;
+  if(mode==='select') return t===canvas||t.id==='sStage'||!!t.closest('#select');
+  return t===canvas||!!t.closest('#results');
 }
 function studioPtrDown(e){
+  if(studioPtr) return;
   if(!studioPtrTarget(e)) return;
+  e.stopPropagation();
   studioPtr={x:e.clientX,y:e.clientY,yaw:studioYaw,pitch:studioPitch,intent:null,id:e.pointerId,el:e.currentTarget};
   const hit=$('#sStage'); if(hit) hit.classList.remove('dragging');
   try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){}
@@ -2810,12 +2812,21 @@ function studioPtrUp(e){
   const horiz=Math.abs(dx)>36&&Math.abs(dx)>Math.abs(dy)*1.2;
   if((intent==='swipe'||intent==null)&&horiz&&mode==='select') turn(dx<0?1:-1);
 }
-[canvas,$('#sStage'),$('#select')].forEach(el=>{ if(!el) return;
+[canvas,$('#sStage')].forEach(el=>{ if(!el) return;
   el.addEventListener('pointerdown',studioPtrDown);
   el.addEventListener('pointermove',studioPtrMove);
   el.addEventListener('pointerup',studioPtrUp);
   el.addEventListener('pointercancel',studioPtrUp); });
 $('#select').style.pointerEvents='auto';
+$('#select').addEventListener('pointerdown',studioPtrDown);
+$('#select').addEventListener('pointermove',studioPtrMove);
+$('#select').addEventListener('pointerup',studioPtrUp);
+$('#select').addEventListener('pointercancel',studioPtrUp);
+$('#results').style.pointerEvents='auto';
+$('#results').addEventListener('pointerdown',studioPtrDown);
+$('#results').addEventListener('pointermove',studioPtrMove);
+$('#results').addEventListener('pointerup',studioPtrUp);
+$('#results').addEventListener('pointercancel',studioPtrUp);
 
 function startLoading(){
   initAudio(); sfx.shutter(); flash(1);

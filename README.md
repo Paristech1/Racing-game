@@ -63,6 +63,8 @@ Each car has its own speed, grip, boost, and weight. Press **Specs** for the ful
 | THE CLOSER | Cruises early, then empties its boost late in the race |
 | WILDCARD | Brakes late, makes random mistakes, fires random boost bursts |
 
+Each start, rivals **draw a chassis from the archive** (no duplicate picks on the grid) weighted for the event: grip and balance on Harbor Line, top speed and nitro on the Boulevard. They **slow for upcoming corners**, **fight each other** (THE WALL blocks any chaser, LEECH drafts whoever is ahead, BRUISER sideswipes side-by-side traffic), and **score power-up detours** instead of blindly swerving.
+
 ## Saved in your browser
 
 Your race history is saved in your browser: runs, wins, best time per event, and hit count (hits wear the paint). The game also saves a **ghost** of your best run on each event, and it races alongside you next time.

@@ -8,6 +8,8 @@ A playable three.js street racing prototype inspired by the [Claude design sessi
 
 Requires an internet connection for three.js (CDN), post-processing scripts, and Google Fonts.
 
+If the link is not live yet: in the repo go to **Settings → Pages**, set **Source** to **GitHub Actions** (or deploy from branch `main` / root). The `Deploy to GitHub Pages` workflow runs on every push to `main`.
+
 ## Play locally
 
 ```bash

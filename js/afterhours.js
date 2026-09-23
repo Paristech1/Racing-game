@@ -1067,16 +1067,16 @@ const GAUNTLET_CFG={banner:'THE GAUNTLET',start:[40,20],
   gantries:[[120,-340,'THE GAUNTLET','12 IN · ONE OUT EVERY LAP'],[-80,-150,'THE GAUNTLET','DON\'T BE LAST']],
   roads:[{ew:1,c:20,dir:1,a:-80,b:430},{ew:1,c:-340,dir:-1,a:-80,b:430},{ew:0,c:-80,dir:1,a:-340,b:20},{ew:0,c:430,dir:-1,a:-340,b:20}],
   cams:[]};
-/* Event 05: tight container yard chicane, then a waterfront sprint (≈1.3 km). */
-const DOCKSIDE_CFG={banner:'EVENT 05 · DOCKSIDE DASH',start:[160,-320],
-  corners:[[340,-320,18],[340,-230,15],[240,-200,15],[80,-230,12],[40,-320,12],[-40,-320,15],[-40,-250,12],[80,-250,12],[240,-250,15],[340,-250,15]],
+/* Event 05: waterfront sprint around the container yard with a chicane notch (≈1.4 km). */
+const DOCKSIDE_CFG={banner:'EVENT 05 · DOCKSIDE DASH',start:[160,-340],
+  corners:[[340,-340,18],[340,-160,15],[250,-160,12],[250,-250,12],[160,-250,12],[160,-160,12],[-80,-160,15],[-80,-340,18]],
   yAt:()=>0, zMin:-520, ZS:ZS_BASE.slice(0,8), jerseyMaxX:520, noTraffic:true, dockside:true,
-  trackX:(x,zc)=>(x===-40&&zc>-320&&zc<-230)||(x===340&&zc>-320&&zc<-230),
-  trackZ:(z,xc)=>(z===-320&&xc>-40&&xc<340)||(z===-250&&xc>-40&&xc<340),
-  skip:[[-40,-320,-160,-70]], excl:[],
-  gantries:[[280,-320,'DOCKSIDE DASH','CONTAINER YARD  →'],[80,-250,'WATERFRONT','FULL THROTTLE']],
-  roads:[{ew:1,c:-320,dir:1,a:-40,b:340},{ew:1,c:-250,dir:-1,a:-40,b:340}],
-  cams:[[240,-250,0,-1]]};
+  trackX:(x,zc)=>(x===-80&&zc>-340&&zc<-160)||(x===340&&zc>-340&&zc<-160)||((x===160||x===250)&&zc>-250&&zc<-160),
+  trackZ:(z,xc)=>(z===-340&&xc>-80&&xc<340)||(z===-160&&((xc>-80&&xc<160)||(xc>250&&xc<340)))||(z===-250&&xc>160&&xc<250),
+  skip:[[70,340,-340,-250]], excl:[],
+  gantries:[[250,-340,'DOCKSIDE DASH','CONTAINER YARD  →'],[-80,-250,'WATERFRONT','FULL THROTTLE']],
+  roads:[{ew:1,c:-340,dir:1,a:-80,b:340},{ew:1,c:-160,dir:-1,a:-80,b:160},{ew:0,c:-80,dir:-1,a:-340,b:-160},{ew:0,c:340,dir:1,a:-340,b:-160}],
+  cams:[[40,-160,0,1]]};
 /* Event 06: Center City mix with a raised skyline straight (≈4 km). */
 const SKYLINE_CFG={banner:'EVENT 06 · SKYLINE CIRCUIT',start:[40,20],
   corners:[[430,20,30],[430,-340,30],[-80,-340,30],[-80,470,30],[720,470,30],[720,20,30]],
@@ -1087,17 +1087,17 @@ const SKYLINE_CFG={banner:'EVENT 06 · SKYLINE CIRCUIT',start:[40,20],
   gantries:[[430,-340,'SKYLINE CIRCUIT','ELEVATED RUN  ↑'],[720,470,'BROAD ST','HARD BRAKING']],
   roads:[{ew:1,c:20,dir:1,a:-80,b:430},{ew:1,c:-340,dir:-1,a:-80,b:430},{ew:1,c:470,dir:-1,a:-80,b:720},{ew:0,c:-80,dir:1,a:-340,b:470},{ew:0,c:430,dir:-1,a:-340,b:20},{ew:0,c:720,dir:1,a:-340,b:470}],
   cams:[[430,-340,0,-1],[720,470,0,1]]};
-/* Event 07: one long lap — blvd, bridge, tunnel, waterfront (≈10 km). */
+/* Event 07: one long lap — blvd, bridge, Camden, tunnel, 15th St (≈10.5 km). */
 const MIDNIGHT_CFG={banner:'EVENT 07 · MIDNIGHT EXPRESS',start:[-20,-1950],
-  corners:[[-20,-800,30],[720,-800,30],[720,-300,30],[2030,-300,30],[2480,-300,20],[2480,-340,20],[-80,-340,30],[-80,470,30],[-80,-1400,30],[-20,-1400,30],[-20,-1950,30]],
-  yAt:(x,z)=>z<-250&&z>-360&&x>760?bridgeY(x):(z>400?tunnelY(x):0), zMin:-2200, ZS:[-880,-800,...ZS_BASE,470,560,650], jerseyMaxX:1990,
-  trackX:(x,zc)=>(x===-80&&zc>-880&&zc<470)||(x===720&&zc>-800&&zc<-250)||(x===2030&&zc>-300&&zc<470),
-  trackZ:(z,xc)=>(z===-800&&xc>-20&&xc<720)||(z===470&&xc>-80&&xc<820)||(z===-340&&xc>-80&&xc<2480),
+  corners:[[-20,-800,30],[720,-800,30],[720,-300,30],[2480,-300,30],[2480,470,30],[-80,470,30],[-80,-2300,30],[-20,-2300,30]],
+  yAt:(x,z)=>z<-250&&z>-360&&x>760?bridgeY(x):(z>400?tunnelY(x):0), zMin:-2600, ZS:[-880,-800,...ZS_BASE,470,560,650], jerseyMaxX:1990,
+  trackX:(x,zc)=>(x===-80&&zc>-880&&zc<470)||(x===720&&zc>-800&&zc<-250)||(x===2480&&zc>-300&&zc<470),
+  trackZ:(z,xc)=>(z===-800&&xc>-20&&xc<720)||(z===470&&((xc>-80&&xc<820)||(xc>1960&&xc<2480))),
   skip:[[-80,70,-880,-800]], excl:[[800,1040,455,485],[1720,2000,455,485]], holes:[[815,885,462.6,477.4],[1895,1965,462.6,477.4]],
-  gantries:[[860,-300,'MIDNIGHT EXPRESS','CAMDEN STRAIGHT  ↑'],[-20,-1000,'ROOSEVELT BLVD','US 1 SOUTH'],[2030,200,'HARBOR LINE TUNNEL','PHILADELPHIA  ←']],
-  roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:1,c:-340,dir:-1,a:-80,b:2480},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
+  gantries:[[860,-300,'MIDNIGHT EXPRESS','CAMDEN STRAIGHT  ↑'],[-20,-1000,'ROOSEVELT BLVD','US 1 SOUTH'],[2480,200,'HARBOR LINE TUNNEL','PHILADELPHIA  ←'],[-80,-1600,'ROOSEVELT BLVD','NORTHEAST PHILA  ↑']],
+  roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
   cams:[[-20,-1050,1,0],[400,-800,0,1],[400,470,0,-1]],
-  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-1950,z1:-835}};
+  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-2268,z1:-835}};
 function buildKnockout(){ return buildCity(GAUNTLET_CFG); }
 function buildDockside(){ return buildCity(DOCKSIDE_CFG); }
 function buildSkyline(){ return buildCity(SKYLINE_CFG); }
@@ -1380,10 +1380,10 @@ function buildCity(C){
   function docksideDress(){
     const stackM=new THREE.MeshStandardMaterial({color:0x1a4a6a,metalness:.55,roughness:.4});
     const boxC=new THREE.MeshStandardMaterial({color:0x8a4a18,metalness:.35,roughness:.75});
-    [[180,-290,3,2.6,6],[220,-305,2.2,2.6,5],[260,-285,2.8,2.6,7],[140,-305,2,2.6,4]].forEach(([x,z,w,h,d])=>{
+    [[110,-300,3,2.6,6],[150,-290,2.4,5.2,6],[200,-305,3,2.6,7],[240,-285,2.8,5.2,6],[290,-300,2.4,2.6,5],[310,-280,3,5.2,6]].forEach(([x,z,w,h,d])=>{
       boxM(w,h,d,stackM,x,h/2,z); boxM(w*.92,h*.9,d*.95,boxC,x,h/2,z); });
-    flat(60,320,-330,-260,.05,new THREE.MeshBasicMaterial({map:poolTex,color:0x3a5a78,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false}));
-    const sg=mesh(new THREE.PlaneGeometry(8,1.6),new THREE.MeshBasicMaterial({map:CT(signCanvas2('PORT RICHMOND','CONTAINER YARD',{bg:'#0a0d12',color:'#e6f2ff'})),toneMapped:false}),200,6,-318); sg.rotation.y=Math.PI;
+    flat(90,320,-322,-268,.05,new THREE.MeshBasicMaterial({map:poolTex,color:0x3a5a78,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false}));
+    const sg=mesh(new THREE.PlaneGeometry(8,1.6),new THREE.MeshBasicMaterial({map:CT(signCanvas2('PORT RICHMOND','CONTAINER YARD',{bg:'#0a0d12',color:'#e6f2ff'})),toneMapped:false}),200,6,-326); sg.rotation.y=Math.PI;
   }
   function skylineDress(){
     const rail=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:.8,roughness:.25,side:THREE.DoubleSide});
@@ -1521,15 +1521,15 @@ const EVENTS=[
    note:'pick your\nmap. then\nsurvive.',load:'Twelve cars, one survivor. Choose a map and run The Gauntlet.'},
   {id:'dockside',build:buildDockside,open:true,laps:3,name:'Dockside Dash',kick:'Event 05',loc:'Port Richmond',when:'Container yard to the waterfront',
    caption:'A short, tight, aggressive loop: a narrow container-yard chicane opens onto a waterfront sprint. Three laps, nowhere to hide.',
-   specs:'1.3 KM LOOP / 3 LAPS / 7 CARS / NO TRAFFIC',
+   specs:'1.4 KM LOOP / 3 LAPS / 7 CARS / NO TRAFFIC',
    note:'chicane tight.\nwater open.',load:'Dockside Dash. Three laps through the yard and the waterfront.'},
   {id:'skyline',build:buildSkyline,open:true,laps:2,name:'Skyline Circuit',kick:'Event 06',loc:'Center City',when:'Streets and the elevated run',
    caption:'A medium mix of technical streets and fast avenues. A sweeping elevated section frames the city before a hard braking zone into South Street.',
    specs:'4.0 KM LOOP / 2 LAPS / 7 CARS / NO TRAFFIC / 2 SPEED CAMERAS',
    note:'save brakes\nfor South St',load:'Skyline Circuit. Two laps of streets and the elevated straight.'},
-  {id:'midnight',build:buildMidnight,open:true,laps:1,name:'Midnight Express',kick:'Event 07',loc:'All night',when:'Blvd, bridge, tunnel, waterfront',
+  {id:'midnight',build:buildMidnight,open:true,laps:1,name:'Midnight Express',kick:'Event 07',loc:'All night',when:'Blvd, bridge, Camden, tunnel',
    caption:'The longest, fastest, most playful course in one lap: long boost-friendly straights, the Harbor Line tunnel, sweeping bends, and a high-speed run to the line.',
-   specs:'10.0 KM / 1 LAP / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
+   specs:'10.6 KM / 1 LAP / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
    note:'one lap.\nall of it.',load:'Midnight Express. Ten kilometers, one lap, no shortcuts.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
@@ -1546,9 +1546,9 @@ function releaseOthers(){ EVENTS.forEach(e=>{ if(e.scene&&e.scene!==RS) releaseE
 ensureEvent(EVENTS[0]);
 const KO_MAPS=[
  {id:'arena',eventId:'ko',name:'City Hall Arena',km:'1.7'},
- {id:'dockside',eventId:'dockside',name:'Dockside Dash',km:'1.3'},
+ {id:'dockside',eventId:'dockside',name:'Dockside Dash',km:'1.4'},
  {id:'skyline',eventId:'skyline',name:'Skyline Circuit',km:'4.0'},
- {id:'midnight',eventId:'midnight',name:'Midnight Express',km:'10.0'}
+ {id:'midnight',eventId:'midnight',name:'Midnight Express',km:'10.6'}
 ];
 let koMapI=0;
 function bindKoTrack(i){
@@ -1618,15 +1618,15 @@ EVENTS[3].setup=()=>{ const at=EVENTS[3].sNear;
     [at(2030,-100),3.6,'shield'],[at(2030,250),0,'refill'],[at(1600,470),-3.6,'over'],[at(1300,470),3.6,'sling'],[at(1000,470),0,'shock'],
     [at(600,470),-3.6,'refill'],[at(250,470),3.6,'shield'],[at(-80,200),0,'grip'],[at(-80,-300),-3.6,'long'],[at(-80,-650),3.6,'shock'],[at(-80,-1100),0,'over']]); }
 EVENTS[5].setup=()=>{ const at=EVENTS[5].sNear;
-  addPickups(EVENTS[5],[[at(160,-320),-3.4,'refill'],[at(280,-320),3.4,'sling'],[at(340,-260),0,'grip'],[at(240,-200),-3.4,'over'],[at(80,-230),3.4,'shield'],
-    [at(40,-320),0,'long'],[at(-40,-280),-3.4,'shock'],[at(120,-250),3.4,'refill'],[at(300,-250),0,'sling']]); }
+  addPickups(EVENTS[5],[[at(40,-340),-3.4,'refill'],[at(260,-340),3.4,'sling'],[at(340,-250),0,'grip'],[at(300,-160),-3.4,'over'],[at(250,-205),3.4,'shield'],
+    [at(205,-250),0,'long'],[at(160,-205),-3.4,'shock'],[at(60,-160),3.4,'refill'],[at(-80,-250),0,'sling']]); }
 EVENTS[6].setup=()=>{ const at=EVENTS[6].sNear;
   addPickups(EVENTS[6],[[at(200,20),-3.6,'refill'],[at(430,-120),3.6,'sling'],[at(430,-340),0,'shield'],[at(160,-340),-3.6,'grip'],[at(-80,120),3.6,'over'],
     [at(-80,470),0,'long'],[at(430,470),-3.6,'refill'],[at(720,470),3.6,'shock'],[at(720,200),0,'sling'],[at(430,20),-3.6,'over']]); }
 EVENTS[7].setup=()=>{ const at=EVENTS[7].sNear;
   addPickups(EVENTS[7],[[at(-20,-1700),-3.6,'refill'],[at(-20,-950),3.6,'sling'],[at(400,-800),0,'shield'],[at(720,-500),-3.6,'grip'],[at(1200,-300),3.6,'long'],
-    [at(1800,-300),0,'over'],[at(2300,-300),-3.6,'sling'],[at(2480,-320),3.6,'shock'],[at(900,-340),0,'refill'],[at(-80,250),-3.6,'shield'],
-    [at(2030,200),3.6,'grip'],[at(1600,470),0,'long'],[at(720,470),-3.6,'over'],[at(-80,-900),3.6,'sling']]); }
+    [at(1800,-300),0,'over'],[at(2300,-300),-3.6,'sling'],[at(2480,-50),3.6,'shock'],[at(2480,300),0,'refill'],[at(1600,470),-3.6,'shield'],
+    [at(1000,470),3.6,'grip'],[at(500,470),0,'long'],[at(-80,250),-3.6,'over'],[at(-80,-400),3.6,'sling'],[at(-80,-1200),0,'refill'],[at(-80,-2000),-3.6,'shock']]); }
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; }); }
 function worldFx(dt){

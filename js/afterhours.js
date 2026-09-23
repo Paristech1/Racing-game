@@ -240,7 +240,7 @@ function nearestAlongside(r,span){
 function scorePickup(r,p,P,s0,L){
  if(p.cd>0) return -999;
  if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return -999;
- if(p.lastOnly) return -999;
+ if(p.lastOnly||p.lastTwo) return -999;
  let dd=p.s-s0; if(dd<0) dd+=L;
  if(dd<5||dd>72) return -999;
  const lat=Math.abs(p.x-r.x), det=lat*1.35+dd*.045;
@@ -249,7 +249,7 @@ function scorePickup(r,p,P,s0,L){
  if(p.type==='long'&&(P.nitro==='pass'||P.nitro==='reserve')) val+=2.5;
  if(p.type==='over'&&(P.nitro==='eager'||P.nitro==='burst')) val+=3;
  if(r.nitro<.35) val+=4;
- if(p.type==='desperate') val+=14;
+ if(p.type==='desperate'||p.type==='echoboost') val+=14;
  if(p.type==='wispflux'||p.type==='stratossurge') val+=6;
  if(r.def.id==='wild') val+=2;
  if(r.def.id==='apex'&&lat>3.2) val-=3;
@@ -1645,18 +1645,19 @@ const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},lo
   sling:{c:0xff3b4a,css:'#ff3b4a',label:'Slingshot',tag:'SLINGSHOT'},shield:{c:0x7dff9a,css:'#7dff9a',label:'Shield',tag:'SHIELD'},
   shock:{c:0xff6fd8,css:'#ff6fd8',label:'Shockwave',tag:'SHOCKWAVE'},grip:{c:0x4f7bff,css:'#4f7bff',label:'Grip Tires',tag:'GRIP'},
   wispflux:{c:0x7dffef,css:'#7dffef',label:'Feather Flux',tag:'FEATHER FLUX'},stratossurge:{c:0xff9a3c,css:'#ff9a3c',label:'Strato Surge',tag:'STRATO SURGE'},
-  desperate:{c:0xff4466,css:'#ff4466',label:'Desperation',tag:'LAST-CHANCE'}};
-const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux and Strato Surge gems are locked to Wisp 07 and Stratos V. The red Last-Chance gem hunts whoever is in last place and flies to them — no need to hit the line.';
+  desperate:{c:0xff4466,css:'#ff4466',label:'Desperation',tag:'LAST-CHANCE'},
+  echoboost:{c:0xc77dff,css:'#c77dff',label:'Echo Boost',tag:'ECHO BOOST'}};
+const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux and Strato Surge gems are locked to Wisp 07 and Stratos V. Last-Chance (red) hunts last place; Echo Boost (violet) hunts the last two — for 15s you copy every power-up taken by anyone ahead of you.';
 const puGeo=new THREE.OctahedronGeometry(.62,0), puRing=new THREE.TorusGeometry(1.15,.07,6,28);
 function addPickups(ev,list){
   ev.pickups=[]; const f=mkF();
   list.forEach(item=>{ const s=item[0],x=item[1],type=item[2],opts=item[3]||{}; frame(s,f,ev.track); const T=PU_TYPES[type];
     const g=new THREE.Group(); g.position.copy(f.p).addScaledVector(f.r,x);
     const gem=new THREE.Mesh(puGeo,new THREE.MeshStandardMaterial({color:T.c,emissive:T.c,emissiveIntensity:opts.sig?2.1:1.5,metalness:.3,roughness:.2})); gem.position.y=1.3; g.add(gem);
-    const gl=glowSprite(T.c,opts.last?4.2:3.4); gl.position.y=1.3; g.add(gl);
-    const ring=new THREE.Mesh(puRing,new THREE.MeshBasicMaterial({color:T.c,toneMapped:false,transparent:true,opacity:opts.last?.88:.75})); ring.rotation.x=Math.PI/2; ring.position.y=.07; g.add(ring);
+    const gl=glowSprite(T.c,(opts.last||opts.lastTwo)?4.2:3.4); gl.position.y=1.3; g.add(gl);
+    const ring=new THREE.Mesh(puRing,new THREE.MeshBasicMaterial({color:T.c,toneMapped:false,transparent:true,opacity:(opts.last||opts.lastTwo)?.88:.75})); ring.rotation.x=Math.PI/2; ring.position.y=.07; g.add(ring);
     const lab=addLabel(g,T.tag,T.css); lab.position.y=2.55;
-    ev.scene.add(g); ev.pickups.push({s,x,homeS:s,homeX:x,type,g,gem,ring,cd:0,homing:false,carId:opts.car||null,lastOnly:!!opts.last,sig:!!opts.sig}); });
+    ev.scene.add(g); ev.pickups.push({s,x,homeS:s,homeX:x,type,g,gem,ring,cd:0,homing:false,carId:opts.car||null,lastOnly:!!opts.last,lastTwo:!!opts.lastTwo,sig:!!opts.sig}); });
 }
 /* ---- floating chevrons ahead of the brutal corners ---- */
 function chevCanvas(dir){ return canvasTex(256,160,(g)=>{ g.fillStyle='rgba(6,8,12,.72)'; g.fillRect(6,6,244,148); g.strokeStyle='#ff9d2a'; g.lineWidth=5; g.strokeRect(6,6,244,148);
@@ -1684,8 +1685,8 @@ function addChevrons(ev){
     ev.chevrons.push({m:big,y:big.position.y,i:ev.chevrons.length,big:true});
   });
 }
-EVENTS[0].setup=()=>addPickups(EVENTS[0],[[300,-3,'refill'],[460,0,'sling'],[540,-3,'wispflux',{car:'wisp',sig:1}],[620,3,'over'],[790,-3,'shield'],[950,0,'long'],[980,3,'stratossurge',{car:'stratos',sig:1}],[1120,3,'grip'],[1280,-3,'refill'],[1420,0,'desperate',{last:1}],[1450,0,'shock'],[1600,3,'over'],[1760,-3,'sling'],[1900,0,'long']]);
-EVENTS[1].setup=()=>addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[720,-3.4,'wispflux',{car:'wisp',sig:1}],[1000,0,'over'],[1400,-3.4,'refill'],[1800,3.4,'over'],[2100,0,'desperate',{last:1}],[2200,0,'long'],[2700,-3.4,'over'],[2950,3.4,'stratossurge',{car:'stratos',sig:1}],[3100,3.4,'refill'],
+EVENTS[0].setup=()=>addPickups(EVENTS[0],[[300,-3,'refill'],[460,0,'sling'],[540,-3,'wispflux',{car:'wisp',sig:1}],[620,3,'over'],[790,-3,'shield'],[950,0,'long'],[980,3,'stratossurge',{car:'stratos',sig:1}],[1120,3,'grip'],[1280,-3,'refill'],[1360,3,'echoboost',{lastTwo:1}],[1420,0,'desperate',{last:1}],[1450,0,'shock'],[1600,3,'over'],[1760,-3,'sling'],[1900,0,'long']]);
+EVENTS[1].setup=()=>addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[720,-3.4,'wispflux',{car:'wisp',sig:1}],[1000,0,'over'],[1400,-3.4,'refill'],[1800,3.4,'over'],[2050,-3.4,'echoboost',{lastTwo:1}],[2100,0,'desperate',{last:1}],[2200,0,'long'],[2700,-3.4,'over'],[2950,3.4,'stratossurge',{car:'stratos',sig:1}],[3100,3.4,'refill'],
   [400,0,'sling'],[780,-3.4,'shield'],[1200,3.4,'grip'],[1600,0,'shock'],[2000,-3.4,'sling'],[2450,3.4,'shield'],[2900,0,'shock']]);
 EVENTS[2].setup=()=>{ const at=EVENTS[2].sNear;
   addPickups(EVENTS[2],[[at(200,20),-3.6,'refill'],[at(470,20),3.6,'sling'],[at(640,20),0,'grip'],[at(720,-150),0,'shield'],[at(880,-300),-3.6,'over'],
@@ -1713,15 +1714,24 @@ EVENTS[8].setup=()=>{ const at=EVENTS[8].sNear;
   addPickups(EVENTS[8],[[at(-20,-1150),-3.4,'refill'],[at(-20,-850),3.4,'long'],[at(200,-700),0,'sling'],[at(520,-700),-3.4,'over'],[at(780,-480),3.4,'grip'],
     [at(1100,-280),0,'refill'],[at(1550,-280),-3.4,'long'],[at(2000,-280),3.4,'over'],[at(2420,80),0,'shield'],[at(2420,350),-3.4,'sling'],
     [at(1200,450),3.4,'long'],[at(400,450),0,'refill'],[at(-80,380),-3.4,'grip'],[at(-80,50),3.4,'over'],[at(-80,-400),0,'shock'],
-    [at(-20,-1150),0,'desperate',{last:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1680,-280),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
+    [at(-20,-1150),0,'desperate',{last:1}],[at(-20,-980),3.4,'echoboost',{lastTwo:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1680,-280),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 const puHomF=mkF(), puHomT=new THREE.Vector3();
-function lastPlaceRacer(){
-  if(mode!=='race'||!racers.length) return null;
-  const st=standings(), n=EV.knockout?koActive().length:racers.filter(x=>!x.finished&&!x.out).length;
-  if(n<1) return null;
-  const r=st[n-1];
-  return r&&r.finished?null:r;
+function raceFieldN(){ return EV.knockout?koActive().length:racers.filter(x=>!x.finished&&!x.out).length; }
+function chaseEligible(p){
+  if(mode!=='race'||!racers.length||(!p.lastOnly&&!p.lastTwo)) return [];
+  const st=standings(), n=raceFieldN(), k=p.lastTwo?2:1;
+  return st.slice(Math.max(0,n-k)).filter(r=>r&&!r.finished&&!r.out);
+}
+function chaseTargetForPickup(p,i,L){
+  let best=null,bd=1e9;
+  chaseEligible(p).forEach(r=>{
+    r.puCd=r.puCd||{};
+    if((r.puCd[i]||-1)>ghostT) return;
+    const s0=((r.dist%L)+L)%L, along=Math.abs(trackGapSigned(p.s,s0,L));
+    if(along<bd){ bd=along; best=r; }
+  });
+  return best;
 }
 function trackGapSigned(a,b,L){ let d=b-a; while(d>L/2) d-=L; while(d<-L/2) d+=L; return d; }
 function placePickupMesh(p,s,x){ frame(s,puHomF,TR); p.g.position.copy(puHomF.p).addScaledVector(puHomF.r,x); p.g.position.y=puHomF.p.y; }
@@ -1732,33 +1742,36 @@ function grantPickup(r,p,i){
 }
 function updateHomingPickups(dt){
   if(mode!=='race'||!EV.pickups||!TR) return;
-  const last=lastPlaceRacer(), L=TR.L;
+  const L=TR.L;
   EV.pickups.forEach((p,i)=>{
-    if(!p.lastOnly||p.cd>0||!p.g.visible) return;
-    if(!last){ p.homing=false; placePickupMesh(p,p.homeS,p.homeX); return; }
-    last.puCd=last.puCd||{};
-    if((last.puCd[i]||-1)>ghostT) return;
-    const sLast=((last.dist%L)+L)%L, along=Math.abs(trackGapSigned(p.s,sLast,L));
+    if((!p.lastOnly&&!p.lastTwo)||p.cd>0||!p.g.visible) return;
+    const tgt=chaseTargetForPickup(p,i,L);
+    if(!tgt){ p.homing=false; placePickupMesh(p,p.homeS,p.homeX); return; }
+    const sT=((tgt.dist%L)+L)%L, along=Math.abs(trackGapSigned(p.s,sT,L));
     if(!p.homing){
       if(along>240){ placePickupMesh(p,p.homeS,p.homeX); return; }
       p.homing=true;
-      if(last.isP&&!p.chaseWarn){ p.chaseWarn=true; toast('Last-Chance is coming to you.'); tone(640,.12,.22,'sine'); }
+      if(tgt.isP&&!p.chaseWarn){
+        p.chaseWarn=true;
+        toast(p.lastTwo?'Echo Boost is coming to you.':'Last-Chance is coming to you.');
+        tone(p.lastTwo?880:640,.12,.22,'sine');
+      }
     }
-    const gap=trackGapSigned(p.s,sLast,L);
-    const chase=Math.min(Math.abs(gap),(last.v+110)*dt);
+    const gap=trackGapSigned(p.s,sT,L);
+    const chase=Math.min(Math.abs(gap),(tgt.v+110)*dt);
     if(chase>0) p.s=((p.s+Math.sign(gap||1)*chase)%L+L)%L;
-    p.x=lerp(p.x,last.x,1-Math.exp(-dt*4.2));
+    p.x=lerp(p.x,tgt.x,1-Math.exp(-dt*4.2));
     placePickupMesh(p,p.s,p.x);
-    racerPickupPoint(last,puHomT);
+    racerPickupPoint(tgt,puHomT);
     p.g.position.lerp(puHomT,1-Math.exp(-dt*7.5));
     p.gem.position.y=1.3+Math.sin(ghostT*5+i)*.35;
-    if(p.g.position.distanceTo(puHomT)<3.6||along<5) grantPickup(last,p,i);
+    if(p.g.position.distanceTo(puHomT)<3.6||along<5) grantPickup(tgt,p,i);
   });
 }
 function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; p.homing=false; p.chaseWarn=false; p.s=p.homeS; p.x=p.homeX; }); }
 function worldFx(dt){
   updateHomingPickups(dt);
-  (EV.pickups||[]).forEach(p=>{ if(p.lastOnly&&p.homing){ p.gem.rotation.y+=dt*3.4; p.gem.rotation.x+=dt*1.1; p.ring.scale.setScalar(1.15+Math.sin(ghostT*6)*.12); return; }
+  (EV.pickups||[]).forEach(p=>{ if((p.lastOnly||p.lastTwo)&&p.homing){ p.gem.rotation.y+=dt*3.4; p.gem.rotation.x+=dt*1.1; p.ring.scale.setScalar(1.15+Math.sin(ghostT*6)*.12); return; }
     p.gem.rotation.y+=dt*2.2; p.gem.rotation.x+=dt*.7; p.gem.position.y=1.3+Math.sin(ghostT*3+p.s)*.22; p.ring.scale.setScalar(1+Math.sin(ghostT*4+p.s)*.08);
     if(p.cd>0){ p.cd-=dt; if(p.cd<=0){ p.g.visible=true; p.homing=false; p.chaseWarn=false; p.s=p.homeS; p.x=p.homeX; } } });
   (EV.chevrons||[]).forEach(c=>{ c.m.material.opacity=c.big?.6+.4*Math.max(0,Math.sin(ghostT*5)):.3+.7*Math.max(0,Math.sin(ghostT*7-c.i*.8)); c.m.position.y=c.y+Math.sin(ghostT*2+c.i)*.12; });
@@ -1767,7 +1780,7 @@ function checkPickups(r){
   if(!EV.pickups) return; const L=TR.L, s0=((r.dist%L)+L)%L;
   r.puCd=r.puCd||{}; // every car can take each pickup once per pass; the gem just blinks when someone does
   EV.pickups.forEach((p,i)=>{ if((r.puCd[i]||-1)>ghostT) return;
-    if(p.lastOnly) return;
+    if(p.lastOnly||p.lastTwo) return;
     if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return;
     let d=Math.abs(s0-p.s); d=Math.min(d,L-d);
     if(d<2.8&&Math.abs(r.x-p.x)<2.8){ r.puCd[i]=ghostT+6; p.cd=.35; p.g.visible=false; applyPU(r,(EV.knockout&&KO&&!KO.done&&KO.mod&&KO.mod.pu)||p.type); } });
@@ -1786,15 +1799,30 @@ const PU_VARIANTS={
  grip:{front:['Grip Tires','45% more grip for 8s.'],pack:['Slicks','More grip and no scrub through corners for 8s.'],chase:['Rails','80% more grip, and walls can\'t slow you for 6s.']},
  wispflux:{front:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.'],pack:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.'],chase:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.']},
  stratossurge:{front:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],pack:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],chase:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.']},
- desperate:{front:['Last-Chance','Last place only: random rescue.'],pack:['Last-Chance','Last place only: random rescue.'],chase:['Last-Chance','Last place only: random rescue.']}
+ desperate:{front:['Last-Chance','Last place only: random rescue.'],pack:['Last-Chance','Last place only: random rescue.'],chase:['Last-Chance','Last place only: random rescue.']},
+ echoboost:{front:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],pack:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],chase:['Echo Boost','Last two only: copy boosts from ahead for 15s.']}
 };
+const ECHO_SKIP=new Set(['echoboost']);
+function echoBoostFrom(src,type){
+  if(mode!=='race'||src._puEcho||ECHO_SKIP.has(type)) return;
+  const order=standings(), i=order.indexOf(src);
+  if(i<0) return;
+  for(let j=i+1;j<order.length;j++){
+    const o=order[j];
+    if(!o||o.finished||o.out||(o.fxEcho||0)<=0) continue;
+    if(type==='wispflux'&&(o.def.chassisId||o.def.id)!=='wisp') continue;
+    if(type==='stratossurge'&&(o.def.chassisId||o.def.id)!=='stratos') continue;
+    o._puEcho=true; applyPU(o,type); o._puEcho=false;
+    if(o.isP){ const lab=PU_TYPES[type]?.label||type; toast(`Echo Boost copied ${lab} from ahead.`); flash(.15); }
+  }
+}
 const BR_LABEL={front:'front-runner',pack:'midpack',chase:'from the back'};
 function carClass(d){ const m=d.mass||1; if(m>=1.35) return 'heavy'; if(d.grip>=32) return 'nimble'; if((d.nitro||1)>=1.2||d.top>=92) return 'muscle'; return 'balanced'; }
 function bracketOf(r){ if(mode!=='race'||!racers.length) return 'pack'; const n=EV.knockout?koActive().length:racers.length, pl=standings().indexOf(r)+1; return pl<=2?'front':(pl>=n-1?'chase':'pack'); }
 function nextAhead(r,maxD){ let best=null,bd=maxD; for(const o of racers){ if(o===r||o.finished) continue; const g=o.dist-r.dist; if(g>2&&g<bd){ bd=g; best=o; } } return best; }
 function shieldVs(c,o){ if(!(c.fxShield>0)) return false; return c.shieldMode==='rear'?o.dist<c.dist:true; }
 function applyPU(r,type){
-  if(type==='wispflux'||type==='stratossurge'||type==='desperate') return applySigPU(r,type);
+  if(type==='wispflux'||type==='stratossurge'||type==='desperate'||type==='echoboost') return applySigPU(r,type);
   const br=bracketOf(r), cls=carClass(r.def), V=PU_VARIANTS[type][br], jack=Math.random()<.125||koMod('jackpot'), J=jack?1.5:1;
   let twist='';
   r.fxName=r.fxName||{};
@@ -1842,6 +1870,7 @@ function applyPU(r,type){
     sfx.powerup(jack); flash(jack?.35:.18); }
   else if(player&&type!=='shock'&&Math.abs(r.dist-player.dist)<70&&r.def.tag) persona(r,`${r.def.tag} grabbed ${jack?'a jackpot ':''}${V[0]}.`);
   if(r.isP) tapeLog('powerup',{who:'YOU',tag:(jack?'Jackpot ':'')+V[0]});
+  if(!r._puEcho) echoBoostFrom(r,type);
 }
 function applySigPU(r,type){
   const br=bracketOf(r), V=PU_VARIANTS[type][br]; r.fxName=r.fxName||{}; let title=V[0], body=V[1];
@@ -1851,6 +1880,10 @@ function applySigPU(r,type){
   } else if(type==='stratossurge'){
     r.nitro=Math.max(r.nitro,.9); r.overMul=1.28; r.fxOver=7; r.fxLong=7; r.drainMul=.2; r.draftRange=44; r.overAcc=6;
     body='Top speed, long boost, and mega draft for 7s. Built for holding flat.';
+  } else if(type==='echoboost'){
+    r.fxEcho=15;
+    title='Echo Boost';
+    body='For 15 seconds, every power-up grabbed by anyone ahead of you is copied to you.';
   } else if(type==='desperate'){
     const roll=Math.random();
     if(roll<.38){
@@ -1869,9 +1902,10 @@ function applySigPU(r,type){
   r.fxName[type==='desperate'?'desperate':type]=title;
   r.puLog=r.puLog||{}; r.puLog[`${type}/${br}`]=(r.puLog[`${type}/${br}`]||0)+1;
   if(mode!=='race') return;
-  if(r.isP){ toast(`${title}. ${body}`); tone(type==='desperate'?720:960,.14,.28,'triangle'); flash(type==='desperate'?.32:.2); }
+  if(r.isP){ toast(`${title}. ${body}`); if(type==='echoboost') sfx.powerup(false); else tone(type==='desperate'?720:960,.14,.28,'triangle'); flash(type==='desperate'?.32:.2); }
   else if(player&&Math.abs(r.dist-player.dist)<70&&r.def.tag) persona(r,`${r.def.tag} grabbed ${title}.`);
   if(r.isP) tapeLog('powerup',{who:'YOU',tag:title});
+  if(!r._puEcho&&type!=='echoboost') echoBoostFrom(r,type);
 }
 // shockwave modes: ring hits cars around you, wake only cars behind, lightning strikes the leaders anywhere
 const swF=mkF(), swV=new THREE.Vector3();
@@ -2088,7 +2122,6 @@ function tone(f,dur,vol,type,opts){
     const v=vol*(i?opts.mix||.45:1); envAD(g,t,opts.attack||.008,dur,v);
     o.connect(fl); fl.connect(g); sfxOut(g); o.start(t); o.stop(t+dur+.06); });
 }
-function toneChord(freqs,dur,vol,type){ freqs.forEach((f,i)=>setTimeout(()=>tone(f,dur*.95,vol*(1-i*.12),type,{attack:.01,cut:8000}),i*25)); }
 const sfx={
   shutter(){
     burst(.018,'highpass',4200,9000,.22,2.8,-.15,noiseBuf);
@@ -2344,7 +2377,7 @@ function stepRacer(r,dt,inp){
   if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(d.nosDrainMul||1)*(r.fxLong>0?(r.drainMul!==undefined?r.drainMul:.35):1));
   else if(r.nitro>1) r.nitro=Math.max(1,r.nitro-.015*dt);
   r.nosOn=nitro;
-  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','towT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
+  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','fxEcho','towT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
   const ac=r.v*r.v*k*.5, sa=r.steer*G*Math.min(1,r.v/18);
   r.vx+=(sa+ac-r.vx*3.2)*dt;
   r.x+=r.vx*dt;

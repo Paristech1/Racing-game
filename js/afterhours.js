@@ -99,7 +99,58 @@ const RIVALS=[
  {id:'wild',  tag:'WILDCARD',  car:'LOOSE DICE',color:'#ffd23b',paint:0xc9a81a,metal:.6,rough:.3, rim:0x111214,caliper:0x7dff9a,wing:true, top:92,acc:23,grip:27,nitro:1.15,
   P:{line:.8, offScale:.8, wobble:2.2,risk:1.16,rubber:.8, gain:.32, mass:1,   start:-1,  nitro:'burst',mistakeRate:.2,mistakeStrength:.8}}
 ].map(r=>Object.assign(r,{name:r.car}));
-{ const SEEK={apex:0,wall:.5,leech:1,bruiser:1,closer:1,wild:1}; RIVALS.forEach(r=>r.P.seek=SEEK[r.id]); }
+{ const SEEK={apex:.35,wall:.45,leech:.85,bruiser:.55,closer:.5,wild:.95}; RIVALS.forEach(r=>r.P.seek=SEEK[r.id]); }
+/* Per-event machine picks + track bias (grip tracks vs boulevard straights). */
+const EVENT_CAR_BIAS={
+ tunnel:{gripW:1.22,topW:.94,nitroW:1.05},
+ blvd:{gripW:.9,topW:1.12,nitroW:1.08}
+};
+const RIVAL_CAR_PREF={
+ apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour']},
+ wall:{gripW:1.05,topW:1,ids:['granfour','dune','sovereign','vanta']},
+ leech:{gripW:.95,topW:1.05,nitroW:1.15,ids:['noctis','sovereign','kage','vanta']},
+ bruiser:{gripW:.92,topW:1.02,ids:['dune','sovereign','granfour','noctis']},
+ closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['noctis','vanta','kern','sovereign']},
+ wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['noctis','dune','kage','granfour']}
+};
+function buildRivalForEvent(rival,eventId,taken){
+ const eb=EVENT_CAR_BIAS[eventId]||EVENT_CAR_BIAS.tunnel, rp=RIVAL_CAR_PREF[rival.id]||{};
+ let best=null, bestSc=-1e9;
+ for(const c of CARS){
+  if(taken.includes(c.id)) continue;
+  const pref=rp.ids&&rp.ids.includes(c.id)?9:0;
+  const sc=c.grip*(eb.gripW||1)*(rp.gripW||1)+c.top*(eb.topW||1)*(rp.topW||1)+c.nitro*18*(eb.nitroW||1)*(rp.nitroW||1)+pref+Math.random()*4;
+  if(sc>bestSc){ bestSc=sc; best=c; }
+ }
+ const base=best||CARS.find(c=>!taken.includes(c.id))||CARS[0];
+ taken.push(base.id);
+ return Object.assign({},base,{id:rival.id,chassisId:base.id,tag:rival.tag,color:rival.color,car:base.name,P:rival.P,mass:(rival.P.mass||1)*(base.mass||1),rivalNote:base.rival});
+}
+function eventAiBias(){ return EV.id==='blvd'?{straight:1.06,tight:.93,line:.85}:{straight:.97,tight:1.06,line:1.12}; }
+function nearestChaser(r,maxG){
+ let best=null,bd=maxG||34;
+ for(const o of racers){ if(o===r||o.finished) continue; const gap=r.dist-o.dist; if(gap>1.5&&gap<bd){ bd=gap; best=o; } }
+ return best;
+}
+function nearestAlongside(r,span){
+ let best=null,bd=span||9;
+ for(const o of racers){ if(o===r||o.finished) continue; const gap=Math.abs(r.dist-o.dist); if(gap<bd){ bd=gap; best=o; } }
+ return best;
+}
+function scorePickup(r,p,P,s0,L){
+ if(p.cd>0) return -999;
+ let dd=p.s-s0; if(dd<0) dd+=L;
+ if(dd<5||dd>72) return -999;
+ const lat=Math.abs(p.x-r.x), det=lat*1.35+dd*.045;
+ let val=P.seek*12;
+ if(p.type==='refill'&&r.nitro>.82) val-=9;
+ if(p.type==='long'&&(P.nitro==='pass'||P.nitro==='reserve')) val+=2.5;
+ if(p.type==='over'&&(P.nitro==='eager'||P.nitro==='burst')) val+=3;
+ if(r.nitro<.35) val+=4;
+ if(r.def.id==='wild') val+=2;
+ if(r.def.id==='apex'&&lat>3.2) val-=3;
+ return val-det*(1.1-P.risk*.35);
+}
 
 let SAVE={};
 try{ SAVE=JSON.parse(localStorage.getItem('afterhours.v1')||'{}')||{}; }catch(e){ SAVE={}; }
@@ -822,7 +873,7 @@ function clearRacers(){ racers.forEach(r=>{ r.scene.remove(r.m.group); r.m.group
 function addRacer(def,isP,dist,x,skill){
   const m=buildCar(def); RS.add(m.group);
   if(isP){ const h=hist(def.id); m.paint.roughness=clamp(def.rough+h.hits*.004,0,.6); }
-  const r={def,m,scene:RS,isP,dist,x,vx:0,v:0,steer:0,nitro:1,hitCd:0,slip:0,yaw:0,finished:false,finishT:0,laps:[],lapStart:0,hits:0,top:0,skill:skill||1,off:(Math.random()-.5)*3,wob:Math.random()*10,draft:0,burst:0,lit:false,mass:(def.P&&def.P.mass)||def.mass||1,startDelay:def.P?(def.P.start<0?Math.random()*.55:def.P.start):0};
+  const r={def,m,scene:RS,isP,dist,x,vx:0,v:0,steer:0,nitro:1,hitCd:0,slip:0,yaw:0,finished:false,finishT:0,laps:[],lapStart:0,hits:0,top:0,skill:skill||1,off:(Math.random()-.5)*3,wob:Math.random()*10,draft:0,burst:0,lit:false,mass:(def.P&&def.P.mass)||def.mass||1,startDelay:def.P?(def.P.start<0?Math.random()*.55:def.P.start):0,grudge:{}};
   if(def.P) r.label=addLabel(m.group,def.tag,def.color);
   racers.push(r); return r;
 }
@@ -841,26 +892,37 @@ function stepRacer(r,dt,inp){
   let steer=0, brake=false, nitro=false;
   if(inp){ steer=inp.steer; brake=inp.brake; nitro=inp.nitro&&r.nitro>0.02; }
   else {
-    const P=d.P||RIVALS[0].P, racing=mode==='race';
+    const P=d.P||RIVALS[0].P, racing=mode==='race', evB=eventAiBias();
     const ka=kAhead(r.dist,Math.max(30,r.v*1.4));
     const kn=frame(r.dist+r.v*.6+12,F2).k;
-    const line=clamp(-kn*700,-5.2,5.2)*P.line;
+    const line=clamp(-kn*700,-5.2,5.2)*P.line*evB.line;
     let tx=line+r.off*P.offScale+Math.sin(r.wob+ghostT*.3)*P.wobble, gain=P.gain, bias=0, vF=1, wantN=false;
     const pl=racing&&player&&player!==r?player:null, gapP=pl?r.dist-pl.dist:0; // >0: I'm ahead of you
     let chasing=null;
+    const chaser=nearestChaser(r);
     switch(d.id){
-      case 'wall': // covers your line whenever you're right behind it
-        if(pl&&gapP>1.5&&gapP<34){ tx=pl.x; gain=.4; persona(r,`${d.tag} is covering your line.`); if(gapP<10&&r.nitro>.2) wantN=true; }
-        break;
+      case 'wall': { // covers the line of whoever is glued to its bumper (you or another rival)
+        const tgt=pl&&gapP>1.5&&gapP<34?pl:chaser;
+        if(tgt){ const g=r.dist-tgt.dist; tx=tgt.x; gain=.4; if(gapP<10&&r.nitro>.2) wantN=true;
+          if(tgt===pl) persona(r,`${d.tag} is covering your line.`);
+          else if(Math.random()<.012) persona(r,`${d.tag} shuts the door on ${tgt.def.tag}.`,true); }
+        break; }
       case 'leech': { // tuck into the draft of the nearest car ahead, then slingshot out
         let best=null,bd=46; for(const o of racers){ if(o===r) continue; const dd=o.dist-r.dist; if(dd>0&&dd<bd){ bd=dd; best=o; } }
         if(best){ chasing=best;
-          if(bd>9){ tx=best.x; if(bd<24&&Math.abs(best.x-r.x)<2.4){ r.draft=7.5; if(best===pl) persona(r,`${d.tag} is sitting in your slipstream.`); } }
-          else { tx=best.x+(best.x>0?-3.5:3.5); wantN=true; r.draft=4; if(best===pl) persona(r,`${d.tag} slingshots out of your draft.`); } }
+          if(bd>9){ tx=best.x; if(bd<24&&Math.abs(best.x-r.x)<2.4){ r.draft=7.5;
+            if(best===pl) persona(r,`${d.tag} is sitting in your slipstream.`);
+            else if(best.def.tag&&Math.random()<.01) persona(r,`${d.tag} hooks onto ${best.def.tag}'s draft.`,true); } }
+          else { tx=best.x+(best.x>0?-3.5:3.5); wantN=true; r.draft=4;
+            if(best===pl) persona(r,`${d.tag} slingshots out of your draft.`);
+            else if(Math.random()<.015) persona(r,`${d.tag} sends it past ${best.def.tag}.`,true); } }
         break; }
-      case 'bruiser': // aims for you when alongside
-        if(pl&&Math.abs(gapP)<9){ tx=pl.x; gain=.62; chasing=pl; persona(r,`${d.tag} is leaning on you.`); }
-        break;
+      case 'bruiser': { // leans on whoever is alongside (you or a rival)
+        const tgt=pl&&Math.abs(gapP)<9?pl:nearestAlongside(r);
+        if(tgt){ tx=tgt.x; gain=.62; chasing=tgt;
+          if(tgt===pl) persona(r,`${d.tag} is leaning on you.`);
+          else if(Math.random()<.014) persona(r,`${d.tag} bounces ${tgt.def.tag} off the paint.`,true); }
+        break; }
       case 'closer': { // cruises, then empties the tank late
         const prog=r.dist/(LAPS*TR.L);
         if(prog<.6) vF=.97; else { vF=1.075; wantN=Math.abs(ka)<.004; if(!r.lit&&racing){ r.lit=true; persona(r,`${d.tag} just lit the boost.`,true); } }
@@ -876,9 +938,10 @@ function stepRacer(r,dt,inp){
         if(pl&&gapP<0&&gapP>-16&&Math.abs(kn)>.002){ tx=clamp(line*1.3,-5.2,5.2); persona(r,`${d.tag} is diving to the inside.`); }
         break;
     }
-    if(P.seek&&!chasing&&EV.pickups&&!(d.id==='wall'&&pl&&gapP>1.5&&gapP<34)){ const L=TR.L, s0=((r.dist%L)+L)%L;
-      for(const p of EV.pickups){ if(p.cd>0) continue; if(p.type==='refill'&&r.nitro>.8) continue; let dd=p.s-s0; if(dd<0) dd+=L;
-        if(dd>6&&dd<70&&Math.abs(p.x-r.x)<4.6&&Math.random()<.98){ tx=p.x; break; } } }
+    if(P.seek&&!chasing&&EV.pickups&&!(d.id==='wall'&&(pl&&gapP>1.5&&gapP<34||chaser))){ const L=TR.L, s0=((r.dist%L)+L)%L;
+      let bestP=null,bestSc=.4;
+      for(const p of EV.pickups){ const sc=scorePickup(r,p,P,s0,L); if(sc>bestSc){ bestSc=sc; bestP=p; } }
+      if(bestP) tx=bestP.x; }
     // avoidance: traffic always; other racers unless you're the one this persona is attacking
     for(const o of racers.concat(traffic)){ if(o===r||o===chasing) continue; const dd=o.dist-r.dist, dx=o.x-r.x;
       if(dd>0&&dd<(o.tr?26:15)&&Math.abs(dx)<2.8){ tx=o.x+(o.x>0?-3.4:3.4); } }
@@ -887,7 +950,7 @@ function stepRacer(r,dt,inp){
     steer=clamp(-ac/d.grip+(tx-r.x)*gain-r.vx*.14+bias,-1,1);
     let rubber=1; if(pl) rubber=1+clamp((pl.dist-r.dist)/420,-.08,.1)*P.rubber;
     const vLim=Math.sqrt(1.9*d.grip*.95*P.risk/Math.max(Math.abs(ka),1e-4));
-    const vT=Math.min(d.top*r.skill*rubber*vF,vLim);
+    const vT=Math.min(d.top*r.skill*rubber*vF*(Math.abs(ka)<.003?evB.straight:evB.tight),vLim);
     if(r.v>vT+2) brake=true;
     const straight=Math.abs(ka)<.003&&r.v>38;
     switch(P.nitro){
@@ -1148,15 +1211,17 @@ function startLoading(){
 function endGhost(){ if(ghostCar){ ghostCar.scene.remove(ghostCar.group); ghostCar=null; } }
 function startRace(){
   clearRacers();
-  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id);
-  // grid: APEX on pole, THE WALL just ahead of you, LEECH and BRUISER right behind you
-  addRacer(R_('apex'),false,-5,-2.6,.99);
-  addRacer(R_('closer'),false,-11,2.6,.985);
-  addRacer(R_('wall'),false,-17,-2.6,.975);
-  player=addRacer(me,true,-23,2.6,1);
-  addRacer(R_('leech'),false,-29,-2.6,.985);
-  addRacer(R_('bruiser'),false,-35,2.6,.98);
-  addRacer(R_('wild'),false,-41,-2.6,.99);
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id];
+  const grid=[
+   ['apex',-5,-2.6,.99],['closer',-11,2.6,.985],['wall',-17,-2.6,.975],
+   ['player',-23,2.6,1],['leech',-29,-2.6,.985],['bruiser',-35,2.6,.98],['wild',-41,-2.6,.99]
+  ];
+  if(Math.random()<.45) grid.sort((a,b)=>a[0]==='player'?1:b[0]==='player'?-1:Math.random()-.5);
+  grid.forEach(row=>{
+   if(row[0]==='player'){ player=addRacer(me,true,row[1],row[2],row[3]); return; }
+   const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
+   addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012);
+  });
   personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=0; r.fxOver=0; });
   if(EV.resetTraffic) EV.resetTraffic();
   loadGhost(); spawnGhost(); ghostRec=[]; ghostAcc=0; camFlashes=0;
@@ -1183,7 +1248,7 @@ function finishRace(){
   $('#rStamp').innerHTML=(place===1?'Cleared':`Finished P${place}`)+`<small>${esc(EV.kick)}</small>`;
   $('#rTbl').innerHTML=`<dt>Time</dt><dd>${fmt(t)}</dd><dt>Best lap</dt><dd>${fmt(best)}</dd><dt>Top speed</dt><dd>${Math.round(player.top*2.237)} mph</dd><dt>Hits</dt><dd>${player.hits}</dd>`+(EV.cams.length?`<dt>Camera flashes</dt><dd>${camFlashes}</dd>`:'')+`<dt>Ghost</dt><dd>${esc(ghostMsg)}</dd>`;
   $('#rLog').textContent= place===1?'new stamp on the page.':(player.hits>6?'too many hits. clean it up.':'run it back.');
-  $('#rOrder').innerHTML=order.map((r,i)=>`<li${r.isP?' class="me"':''}><b>${i+1}</b>${r.isP?'You, '+esc(r.def.name):esc(r.def.tag)+' <em>'+esc(r.def.car)+'</em>'}</li>`).join('');
+  $('#rOrder').innerHTML=order.map((r,i)=>`<li${r.isP?' class="me"':''}><b>${i+1}</b>${r.isP?'You, '+esc(r.def.name):esc(r.def.tag)+' <em>'+esc(r.def.name||r.def.car)+'</em>'}</li>`).join('');
   page=sel; setWorld('flash'); studioCars.forEach((c,i)=>{ c.group.visible=i===sel; c.paint.roughness=clamp(c.def.rough+h.hits*.004,0,.6); });
   camSnap=true; modeT=0;
 }

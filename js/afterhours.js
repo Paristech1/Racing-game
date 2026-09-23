@@ -166,7 +166,10 @@ const EVENT_CAR_BIAS={
  tunnel:{gripW:1.22,topW:.94,nitroW:1.05},
  blvd:{gripW:.9,topW:1.12,nitroW:1.08},
  bridge:{gripW:.95,topW:1.15,nitroW:1.12},
- grand:{gripW:1.02,topW:1.1,nitroW:1.12}
+ grand:{gripW:1.02,topW:1.1,nitroW:1.12},
+ dockside:{gripW:1.08,topW:1.05,nitroW:1.06},
+ skyline:{gripW:1.05,topW:1.08,nitroW:1.1},
+ midnight:{gripW:1,topW:1.12,nitroW:1.14}
 };
 const RIVAL_CAR_PREF={
  apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk']},
@@ -1042,7 +1045,41 @@ const GAUNTLET_CFG={banner:'THE GAUNTLET',start:[40,20],
   gantries:[[120,-340,'THE GAUNTLET','12 IN · ONE OUT EVERY LAP'],[-80,-150,'THE GAUNTLET','DON\'T BE LAST']],
   roads:[{ew:1,c:20,dir:1,a:-80,b:430},{ew:1,c:-340,dir:-1,a:-80,b:430},{ew:0,c:-80,dir:1,a:-340,b:20},{ew:0,c:430,dir:-1,a:-340,b:20}],
   cams:[]};
+/* Event 05: tight container yard chicane, then a waterfront sprint (≈1.3 km). */
+const DOCKSIDE_CFG={banner:'EVENT 05 · DOCKSIDE DASH',start:[160,-320],
+  corners:[[340,-320,18],[340,-230,15],[240,-200,15],[80,-230,12],[40,-320,12],[-40,-320,15],[-40,-250,12],[80,-250,12],[240,-250,15],[340,-250,15]],
+  yAt:()=>0, zMin:-520, ZS:ZS_BASE.slice(0,8), jerseyMaxX:520, noTraffic:true, dockside:true,
+  trackX:(x,zc)=>(x===-40&&zc>-320&&zc<-230)||(x===340&&zc>-320&&zc<-230),
+  trackZ:(z,xc)=>(z===-320&&xc>-40&&xc<340)||(z===-250&&xc>-40&&xc<340),
+  skip:[[-40,-320,-160,-70]], excl:[],
+  gantries:[[280,-320,'DOCKSIDE DASH','CONTAINER YARD  →'],[80,-250,'WATERFRONT','FULL THROTTLE']],
+  roads:[{ew:1,c:-320,dir:1,a:-40,b:340},{ew:1,c:-250,dir:-1,a:-40,b:340}],
+  cams:[[240,-250,0,-1]]};
+/* Event 06: Center City mix with a raised skyline straight (≈4 km). */
+const SKYLINE_CFG={banner:'EVENT 06 · SKYLINE CIRCUIT',start:[40,20],
+  corners:[[430,20,30],[430,-340,30],[-80,-340,30],[-80,470,30],[720,470,30],[720,20,30]],
+  yAt:(x,z)=>z>400&&x>-20&&x<760?12+(z-400)*.008:0, zMin:-1600, ZS:ZS_BASE.concat([470,560]), jerseyMaxX:820, noTraffic:true, skyline:true,
+  trackX:(x,zc)=>(x===-80&&zc>-340&&zc<470)||(x===430&&zc>-340&&zc<20)||(x===720&&zc>-340&&zc<470),
+  trackZ:(z,xc)=>(z===20&&xc>-80&&xc<430)||(z===-340&&xc>-80&&xc<430)||(z===470&&xc>-80&&xc<720),
+  skip:[], excl:[],
+  gantries:[[430,-340,'SKYLINE CIRCUIT','ELEVATED RUN  ↑'],[720,470,'BROAD ST','HARD BRAKING']],
+  roads:[{ew:1,c:20,dir:1,a:-80,b:430},{ew:1,c:-340,dir:-1,a:-80,b:430},{ew:1,c:470,dir:-1,a:-80,b:720},{ew:0,c:-80,dir:1,a:-340,b:470},{ew:0,c:430,dir:-1,a:-340,b:20},{ew:0,c:720,dir:1,a:-340,b:470}],
+  cams:[[430,-340,0,-1],[720,470,0,1]]};
+/* Event 07: one long lap — blvd, bridge, tunnel, waterfront (≈10 km). */
+const MIDNIGHT_CFG={banner:'EVENT 07 · MIDNIGHT EXPRESS',start:[-20,-1950],
+  corners:[[-20,-800,30],[720,-800,30],[720,-300,30],[2030,-300,30],[2480,-300,20],[2480,-340,20],[-80,-340,30],[-80,470,30],[-80,-1400,30],[-20,-1400,30],[-20,-1950,30]],
+  yAt:(x,z)=>z<-250&&z>-360&&x>760?bridgeY(x):(z>400?tunnelY(x):0), zMin:-2200, ZS:[-880,-800,...ZS_BASE,470,560,650], jerseyMaxX:1990,
+  trackX:(x,zc)=>(x===-80&&zc>-880&&zc<470)||(x===720&&zc>-800&&zc<-250)||(x===2030&&zc>-300&&zc<470),
+  trackZ:(z,xc)=>(z===-800&&xc>-20&&xc<720)||(z===470&&xc>-80&&xc<820)||(z===-340&&xc>-80&&xc<2480),
+  skip:[[-80,70,-880,-800]], excl:[[800,1040,455,485],[1720,2000,455,485]], holes:[[815,885,462.6,477.4],[1895,1965,462.6,477.4]],
+  gantries:[[860,-300,'MIDNIGHT EXPRESS','CAMDEN STRAIGHT  ↑'],[-20,-1000,'ROOSEVELT BLVD','US 1 SOUTH'],[2030,200,'HARBOR LINE TUNNEL','PHILADELPHIA  ←']],
+  roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:1,c:-340,dir:-1,a:-80,b:2480},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
+  cams:[[-20,-1050,1,0],[400,-800,0,1],[400,470,0,-1]],
+  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-1950,z1:-835}};
 function buildKnockout(){ return buildCity(GAUNTLET_CFG); }
+function buildDockside(){ return buildCity(DOCKSIDE_CFG); }
+function buildSkyline(){ return buildCity(SKYLINE_CFG); }
+function buildMidnight(){ return buildCity(MIDNIGHT_CFG); }
 function buildBridge(){ return buildCity(BRIDGE_CFG); }
 function buildGrand(){ return buildCity(GRAND_CFG); }
 function buildCity(C){
@@ -1314,7 +1351,24 @@ function buildCity(C){
   if(C.tunnel) tunnelDress();
   if(C.blvd) blvdDress(C.blvd);
   if(C.decoBridge) decoBridge();
+  if(C.dockside) docksideDress();
+  if(C.skyline) skylineDress();
   const arena=C.arena?arenaDress():null;
+
+  function docksideDress(){
+    const stackM=new THREE.MeshStandardMaterial({color:0x1a4a6a,metalness:.55,roughness:.4});
+    const boxC=new THREE.MeshStandardMaterial({color:0x8a4a18,metalness:.35,roughness:.75});
+    [[180,-290,3,2.6,6],[220,-305,2.2,2.6,5],[260,-285,2.8,2.6,7],[140,-305,2,2.6,4]].forEach(([x,z,w,h,d])=>{
+      boxM(w,h,d,stackM,x,h/2,z); boxM(w*.92,h*.9,d*.95,boxC,x,h/2,z); });
+    flat(60,320,-330,-260,.05,new THREE.MeshBasicMaterial({map:poolTex,color:0x3a5a78,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false}));
+    const sg=mesh(new THREE.PlaneGeometry(8,1.6),new THREE.MeshBasicMaterial({map:CT(signCanvas2('PORT RICHMOND','CONTAINER YARD',{bg:'#0a0d12',color:'#e6f2ff'})),toneMapped:false}),200,6,-318); sg.rotation.y=Math.PI;
+  }
+  function skylineDress(){
+    const rail=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:.8,roughness:.25,side:THREE.DoubleSide});
+    ribbonF(tr,S,rail,(k,p)=>p.y>10&&p.z>380&&p.x>100&&p.x<740?[W+3.8,p.y+.4,W+3.8,p.y+1.1]:null);
+    ribbonF(tr,S,new THREE.MeshBasicMaterial({color:0xffcf8a,toneMapped:false,side:THREE.DoubleSide}),(k,p)=>p.y>10&&p.z>380&&p.x>100&&p.x<740?[-(W+3.8),p.y+.55,-(W+3.8),p.y+.62]:null);
+    const glow=glowSprite(0xffcf8a,12); glow.position.set(720,18,470); S.add(glow);
+  }
 
   // Harbor Line tunnel: open cuts with retaining walls, then a roofed tube with strip lights, portals at both ends
   function tunnelDress(){
@@ -1440,11 +1494,37 @@ const EVENTS=[
    specs:'2 LAPS / 8 KM LOOP / BLVD + BRIDGE + TUNNEL / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
    note:'the tunnel\nis where\nit\'s won',load:'The Blvd, the bridge and the tunnel. Two laps of all of it.'},
   {id:'ko',build:buildKnockout,open:true,knockout:true,laps:99,name:'The Gauntlet',kick:'Tournament',loc:'Penn Square',when:'Twelve cars, one survivor',
-   caption:'Every car in the archive on one grid, on a flood-lit loop around City Hall. Each lap the last car across the line is knocked out, and every round rolls a new rule. Last car running wins.',
-   specs:'12 CARS / KNOCKOUT EVERY LAP / 14 ROUND RULES / 1.7 KM LOOP',
-   note:'don\'t be\nlast. ever.',load:'Twelve cars, one survivor. Last across the line each lap is out.'}
+   caption:'Pick your battlefield, then survive eleven knockout rounds. Last car running wins — same rules on every map, with sector knockouts on the long courses.',
+   specs:'12 CARS / 4 MAPS / KNOCKOUT ROUNDS / SECTOR OR LAP CHECKPOINTS',
+   note:'pick your\nmap. then\nsurvive.',load:'Twelve cars, one survivor. Choose a map and run The Gauntlet.'},
+  {id:'dockside',build:buildDockside,open:true,laps:3,name:'Dockside Dash',kick:'Event 05',loc:'Port Richmond',when:'Container yard to the waterfront',
+   caption:'A short, tight, aggressive loop: a narrow container-yard chicane opens onto a waterfront sprint. Three laps, nowhere to hide.',
+   specs:'1.3 KM LOOP / 3 LAPS / 7 CARS / NO TRAFFIC',
+   note:'chicane tight.\nwater open.',load:'Dockside Dash. Three laps through the yard and the waterfront.'},
+  {id:'skyline',build:buildSkyline,open:true,laps:2,name:'Skyline Circuit',kick:'Event 06',loc:'Center City',when:'Streets and the elevated run',
+   caption:'A medium mix of technical streets and fast avenues. A sweeping elevated section frames the city before a hard braking zone into South Street.',
+   specs:'4.0 KM LOOP / 2 LAPS / 7 CARS / NO TRAFFIC / 2 SPEED CAMERAS',
+   note:'save brakes\nfor South St',load:'Skyline Circuit. Two laps of streets and the elevated straight.'},
+  {id:'midnight',build:buildMidnight,open:true,laps:1,name:'Midnight Express',kick:'Event 07',loc:'All night',when:'Blvd, bridge, tunnel, waterfront',
+   caption:'The longest, fastest, most playful course in one lap: long boost-friendly straights, the Harbor Line tunnel, sweeping bends, and a high-speed run to the line.',
+   specs:'10.0 KM / 1 LAP / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
+   note:'one lap.\nall of it.',load:'Midnight Express. Ten kilometers, one lap, no shortcuts.'}
 ];
 EVENTS.forEach(e=>{ Object.assign(e,e.build()); });
+const KO_MAPS=[
+ {id:'arena',eventId:'ko',name:'City Hall Arena',km:'1.7'},
+ {id:'dockside',eventId:'dockside',name:'Dockside Dash',km:'1.3'},
+ {id:'skyline',eventId:'skyline',name:'Skyline Circuit',km:'4.0'},
+ {id:'midnight',eventId:'midnight',name:'Midnight Express',km:'10.0'}
+];
+let koMapI=0;
+function bindKoTrack(i){
+  koMapI=(i+KO_MAPS.length)%KO_MAPS.length;
+  const map=KO_MAPS[koMapI], base=EVENTS.find(e=>e.id==='ko'), track=EVENTS.find(e=>e.id===map.eventId);
+  if(!base||!track) return;
+  EV=Object.assign({},base,{name:'The Gauntlet · '+map.name,load:`Twelve cars on ${map.name}. Sector checkpoints on long maps.`,track:track.track,scene:track.scene,traffic:track.traffic,update:track.update,sNear:track.sNear,koScreen:track.koScreen,cams:track.cams,pickups:track.pickups,turns:track.turns,chevrons:track.chevrons,resetTraffic:track.resetTraffic,id:'ko',knockout:true});
+  RS=EV.scene; TR=EV.track; RS.add(fxGroup); traffic=EV.traffic||[]; if(EV.resetTraffic) EV.resetTraffic();
+}
 /* ---- power-ups on the racing surface (any car can grab them) ---- */
 const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},long:{c:0xb28cff,css:'#b28cff',label:'Long Boost',tag:'LONG BOOST'},over:{c:0xffb020,css:'#ffb020',label:'Overdrive',tag:'OVERDRIVE'},
   sling:{c:0xff3b4a,css:'#ff3b4a',label:'Slingshot',tag:'SLINGSHOT'},shield:{c:0x7dff9a,css:'#7dff9a',label:'Shield',tag:'SHIELD'},
@@ -1502,6 +1582,16 @@ addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[1000,0,'over'],[1400
     [at(720,-420),0,'refill'],[at(900,-300),-3.6,'long'],[at(1200,-300),3.6,'sling'],[at(1500,-300),0,'shock'],[at(1800,-300),-3.6,'grip'],
     [at(2030,-100),3.6,'shield'],[at(2030,250),0,'refill'],[at(1600,470),-3.6,'over'],[at(1300,470),3.6,'sling'],[at(1000,470),0,'shock'],
     [at(600,470),-3.6,'refill'],[at(250,470),3.6,'shield'],[at(-80,200),0,'grip'],[at(-80,-300),-3.6,'long'],[at(-80,-650),3.6,'shock'],[at(-80,-1100),0,'over']]); }
+{ const at=EVENTS[5].sNear;
+  addPickups(EVENTS[5],[[at(160,-320),-3.4,'refill'],[at(280,-320),3.4,'sling'],[at(340,-260),0,'grip'],[at(240,-200),-3.4,'over'],[at(80,-230),3.4,'shield'],
+    [at(40,-320),0,'long'],[at(-40,-280),-3.4,'shock'],[at(120,-250),3.4,'refill'],[at(300,-250),0,'sling']]); }
+{ const at=EVENTS[6].sNear;
+  addPickups(EVENTS[6],[[at(200,20),-3.6,'refill'],[at(430,-120),3.6,'sling'],[at(430,-340),0,'shield'],[at(160,-340),-3.6,'grip'],[at(-80,120),3.6,'over'],
+    [at(-80,470),0,'long'],[at(430,470),-3.6,'refill'],[at(720,470),3.6,'shock'],[at(720,200),0,'sling'],[at(430,20),-3.6,'over']]); }
+{ const at=EVENTS[7].sNear;
+  addPickups(EVENTS[7],[[at(-20,-1700),-3.6,'refill'],[at(-20,-950),3.6,'sling'],[at(400,-800),0,'shield'],[at(720,-500),-3.6,'grip'],[at(1200,-300),3.6,'long'],
+    [at(1800,-300),0,'over'],[at(2300,-300),-3.6,'sling'],[at(2480,-320),3.6,'shock'],[at(900,-340),0,'refill'],[at(-80,250),-3.6,'shield'],
+    [at(2030,200),3.6,'grip'],[at(1600,470),0,'long'],[at(720,470),-3.6,'over'],[at(-80,-900),3.6,'sling']]); }
 EVENTS.forEach(addChevrons);
 function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; }); }
 function worldFx(dt){
@@ -1580,6 +1670,7 @@ function applyPU(r,type){
   if(r.isP){ toast(`${jack?'JACKPOT. ':''}${V[0]}. ${V[1]}${twist?' '+twist:''}`); if(type==='sling') shake=br==='chase'?.9:.6;
     tone(jack?1040:880,.12,.25,'triangle'); setTimeout(()=>tone(jack?1560:1320,.18,.22,'triangle'),90); if(jack) setTimeout(()=>tone(2080,.22,.2,'triangle'),200); flash(jack?.35:.18); }
   else if(player&&type!=='shock'&&Math.abs(r.dist-player.dist)<70&&r.def.tag) persona(r,`${r.def.tag} grabbed ${jack?'a jackpot ':''}${V[0]}.`);
+  if(r.isP) tapeLog('powerup',{who:'YOU',tag:(jack?'Jackpot ':'')+V[0]});
 }
 // shockwave modes: ring hits cars around you, wake only cars behind, lightning strikes the leaders anywhere
 const swF=mkF(), swV=new THREE.Vector3();
@@ -2023,6 +2114,7 @@ function collide(){
         if(fore.isP){ toast(`Rammed by ${back.def.tag}. It took your speed.`); shake=1; } else if(back.isP) toast(`Rammed ${fore.def.tag}. Speed stolen.`); }
       if((a.isP||b.isP)&&(a.hitCd<=0)){ a.hitCd=.3; b.hitCd=.3; sfx.hit(); shake=.5;
         frame((a.dist+b.dist)/2,F); tmpV.copy(F.p).addScaledVector(F.r,(a.x+b.x)/2); tmpV.y+=.5; emitSparks(tmpV,F.t,30,a.v*.3); if(a.isP&&!shieldVs(a,b)) a.hits++; if(b.isP&&!shieldVs(b,a)) b.hits++; }
+      if(!a.tr&&!b.tr&&raceT<9&&raceT>0&&!raceTape.battle){ raceTape.battle=true; tapeLog('battle',{a:a.def.tag,b:b.def.tag}); }
     }
   }
 }
@@ -2068,7 +2160,131 @@ function ghostState(t){
 }
 const r2=v=>Math.round(v*100)/100;
 
-/* ---------------- FX update ---------------- */
+/* ---------------- RACE TAPE (all racers — powers highlights + race report) ---------------- */
+let raceTape=null, tapeAcc=0, tapeLeader=null, tapePlace=0, hiPlay=null, hiCars=[], reportSkip=false;
+function tapeReset(){
+  raceTape={snaps:[],events:[],margin:null,battle:false};
+  tapeLeader=null; tapePlace=0; tapeAcc=0; reportSkip=false;
+}
+function tapeSample(sdt){
+  if(!raceTape||mode!=='race'||countdown>0) return;
+  tapeAcc+=sdt;
+  if(tapeAcc<.05) return;
+  tapeAcc=0;
+  const row=[r2(raceT)];
+  racers.forEach(r=>{
+    if(r.out) return;
+    row.push(r.isP?'player':r.def.id,r2(r.dist),r2(r.x),r2(r.yaw));
+  });
+  raceTape.snaps.push(row);
+  ghostRec.push([r2(raceT),r2(player.dist),r2(player.x),r2(player.yaw)]);
+}
+function tapeLog(type,payload){
+  if(!raceTape||mode!=='race') return;
+  raceTape.events.push(Object.assign({t:r2(raceT),type},payload||{}));
+}
+function tapeWatchStandings(){
+  if(!raceTape||!player||mode!=='race'||countdown>0) return;
+  const st=standings(), lead=st[0], place=st.indexOf(player)+1;
+  if(lead&&lead!==tapeLeader&&!lead.out){
+    if(tapeLeader) tapeLog('lead',{from:tapeLeader.isP?'YOU':tapeLeader.def.tag,to:lead.isP?'YOU':lead.def.tag});
+    tapeLeader=lead;
+  }
+  if(place&&tapePlace&&place<tapePlace){
+    const overtaken=st[tapePlace-1];
+    if(overtaken&&overtaken!==player) tapeLog('overtake',{who:'YOU',target:overtaken.def.tag,fromP:tapePlace,toP:place});
+  }
+  if(place) tapePlace=place;
+}
+function koUsesSectors(){ return EV.knockout&&TR&&TR.L>2500; }
+function koCheckpoint(round){ const L=TR.L; return koUsesSectors()?round*(L/11):round*L; }
+function snapAt(t){
+  if(!raceTape||!raceTape.snaps.length) return null;
+  const s=raceTape.snaps; if(t<=s[0][0]) return s[0];
+  for(let i=0;i<s.length-1;i++) if(t>=s[i][0]&&t<=s[i+1][0]) return s[i];
+  return s[s.length-1];
+}
+function snapDecode(row){
+  const out=[]; for(let i=1;i<row.length;i+=4) out.push({id:row[i],dist:row[i+1],x:row[i+2],yaw:row[i+3]});
+  return out;
+}
+function racerLabel(id){ if(id==='player') return 'YOU'; const r=racers.find(x=>x.def.id===id); return r?r.def.tag:id; }
+function buildRaceReport(place,t){
+  if(!raceTape) return {headline:'Race complete',quote:'',items:[],margin:null};
+  const evs=raceTape.events.slice().sort((a,b)=>a.t-b.t);
+  const margin=raceTape.margin!=null?raceTape.margin:(()=>{ const order=racers.slice().sort((a,b)=>(a.finishT||9e9)-(b.finishT||9e9)); return order.length>1?Math.abs((order[1].finishT||t)-(order[0].finishT||t)):null; })();
+  const items=[]; const used=new Set();
+  function pick(type,title,fmtFn){
+    const e=evs.find(x=>x.type===type&&!used.has(x)); if(!e) return;
+    used.add(e); items.push({t:e.t,title,body:fmtFn(e),ids:e.ids||[]});
+  }
+  pick('battle','THE OPENING SCRAMBLE',e=>`${e.a} and ${e.b} fought for the first corner.`);
+  pick('overtake','THE COMEBACK',e=>`You climbed from P${e.fromP} to P${e.toP}${e.target?' through '+e.target:''}.`);
+  const pass=evs.filter(e=>e.type==='overtake').pop();
+  if(pass&&!used.has(pass)){ used.add(pass); items.push({t:pass.t,title:'THE DECISIVE PASS',body:`You took P${pass.toP}${pass.target?' past '+pass.target:''}.`,ids:['player']}); }
+  pick('powerup','POWER SWING',e=>`${e.who} grabbed ${e.tag}.`);
+  pick('knockout','KNOCKOUT',e=>`${e.who} was knocked out.`);
+  pick('lead','LEAD CHANGE',e=>`${e.to} took the lead from ${e.from}.`);
+  const fin=evs.filter(e=>e.type==='finish').pop();
+  if(fin){ items.push({t:fin.t,title:'THE FINISH',body:place===1?`Winner, margin +${(margin||0).toFixed(1)} s.`:`Finished P${place}.`,ids:['player']}); }
+  while(items.length<4){
+    if(items.length===0) items.push({t:t*.25,title:'THE RUN',body:'You kept it pinned all race.',ids:['player']});
+    else if(!items.some(x=>x.title==='THE FINISH')) items.push({t:t,title:'THE FINISH',body:place===1?'Winner.':`Finished P${place}.`,ids:['player']});
+    else break;
+  }
+  const headline=place===1?'THE NIGHT WAS YOURS':(`P${place} / ${racers.length}`);
+  const quote=pass?`A ${pass.target?'pass on '+pass.target:'late move'} settled the race.`:items[0]?items[0].body:'';
+  return {headline,quote,items:items.slice(0,4),margin};
+}
+function showResultsClassic(show){
+  $('#rClassic').style.display=show?'':'none';
+  $('#rReport').style.display=show?'none':'';
+}
+function finishRaceReport(place,t,gap){
+  tapeLog('finish',{place});
+  if(raceTape) raceTape.margin=parseFloat(gap)||null;
+  const rep=buildRaceReport(place,t);
+  renderRaceReport(rep);
+  showResultsClassic(reportSkip);
+}
+function renderRaceReport(rep){
+  $('#rReport').style.display='';
+  $('#rMagHead').textContent=rep.headline;
+  $('#rMagSub').textContent=`${EV.name.toUpperCase()} · P${$('#rPlace').textContent.replace('P','')} / ${racers.length}`;
+  $('#rMagQuote').textContent=rep.quote?`“${rep.quote}”`:'';
+  $('#rHiList').innerHTML=rep.items.map((it,i)=>`<li><button type="button" data-hi="${i}"><b>${String(i+1).padStart(2,'0')}</b> ${esc(it.title)}<span>${esc(it.body)}</span></button></li>`).join('');
+  $('#rHiList').querySelectorAll('button').forEach(b=>b.onclick=()=>playHighlight(rep.items[+b.dataset.hi]));
+}
+function endHighlight(){
+  hiCars.forEach(c=>{ if(c.group.parent) c.group.parent.remove(c.group); });
+  hiCars=[]; hiPlay=null; mode='results'; show('results'); draw(studio);
+}
+function playHighlight(h){
+  if(!raceTape||!h) return;
+  hiPlay={t0:Math.max(0,h.t-2.2),t1:h.t+3.8,t:Math.max(0,h.t-2.2),ids:h.ids&&h.ids.length?h.ids:['player']};
+  hiCars.forEach(c=>{ if(c.group.parent) c.group.parent.remove(c.group); }); hiCars=[];
+  const idSet=new Set(hiPlay.ids);
+  idSet.forEach(id=>{
+    const def=id==='player'?player.def:(racers.find(r=>r.def.id===id)||{}).def||CARS[0];
+    const m=buildCar(def); RS.add(m.group); hiCars.push({id,group:m.group,wheels:m.wheels});
+  });
+  mode='highlight'; show('hud'); $('#hMsg').textContent=h.title; camSnap=true;
+}
+function highlightStep(dt){
+  if(!hiPlay) return;
+  hiPlay.t+=dt;
+  const row=snapAt(hiPlay.t); if(!row) return;
+  snapDecode(row).forEach(s=>{
+    if(!hiPlay.ids.includes(s.id)) return;
+    const car=hiCars.find(c=>c.id===s.id); if(!car) return;
+    poseAt(car.group,s.dist,s.x,s.yaw,0); car.wheels.forEach(w=>w.rotation.x+=dt*40);
+  });
+  const focus=hiCars.find(c=>c.id==='player')||hiCars[0];
+  if(focus){ const s=snapDecode(row).find(x=>x.id===focus.id); if(s){ chaseCam(dt,{dist:s.dist,x:s.x,yaw:s.yaw,v:55,m:{group:focus.group},steer:0,vx:0,nitro:0},null); } }
+  draw(RS);
+  if(hiPlay.t>=hiPlay.t1) endHighlight();
+}
+
 const FX={m4:new THREE.Matrix4(),q:new THREE.Quaternion(),sc:new THREE.Vector3(),p:new THREE.Vector3(),b:new THREE.Matrix4(),nr:new THREE.Vector3()};
 function updateFx(dt,focus){
   for(let i=0;i<SP;i++){ if(spLife[i]<=0) continue; spLife[i]-=dt;
@@ -2188,12 +2404,19 @@ function renderEvent(dir,force){
   const g=loadGhost();
   $('#eGhost').textContent=g?`Your ghost: ${fmt(g.t)} in the ${(CARS.find(c=>c.id===g.car)||CARS[0]).name}. Beat it and it gets replaced.`:'No ghost yet. Your first finish becomes the one to beat.';
   $('#eGhost').textContent+=' On the grid: Apex, The Wall, Leech, Bruiser, The Closer, Wildcard. '+PU_DESC;
-  if(e.knockout) $('#eGhost').textContent='All 12 cars start. Each lap the last car across the line is out. Round rules: '+KO_MODS.filter(m=>m.id!=='clean').map(m=>m.name).join(', ')+', and a Final Duel for the last two.';
+  if(e.knockout){ bindKoTrack(koMapI); $('#eGhost').textContent='Pick a map on the next screen. Short loops use lap checkpoints; long courses knock out at sectors so you are not running 110 km. Round rules: '+KO_MODS.filter(m=>m.id!=='clean').map(m=>m.name).join(', ')+', and a Final Duel for the last two.'; }
   $('#ePg').innerHTML=`0${EVI+1} <em>/ 0${EVENTS.length}</em>`;
   if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3']],dir);
   modeT=0; shot=-1;
 }
 function turnEvent(dir){ EVI=(EVI+dir+EVENTS.length)%EVENTS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderEvent(dir); }
+function renderGauntlet(){
+  $('#gMaps').innerHTML=KO_MAPS.map((m,i)=>`<button type="button" class="gmap${i===koMapI?' on':''}" data-i="${i}"><b>${esc(m.name)}</b><span>${m.km} km</span></button>`).join('');
+  $('#gMaps').querySelectorAll('button').forEach(b=>b.onclick=()=>{ koMapI=+b.dataset.i; bindKoTrack(koMapI); renderGauntlet(); setupAttract(CARS[sel]); sfx.page(); });
+  bindKoTrack(koMapI);
+}
+function openGauntlet(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='gauntlet'; show('gauntlet'); renderGauntlet(); setupAttract(CARS[sel]); }
+function startGauntlet(){ bindKoTrack(koMapI); startLoading(); }
 function backToArchive(){ engine(0,false); screech(0); mode='select'; show('select'); flash(.9); sfx.shutter(); renderPage(0); }
 $('#prev').onclick=()=>turn(-1); $('#next').onclick=()=>turn(1);
 $('#specBtn').onclick=()=>sheetOpen?closeSheet():openSheet(); $('#shClose').onclick=closeSheet;
@@ -2204,13 +2427,18 @@ $('#shPrev').onclick=()=>turn(-1); $('#shNext').onclick=()=>turn(1);
     if(dy>60&&dy>Math.abs(dx)) closeSheet(); else if(Math.abs(dx)>40) turn(dx<0?1:-1); }); })();
 $('#race').onclick=()=>openEvents();
 $('#ePrev').onclick=()=>turnEvent(-1); $('#eNext').onclick=()=>turnEvent(1);
-$('#eGo').onclick=()=>startLoading(); $('#eBack').onclick=()=>backToArchive();
+$('#eGo').onclick=()=>EV.knockout?openGauntlet():startLoading(); $('#eBack').onclick=()=>backToArchive();
+$('#gBack').onclick=()=>{ mode='events'; show('events'); renderEvent(0,true); };
+$('#gStart').onclick=()=>startGauntlet();
 $('#snd').onclick=()=>{ soundOn=!soundOn; $('#snd').textContent=soundOn?'Sound on':'Sound off'; };
 $('#glow').onclick=()=>{ glowOn=!glowOn; $('#glow').textContent=glowOn?'Glow on':'Glow off'; };
 $('#tap').onclick=()=>{ if(bootReady) enter(); };
 $('#quit').onclick=()=>{ endGhost(); backToArchive(); };
 $('#rBack').onclick=()=>backToArchive();
 $('#rAgain').onclick=()=>startLoading();
+$('#rSkip').onclick=()=>{ reportSkip=true; showResultsClassic(true); };
+$('#rView').onclick=()=>{ reportSkip=false; showResultsClassic(false); };
+$('#rWatch').onclick=()=>{ const b=$('#rHiList button'); if(b) b.click(); else showResultsClassic(true); };
 let sx=null, sy=0, swipeEl=null;
 ['#select','#events'].forEach(id=>{ const el=$(id); el.style.pointerEvents='auto';
   el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; sx=e.clientX; sy=e.clientY; swipeEl=id; }); });
@@ -2250,7 +2478,7 @@ function startRace(){
   const boss=racers.find(r=>!r.isP&&(r.def.chassisId==='overload'));
   if(boss&&!EV.knockout) setTimeout(()=>{ if(mode==='race') toast(`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`); },4200);
   if(EV.knockout){ ghostData=null; endGhost(); } else { loadGhost(); spawnGhost(); } ghostRec=[]; ghostAcc=0; camFlashes=0;
-  KO=null; LOOK.lightsOut=false; applyLights(); if(EV.knockout) koStart();
+  tapeReset(); KO=null; LOOK.lightsOut=false; applyLights(); if(EV.knockout) koStart();
   mode='race'; show('hud'); countdown=3.6; raceT=0; finishHold=0; slowmo=1; camSnap=true; shake=0;
   $('#hGhost').textContent=''; $('#hMsg').textContent='3'; sfx.beep(false); flash(.9);
 }
@@ -2276,6 +2504,7 @@ function finishRace(){
   $('#rTbl').innerHTML=`<dt>Time</dt><dd>${fmt(t)}</dd><dt>Best lap</dt><dd>${fmt(best)}</dd><dt>Top speed</dt><dd>${Math.round(player.top*2.237)} mph</dd><dt>Hits</dt><dd>${player.hits}</dd>`+(EV.cams.length?`<dt>Camera flashes</dt><dd>${camFlashes}</dd>`:'')+`<dt>Ghost</dt><dd>${esc(ghostMsg)}</dd>`;
   $('#rLog').textContent= place===1?'new stamp on the page.':(player.hits>6?'too many hits. clean it up.':'run it back.');
   $('#rOrder').innerHTML=order.map((r,i)=>`<li${r.isP?' class="me"':''}><b>${i+1}</b>${r.isP?'You, '+esc(r.def.name):esc(r.def.tag)+' <em>'+esc(r.def.name||r.def.car)+'</em>'}</li>`).join('');
+  finishRaceReport(place,t,gap);
   page=sel; setWorld('flash'); studioCars.forEach((c,i)=>{ c.group.visible=i===sel; c.paint.roughness=clamp(c.def.rough+h.hits*.004,0,.6); });
   camSnap=true; modeT=0;
 }
@@ -2339,6 +2568,7 @@ function knockOut(r,why){
   const left=koActive().length;
   if(r.isP){ koBanner('You\'re out',`${why} You finished P${left+1} of ${racers.length}.`); flash(.8); shake=1.2; }
   else if(!player.out){ koBanner(`${r.def.tag} is out`,`${why} ${left} left.`); flash(.25); }
+  tapeLog('knockout',{who:r.isP?'YOU':r.def.tag});
   sfx.hit(); burst(.7,'lowpass',1400,50,.9); drawKoScreen();
 }
 function koWin(w){ KO.done=true; if(KO.mod&&KO.mod.off) KO.mod.off(); hideCrown();
@@ -2355,10 +2585,11 @@ function koStep(dt){
     if(KO.leader&&lead!==KO.leader&&!KO.leader.out){ lead.nitro=Math.max(lead.nitro,1.2); lead.fxShield=Math.max(lead.fxShield,3); lead.shieldMode='full';
       if(lead.isP) toast('Bounty claimed. Full boost and a shield.'); else if(KO.leader.isP) toast(`${lead.def.tag} took the lead and the bounty.`); }
     KO.leader=lead; placeCrown(lead); }
-  if(KO.mod.id==='bomb'&&!KO.bombed){ const mark=(KO.round-1+.5)*L, passed=act.filter(r=>r.dist>=mark);
+  if(KO.mod.id==='bomb'&&!KO.bombed){ const mark=koUsesSectors()?koCheckpoint(KO.round-.5):((KO.round-1+.5)*L), passed=act.filter(r=>r.dist>=mark);
     if(passed.length>=act.length-1){ KO.bombed=true; knockOut(act.filter(r=>r.dist<mark)[0]||act.slice().sort((a,b)=>a.dist-b.dist)[0],'Caught by the time bomb.'); return; } }
   const e=KO.mod.id==='double'&&act.length>=5?2:1;
-  act.forEach(r=>{ if(Math.floor(r.dist/L)>=KO.round&&r.koRound!==KO.round){ r.koRound=KO.round; r.koT=raceT; } });
+  const mark=koCheckpoint(KO.round);
+  act.forEach(r=>{ if(r.dist>=mark&&r.koRound!==KO.round){ r.koRound=KO.round; r.koT=raceT; } });
   const crossed=act.filter(r=>r.koRound===KO.round);
   if(crossed.length>=act.length-e){
     let outs=act.filter(r=>r.koRound!==KO.round);
@@ -2379,6 +2610,7 @@ function finishKnockout(){
   $('#rTbl').innerHTML=`<dt>Survived</dt><dd>${fmt(t)}</dd><dt>Rounds cleared</dt><dd>${rounds} of 11</dd><dt>Cars outlasted</dt><dd>${racers.length-place}</dd><dt>Top speed</dt><dd>${Math.round(player.top*2.237)} mph</dd><dt>Hits</dt><dd>${player.hits}</dd>`;
   $('#rLog').textContent=won?'new stamp on the page.':(place<=3?'so close. run it back.':'don\'t be last. ever.');
   $('#rOrder').innerHTML=order.map((r,i)=>`<li${r.isP?' class="me"':''}><b>${i+1}</b>${r.isP?'You, '+esc(r.def.name):esc(r.def.tag)}${r.out?` <em>out R${r.koOutRound}</em>`:(KO&&KO.done&&i===0?' <em>winner</em>':' <em>still running</em>')}</li>`).join('');
+  finishRaceReport(place,t,won?'0.0':'0.0');
   page=sel; setWorld('flash'); studioCars.forEach((c,i)=>{ c.group.visible=i===sel; c.paint.roughness=clamp(c.def.rough+h.hits*.004,0,.6); });
   camSnap=true; modeT=0;
 }
@@ -2440,12 +2672,15 @@ function loop(now){
   modeT+=dt; ghostT+=dt;
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('#hToast').style.opacity=0; }
 
-  if(mode==='boot'||mode==='loading'||mode==='events'){
+  if(mode==='boot'||mode==='loading'||mode==='events'||mode==='gauntlet'){
     attractStep(dt);
     if(mode==='boot'){ bootP=Math.min(1,(now-bootStart)/2200); $('#bootbar').style.width=(bootP*100)+'%'; if(bootP>=1&&!bootReady){ bootReady=true; $('#tap').classList.add('ready'); } }
     else if(mode==='loading'){ $('#ldbar').style.width=Math.min(100,modeT/3.6*100)+'%'; engine(player.v*.7,true); if(modeT>3.6) startRace(); }
     else engine(0,false);
-    if(mode!=='race') draw(RS);
+    if(mode!=='race'&&mode!=='highlight') draw(RS);
+  }
+  else if(mode==='highlight'){
+    highlightStep(dt);
   }
   else if(mode==='select'||mode==='results'){
     studioCam(dt,CARS[page],mode==='results');
@@ -2467,7 +2702,7 @@ function loop(now){
       traffic.forEach(o=>stepTraffic(o,sdt));
       collide(); if(EV.knockout) koStep(sdt); racers.forEach(r=>{ if(!r.out) poseRacer(r,sdt); }); traffic.forEach(o=>poseTraffic(o,sdt));
       engine(player.v,true); screech(clamp(player.slip,0,1));
-      if(!player.finished){ ghostAcc+=sdt; if(ghostAcc>=.05){ ghostAcc=0; ghostRec.push([r2(raceT),r2(player.dist),r2(player.x),r2(player.yaw)]); } }
+      if(!player.finished) tapeSample(sdt);
       if(player.finished){ if(finishHold===0){ $('#hMsg').textContent=EV.knockout?(player.out?'Out':'Winner'):'Finish'; sfx.beep(true); } finishHold+=dt; slowmo=lerp(slowmo,EV.knockout&&player.out?.8:.3,1-Math.exp(-dt*3)); if(finishHold>(EV.knockout&&player.out?3.4:2.2)) finishRace(); }
       for(const o of racers){ if(o===player||o.out) continue; const dd=o.dist-player.dist; if(dd>3&&dd<(player.fxOver>0&&player.draftRange?player.draftRange:18)&&Math.abs(o.x-player.x)<2.2){ player.nitro=Math.min(Math.max(1,player.nitro),player.nitro+.12*sdt); } }
     }
@@ -2484,8 +2719,13 @@ function loop(now){
       const danger=EV.knockout&&KO&&!KO.done&&!player.out&&countdown<=0&&place>=nOn-(koMod('double')?1:0);
       $('#hPos').classList.toggle('danger',!!danger);
       if(danger&&KO.warned!==KO.round){ KO.warned=KO.round; toast('You\'re in the knockout zone. Get out of last.'); }
-      boardT-=dt; if(boardT<=0){ boardT=.25; const st=standings(); $('#hBoard').innerHTML=st.map((r,i)=>`<li class="${r.isP?'me':''}${r.out?' out':''}"><b>${i+1}</b>${r.isP?'YOU':esc(r.def.tag)}${r.out?'':(EV.knockout&&KO&&!KO.done&&countdown<=0&&i>=nOn-(koMod('double')?2:1)?'<em class="m-ko">KO</em>':(!r.isP&&r.mood&&countdown<=0?`<em class="m-${r.mood.mood}">${MOOD_TAG[r.mood.mood]}</em>`:''))}</li>`).join(''); }
-      if(EV.knockout&&KO){ $('#hLap').textContent=KO.done?'Tournament over':`Round ${KO.round} · ${nOn} left`; $('#hGhost').textContent=KO.done?'':KO.mod.name; }
+      boardT-=dt; if(boardT<=0){ boardT=.25; tapeWatchStandings(); const st=standings(); $('#hBoard').innerHTML=st.map((r,i)=>`<li class="${r.isP?'me':''}${r.out?' out':''}"><b>${i+1}</b>${r.isP?'YOU':esc(r.def.tag)}${r.out?'':(EV.knockout&&KO&&!KO.done&&countdown<=0&&i>=nOn-(koMod('double')?2:1)?'<em class="m-ko">KO</em>':(!r.isP&&r.mood&&countdown<=0?`<em class="m-${r.mood.mood}">${MOOD_TAG[r.mood.mood]}</em>`:''))}</li>`).join(''); }
+      if(EV.knockout&&KO){
+        if(KO.done) $('#hLap').textContent='Tournament over';
+        else if(koUsesSectors()) $('#hLap').textContent=`Round ${KO.round} / Sector ${KO.round} · ${nOn} left`;
+        else $('#hLap').textContent=`Round ${KO.round} · ${nOn} left`;
+        $('#hGhost').textContent=KO.done?'':KO.mod.name;
+      }
       else $('#hLap').textContent=`Lap ${clamp(Math.floor(Math.max(0,player.dist)/TR.L)+1,1,laps())} of ${laps()}`;
       $('#hTime').textContent=fmt(raceT);
       $('#hSpd').textContent=Math.round(player.v*2.237);

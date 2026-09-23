@@ -50,6 +50,14 @@
   </div>
 </section>
 
+<section id="gauntlet" class="screen">
+  <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span>The Gauntlet</span><button id="gBack">Back</button></span></div>
+  <h1 class="hl ghl"><span class="k">Tournament</span><span>Choose your map</span></h1>
+  <p class="gsub">12 cars · one survivor · same knockout rules on every map</p>
+  <div class="gmaps" id="gMaps"></div>
+  <div class="foot gfoot"><button class="cta" id="gStart">Start tournament</button></div>
+</section>
+
 <section id="events" class="screen">
   <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span>Pick tonight's event</span><button id="eBack">Back</button></span></div>
   <h1 class="hl" id="eHead"></h1>
@@ -80,15 +88,25 @@
 </section>
 
 <section id="results" class="screen">
-  <div class="top"><span class="m">AFTERHOURS</span><span class="r">Issue 01, event report</span></div>
+  <div class="top"><span class="m">AFTERHOURS</span><span class="r">Race report</span></div>
   <div class="place" id="rPlace">P1</div>
-  <div class="stamp red" id="rStamp" style="top:44%;left:22px"></div>
-  <div class="foot">
-    <div class="clip" id="rHead"></div>
-    <dl class="tbl" id="rTbl"></dl>
-    <ol class="order" id="rOrder"></ol>
-    <div class="log" id="rLog"></div>
-    <div class="actions"><button class="cta ghost" id="rBack">Back to the archive</button><button class="cta" id="rAgain">Run it back</button></div>
+  <div id="rReport">
+    <div class="magk">AFTERHOURS · RACE REPORT</div>
+    <h2 class="magh" id="rMagHead">THE NIGHT WAS YOURS</h2>
+    <div class="mags" id="rMagSub">MIDNIGHT EXPRESS · P1 / 12</div>
+    <p class="magq" id="rMagQuote"></p>
+    <div class="magact"><button class="cta sm" id="rWatch">▶ Watch highlights</button><button class="cta ghost sm" id="rSkip">Skip to results</button></div>
+    <ol class="hilist" id="rHiList"></ol>
+  </div>
+  <div id="rClassic">
+    <div class="stamp red" id="rStamp" style="top:44%;left:22px"></div>
+    <div class="foot">
+      <div class="clip" id="rHead"></div>
+      <dl class="tbl" id="rTbl"></dl>
+      <ol class="order" id="rOrder"></ol>
+      <div class="log" id="rLog"></div>
+      <div class="actions"><button class="cta ghost" id="rView">View race report</button><button class="cta ghost" id="rBack">Back to the archive</button><button class="cta" id="rAgain">Run it back</button></div>
+    </div>
   </div>
 </section>
 

@@ -92,6 +92,24 @@ CARS.push(
   note:'nothing\nmoves it.', notePos:{l:'55%',t:'33%'},
   cam:{p:[4.6,1.6,6.4],l:[0,1.0,.3],roll:-.07,fov:34}}
 );
+CARS.push(
+ {id:'zenkai',name:'ZENKAI 37',body:'coupe',paint:0xc0121c,metal:.6,rough:.14,rim:0x111214,caliper:0xd42020,wing:true,widebody:true,spokes:3,world:'white',
+  top:90,acc:24,grip:32,nitro:1.15,mass:1.1,
+  kick:'Loading dock',loc:'Bay 17',when:'Saturday, 06:10',
+  caption:'Widebody, bolted wing, six-spoke wheels. Shot against the loading doors at first light.',
+  specs:'3.7L TWIN-TURBO V6 / 640 HP / WIDEBODY / 6-SPEED MANUAL',
+  rival:'Rival note: Leech loves the wake off that wing. Break the tow early.',
+  note:'wide. low.\nloud.', notePos:{l:'66%',t:'34%'},
+  cam:{p:[4.6,.8,4.2],l:[0,.5,.3],roll:-.05,fov:32}},
+ {id:'split',name:'SPLIT 63',body:'classic',classic:true,paint:0x050507,metal:.5,rough:.06,rim:0x0b0b0c,rimLip:0xd42020,caliper:0xd42020,wing:false,spokes:5,world:'flash',
+  top:88,acc:23,grip:29,nitro:1.2,mass:1.25,
+  kick:'Restomod',loc:'Chestnut Hill',when:'Sunday, 08:15',
+  caption:'Sixty-year-old lines on a modern chassis. The split rear window is the whole point.',
+  specs:'6.2L SUPERCHARGED V8 / 755 HP / SIDE-EXIT PIPES / 7-SPEED MANUAL',
+  rival:'Rival note: The Closer hates getting passed by something this old.',
+  note:'look at\nthe split.', notePos:{l:'58%',t:'34%'},
+  cam:{p:[-4.6,.9,4.0],l:[0,.5,.4],roll:.05,fov:32}}
+);
 // full spec sheets (slide-up panel)
 const SHEETS={
  kage:{engine:'4.0L flat-plane V8, twin-turbo',power:'1,040 hp',torque:'780 lb-ft',zero:'2.3 s',vmax:'221 mph',weight:'3,120 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
@@ -103,6 +121,8 @@ const SHEETS={
  bell:{engine:'8.0L W16, quad-turbo',power:'1,300 hp',torque:'1,180 lb-ft',zero:'2.4 s',vmax:'236 mph',weight:'4,100 lb',drive:'All-wheel drive',gearbox:'7-speed dual-clutch'},
  passyunk:{engine:'2.0L turbo inline-four',power:'420 hp',torque:'390 lb-ft',zero:'3.6 s',vmax:'168 mph',weight:'2,650 lb',drive:'Front-wheel drive, locking diff',gearbox:'6-speed manual'},
  richmond:{engine:'6.2L supercharged V8',power:'710 hp',torque:'650 lb-ft',zero:'3.9 s',vmax:'162 mph',weight:'5,600 lb',drive:'Four-wheel drive',gearbox:'10-speed automatic'},
+ zenkai:{engine:'3.7L twin-turbo V6',power:'640 hp',torque:'560 lb-ft',zero:'3.2 s',vmax:'198 mph',weight:'3,300 lb',drive:'Rear-wheel drive',gearbox:'6-speed manual'},
+ split:{engine:'6.2L supercharged V8',power:'755 hp',torque:'715 lb-ft',zero:'3.0 s',vmax:'201 mph',weight:'3,450 lb',drive:'Rear-wheel drive',gearbox:'7-speed manual'},
  granfour:{engine:'4.0L twin-turbo V8',power:'690 hp',torque:'680 lb-ft',zero:'3.1 s',vmax:'199 mph',weight:'4,400 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
@@ -134,15 +154,16 @@ const RIVALS=[
 const EVENT_CAR_BIAS={
  tunnel:{gripW:1.22,topW:.94,nitroW:1.05},
  blvd:{gripW:.9,topW:1.12,nitroW:1.08},
- bridge:{gripW:.95,topW:1.15,nitroW:1.12}
+ bridge:{gripW:.95,topW:1.15,nitroW:1.12},
+ grand:{gripW:1.02,topW:1.1,nitroW:1.12}
 };
 const RIVAL_CAR_PREF={
  apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk']},
  wall:{gripW:1.05,topW:1,ids:['granfour','dune','sovereign','vanta']},
- leech:{gripW:.95,topW:1.05,nitroW:1.15,ids:['noctis','sovereign','kage','vanta']},
+ leech:{gripW:.95,topW:1.05,nitroW:1.15,ids:['zenkai','noctis','sovereign','kage','vanta']},
  bruiser:{gripW:.92,topW:1.02,ids:['richmond','dune','sovereign','granfour','noctis']},
  closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['bell','noctis','vanta','kern','sovereign']},
- wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['noctis','dune','kage','granfour']}
+ wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour']}
 };
 function buildRivalForEvent(rival,eventId,taken){
  const eb=EVENT_CAR_BIAS[eventId]||EVENT_CAR_BIAS.tunnel, rp=RIVAL_CAR_PREF[rival.id]||{};
@@ -264,6 +285,10 @@ const BODIES={
    cab:[[-1.92,1.0],[-1.72,1.52],[-.3,1.6],[.5,1.34],[1.02,1.02]],cabBase:[-1.92,.98,1.02,.98],w:1.84,cw:1.5,wr:.35,wb:1.26,tr:.94,front:2.02,rear:2.04,headY:.76,tailY:.94,wingY:1.66,wingZ:-1.82},
  truck:{pts:[[-2.62,.66],[-2.68,1.06],[-2.6,1.2],[-1.6,1.22],[-.6,1.22],[.2,1.24],[1.1,1.3],[1.9,1.24],[2.5,1.06],[2.64,.78]],base:.56,
    cab:[[-.62,1.22],[-.5,1.96],[.62,2.0],[1.14,1.62],[1.56,1.3]],cabBase:[-.62,1.2,1.56,1.28],w:2.04,cw:1.8,wr:.5,wb:1.72,tr:1.06,front:2.64,rear:2.68,headY:1.06,tailY:1.02,wingY:2.1,wingZ:-2.2},
+ coupe:{pts:[[-2.12,.4],[-2.18,.74],[-2.08,.96],[-1.6,1.02],[-.8,1.04],[.2,.98],[1.1,.86],[1.75,.72],[2.12,.54],[2.16,.38]],base:.24,
+   cab:[[-1.75,.98],[-1.1,1.24],[-.2,1.32],[.45,1.12],[.9,.9]],cabBase:[-1.75,.96,.9,.88],w:1.9,cw:1.36,wr:.36,wb:1.3,tr:1.0,front:2.16,rear:2.18,headY:.7,tailY:.88,wingY:1.36,wingZ:-1.95},
+ classic:{pts:[[-2.2,.42],[-2.3,.7],[-2.2,.86],[-1.6,.94],[-.9,.98],[-.2,.9],[.6,.86],[1.4,.8],[2.0,.66],[2.3,.5],[2.36,.4]],base:.22,
+   cab:[[-1.95,.92],[-1.2,1.3],[-.55,1.34],[-.1,1.14],[.25,.9]],cabBase:[-1.95,.9,.25,.86],w:1.82,cw:1.3,wr:.36,wb:1.28,tr:.96,front:2.36,rear:2.3,headY:.64,tailY:.78,wingY:1.1,wingZ:-2.1},
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
    cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:1.0,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3}
 };
@@ -302,6 +327,17 @@ function buildCar(def,opts){
   const hx=B.w*.36;
   box(.5,.05,.08,headM,hx,B.headY,F-.16,.38); box(.5,.05,.08,headM,-hx,B.headY,F-.16,-.38);
   box(B.w*.95,.05,.05,tailM,0,B.tailY,-Rr-.03);
+  if(def.widebody){ // bolt-on fender flares, hood vents, canards
+    [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{ const fl=box(.24,.36,1.3,paint,sx*(B.w/2+.1),B.wr+.28,sz*B.wb); fl.rotation.x=sz*.04; });
+    [.34,-.34].forEach(x=>{ const v=box(.36,.04,.5,blackM,x,.93,.95); v.rotation.x=.12; });
+    [1,-1].forEach(sx=>{ const c=box(.34,.03,.14,blackM,sx*(B.w/2-.05),B.headY-.18,B.front-.2); c.rotation.z=sx*.25; }); }
+  if(def.classic){ // split rear window, chrome bumpers, side-exit pipes, fender vents
+    const spine=box(.08,.035,.9,paint,0,1.12,-1.575); spine.rotation.x=-.47;
+    const chr=new THREE.MeshStandardMaterial({color:0xdfe4ea,metalness:1,roughness:.08});
+    [1,-1].forEach(sx=>{ box(.62,.07,.1,chr,sx*.5,.46,B.front-.02); box(.5,.07,.1,chr,sx*.55,.52,-B.rear+.02);
+      const pipe=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,1.6,12),chr); pipe.rotation.x=Math.PI/2; pipe.position.set(sx*(B.w/2+.1),.3,.15); g.add(pipe);
+      for(let i=0;i<3;i++) box(.03,.05,.32,blackM,sx*(B.w/2+.06),.62-i*.08,1.05); });
+    box(.9,.16,.06,blackM,0,.42,B.front-.03); }
   if(def.lightbar){ box(1.5,.08,.16,headM,0,2.06,.28); [-.55,0,.55].forEach(x=>{ const s=glowSprite(0xeaf4ff,.9); s.position.set(x,2.07,.4); g.add(s); }); }
   if(def.body==='sedan'||def.body==='suv'||def.body==='truck'){ // upright grille
     const gr=box(1.1,.34,.06,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.9,roughness:.2}),0,B.headY-.12,F-.02);
@@ -324,7 +360,7 @@ function buildCar(def,opts){
     const tire=new THREE.Mesh(new THREE.CylinderGeometry(.37,.37,.3,28),tireM); tire.rotation.z=Math.PI/2; spin.add(tire);
     const side=Math.sign(x);
     const disc=new THREE.Mesh(new THREE.CylinderGeometry(.27,.27,.02,24),rimM); disc.rotation.z=Math.PI/2; disc.position.x=side*.14; spin.add(disc);
-    const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
+    const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
     const spokes=def.spokes||6;
     for(let k=0;k<spokes;k++){ const s=new THREE.Mesh(new THREE.BoxGeometry(.03,.5,spokes>10?.03:.07),rimM); s.position.x=side*.16; s.rotation.x=k*Math.PI/spokes; spin.add(s); }
     const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,12),calM); hub.rotation.z=Math.PI/2; hub.position.x=side*.17; spin.add(hub);
@@ -763,10 +799,38 @@ function signCanvas2(l1,l2,o){ o=o||{}; return canvasTex(512,160,(g,w,h)=>{ g.fi
   g.strokeStyle=o.color||'#f4f7f2'; g.lineWidth=4; g.strokeRect(8,8,w-16,h-16); g.fillStyle=o.color||'#f4f7f2'; g.textAlign='center'; g.textBaseline='middle';
   g.font='800 58px "Arial Narrow",Arial,sans-serif'; g.fillText(l1,w/2,58,w*.9); g.font='700 36px "Arial Narrow",Arial,sans-serif'; g.fillText(l2,w/2,116,w*.9); }); }
 
-function buildBridge(){
+// Harbor Line tunnel under the Delaware (Event 04): ramps down on the Philly side, back up in Camden
+const TUN={down:[820,1000],up:[1780,1960],depth:28};
+function tunnelY(x){ const sm=(a,b)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+  return -TUN.depth*sm(TUN.down[0],TUN.down[1])*(1-sm(TUN.up[0],TUN.up[1])); }
+/* One builder, two layouts. Corners are [x,z,fillet]; roads list the race streets that get crosswalks and
+   signals at every named cross street; trackX/trackZ tell the city grid which grid lines carry the race. */
+const ZS_BASE=[-700,-610,-520,-430,-340,-250,-160,-70,20,110,200,290,380];
+const BRIDGE_CFG={banner:'EVENT 03',start:[40,20],
+  corners:[[720,20,30],[720,-300,30],[2000,-300,20],[2000,-340,20],[-80,-340,30],[-80,20,30]],
+  yAt:(x,z)=>z<-250?bridgeY(x):0, zMin:-1600, ZS:ZS_BASE, toll:true, jerseyMaxX:3000,
+  trackX:(x,zc)=>(x===-80&&zc>-340&&zc<20)||(x===720&&zc>-300&&zc<20),
+  trackZ:(z,xc)=>(z===20&&xc>-80&&xc<720)||(z===-340&&xc>-80&&xc<720),
+  skip:[], excl:[[1960,2110,-400,-240]],
+  gantries:[[860,-300,'BEN FRANKLIN BRIDGE','NEW JERSEY  ↑'],[1660,-340,'PHILADELPHIA','CENTER CITY · VINE ST']],
+  roads:[{ew:1,c:20,dir:1,a:-80,b:720},{ew:1,c:-340,dir:-1,a:-80,b:720},{ew:0,c:-80,dir:1,a:-340,b:20},{ew:0,c:720,dir:-1,a:-300,b:20}],
+  cams:[[380,20,0,1],[380,-340,0,-1]]};
+const GRAND_CFG={banner:'EVENT 04',start:[-20,-1150],
+  corners:[[-20,-800,30],[720,-800,30],[720,-300,30],[2030,-300,30],[2030,470,30],[-80,470,30],[-80,-1400,30],[-20,-1400,30]],
+  yAt:(x,z)=>z<-250&&z>-360&&x>760?bridgeY(x):(z>400?tunnelY(x):0), zMin:-2200, ZS:[-880,-800,...ZS_BASE,470,560,650], jerseyMaxX:1990,
+  trackX:(x,zc)=>(x===-80&&zc>-880&&zc<470)||(x===720&&zc>-800&&zc<-250)||(x===2030&&zc>-300&&zc<470),
+  trackZ:(z,xc)=>(z===-800&&xc>-20&&xc<720)||(z===470&&xc>-80&&xc<820),
+  skip:[[-80,70,-880,-800]], excl:[[800,1040,455,485],[1720,2000,455,485]], holes:[[815,885,462.6,477.4],[1895,1965,462.6,477.4]],
+  gantries:[[860,-300,'BEN FRANKLIN BRIDGE','NEW JERSEY  ↑'],[-20,-1000,'ROOSEVELT BLVD','US 1 SOUTH · CENTER CITY'],[-80,-1100,'ROOSEVELT BLVD','NORTHEAST PHILA  ↑'],[2030,200,'HARBOR LINE TUNNEL','PHILADELPHIA  ← 1 MI']],
+  roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
+  cams:[[-20,-1050,1,0],[380,-800,0,1],[400,470,0,-1]],
+  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-835}};
+function buildBridge(){ return buildCity(BRIDGE_CFG); }
+function buildGrand(){ return buildCity(GRAND_CFG); }
+function buildCity(C){
   const V=(x,z)=>new THREE.Vector2(x,z);
-  const path=filletPath(V(40,20),[[V(720,20),30],[V(720,-300),30],[V(2000,-300),20],[V(2000,-340),20],[V(-80,-340),30],[V(-80,20),30]],1);
-  const tr=makeTrack(resample3(path,(x,z)=>z<-250?bridgeY(x):0),7,6);
+  const path=filletPath(V(C.start[0],C.start[1]),C.corners.map(([x,z,r])=>[V(x,z),r]),1);
+  const tr=makeTrack(resample3(path,C.yAt),7,6);
   const W=tr.W, R_=rng(1776);
   const sNear=(x,z)=>{ let bi=0,bd=1e18; for(let k=0;k<tr.N;k++){ const p=tr.pts[k], d=(p.x-x)*(p.x-x)+(p.z-z)*(p.z-z); if(d<bd){ bd=d; bi=k; } } return bi*tr.ds; };
   const S=new THREE.Scene();
@@ -789,10 +853,14 @@ function buildBridge(){
 
   // ---- ground, river, banks ----
   const groundM=new THREE.MeshStandardMaterial({color:0x0c0e12,roughness:.95,metalness:.05});
-  flat(-1600,BR.river[0],-1600,1400,-.03,groundM); flat(BR.river[1],3300,-1600,1400,-.03,groundM);
-  flat(BR.river[0],BR.river[1],-1600,1400,-6,new THREE.MeshStandardMaterial({color:0x03060a,metalness:.95,roughness:.08}));
+  const ground=(x0,x1)=>{ let rects=[[x0,x1,C.zMin,1400]];
+    (C.holes||[]).forEach(h=>{ rects=rects.flatMap(r=>{ if(h[0]>=r[1]||h[1]<=r[0]||h[2]>=r[3]||h[3]<=r[2]) return [r];
+      return [[r[0],r[1],r[2],h[2]],[r[0],r[1],h[3],r[3]],[r[0],h[0],h[2],h[3]],[h[1],r[1],h[2],h[3]]].filter(q=>q[1]-q[0]>.01&&q[3]-q[2]>.01); }); });
+    rects.forEach(r=>flat(r[0],r[1],r[2],r[3],-.03,groundM)); };
+  ground(-1600,BR.river[0]); ground(BR.river[1],3300);
+  flat(BR.river[0],BR.river[1],C.zMin,1400,-6,new THREE.MeshStandardMaterial({color:0x03060a,metalness:.95,roughness:.08}));
   const bankM=new THREE.MeshStandardMaterial({color:0x2a2d33,roughness:.95,side:THREE.DoubleSide});
-  [BR.river[0],BR.river[1]].forEach(x=>{ const g=new THREE.PlaneGeometry(3000,6); g.rotateY(Math.PI/2); mesh(g,bankM,x,-3,-100); });
+  [BR.river[0],BR.river[1]].forEach(x=>{ const g=new THREE.PlaneGeometry(1400-C.zMin,6); g.rotateY(Math.PI/2); mesh(g,bankM,x,-3,(1400+C.zMin)/2); });
 
   // ---- road: asphalt with lane lines, curbs, sidewalks ----
   const roadTex=CT(canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#16181c'; g.fillRect(0,0,w,h);
@@ -800,14 +868,15 @@ function buildBridge(){
     g.fillStyle='rgba(232,234,238,.85)'; g.fillRect(w*.03,0,4,h); g.fillRect(w*.97-4,0,4,h);
     g.fillStyle='rgba(232,234,238,.75)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.4));
     g.fillStyle='rgba(0,0,0,.22)'; for(let i=0;i<5;i++) g.fillRect(w*(.18+i*.15),0,12,h); }),true);
-  ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughness:.45,metalness:.15,side:THREE.DoubleSide}),24);
+  const roadMat=new THREE.MeshStandardMaterial({map:roadTex,roughness:.45,metalness:.15,side:THREE.DoubleSide});
+  ribbon(tr,S,-W-.3,W+.3,.01,.01,roadMat,24);
   const walkM=new THREE.MeshStandardMaterial({color:0x3a3d44,roughness:.9,side:THREE.DoubleSide}), curbM=new THREE.MeshStandardMaterial({color:0x6e737c,roughness:.85,side:THREE.DoubleSide});
   [-1,1].forEach(sd=>{ ribbon(tr,S,sd*(W+.3),sd*(W+4.5),.16,.16,walkM); ribbon(tr,S,sd*(W+.3),sd*(W+.3),0,.16,curbM); });
   const addStart=()=>{ frame(0,f,tr); orientQ(f,q,basis,nr); addStartLine(S,f,q,2*W);
     const red=new THREE.MeshBasicMaterial({color:0xff2a3a,toneMapped:false});
     [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(W+1.6)); boxM(.5,8.4,.5,blackM,p.x,4.2,p.z); });
     const beam=boxM(2*W+3.6,.5,.5,red,f.p.x,8.4,f.p.z); beam.quaternion.copy(q);
-    const ban=new THREE.Mesh(new THREE.PlaneGeometry(10,1.4),new THREE.MeshBasicMaterial({map:CT(signCanvas('AFTERHOURS  ·  EVENT 03',{bg:'#07080a',color:'#f4f7ff',size:50})),toneMapped:false}));
+    const ban=new THREE.Mesh(new THREE.PlaneGeometry(10,1.4),new THREE.MeshBasicMaterial({map:CT(signCanvas('AFTERHOURS  ·  '+C.banner,{bg:'#07080a',color:'#f4f7ff',size:50})),toneMapped:false}));
     ban.position.set(f.p.x,7.2,f.p.z); ban.quaternion.copy(q); ban.rotateY(Math.PI); S.add(ban); };
   addStart();
 
@@ -849,10 +918,9 @@ function buildBridge(){
       block(FAC[styleAt(xc)],bx0,bx1,bz0,bz1,heightAt(xc));
       if(fronts.n&&j===0) storefront('n',bx0,bx1,bz0,china); if(fronts.s&&j===nz-1) storefront('s',bx0,bx1,bz1,china);
       if(fronts.w&&i===0) storefront('w',bz0,bz1,bx0,china); if(fronts.e&&i===nx-1) storefront('e',bz0,bz1,bx1,china); } }
-  const trackX=(x,zc)=>(x===-80&&zc>-340&&zc<20)||(x===720&&zc>-300&&zc<20);
-  const trackZ=(z,xc)=>(z===20&&xc>-80&&xc<720)||(z===-340&&xc>-80&&xc<720);
-  const SKIP=[[-80,70,-160,20],[720,810,-340,20],[720,810,20,110],[-170,-80,-160,-70],[160,250,20,110],[-260,-170,-70,20],[-350,-260,20,110],[-350,-260,-160,-70],[-440,-350,-250,-160]];
-  const EXCL=[[720,3300,-366,-274],[1960,2110,-400,-240]];
+  const trackX=C.trackX, trackZ=C.trackZ;
+  const SKIP=[[-80,70,-160,20],[720,810,-340,20],[720,810,20,110],[-170,-80,-160,-70],[160,250,20,110],[-260,-170,-70,20],[-350,-260,20,110],[-350,-260,-160,-70],[-440,-350,-250,-160]].concat(C.skip);
+  const EXCL=[[720,3300,-366,-274]].concat(C.excl);
   function grid(XS,ZS){
     for(let i=0;i<XS.length-1;i++) for(let j=0;j<ZS.length-1;j++){
       const xa=XS[i],xb=XS[i+1],za=ZS[j],zb=ZS[j+1];
@@ -864,7 +932,7 @@ function buildBridge(){
         const o=[]; if(e[2]-r[2]>14) o.push([r[0],r[1],r[2],e[2]]); if(r[3]-e[3]>14) o.push([r[0],r[1],e[3],r[3]]); return o; }); });
       rects.forEach(r=>fillLot(r[0],r[1],r[2],r[3],{w:tw&&r[0]===x0,e:te&&r[1]===x1,n:tn&&r[2]===z0,s:ts&&r[3]===z1},(tn||ts)&&za<-250&&xc>250&&xc<520));
     } }
-  const ZS=[-700,-610,-520,-430,-340,-250,-160,-70,20,110,200,290,380];
+  const ZS=C.ZS;
   grid([-800,-710,-620,-530,-440,-350,-260,-170,-80,70,160,250,340,430,520,610,720,810,900,990],ZS);
   grid([1760,1850,1940,2030,2120,2210,2300,2390,2480,2570],ZS);
 
@@ -926,20 +994,22 @@ function buildBridge(){
   block(SK,-415,-375,-225,-185,330); boxM(40.4,12,40.4,new THREE.MeshBasicMaterial({color:0xf4f7ff,toneMapped:false,fog:false}),-395,336,-205);
 
   // ---- the Ben Franklin Bridge ----
-  const el=(k,p)=>p.y>.4&&p.z<-250;
   const steel=new THREE.MeshStandardMaterial({color:0x2f5d9e,emissive:0x0a1a33,emissiveIntensity:1,metalness:.6,roughness:.45,side:THREE.DoubleSide});
   const concrete=new THREE.MeshStandardMaterial({color:0x6a6e76,roughness:.9,side:THREE.DoubleSide});
   const stone=new THREE.MeshStandardMaterial({color:0x5a5650,roughness:.95,side:THREE.DoubleSide});
+  const railM=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:1,roughness:.3,side:THREE.DoubleSide});
+  function deck(tr,ok){ const el=(k,p)=>(!ok||ok(k))&&p.y>.4&&p.z<-250;
   ribbonF(tr,S,steel,(k,p)=>el(k,p)?[W+4.7,p.y-2.6,W+4.7,p.y+.25]:null);                                  // outer girder
   ribbonF(tr,S,steel,(k,p)=>el(k,p)?[W+4.7,p.y-2.6,-20,p.y-2.6]:null);                                    // underside
   ribbonF(tr,S,stone,(k,p)=>el(k,p)&&(p.x<BR.river[0]||p.x>BR.river[1])?[W+4.7,0,W+4.7,p.y-2.6]:null);    // approach viaduct walls
   ribbonF(tr,S,stone,(k,p)=>el(k,p)&&(p.x<BR.river[0]||p.x>BR.river[1])?[-20,0,-20,p.y-2.6]:null);
   ribbonF(tr,S,concrete,(k,p)=>el(k,p)?[-(W+4.5),p.y+.12,-20,p.y+.12]:null);                             // median deck
-  ribbonF(tr,S,concrete,(k,p)=>p.z<-250&&p.x>760?[-(W+.3),p.y,-(W+.3),p.y+.85]:null);                    // jersey barrier
+  ribbonF(tr,S,concrete,(k,p)=>(!ok||ok(k))&&p.z<-250&&p.z>-360&&p.x>760&&p.x<C.jerseyMaxX?[-(W+.3),p.y,-(W+.3),p.y+.85]:null); // jersey barrier
   ribbonF(tr,S,steel,(k,p)=>el(k,p)?[W+4.6,p.y+1.0,W+4.6,p.y+1.2]:null);                                  // outer railing
   ribbonF(tr,S,steel,(k,p)=>el(k,p)?[W+4.6,p.y+.45,W+4.6,p.y+.55]:null);
-  const railM=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:1,roughness:.3,side:THREE.DoubleSide});
   [-15.4,-16.9].forEach(o=>ribbonF(tr,S,railM,(k,p)=>el(k,p)?[o,p.y+.14,o,p.y+.3]:null));                 // PATCO tracks
+  }
+  deck(tr);
   // towers, piers, anchorages
   BR.towers.forEach(x=>{
     BR.cableZ.forEach(z=>boxM(4.5,112,6,steel,x,50,z));
@@ -970,17 +1040,17 @@ function buildBridge(){
     const beam=boxM(2*W+4.4,.4,.4,blackM,f.p.x,f.p.y+9.6,f.p.z); beam.quaternion.copy(q);
     const sg=new THREE.Mesh(new THREE.PlaneGeometry(10,3.1),new THREE.MeshBasicMaterial({map:CT(signCanvas2(l1,l2)),toneMapped:false}));
     sg.position.set(f.p.x,f.p.y+7.8,f.p.z); sg.quaternion.copy(q); sg.rotateY(Math.PI); S.add(sg); };
-  gantry(sNear(860,-300),'BEN FRANKLIN BRIDGE','NEW JERSEY  ↑'); gantry(sNear(1660,-340),'PHILADELPHIA','CENTER CITY · VINE ST');
-  // Camden toll plaza past the U-turn
+  C.gantries.forEach(([x,z,l1,l2])=>gantry(sNear(x,z),l1,l2));
   const canopyM=new THREE.MeshStandardMaterial({color:0xcfd6e0,emissive:0x405068,roughness:.5});
+  if(C.toll){ // Camden toll plaza past the U-turn
   boxM(20,1.2,112,canopyM,2042,7,-320); flat(2032,2052,-376,-264,.05,new THREE.MeshBasicMaterial({map:poolTex,color:0xbfd0ff,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
   for(let i=0;i<6;i++){ const z=-365+i*18; boxM(2.2,2.8,3.2,new THREE.MeshStandardMaterial({color:0x1a1e26,emissive:0x2a4a66}),2042,1.4,z); boxM(.4,6.4,.4,curbM,2042,3.2,z+4); }
-  const tp=mesh(new THREE.PlaneGeometry(14,2.2),new THREE.MeshBasicMaterial({map:CT(signCanvas2('TOLL PLAZA','NEW JERSEY',{bg:'#0e1218',color:'#f4f7ff'})),toneMapped:false}),2031.9,9.4,-320); tp.rotation.y=-Math.PI/2;
+  const tp=mesh(new THREE.PlaneGeometry(14,2.2),new THREE.MeshBasicMaterial({map:CT(signCanvas2('TOLL PLAZA','NEW JERSEY',{bg:'#0e1218',color:'#f4f7ff'})),toneMapped:false}),2031.9,9.4,-320); tp.rotation.y=-Math.PI/2; }
 
   // ---- street lights along the course ----
   const poleM=new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.7,roughness:.4}), lampM=new THREE.MeshBasicMaterial({color:0xeaf2ff,toneMapped:false});
   const poles=[],arms=[],heads=[],pools=[],flare=[];
-  for(let s=10;s<tr.L;s+=32){ frame(s,f,tr); orientQ(f,q,basis,nr);
+  for(let s=10;s<tr.L;s+=32){ frame(s,f,tr); if(f.p.y<-.3) continue; orientQ(f,q,basis,nr);
     [-1,1].forEach(sd=>{ const b=f.p.clone().addScaledVector(f.r,sd*(W+3.4));
       pv.copy(b); pv.y+=4.5; m4.compose(pv,q,one); poles.push(m4.clone());
       pv.copy(b).addScaledVector(f.r,-sd*1.7); pv.y+=9; m4.compose(pv,q,one); arms.push(m4.clone());
@@ -997,7 +1067,9 @@ function buildBridge(){
   // ---- intersections: crosswalks, signals, street-name blades ----
   const lamp={r:new THREE.MeshBasicMaterial({color:0x1a1a1a,toneMapped:false}),y:new THREE.MeshBasicMaterial({color:0x1a1a1a,toneMapped:false}),g:new THREE.MeshBasicMaterial({color:0x1a1a1a,toneMapped:false})};
   const zX=[], zZ=[], lampGeo=new THREE.CircleGeometry(.15,12);
-  const NAMES_X={70:'13th St',160:'12th St',250:'11th St',340:'10th St',430:'9th St',520:'8th St',610:'7th St'}, NAMES_Z={'-250':'Cherry St','-160':'Arch St','-70':'JFK Blvd'};
+  const NAMES_X={70:'13th St',160:'12th St',250:'11th St',340:'10th St',430:'9th St',520:'8th St',610:'7th St',720:'6th St',810:'5th St'};
+  const NAMES_Z={'-800':'Spring Garden St','-700':'Green St','-610':'Buttonwood St','-520':'Callowhill St','-430':'Vine St','-340':'Race St','-250':'Cherry St','-160':'Arch St','-70':'JFK Blvd',
+    '20':'Market St','110':'Chestnut St','200':'Walnut St','290':'Locust St','380':'Spruce St','470':'South St'};
   function signal(px,pz,dirX,dirZ,name){ // dir = travel direction of the race lane it controls
     boxM(.3,7.2,.3,poleM,px,3.6,pz);
     const tx=px+dirZ*(W+3), tz=pz-dirX*(W+3); // arm reaches back over the road
@@ -1007,18 +1079,84 @@ function buildBridge(){
       [['r',6.6],['y',6.2],['g',5.8]].forEach(([c,y])=>{ const l=mesh(lampGeo,lamp[c],hx-dirX*.25,y,hz-dirZ*.25); l.rotation.y=ry; }); });
     const blade=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.5),new THREE.MeshBasicMaterial({map:CT(signCanvas(name,{bg:'#0f5a32',color:'#f4f7f2',size:54,weight:700})),side:THREE.DoubleSide}));
     blade.position.set(px,7.6,pz); blade.rotation.y=ry; S.add(blade); }
-  Object.keys(NAMES_X).forEach(k=>{ const xc=+k;
-    [[20,1],[-340,-1]].forEach(([zc,dir])=>{ [xc-9,xc+9].forEach(x=>{ for(let z=zc-6.4;z<=zc+6.4;z+=1.25){ pv.set(x,.035,z); m4.compose(pv,new THREE.Quaternion(),one); zX.push(m4.clone()); } });
-      signal(xc-dir*11,zc+dir*(W+3),dir,0,NAMES_X[k]); }); });
-  Object.keys(NAMES_Z).forEach(k=>{ const zc=+k;
-    [[-80,1],[720,-1]].forEach(([xc,dir])=>{ [zc-9,zc+9].forEach(z=>{ for(let x=xc-6.4;x<=xc+6.4;x+=1.25){ pv.set(x,.035,z); m4.compose(pv,new THREE.Quaternion(),one); zZ.push(m4.clone()); } });
-      signal(xc-dir*(W+3),zc-dir*11,0,dir,NAMES_Z[k]); }); });
+  C.roads.forEach(rd=>{ const lo=Math.min(rd.a,rd.b)+40, hi=Math.max(rd.a,rd.b)-40, names=rd.ew?NAMES_X:NAMES_Z, dir=rd.dir;
+    Object.keys(names).forEach(k=>{ const c=+k; if(c<=lo||c>=hi) return;
+      if(rd.ew){ const xc=c, zc=rd.c; [xc-9,xc+9].forEach(x=>{ for(let z=zc-6.4;z<=zc+6.4;z+=1.25){ pv.set(x,.035,z); m4.compose(pv,new THREE.Quaternion(),one); zX.push(m4.clone()); } });
+        signal(xc-dir*11,zc+dir*(W+3),dir,0,names[k]); }
+      else { const xc=rd.c, zc=c; [zc-9,zc+9].forEach(z=>{ for(let x=xc-6.4;x<=xc+6.4;x+=1.25){ pv.set(x,.035,z); m4.compose(pv,new THREE.Quaternion(),one); zZ.push(m4.clone()); } });
+        signal(xc-dir*(W+3),zc-dir*11,0,dir,names[k]); } }); });
   const zebraM=new THREE.MeshBasicMaterial({color:0xb9bec6});
   mkInst(new THREE.BoxGeometry(3,.02,.55),zebraM,zX); mkInst(new THREE.BoxGeometry(.55,.02,3),zebraM,zZ);
-  // speed cameras on Market and Race
-  const camAt=[[380,20,1],[380,-340,-1]];
-  camAt.forEach(([x,z,sd])=>{ const cz=z+sd*(W+3); boxM(.22,5.2,.22,poleM,x,2.6,cz); boxM(1.1,.55,.7,new THREE.MeshStandardMaterial({color:0xd8dbe0,roughness:.5}),x,5.3,cz);
-    const led=glowSprite(0xff3030,.7); led.position.set(x-sd*.6,5.3,cz); S.add(led); });
+  // speed cameras at the roadside
+  const camAt=C.cams;
+  camAt.forEach(([x,z,dx,dz])=>{ const cx=x+dx*(W+3), cz=z+dz*(W+3); boxM(.22,5.2,.22,poleM,cx,2.6,cz); boxM(1.1,.55,.7,new THREE.MeshStandardMaterial({color:0xd8dbe0,roughness:.5}),cx,5.3,cz);
+    const led=glowSprite(0xff3030,.7); led.position.set(cx-dx*.6,5.3,cz-dz*.6); S.add(led); });
+  const EXTRA=[]; // per-frame updates for layout-specific pieces
+  if(C.tunnel) tunnelDress();
+  if(C.blvd) blvdDress(C.blvd);
+  if(C.decoBridge) decoBridge();
+
+  // Harbor Line tunnel: open cuts with retaining walls, then a roofed tube with strip lights, portals at both ends
+  function tunnelDress(){
+    const TH=7.5, inT=p=>p.z>400&&p.y<-.3, roofed=p=>p.z>400&&p.y<-TH+.2;
+    const tBarrier=new THREE.MeshStandardMaterial({color:0x14181e,roughness:.4,metalness:.5,side:THREE.DoubleSide});
+    const tWall=new THREE.MeshStandardMaterial({color:0xb2bfd0,roughness:.95,emissive:0x2a3444,side:THREE.DoubleSide});
+    const tStripe=new THREE.MeshBasicMaterial({color:0xe6f2ff,toneMapped:false,side:THREE.DoubleSide});
+    [-1,1].forEach(sd=>{ const o=sd*(W+.3);
+      ribbonF(tr,S,tBarrier,(k,p)=>inT(p)?[o,p.y,o,p.y+1.1]:null);
+      ribbonF(tr,S,tWall,(k,p)=>inT(p)?[o,p.y+1.1,o,roofed(p)?p.y+TH:Math.max(p.y+1.1,0)]:null);
+      ribbonF(tr,S,tStripe,(k,p)=>inT(p)?[sd*(W+.25),p.y+1.18,sd*(W+.25),p.y+1.3]:null); });
+    ribbonF(tr,S,new THREE.MeshBasicMaterial({color:0x030406,side:THREE.DoubleSide}),(k,p)=>roofed(p)?[-W-.3,p.y+TH,W+.3,p.y+TH]:null);
+    const lightM=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}), sp=[], sl=[];
+    for(let s=0,i=0;s<tr.L;s+=13,i++){ frame(s,f,tr); if(!roofed(f.p)) continue; orientQ(f,q,basis,nr);
+      [-3.4,3.4].forEach(x=>{ pv.copy(f.p).addScaledVector(f.r,x); pv.y+=TH-.08; m4.compose(pv,q,one); sp.push(m4.clone()); });
+      if(i%3===0) [-(W+.2),W+.2].forEach(x=>{ pv.copy(f.p).addScaledVector(f.r,x); pv.y+=3.4; m4.compose(pv,q,one); sl.push(m4.clone()); }); }
+    mkInst(new THREE.BoxGeometry(.4,.08,8),lightM,sp); mkInst(new THREE.BoxGeometry(.08,3.6,.7),lightM,sl);
+    const portalM=new THREE.MeshStandardMaterial({color:0x8a919c,roughness:.8});
+    for(let k=0;k<tr.N;k++){ const a=roofed(tr.pts[k]), b=roofed(tr.pts[(k+1)%tr.N]); if(a===b) continue;
+      frame(k*tr.ds,f,tr); orientQ(f,q,basis,nr);
+      const face=new THREE.Mesh(new THREE.BoxGeometry(2*W+10,4,2.4),portalM); face.position.set(f.p.x,2,f.p.z); face.quaternion.copy(q); S.add(face);
+      if(!a&&b){ const sg=new THREE.Mesh(new THREE.PlaneGeometry(12,2.3),new THREE.MeshBasicMaterial({map:CT(signCanvas2('HARBOR LINE','TUNNEL 7 · PHILADELPHIA',{bg:'#0a0d12',color:'#e6f2ff'})),toneMapped:false}));
+        sg.position.set(f.p.x,2.2,f.p.z); sg.quaternion.copy(q); sg.rotateY(Math.PI); sg.translateZ(1.25); S.add(sg);
+        const red=new THREE.Mesh(new THREE.BoxGeometry(2*W+10,.3,.3),new THREE.MeshBasicMaterial({color:0xff2a3a,toneMapped:false})); red.position.set(f.p.x,4.1,f.p.z); red.quaternion.copy(q); S.add(red); } }
+  }
+  // Roosevelt Blvd: divided road with a tree median, strip malls, rowhomes and a gas station on both sides
+  function blvdDress(B){
+    const R2=rng(1917), mid=(B.xw+B.xe)/2;
+    flat(B.xw+11.6,B.xe-11.6,B.z0,B.z1,.04,new THREE.MeshStandardMaterial({color:0x121c16,roughness:1}));
+    const trunks=[], crowns=[];
+    for(let z=B.z0+8;z<B.z1;z+=21) [mid-7,mid+7].forEach(x=>{ const s=.8+R2()*.5;
+      pv.set(x,1.5,z); m4.compose(pv,new THREE.Quaternion(),one); trunks.push(m4.clone());
+      pv.set(x,4.3,z); m4.compose(pv,new THREE.Quaternion().setFromEuler(new THREE.Euler(R2(),R2()*3,0)),new THREE.Vector3(s*1.1,s,s*1.1)); crowns.push(m4.clone()); });
+    mkInst(new THREE.CylinderGeometry(.16,.22,3,6),new THREE.MeshStandardMaterial({color:0x1d1813,roughness:1}),trunks);
+    mkInst(new THREE.IcosahedronGeometry(2.3,0),new THREE.MeshStandardMaterial({color:0x16241b,roughness:1,flatShading:true}),crowns);
+    const lotM=new THREE.MeshStandardMaterial({color:0x1e2127,roughness:.85});
+    [[-1,B.xw],[1,B.xe]].forEach(([sd,xr])=>{ let z=B.z0-20; const face=sd<0?'e':'w', xn=xr+sd*13;
+      while(z<B.z1-40){ const len=Math.min(34+R2()*42,B.z1-z), t=R2(), zc=z+len/2;
+        if(t<.4){ const x0=sd<0?xn-12:xn, x1=sd<0?xn:xn+12; block(FAC.brick,x0,x1,z,z+len,8.6); storefront(face,z,z+len,sd<0?x1:x0,false); }
+        else if(t<.75){ const set=24, x0=sd<0?xn-set-16:xn+set, x1=x0+16;
+          block(FAC.stone,x0,x1,z,z+len,6); storefront(face,z,z+len,sd<0?x1:x0,false);
+          flat(Math.min(xn,xn+sd*set),Math.max(xn,xn+sd*set),z,z+len,.02,lotM);
+          const lg=glowSprite(0xe6eeff,2.4); lg.position.set(xn+sd*set/2,7.9,zc); S.add(lg); boxM(.2,8,.2,poleM,xn+sd*set/2,4,zc); }
+        else if(t<.9){ const cx=xn+sd*14;
+          boxM(12,.9,Math.min(22,len-4),canopyM,cx,5.8,zc); flat(cx-9,cx+9,zc-12,zc+12,.05,new THREE.MeshBasicMaterial({map:poolTex,color:0xbfd0ff,transparent:true,opacity:.75,blending:THREE.AdditiveBlending,depthWrite:false}));
+          [-5,0,5].forEach(dz=>boxM(1,1.6,.6,new THREE.MeshStandardMaterial({color:0x1a1e26,emissive:0x0e2a3a}),cx,.8,zc+dz));
+          boxM(.4,10,.4,poleM,xn+sd*2,5,z+2); const gs=mesh(new THREE.PlaneGeometry(3,1.6),new THREE.MeshBasicMaterial({map:CT(signCanvas('GAS',{bg:'#0b0e14',color:'#ff3b3b',size:70,glow:14})),toneMapped:false,side:THREE.DoubleSide}),xn+sd*2,10.2,z+2); gs.rotation.y=Math.PI/2; }
+        else { const x0=sd<0?xn-14:xn+2, x1=x0+12; block(FAC.glass,x0,x1,z,z+len,5); storefront(face,z,z+len,sd<0?x1:x0,false); }
+        z+=len+7; } });
+  }
+  // the westbound half of the bridge, with its own traffic, so the deck is complete in Event 04
+  function decoBridge(){
+    const dp=[]; for(let x=2045;x>=705;x-=1) dp.push(new THREE.Vector3(x,bridgeY(x),-340));
+    const dtr=makeTrack(dp,W,6), ok=k=>k>2&&k<dtr.N-3;
+    ribbonF(dtr,S,roadMat,(k,p)=>ok(k)?[-W-.3,p.y+.01,W+.3,p.y+.01]:null,24);
+    [-1,1].forEach(sd=>{ ribbonF(dtr,S,walkM,(k,p)=>ok(k)?[sd*(W+.3),p.y+.16,sd*(W+4.5),p.y+.16]:null); ribbonF(dtr,S,curbM,(k,p)=>ok(k)?[sd*(W+.3),p.y,sd*(W+.3),p.y+.16]:null); });
+    deck(dtr,ok);
+    const cars=[0x2a2f38,0x9aa1ab,0x5a1a1a,0x1c2f4a,0xd8dade,0x3b3b3b].map((c,i)=>{ const m=buildTrafficCar(c); m.group.rotation.y=-Math.PI/2; S.add(m.group);
+      return {m,i:5+i*220,v:17+R_()*8,lane:[-3.6,3.6][i%2]}; });
+    EXTRA.push(dt=>cars.forEach(o=>{ o.i+=o.v*dt; if(o.i>dtr.N-5) o.i=4; const k=Math.floor(o.i), p=dtr.pts[k], r=dtr.R[k];
+      o.m.group.position.set(p.x+r.x*o.lane,p.y,p.z+r.z*o.lane); o.m.wheels.forEach(w=>w.rotation.x+=o.v*dt/.34); }));
+  }
 
   // flush merged city geometry
   Object.values(FAC).forEach(b=>{ if(!b.pos.length) return; const g=new THREE.BufferGeometry();
@@ -1037,6 +1175,7 @@ function buildBridge(){
       ledCol[i*3]=b*(.75+.25*warm); ledCol[i*3+1]=b*(.85+.05*warm); ledCol[i*3+2]=b*(1-.35*warm); }
     ledGeo.attributes.color.needsUpdate=true;
     beaconM.opacity=(ledT%1.6)<.8?1:.15;
+    EXTRA.forEach(fn=>fn(dt));
   }
   return {scene:S,track:tr,traffic:obst,update,sNear,
     cams:camAt.map(([x,z])=>({s:sNear(x,z)})),
@@ -1054,7 +1193,11 @@ const EVENTS=[
   {id:'bridge',build:buildBridge,open:true,laps:3,name:'The Bridge Run',kick:'Event 03',loc:'Center City',when:'City Hall to the Ben Franklin Bridge',
    caption:'Off the line at City Hall, flat out down Market, up 6th past the Liberty Bell, then a full 1.3 km sprint over the Ben Franklin Bridge. U-turn at the Camden toll plaza and back through Chinatown.',
    specs:'3 LAPS / 1.3 KM BRIDGE STRAIGHT / 7 CARS / LIVE TRAFFIC / 2 SPEED CAMERAS',
-   note:'save boost for\nthe bridge',load:'City Hall to the bridge and back. Three laps.'}
+   note:'save boost for\nthe bridge',load:'City Hall to the bridge and back. Three laps.'},
+  {id:'grand',build:buildGrand,open:true,laps:2,name:'The Long Night',kick:'Event 04',loc:'All of it',when:'Blvd, Center City, the Bridge, the Tunnel',
+   caption:'Every level in one loop. Down Roosevelt Blvd, through the Center City canyons, over the Ben Franklin Bridge to Camden, then back under the Delaware through the Harbor Line tunnel.',
+   specs:'2 LAPS / 8 KM LOOP / BLVD + BRIDGE + TUNNEL / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
+   note:'the tunnel\nis where\nit\'s won',load:'The Blvd, the bridge and the tunnel. Two laps of all of it.'}
 ];
 EVENTS.forEach(e=>{ Object.assign(e,e.build()); });
 /* ---- power-ups on the racing surface (any car can grab them) ---- */
@@ -1106,6 +1249,11 @@ addPickups(EVENTS[1],[[250,-3.4,'refill'],[560,3.4,'long'],[1000,0,'over'],[1400
   addPickups(EVENTS[2],[[at(200,20),-3.6,'refill'],[at(470,20),3.6,'sling'],[at(640,20),0,'grip'],[at(720,-150),0,'shield'],[at(880,-300),-3.6,'over'],
     [at(1150,-300),3.6,'long'],[at(1380,-300),0,'sling'],[at(1640,-300),-3.6,'shock'],[at(1880,-300),0,'grip'],[at(1700,-340),3.6,'refill'],
     [at(1400,-340),0,'over'],[at(1100,-340),-3.6,'sling'],[at(560,-340),3.6,'shield'],[at(200,-340),0,'shock'],[at(-80,-160),0,'grip']]); }
+{ const at=EVENTS[3].sNear;
+  addPickups(EVENTS[3],[[at(-20,-1300),-3.6,'refill'],[at(-20,-950),3.6,'sling'],[at(200,-800),0,'shield'],[at(560,-800),-3.6,'grip'],[at(720,-600),3.6,'over'],
+    [at(720,-420),0,'refill'],[at(900,-300),-3.6,'long'],[at(1200,-300),3.6,'sling'],[at(1500,-300),0,'shock'],[at(1800,-300),-3.6,'grip'],
+    [at(2030,-100),3.6,'shield'],[at(2030,250),0,'refill'],[at(1600,470),-3.6,'over'],[at(1300,470),3.6,'sling'],[at(1000,470),0,'shock'],
+    [at(600,470),-3.6,'refill'],[at(250,470),3.6,'shield'],[at(-80,200),0,'grip'],[at(-80,-300),-3.6,'long'],[at(-80,-650),3.6,'shock'],[at(-80,-1100),0,'over']]); }
 EVENTS.forEach(addChevrons);
 function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; }); }
 function worldFx(dt){
@@ -1296,6 +1444,59 @@ function addLabel(g,text,color){
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:CT(c),transparent:true,depthWrite:false})); sp.scale.set(2.8,.7,1); sp.position.set(0,2.3,0); g.add(sp); return sp; }
 function kAhead(s,span){ let m=0; for(let i=0;i<6;i++){ const k=frame(s+10+span*i/5,F2).k; if(Math.abs(k)>Math.abs(m)) m=k; } return m; }
 
+/* ---- race situation: rivals read their position and pick a mood ----
+   Four times a second each rival checks its place, the gaps (in seconds) to the cars just ahead and
+   behind, the gap to the leader, how much race is left, and whether it just got passed. That gives a
+   desperation score D (0..1) and a mood:
+     lead    P1 with nobody close: drives clean and banks boost
+     defend  someone within ~0.6 s behind (and closer than the car ahead): covers their line, boosts to break the tow
+     attack  a car within ~0.7 s ahead: boosts on straights to make the pass
+     push    behind with a gap to close: spends boost above its reserve, detours for power-ups
+     all-in  desperate, usually late: empties the tank, brakes later, will make contact
+   TEMPER says how each persona bends: temper scales D, bank is the boost it tries to keep in reserve,
+   defend is how hard it covers a chaser. */
+const TEMPER={apex:{temper:.55,bank:.35,defend:.45},wall:{temper:.7,bank:.45,defend:1},leech:{temper:.8,bank:.25,defend:.3},
+  bruiser:{temper:1,bank:.15,defend:.6},closer:{temper:.6,bank:.6,defend:.5},wild:{temper:1.1,bank:.05,defend:.2}};
+const MOOD_TAG={lead:'LEAD',defend:'DEFEND',attack:'ATTACK',push:'PUSH',allin:'ALL-IN'};
+function updateMood(r,order){
+  const T=TEMPER[r.def.id]||TEMPER.apex, n=order.length, place=order.indexOf(r)+1, vRef=Math.max(r.v,30);
+  const ahead=order[place-2]||null, behind=order[place]||null;
+  const gapA=ahead?(ahead.dist-r.dist)/vRef:99, gapB=behind?(r.dist-behind.dist)/vRef:99, gapLead=(order[0].dist-r.dist)/vRef;
+  const prog=clamp(r.dist/(laps()*TR.L),0,1), prev=r.mood;
+  if(prev&&place>prev.place){ r.stung=4; r.stungBy=ahead; } else if(prev&&place<prev.place) r.stung=0;
+  r.stung=Math.max(0,(r.stung||0)-.25);
+  let D=((place-1)/Math.max(1,n-1))*.45+clamp(gapLead/12,0,1)*.35;
+  D*=.55+.65*prog;                          // position matters more as the race runs out
+  if(r.stung>0) D+=.25;                     // just got passed
+  if(prog>.85&&place>1&&gapA<1.5) D+=.2;    // last-lap scrap
+  D=clamp(D*T.temper,0,1);
+  let mood='push';
+  if(D>.62) mood='allin'; else if(gapA<.7||gapB<.6) mood=gapA<=gapB*1.2?'attack':'defend'; else if(place===1||D<.22) mood='lead';
+  r.mood={D,mood,place,gapA,gapB,ahead,behind,prog,T};
+  r.moodLog=r.moodLog||{}; r.moodLog[mood]=(r.moodLog[mood]||0)+1;
+  if(!prev||prev.mood===mood||!player) return;
+  const tag=r.def.tag;
+  if(mood==='allin') persona(r,`${tag} is all-in. Everything left is going into the boost.`);
+  else if(r.stung>3.5&&r.stungBy===player) persona(r,`You passed ${tag}. It wants that spot back.`);
+  else if(mood==='defend'&&behind===player) persona(r,`${tag} is defending from you.`);
+  else if(mood==='attack'&&ahead===player) persona(r,`${tag} is lining up a pass on you.`);
+}
+// how a rival's situation changes the worth of each power-up (added to scorePickup)
+function moodPickup(r,p,M,s0,L){
+  let dd=p.s-s0; if(dd<0) dd+=L; if(p.cd>0||dd<5||dd>72) return 0;
+  const D=M.D, lat=Math.abs(p.x-r.x);
+  let v=D*6+lat*1.35*D*.6;                              // desperate cars accept bigger detours
+  const near=racers.filter(o=>o!==r&&!o.finished&&o.dist-r.dist>-8&&o.dist-r.dist<45).length;
+  switch(p.type){
+    case 'shock': v+=near?(M.mood==='attack'||M.mood==='allin'?9:4):-6; break;
+    case 'sling': case 'over': v+=D*5+(M.mood==='attack'?3:0); break;
+    case 'shield': v+=M.mood==='defend'?6:(M.mood==='lead'&&M.gapB<1.6?4:0); break;
+    case 'grip': v+=Math.abs(kAhead(r.dist+dd,40))>.006?3:0; break;
+    case 'refill': v+=r.nitro<.3&&(M.mood==='allin'||M.mood==='attack'||M.mood==='push')?5:0; break;
+    case 'long': v+=M.mood==='lead'||M.mood==='defend'?3:0; break; }
+  if(M.mood==='lead'&&p.type!=='shield') v-=3;          // leaders don't wander off the line
+  return v;
+}
 function stepRacer(r,dt,inp){
   const d=r.def, W=TR.W, L=TR.L, G=d.grip*(r.fxGrip>0?1.45:1), shielded=r.fxShield>0;
   frame(r.dist,F);
@@ -1311,6 +1512,8 @@ function stepRacer(r,dt,inp){
     const pl=racing&&player&&player!==r?player:null, gapP=pl?r.dist-pl.dist:0; // >0: I'm ahead of you
     let chasing=null;
     const chaser=nearestChaser(r);
+    if(racing){ r.moodT=(r.moodT||0)-dt; if(r.moodT<=0){ r.moodT=.25; updateMood(r,standings()); } }
+    const M=racing&&r.mood?r.mood:null, D=M?M.D:0;
     switch(d.id){
       case 'wall': { // covers the line of whoever is glued to its bumper (you or another rival)
         const tgt=pl&&gapP>1.5&&gapP<34?pl:chaser;
@@ -1349,18 +1552,23 @@ function stepRacer(r,dt,inp){
         if(pl&&gapP<0&&gapP>-16&&Math.abs(kn)>.002){ tx=clamp(line*1.3,-5.2,5.2); persona(r,`${d.tag} is diving to the inside.`); }
         break;
     }
-    if(P.seek&&!chasing&&EV.pickups&&!(d.id==='wall'&&(pl&&gapP>1.5&&gapP<34||chaser))){ const L=TR.L, s0=((r.dist%L)+L)%L;
+    // situational tactics on top of the persona
+    if(M){
+      if(M.mood==='allin'&&d.id==='bruiser'&&M.ahead&&M.ahead.dist-r.dist<14){ tx=M.ahead.x; gain=.6; chasing=M.ahead; }
+      else if(M.mood==='defend'&&M.behind&&d.id!=='wall'&&M.gapB<.6) tx=lerp(tx,M.behind.x,.45*M.T.defend);
+    }
+    if((P.seek||D>.4)&&(!chasing||D>.6)&&EV.pickups&&!(d.id==='wall'&&(pl&&gapP>1.5&&gapP<34||chaser))){ const L=TR.L, s0=((r.dist%L)+L)%L;
       let bestP=null,bestSc=.4;
-      for(const p of EV.pickups){ const sc=scorePickup(r,p,P,s0,L); if(sc>bestSc){ bestSc=sc; bestP=p; } }
+      for(const p of EV.pickups){ const sc=scorePickup(r,p,P,s0,L)+(M?moodPickup(r,p,M,s0,L):0); if(sc>bestSc){ bestSc=sc; bestP=p; } }
       if(bestP) tx=bestP.x; }
     // avoidance: traffic always; other racers unless you're the one this persona is attacking
     for(const o of racers.concat(traffic)){ if(o===r||o===chasing) continue; const dd=o.dist-r.dist, dx=o.x-r.x;
-      if(dd>0&&dd<(o.tr?26:15)&&Math.abs(dx)<2.8){ tx=o.x+(o.x>0?-3.4:3.4); } }
+      if(dd>0&&dd<(o.tr?26:15*(1-.45*D))&&Math.abs(dx)<2.8){ tx=o.x+(o.x>0?-3.4:3.4); } }
     tx=clamp(tx,-W+1.4,W-1.4);
     const ac=r.v*r.v*k*.5;
     steer=clamp(-ac/G+(tx-r.x)*gain-r.vx*.14+bias,-1,1);
     let rubber=1; if(pl) rubber=1+clamp((pl.dist-r.dist)/420,-.08,.1)*P.rubber;
-    const vLim=Math.sqrt(1.9*G*.95*P.risk/Math.max(Math.abs(ka),1e-4));
+    const vLim=Math.sqrt(1.9*G*.95*P.risk*(1+.07*D+(M&&M.mood==='allin'?.05:0))/Math.max(Math.abs(ka),1e-4));
     const vT=Math.min(d.top*r.skill*rubber*vF*(Math.abs(ka)<.003?evB.straight:evB.tight),vLim);
     if(r.v>vT+2) brake=true;
     const straight=Math.abs(ka)<.003&&r.v>38;
@@ -1372,6 +1580,12 @@ function stepRacer(r,dt,inp){
       case 'reserve': nitro=wantN&&r.nitro>.02; break;
       case 'burst':   nitro=(r.burst>0)&&r.nitro>.05; break;
     }
+    if(M){ const bank=M.T.bank*(1-D);
+      if(M.mood==='allin') nitro=nitro||(r.nitro>.02&&(straight||Math.abs(ka)<.006));
+      else if(M.mood==='attack') nitro=nitro||(straight&&r.nitro>bank*.5);
+      else if(M.mood==='defend') nitro=nitro||(straight&&M.gapB<.55&&r.nitro>.2);
+      else if(M.mood==='push') nitro=nitro||(straight&&r.nitro>bank);
+      if(M.mood==='lead'&&r.nitro<bank&&!wantN) nitro=false; }
     if(r.burst>0) r.burst-=dt;
     if(brake) nitro=false;
     r._nos=nitro;
@@ -1763,7 +1977,7 @@ function loop(now){
       updateFx(sdt,player); chaseCam(dt,player,inp);
       const place=standings().indexOf(player)+1;
       $('#hPos').innerHTML=`${place}<small>/${racers.length}</small>`;
-      boardT-=dt; if(boardT<=0){ boardT=.25; $('#hBoard').innerHTML=standings().map((r,i)=>`<li class="${r.isP?'me':''}"><b>${i+1}</b>${r.isP?'YOU':esc(r.def.tag)}</li>`).join(''); }
+      boardT-=dt; if(boardT<=0){ boardT=.25; $('#hBoard').innerHTML=standings().map((r,i)=>`<li class="${r.isP?'me':''}"><b>${i+1}</b>${r.isP?'YOU':esc(r.def.tag)}${!r.isP&&r.mood&&countdown<=0?`<em class="m-${r.mood.mood}">${MOOD_TAG[r.mood.mood]}</em>`:''}</li>`).join(''); }
       $('#hLap').textContent=`Lap ${clamp(Math.floor(Math.max(0,player.dist)/TR.L)+1,1,laps())} of ${laps()}`;
       $('#hTime').textContent=fmt(raceT);
       $('#hSpd').textContent=Math.round(player.v*2.237);

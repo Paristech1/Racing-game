@@ -117,6 +117,8 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .board{position:absolute;left:18px;top:calc(env(safe-area-inset-top,0px) + 74px);list-style:none;margin:0;padding:0;font-size:11px;font-weight:700;font-stretch:80%;line-height:1.45;color:var(--dim);pointer-events:none}
 #hud .board b{display:inline-block;width:14px;color:rgba(242,245,248,.45)}
 #hud .board .me{color:var(--ink)}
+#hud .board em{font-style:normal;font-size:9px;letter-spacing:.08em;margin-left:6px;padding:0 4px;border:1px solid currentColor;opacity:.9}
+#hud .board .m-allin{color:#ff5a5a} #hud .board .m-attack{color:#ffb347} #hud .board .m-defend{color:#9fd3ff} #hud .board .m-push{color:#e8ecf2} #hud .board .m-lead{color:#7dff9a}
 .order{list-style:none;margin:6px 0 0;padding:0;font-size:12px;line-height:1.5;color:var(--dim);columns:2;column-gap:14px}
 .order b{display:inline-block;width:16px;color:var(--ink)}
 .order em{font-style:normal;opacity:.6;font-size:11px}

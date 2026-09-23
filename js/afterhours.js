@@ -268,7 +268,12 @@ function hist(id){ const h=SAVE[id]||(SAVE[id]={runs:0,wins:0,hits:0,last:0}); i
 /* ---------------- RENDERER ---------------- */
 const canvas=$('#gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.6));
+const PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700; // phones get a lighter pipeline
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,PHONE?1.4:1.6));
+// if iOS resets the GPU, come back cleanly instead of sitting on a frozen frame
+canvas.addEventListener('webglcontextlost',e=>{ e.preventDefault(); const d=document.getElementById('ldsub'); if(d) d.textContent='Graphics were reset by the phone. Reloading.'; setTimeout(()=>location.reload(),1200); });
+// surface script errors on screen so a stuck load can be reported
+addEventListener('error',e=>{ const d=document.getElementById('ldsub'); if(d) d.textContent='Error: '+(e.message||e.error||'unknown')+(e.lineno?' (line '+e.lineno+')':''); });
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.05;
@@ -439,7 +444,8 @@ function plateTex(txt){ if(PLATE_CACHE[txt]) return PLATE_CACHE[txt]; const c=ca
   g.fillStyle='#1a2a4a'; g.font='800 38px "Arial Narrow",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(txt,w/2,h/2+3,w*.86); g.font='700 10px Arial'; g.fillText('PENNSYLVANIA',w/2,10); });
   return (PLATE_CACHE[txt]=CT(c)); }
 function glowSprite(c,s){ const m=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:c,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true})); m.scale.set(s,s,s); return m; }
-function shadowPlane(w,l){ const sh=new THREE.Mesh(new THREE.PlaneGeometry(w,l),new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false})); sh.rotation.x=-Math.PI/2; sh.position.y=.02; return sh; }
+const SHADOW_MAT=new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false});
+function shadowPlane(w,l){ const sh=new THREE.Mesh(new THREE.PlaneGeometry(w,l),SHADOW_MAT); sh.rotation.x=-Math.PI/2; sh.position.y=.02; return sh; }
 /* body families. y values are profile heights, x runs rear (-) to front (+) */
 const BODIES={
  wedge:{pts:[[-2.3,.34],[-2.36,.66],[-2.24,.93],[-1.5,1.0],[-.6,1.02],[.4,.96],[1.3,.8],[1.95,.62],[2.34,.46],[2.36,.33]],base:.24,
@@ -464,6 +470,20 @@ const BODIES={
    cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:1.0,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3}
 };
 const bronzeM=()=>new THREE.MeshStandardMaterial({color:0x8a5a2b,metalness:1,roughness:.25});
+/* Fold a group's direct child meshes into one mesh per material (transforms baked in). A detailed car is
+   ~140 small parts; drawn one by one that stalls phone GPUs, merged it's a couple dozen draw calls. */
+function mergeByMaterial(group){
+  const buckets=new Map();
+  group.children.slice().forEach(o=>{ if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.children.length) return;
+    if(!buckets.has(o.material)) buckets.set(o.material,[]); buckets.get(o.material).push(o); });
+  buckets.forEach((list,mat)=>{ if(list.length<2) return;
+    let n=0; const parts=list.map(o=>{ o.updateMatrix(); const g=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone()).applyMatrix4(o.matrix); n+=g.attributes.position.count; return g; });
+    const pos=new Float32Array(n*3), nor=new Float32Array(n*3), uv=new Float32Array(n*2); let k=0;
+    parts.forEach(g=>{ const c=g.attributes.position.count; pos.set(g.attributes.position.array,k*3);
+      if(g.attributes.normal) nor.set(g.attributes.normal.array,k*3); if(g.attributes.uv) uv.set(g.attributes.uv.array,k*2); k+=c; g.dispose(); });
+    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.setAttribute('normal',new THREE.BufferAttribute(nor,3)); geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+    list.forEach(o=>group.remove(o)); const m=new THREE.Mesh(geo,mat); m.renderOrder=list[0].renderOrder; group.add(m); });
+}
 function buildCar(def,opts){
   opts=opts||{}; const B=BODIES[def.body||'wedge'];
   const g=new THREE.Group();
@@ -573,6 +593,7 @@ function buildCar(def,opts){
     const cal=new THREE.Mesh(new THREE.BoxGeometry(.07,.2,.18),calM); cal.position.set(side*.06,.14*sc,-.06); holder.add(cal);
     wheels.push(spin); if(i<2) steers.push(holder);
   });
+  mergeByMaterial(g); wheels.forEach(mergeByMaterial);
   return {group:g,wheels,steers,paint,def};
 }
 // everyday traffic car: boxy, generic
@@ -1725,7 +1746,7 @@ try{
   if(THREE.EffectComposer&&THREE.RenderPass&&THREE.UnrealBloomPass&&THREE.ShaderPass&&THREE.GammaCorrectionShader){
     let rt; // WebGL2: 4x MSAA on the composer targets so edges stay clean through bloom and grading
     if(renderer.capabilities.isWebGL2&&THREE.WebGLMultisampleRenderTarget){ const pr=renderer.getPixelRatio();
-      rt=new THREE.WebGLMultisampleRenderTarget(innerWidth*pr,innerHeight*pr,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat}); rt.samples=4; }
+      rt=new THREE.WebGLMultisampleRenderTarget(innerWidth*pr,innerHeight*pr,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat}); rt.samples=PHONE?2:4; }
     composer=new THREE.EffectComposer(renderer,rt);
     renderPass=new THREE.RenderPass(studio,cam); composer.addPass(renderPass);
     bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.8,.45,.8); composer.addPass(bloomPass);

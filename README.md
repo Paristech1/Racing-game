@@ -44,15 +44,19 @@ Harbor Line, Roosevelt Blvd and The Long Night are 2 laps; The Bridge Run is 3. 
 
 ## Power-ups
 
-- **Cyan: Refill.** Fills your boost.
-- **Violet: Long Boost.** Boost drains slower for 8 s.
-- **Amber: Overdrive.** Raises top speed for 5 s.
-- **Red: Slingshot.** An instant burst of speed plus hard acceleration for 1.4 s.
-- **Green: Shield.** For 6 s, walls and contact don't slow you, and you shove other cars aside.
-- **Pink: Shockwave.** Slows and pushes every car near you and knocks out part of their boost. Shields block it.
-- **Blue: Grip Tires.** 45% more cornering grip for 8 s.
+Every car can take each power-up once per pass (the gem blinks when someone does), and rivals grab them too. What a power-up does depends on **where you are in the race** and **what you're driving**.
 
-Rivals grab them too, including the Shockwave.
+| Power-up | FRONT (P1–2) | PACK (P3–5) | CHASE (last two) |
+|----------|--------------|-------------|------------------|
+| Cyan Refill | **Top-Off:** full boost | **Refill:** full boost, 2.5× recharge for 5 s | **Overflow:** boost to 140% |
+| Violet Long Boost | **Cruise Control:** slow drain for 8 s | **Long Boost:** +25% boost, slow drain for 8 s | **Endless:** no drain at all for 5 s |
+| Amber Overdrive | **Overdrive:** +14% top speed for 5 s | **Slipstream:** +14% top speed and draft from twice as far for 6 s | **Redline:** +22% top speed for 4 s, no boost recharge |
+| Red Slingshot | **Kick:** a small shove | **Slingshot:** launched forward | **Catapult:** launched and towed toward the car ahead |
+| Green Shield | **Rear Guard:** 9 s, blocks hits from behind and shockwaves | **Shield:** 6 s, walls and contact can't slow you | **Battering Ram:** 5 s, hit a car from behind to steal its speed |
+| Pink Shockwave | **Wake:** slows everyone behind you | **Shockwave:** slows everyone around you | **Lightning:** strikes the leaders wherever they are |
+| Blue Grip | **Grip Tires:** +45% grip for 8 s | **Slicks:** more grip and no scrub in corners for 8 s | **Rails:** +80% grip and walls can't slow you for 6 s |
+
+Your car's class adds a twist. **Heavy** cars (Richmond, Dune-R, Sovereign, Gran Four) get Diesel (Long Boost lasts longer), Freight Train (Slingshot plows through traffic), Bulldozer (Shield shoves harder), Quake (bigger Shockwave) and Downforce (more grip). **Nimble** cars (Vanta LM, Kern RS, Passyunk R, Zenkai 37) get Short Shift (a punchier Overdrive), Featherweight (a bigger Slingshot) and Glue (longer Grip). **Muscle** cars (Noctis GT, Bell 76, Split 63) get Supercharged (Refill makes boost hit harder), Big Block (more Overdrive) and Siphon (Shockwave steals boost). And 1 pickup in 8 is a **Jackpot** at 1.5× strength. That's 21 position variants, 11 class twists, and over 100 combinations in play.
 
 ## Cars
 
@@ -90,6 +94,13 @@ Rivals also **react to their position**. Four times a second, each one checks it
 | ALL-IN | Desperate, usually late or just passed | Empties the tank even into corners, brakes later, and will make contact |
 
 Each persona bends differently. Wildcard and Bruiser go all-in quickly, and The Wall defends hardest. The Closer keeps the biggest boost reserve until it's desperate, and Apex stays the calmest.
+
+## Graphics
+
+- **4× MSAA** through the whole post-processing chain (WebGL2), then bloom and a cinematic grade: split-tone color, vignette, edge chromatic aberration, and radial speed blur that ramps with speed and boost.
+- **Wet asphalt:** puddled roughness and normal maps on the roads, plus long light streaks under every streetlight, tunnel strip and taillight.
+- **Rain nights:** open-air events have a 45% chance of rain, shown on the loading screen. You get rain streaks, tire spray, a rain audio bed, wetter roads and stronger reflections. Rain stops inside tunnels.
+- **Light and atmosphere:** volumetric cones under streetlights, headlight beams and road throw from every car, taillight trails at speed, exhaust flames while boosting, and a night-sky dome with stars, a moon and clouds lit by the city.
 
 ## Saved in your browser
 

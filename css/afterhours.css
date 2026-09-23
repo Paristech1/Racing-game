@@ -96,6 +96,7 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .spd span{font-size:12px;color:var(--dim);letter-spacing:.1em}
 #hud .nb{width:150px;height:3px;margin:8px auto 0;background:rgba(255,255,255,.2);position:relative}
 #hud .nb i{position:absolute;inset:0 auto 0 0;background:#9fd3ff;box-shadow:0 0 10px #9fd3ff}
+#hud .nb i.over{background:#ffe08a;box-shadow:0 0 14px #ffc34a}
 #hud .msg{position:absolute;left:0;right:0;top:34%;text-align:center;font-weight:900;font-stretch:62%;font-size:clamp(80px,30vw,220px);line-height:.8;pointer-events:none}
 #hud .toast{position:absolute;left:18%;right:18%;top:calc(env(safe-area-inset-top,0px) + 232px);line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.7);text-align:center;font-family:var(--hand);font-size:30px;opacity:0;transition:opacity .3s}
 .pads{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;justify-content:space-between;align-items:flex-end}

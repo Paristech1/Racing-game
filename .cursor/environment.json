@@ -4,7 +4,7 @@
     {
       "name": "web-server",
       "command": "python3 -m http.server 8080",
-      "description": "Serves the static AFTERHOURS three.js game. Open http://localhost:8080 to play. three.js and fonts load from CDN, so egress must reach cdn.jsdelivr.net and fonts.googleapis.com."
+      "description": "Serves the static AFTERHOURS three.js game. Open http://localhost:8080 to play. three.js r128 and fonts load from CDN, so egress must reach cdnjs.cloudflare.com, cdn.jsdelivr.net, fonts.googleapis.com and fonts.gstatic.com."
     }
   ],
   "ports": [

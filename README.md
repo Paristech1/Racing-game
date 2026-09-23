@@ -40,6 +40,28 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
 
 - **Event 04: The Long Night.** Every level in one 8 km loop, 2 laps. It starts on Roosevelt Blvd (a divided road with a tree median, strip malls, a gas station and a speed camera). Then it runs down Spring Garden and 6th St, over the Ben Franklin Bridge to Camden (with westbound traffic on the other deck), and down the Camden waterfront. The return goes back under the Delaware through the Harbor Line tunnel, then along South St and up 15th past City Hall and LOVE Park.
 
+- **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
+
+  | Rule | What happens |
+  |------|--------------|
+  | Clean Round | No tricks, just don't be last |
+  | Double Knockout | The last two cars are out (5+ cars left) |
+  | Time Bomb | The last car past the half-lap mark is out too (5+ cars left) |
+  | Nitro Rain | Full boost for everyone, recharging twice as fast |
+  | Lights Out | The city goes dark, headlights only |
+  | Underdog | The last three cars get 10% more top speed |
+  | Bounty | Take the lead and you get full boost and a shield |
+  | Shock Season | Every pickup is a Shockwave |
+  | Slingshot Alley | Every pickup is a Slingshot |
+  | Ghost Lap | No contact, cars pass through each other |
+  | Downpour | It starts raining and everyone loses grip |
+  | Jackpot Lap | Every pickup is a jackpot |
+  | Turbo Round | Everyone gets 12% more top speed |
+  | Draft Frenzy | Slipstreams reach twice as far and pull twice as hard |
+  | Final Duel | The last two cars get overfilled boost, and every pickup is a Slingshot |
+
+  Rivals in the knockout zone get desperate as the lap runs out. The HUD flags the car in danger, and your position pulses red when it's you.
+
 Harbor Line, Roosevelt Blvd and The Long Night are 2 laps; The Bridge Run is 3. Every event has 7 cars, and floating chevrons warn you about hard corners.
 
 ## Power-ups

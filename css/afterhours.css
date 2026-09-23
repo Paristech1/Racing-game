@@ -155,3 +155,13 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .gh.ahead{color:#9fd3ff}
 @media (min-width:900px){ .foot{right:auto;width:560px} #select .hl{max-width:9em} }
 @media (prefers-reduced-motion:reduce){ .enter{animation:none} #grain{animation:none} }
+
+/* TOURNAMENT */
+#hud .round{position:absolute;left:12px;right:12px;top:44%;text-align:center;pointer-events:none;opacity:0;transform:translateY(-10px) scale(.96);transition:opacity .25s,transform .3s cubic-bezier(.2,.8,.2,1)}
+#hud .round.on{opacity:1;transform:none}
+#hud .round b{display:inline-block;font-weight:900;font-stretch:62%;font-size:clamp(34px,9vw,58px);line-height:.9;text-transform:uppercase;color:#fff;background:rgba(214,24,44,.9);padding:6px 14px 4px;transform:rotate(-2deg);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+#hud .round.info b{background:rgba(242,245,248,.94);color:#05070a}
+#hud .round span{display:block;margin:10px auto 0;max-width:30em;font-size:15px;font-weight:700;color:#f2f5f8;text-shadow:0 2px 10px rgba(0,0,0,.85)}
+#hud .pos.danger{color:#ff4a3d;animation:tpulse .35s ease-in-out infinite alternate}
+#hud .board .out{text-decoration:line-through;opacity:.35}
+#hud .board .m-ko{color:#ff4a3d;animation:tpulse .35s ease-in-out infinite alternate}

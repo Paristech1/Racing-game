@@ -203,6 +203,50 @@ function scorePickup(r,p,P,s0,L){
  if(r.def.id==='apex'&&lat>3.2) val-=3;
  return val-det*(1.1-P.risk*.35);
 }
+/* How each persona approaches a corner (zone = start thinking, late = carry speed deeper). */
+const CORNER_APPROACH={
+ apex:{zone:88,late:.22,brakeMax:.52,carry:1.06,lineIn:1.1,vBonus:1.05,style:'early'},
+ wall:{zone:70,late:.45,brakeMax:.58,carry:.94,lineIn:.75,vBonus:.98,style:'safe'},
+ leech:{zone:55,late:.62,brakeMax:.38,carry:1.08,lineIn:.95,vBonus:1.06,style:'momentum'},
+ bruiser:{zone:78,late:.32,brakeMax:.65,carry:.92,lineIn:.7,vBonus:.97,style:'heavy'},
+ closer:{zone:82,late:.38,brakeMax:.48,carry:1.02,lineIn:1.05,vBonus:1.03,style:'smooth'},
+ wild:{zone:42,late:.82,brakeMax:.72,carry:1.12,lineIn:1.28,vBonus:1.1,style:'late'}
+};
+function aiCornerPlan(r,d,P,ka,turn,evB,rubber,vF,G,M){
+ const st=CORNER_APPROACH[d.id]||CORNER_APPROACH.apex, W=TR.W;
+ const grip=G||d.grip, moodPush=M?(1+M.D*.07+(M.mood==='allin'?.05:0)):1;
+ let vTarget=d.top*r.skill*rubber*vF*(Math.abs(ka)<.003?evB.straight:evB.tight);
+ let brake=0, lineShift=0, inApproach=false;
+ if(turn&&turn.d>0&&turn.d<st.zone+r.v*st.late*1.1){
+  inApproach=true;
+  const zone=st.zone+r.v*st.late;
+  const t=clamp(1-turn.d/zone,0,1);
+  const entry=turn.d<zone*(.28+st.late*.35);
+  const kTurn=Math.abs(kAhead(r.dist+Math.max(0,turn.d-zone*.35),Math.min(28,turn.d+12)));
+  const kaEff=Math.max(Math.abs(ka)*(.25+t*.35),kTurn*t);
+  const vLim=Math.sqrt(1.9*grip*.95*P.risk*st.carry*moodPush/Math.max(kaEff,.0028))*st.vBonus;
+  vTarget=Math.min(vTarget,vLim);
+  if(r.v>vTarget+1.5){
+   const over=(r.v-vTarget)/Math.max(vTarget,22);
+   brake=clamp(over*st.brakeMax*(.35+t*.65),0,st.brakeMax);
+   if(st.style==='late'&&turn.d>zone*.5) brake*=.25+ t*.75;
+   if(st.style==='momentum'&&turn.d>zone*.45) brake*=.55;
+   if(st.style==='early'&&turn.d>zone*.55) brake*=.7;
+   if(M&&M.mood==='allin') brake*=.72;
+   if(M&&M.mood==='push') brake*=.85;
+  }
+  if(entry) lineShift=turn.dir*(W*.11)*st.lineIn;
+  else if(st.style==='late') lineShift=turn.dir*(W*.06)*st.lineIn*(1-t);
+  else lineShift=turn.dir*(W*.08)*st.lineIn*t;
+  if(d.id==='wild') lineShift+=turn.dir*(W*.08)*(1-t);
+ }
+ else if(Math.abs(ka)>.006){
+  const vLim=Math.sqrt(1.9*grip*.95*P.risk*moodPush/Math.max(Math.abs(ka),.003));
+  vTarget=Math.min(vTarget,vLim*1.02);
+  if(r.v>vTarget+3) brake=clamp((r.v-vTarget)/40,.15,.45);
+ }
+ return {vTarget,brake,lineShift,inApproach};
+}
 
 let SAVE={};
 try{ SAVE=JSON.parse(localStorage.getItem('afterhours.v1')||'{}')||{}; }catch(e){ SAVE={}; }
@@ -1501,8 +1545,8 @@ function stepRacer(r,dt,inp){
   const d=r.def, W=TR.W, L=TR.L, G=d.grip*(r.fxGrip>0?1.45:1), shielded=r.fxShield>0;
   frame(r.dist,F);
   const k=F.k;
-  let steer=0, brake=false, nitro=false;
-  if(inp){ steer=inp.steer; brake=inp.brake; nitro=inp.nitro&&r.nitro>0.02; }
+  let steer=0, brake=false, nitro=false, brakeAmt=0;
+  if(inp){ steer=inp.steer; brake=inp.brake; nitro=inp.nitro&&r.nitro>0.02; if(brake) brakeAmt=1; }
   else {
     const P=d.P||RIVALS[0].P, racing=mode==='race', evB=eventAiBias();
     const ka=kAhead(r.dist,Math.max(30,r.v*1.4));
@@ -1557,6 +1601,7 @@ function stepRacer(r,dt,inp){
       if(M.mood==='allin'&&d.id==='bruiser'&&M.ahead&&M.ahead.dist-r.dist<14){ tx=M.ahead.x; gain=.6; chasing=M.ahead; }
       else if(M.mood==='defend'&&M.behind&&d.id!=='wall'&&M.gapB<.6) tx=lerp(tx,M.behind.x,.45*M.T.defend);
     }
+    const turnHint=nextTurn(r);
     if((P.seek||D>.4)&&(!chasing||D>.6)&&EV.pickups&&!(d.id==='wall'&&(pl&&gapP>1.5&&gapP<34||chaser))){ const L=TR.L, s0=((r.dist%L)+L)%L;
       let bestP=null,bestSc=.4;
       for(const p of EV.pickups){ const sc=scorePickup(r,p,P,s0,L)+(M?moodPickup(r,p,M,s0,L):0); if(sc>bestSc){ bestSc=sc; bestP=p; } }
@@ -1564,13 +1609,15 @@ function stepRacer(r,dt,inp){
     // avoidance: traffic always; other racers unless you're the one this persona is attacking
     for(const o of racers.concat(traffic)){ if(o===r||o===chasing) continue; const dd=o.dist-r.dist, dx=o.x-r.x;
       if(dd>0&&dd<(o.tr?26:15*(1-.45*D))&&Math.abs(dx)<2.8){ tx=o.x+(o.x>0?-3.4:3.4); } }
+    let rubber=1; if(pl) rubber=1+clamp((pl.dist-r.dist)/420,-.08,.1)*P.rubber;
+    const corner=aiCornerPlan(r,d,P,ka,turnHint,evB,rubber,vF,G,M);
+    if(corner.inApproach&&corner.lineShift) tx+=corner.lineShift;
     tx=clamp(tx,-W+1.4,W-1.4);
     const ac=r.v*r.v*k*.5;
     steer=clamp(-ac/G+(tx-r.x)*gain-r.vx*.14+bias,-1,1);
-    let rubber=1; if(pl) rubber=1+clamp((pl.dist-r.dist)/420,-.08,.1)*P.rubber;
-    const vLim=Math.sqrt(1.9*G*.95*P.risk*(1+.07*D+(M&&M.mood==='allin'?.05:0))/Math.max(Math.abs(ka),1e-4));
-    const vT=Math.min(d.top*r.skill*rubber*vF*(Math.abs(ka)<.003?evB.straight:evB.tight),vLim);
-    if(r.v>vT+2) brake=true;
+    const vT=corner.vTarget;
+    brakeAmt=corner.brake;
+    brake=brakeAmt>.12;
     const straight=Math.abs(ka)<.003&&r.v>38;
     switch(P.nitro){
       case 'exit':    nitro=straight&&r.nitro>.25&&(r._nos||Math.abs(frame(r.dist-25,F2).k)>.004); break;
@@ -1597,7 +1644,7 @@ function stepRacer(r,dt,inp){
   if(r.fxOver>0) a+=5;
   if(r.fxSling>0) a+=22;
   if(r.draft>0){ a+=r.draft; r.draft=0; }
-  if(brake) a=-40;
+  if(brakeAmt>0) a=-40*brakeAmt;
   if(mode==='race'&&raceT<r.startDelay) a=0;
   r.v=Math.max(0,r.v+a*dt);
   if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(r.fxLong>0?.35:1));

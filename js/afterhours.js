@@ -138,6 +138,16 @@ CARS.push(
   note:'hold\nflat.', notePos:{l:'58%',t:'33%'},
   cam:{p:[4.2,1.05,-4.0],l:[0,.5,-.15],roll:.07,fov:31}}
 );
+CARS.push(
+ {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,paint:0xffc20e,metal:.55,rough:.12,rim:0x1a1b1e,caliper:0x121314,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
+  top:106,acc:35,grip:34,nitro:1.4,mass:.95,nosVmax:1.33,
+  kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
+  caption:'Volcano yellow, a teardrop canopy and a snorkel on the roof. The wing stands up at speed and it still pulls.',
+  specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.9S / FASTEST CAR IN THE ARCHIVE',
+  rival:'Rival note: nothing in the archive touches it flat out. Beat it in the corners or not at all.',
+  note:'fastest\nthing here.', notePos:{l:'60%',t:'34%'},
+  cam:{p:[4.4,1.0,-3.9],l:[0,.5,-.2],roll:.07,fov:31}}
+);
 // full spec sheets (slide-up panel)
 const SHEETS={
  kage:{engine:'4.0L flat-plane V8, twin-turbo',power:'1,040 hp',torque:'780 lb-ft',zero:'2.3 s',vmax:'221 mph',weight:'3,120 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
@@ -154,6 +164,7 @@ const SHEETS={
  overload:{engine:'Four axial-flux e-motors, 2.2 MW',power:'3,000 hp',torque:'2,900 lb-ft',zero:'1.4 s',vmax:'268 mph',weight:'4,300 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed, two-stage'},
  granfour:{engine:'4.0L twin-turbo V8',power:'690 hp',torque:'680 lb-ft',zero:'3.1 s',vmax:'199 mph',weight:'4,400 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
  wisp:{engine:'Triple e-motors, carbon tub',power:'920 hp',torque:'780 lb-ft',zero:'1.8 s',vmax:'228 mph',weight:'1,980 lb',drive:'All-wheel drive',gearbox:'Single-speed'},
+ volcano:{engine:'3.8L twin-turbo V8 + e-motor (IPAS)',power:'1,350 hp',torque:'1,090 lb-ft',zero:'1.9 s',vmax:'285 mph',weight:'3,050 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
  stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
@@ -205,7 +216,7 @@ function buildRivalForEvent(rival,eventId,taken){
  let best=null, bestSc=-1e9;
  for(const c of CARS){
   if(taken.includes(c.id)) continue;
-  if(c.id==='overload'&&!RIVAL_BOSS) continue; // the 3,000 hp car only shows up on a rival's grid now and then (rolled once per race)
+  if((c.id==='overload'||c.id==='volcano')&&!RIVAL_BOSS) continue; // the 3,000 hp car only shows up on a rival's grid now and then (rolled once per race)
   const pref=rp.ids&&rp.ids.includes(c.id)?9:0;
   const sc=c.grip*(eb.gripW||1)*(rp.gripW||1)+c.top*(eb.topW||1)*(rp.topW||1)+c.nitro*18*(eb.nitroW||1)*(rp.nitroW||1)+pref+Math.random()*4;
   if(sc>bestSc){ bestSc=sc; best=c; }
@@ -494,6 +505,8 @@ const BODIES={
    cab:[[-1.95,.92],[-1.2,1.3],[-.55,1.34],[-.1,1.14],[.25,.9]],cabBase:[-1.95,.9,.25,.86],w:1.82,cw:1.3,wr:.36,wb:1.28,tr:.96,front:2.36,rear:2.3,headY:.64,tailY:.78,wingY:1.1,wingZ:-2.1},
  hyper:{pts:[[-2.5,.34],[-2.56,.64],[-2.42,.8],[-1.6,.9],[-.6,.94],[.4,.86],[1.3,.66],[1.95,.5],[2.4,.38],[2.46,.3]],base:.2,
    cab:[[-1.35,.9],[-.8,1.2],[.1,1.25],[.7,1.03],[1.15,.74]],cabBase:[-1.35,.88,1.15,.72],w:2.02,cw:1.28,wr:.37,wb:1.5,tr:1.02,front:2.46,rear:2.56,headY:.5,tailY:.72,wingY:1.5,wingZ:-2.2,swan:true},
+ p1:{pts:[[-2.24,.34],[-2.3,.66],[-2.2,.82],[-1.6,.9],[-.9,.92],[-.1,.84],[.8,.68],[1.6,.52],[2.14,.36],[2.22,.26]],base:.18,
+   cab:[[-1.55,.96],[-1.0,1.16],[-.2,1.22],[.5,1.02],[.98,.7]],cabBase:[-1.55,.94,.98,.68],w:2.0,cw:1.22,wr:.36,wb:1.36,tr:1.0,front:2.22,rear:2.3,headY:.5,tailY:.76,wingY:1.14,wingZ:-1.95},
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
    cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:1.0,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3}
 };
@@ -570,6 +583,21 @@ function buildCar(def,opts){
     box(B.w*.78,.022,.03,acc,0,B.headY+.06,F-.1);
     [1,-1].forEach(sd=>{ box(.02,.02,B.wb*2-.6,acc,sd*(B.w/2+.14),B.base+.1,0); const it=box(.06,.26,.7,trimM,sd*(B.w/2+.1),B.base+.42,-.85); it.rotation.y=sd*.12; });
     [1,-1].forEach(sd=>{ const s=glowSprite(def.accent||0x2fe6ff,.7); s.position.set(sd*(B.w/2+.14),B.base+.1,1); g.add(s); }); }
+  if(def.p1){ // P1 cues: "smile" intake, boomerang LEDs, roof snorkel, door intakes, C-shaped tail light, mesh rear, center exhausts
+    const carbon=new THREE.MeshStandardMaterial({color:0x0c0d10,metalness:.5,roughness:.32});
+    const smile=box(B.w*.74,.1,.12,carbon,0,B.base+.14,F-.04); smile.rotation.x=-.3;
+    [1,-1].forEach(sd=>{ box(.26,.08,.1,carbon,sd*B.w*.4,B.base+.2,F-.06).rotation.z=sd*.35; // smile corners curl up
+      const a=box(.34,.02,.03,headM,sd*hx,B.headY+.09,F-.2,sd*.5), b=box(.02,.12,.03,headM,sd*(hx+.16),B.headY+.03,F-.28,sd*.5); void a; void b; // boomerang DRL
+      const it=box(.05,.3,.8,carbon,sd*(B.w/2+.02),B.base+.4,-.62); it.rotation.x=-.2; // raked scoop ahead of the rear wheel
+      box(.03,.04,1.5,carbon,sd*(B.w/2+.06),B.base+.2,.1); // carbon door blade
+      box(.05,.38,.05,tailM,sd*B.w*.42,B.tailY-.14,-Rr-.1); box(.2,.05,.05,tailM,sd*B.w*.35,B.tailY-.32,-Rr-.1); // C-shaped tail light, wraps down each side
+      const tg=glowSprite(0xff2030,.8); tg.position.set(sd*B.w*.42,B.tailY-.12,-Rr-.14); g.add(tg); });
+    const sn=box(.16,.08,.9,paint,0,1.2,-.72); sn.rotation.x=-.12; box(.12,.06,.02,carbon,0,1.25,-.28); // roof snorkel + its intake
+    box(B.w*.86,.05,.05,tailM,0,B.tailY+.06,-Rr-.1); // full-width top of the C
+    box(B.w*.8,.36,.04,carbon,0,B.tailY-.14,-Rr-.07); for(let i=0;i<8;i++) box(B.w*.78,.012,.02,gapM,0,B.tailY-.3+i*.045,-Rr-.1); // open mesh rear
+    [1,-1].forEach(sd=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(.075,.08,.2,16,1,true),exhM); t.rotation.x=Math.PI/2; t.position.set(sd*.12,B.tailY-.2,-Rr-.12); g.add(t); });
+    for(let i=0;i<7;i++) box(.02,.22,.6,carbon,-.6+i*.2,B.base+.06,-Rr+.26); // big diffuser strakes
+    [1,-1].forEach(sd=>{ const p=box(.05,.4,.1,carbon,sd*.35,B.wingY-.2,B.wingZ+.08); p.rotation.x=.25; }); } // active wing struts
   if(def.lightbar){ box(1.5,.08,.16,headM,0,2.06,.28); [-.55,0,.55].forEach(x=>{ const s=glowSprite(0xeaf4ff,.9); s.position.set(x,2.07,.4); g.add(s); }); }
   if(def.body==='sedan'||def.body==='suv'||def.body==='truck'){ // upright grille
     const gr=box(1.1,.34,.06,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.9,roughness:.2}),0,B.headY-.12,F-.02);
@@ -2054,6 +2082,7 @@ function moodPickup(r,p,M,s0,L){
   if(M.mood==='lead'&&p.type!=='shield') v-=3;          // leaders don't wander off the line
   return v;
 }
+const VCAP=190; // hard ceiling, ~425 mph: stacked boosts can't run away past what the sim and camera handle
 function stepRacer(r,dt,inp){
   const d=r.def, W=TR.W, L=TR.L, G=d.grip*(r.fxGrip>0?(r.gripMul||1.45):1)*(EV.knockout&&KO?KO.gripMul:1), shielded=(r.fxShield>0&&r.shieldMode!=='rear')||(r.fxGrip>0&&r.railsWall);
   frame(r.dist,F);
@@ -2102,7 +2131,7 @@ function stepRacer(r,dt,inp){
         r.mt=(r.mt||0)-dt;
         if(r.mt<=0&&Math.random()<P.mistakeRate*dt){ r.mt=.9+Math.random()*.6; r.mSteer=(Math.random()<.5?-1:1)*P.mistakeStrength; if(pl&&Math.abs(gapP)<40) persona(r,`${d.tag} sent it way too hot.`); }
         if(r.mt>0) bias=r.mSteer;
-        if(Math.random()<.006) r.burst=1.2+Math.random();
+        if(Math.random()<.36*dt) r.burst=1.2+Math.random();
         if(pl&&gapP>-14&&gapP<0) persona(r,`${d.tag} is coming up the outside.`);
         break;
       case 'apex': // pure line; takes the inside when it's reeling you in
@@ -2153,8 +2182,9 @@ function stepRacer(r,dt,inp){
   }
   r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*9)):steer;
   const nosVmax=d.nosVmax||1.22, nosV=nitro?nosVmax*(r.fxWisp>0?1.1:1):1;
-  const vmax=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
-  let a=d.acc*Math.max(0,1-r.v/vmax); if(r.v>vmax) a=-10;
+  const vmax0=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
+  const vmax=Math.min(VCAP,vmax0);
+  let a=d.acc*Math.max(0,1-r.v/vmax); if(r.v>vmax) a=r.v>VCAP?-60:-10;
   const nosAcc=(d.nosAccMul||1)*(r.fxNosMul>0?1.35:1)*(r.fxWisp>0?1.12:1);
   if(nitro) a+=14*d.nitro*nosAcc;
   if(r.fxOver>0) a+=5+(r.overAcc||0);
@@ -2163,7 +2193,7 @@ function stepRacer(r,dt,inp){
   if(r.draft>0){ a+=r.draft; r.draft=0; }
   if(brakeAmt>0) a=-40*brakeAmt;
   if(mode==='race'&&raceT<r.startDelay) a=0;
-  r.v=Math.max(0,r.v+a*dt);
+  r.v=clamp(r.v+a*dt,0,VCAP+2);
   if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(d.nosDrainMul||1)*(r.fxLong>0?(r.drainMul!==undefined?r.drainMul:.35):1));
   else if(r.nitro>1) r.nitro=Math.max(1,r.nitro-.015*dt);
   r.nosOn=nitro;
@@ -2410,7 +2440,7 @@ function updateFx(dt,focus){
   const {m4,q,sc,p,b,nr}=FX, W=TR.W, H=TR.H;
   const stg=focus.stage||0, len=clamp(focus.v*.07,.3,7)*STAGE.len[stg]; slMesh.material.opacity=STAGE.lines[stg]*(EV.open?.7:1);
   for(let i=0;i<SL;i++){ const d=slData[i];
-    if(d.s<focus.dist-6||d.s>focus.dist+400){ d.s=focus.dist+30+Math.random()*140; d.x=(Math.random()*2-1)*(W+.1); d.y=.3+Math.random()*(H-.8); }
+    if(d.s<focus.dist-6||d.s>focus.dist+400+focus.v){ d.s=focus.dist+30+focus.v*.5+Math.random()*(140+focus.v*.8); d.x=(Math.random()*2-1)*(W+.1); d.y=.3+Math.random()*(H-.8); }
     frame(d.s,F2); p.copy(F2.p).addScaledVector(F2.r,d.x); p.y+=d.y; orientQ(F2,q,b,nr); sc.set(1,1,len);
     m4.compose(p,q,sc); slMesh.setMatrixAt(i,m4); }
   slMesh.instanceMatrix.needsUpdate=true;
@@ -2494,7 +2524,7 @@ function renderSheet(dir){
   $('#shKick').textContent=`Spec sheet, ${String(page+1).padStart(2,'0')} of ${String(CARS.length).padStart(2,'0')}`;
   $('#shName').textContent=d.name;
   const rows=[['Engine',sh.engine],['Power',sh.power],['Torque',sh.torque],['0–60 mph',sh.zero],['Top speed',sh.vmax],['Weight',sh.weight],['Drivetrain',sh.drive],['Gearbox',sh.gearbox]];
-  const bars=[['Speed',d.top/102],['Acceleration',d.acc/39],['Grip',d.grip/36],['Boost',d.nitro/1.55],['Weight',(d.mass||1)/2],['Handling',(d.grip/36)*(1.15-((d.mass||1)-1)*.35)]];
+  const bars=[['Speed',d.top/106],['Acceleration',d.acc/39],['Grip',d.grip/36],['Boost',d.nitro/1.55],['Weight',(d.mass||1)/2],['Handling',(d.grip/36)*(1.15-((d.mass||1)-1)*.35)]];
   $('#shBody').innerHTML=rows.map((r,i)=>`<div class="srow sline" style="--sx:${(dir||1)*30}px;animation-delay:${i*35}ms"><span>${r[0]}</span><b>${esc(r[1]||'—')}</b></div>`).join('')+
     `<div class="sbars">${bars.map(b=>`<div class="sbar">${b[0]}<i><b data-w="${Math.round(clamp(b[1],0,1)*100)}"></b></i></div>`).join('')}</div>`;
   $('#shPg').textContent=`${String(page+1).padStart(2,'0')} / ${String(CARS.length).padStart(2,'0')}`;
@@ -2585,8 +2615,8 @@ function startRace(){
   }); }
   personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.towT=0; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
-  const boss=racers.find(r=>!r.isP&&(r.def.chassisId==='overload'));
-  if(boss&&!EV.knockout) setTimeout(()=>{ if(mode==='race') toast(`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`); },4200);
+  const boss=racers.find(r=>!r.isP&&(r.def.chassisId==='overload'||r.def.chassisId==='volcano'));
+  if(boss&&!EV.knockout) setTimeout(()=>{ if(mode==='race') toast(boss.def.chassisId==='volcano'?`${boss.def.tag} brought the VOLCANO P1. The fastest car in the archive is on the grid.`:`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`); },4200);
   if(EV.knockout){ ghostData=null; endGhost(); } else { loadGhost(); spawnGhost(); } ghostRec=[]; ghostAcc=0; camFlashes=0;
   tapeReset(); KO=null; LOOK.lightsOut=false; applyLights(); if(EV.knockout) koStart();
   mode='race'; show('hud'); countdown=3.6; raceT=0; finishHold=0; slowmo=1; camSnap=true; shake=0;
@@ -2727,17 +2757,21 @@ function finishKnockout(){
 
 /* ---------------- CAMERA RIGS ---------------- */
 const tgt=new THREE.Vector3();
+const camOff=new THREE.Vector3();
 function chaseCam(dt,r,inp){
   frame(r.dist,F);
   headV.copy(F.t).multiplyScalar(Math.cos(r.yaw*.6)).addScaledVector(F.r,Math.sin(r.yaw*.6)).normalize();
   const pos=r.m.group.position, boost=inp&&inp.nitro&&r.nitro>0?1:0;
   tgt.copy(pos).addScaledVector(headV,-(7.2+boost*.8)).addScaledVector(UP,2.3);
-  if(camSnap){ camPos.copy(tgt); camSnap=false; } else camPos.lerp(tgt,1-Math.exp(-dt*9));
+  // smooth the camera's offset from the car, not its world position: a world-space lerp trails v/9 m behind
+  // (20 m at 400 mph), swinging the camera through buildings on bends
+  if(camSnap||!camOff.lengthSq()){ camOff.subVectors(tgt,pos); camSnap=false; } else camOff.lerp(tmpV.subVectors(tgt,pos),1-Math.exp(-dt*9));
+  camPos.copy(pos).add(camOff);
   cam.position.copy(camPos);
   if(shake>0){ cam.position.x+=(Math.random()-.5)*shake*.5; cam.position.y+=(Math.random()-.5)*shake*.4; shake=Math.max(0,shake-dt*2.2); }
   camLook.copy(pos).addScaledVector(headV,8).addScaledVector(UP,1);
   cam.lookAt(camLook); cam.rotateZ(-r.steer*.05-r.vx*.004);
-  const h=78+r.v*.16+boost*10;
+  const h=78+26*(1-Math.exp(-r.v/75))+boost*8; // widens with speed, then levels off instead of fish-eyeing past 300 mph
   cam.fov=lerp(cam.fov,clamp(hfovToV(h),52,98),1-Math.exp(-dt*4)); cam.updateProjectionMatrix();
 }
 let shot=0;
@@ -2776,6 +2810,18 @@ function attractStep(dt){
   racers.forEach(r=>poseRacer(r,dt)); traffic.forEach(o=>poseTraffic(o,dt)); if(EV.update) EV.update(dt); worldFx(dt);
   updateFx(dt,player); cineCam(dt,player);
 }
+// substep the physics so no car moves more than ~1.5 m per step: at 400+ mph a single 33 ms step is 6 m,
+// which made corner forces explode (wall-to-wall pinballing) and let cars tunnel through each other
+function stepPhysics(sdt,inp){
+  let vTop=0; racers.forEach(r=>{ if(!r.out&&r.v>vTop) vTop=r.v; });
+  const nSub=clamp(Math.ceil(vTop*sdt/1.5),1,8), h=sdt/nSub;
+  for(let si=0;si<nSub;si++){
+    raceT+=h;
+    racers.forEach(r=>{ if(r.out) return; if(r.finished&&!r.isP){ r.v*=Math.pow(.99,1/nSub); } stepRacer(r,h,r.isP&&!r.finished?inp:(r.isP?{steer:0,brake:true,nitro:false}:null)); });
+    traffic.forEach(o=>stepTraffic(o,h));
+    collide(); if(EV.knockout) koStep(h);
+  }
+}
 function loop(now){
   requestAnimationFrame(loop);
   let dt=Math.min(.033,(now-last)/1000); last=now;
@@ -2807,10 +2853,8 @@ function loop(now){
       racers.forEach(r=>{ if(!r.out) poseRacer(r,0); }); traffic.forEach(o=>poseTraffic(o,0));
       engine(8+(inp.nitro?30:0)+Math.random()*3,true);
     } else {
-      raceT+=sdt;
-      racers.forEach(r=>{ if(r.out) return; if(r.finished&&!r.isP){ r.v*=.99; } stepRacer(r,sdt,r.isP&&!r.finished?inp:(r.isP?{steer:0,brake:true,nitro:false}:null)); });
-      traffic.forEach(o=>stepTraffic(o,sdt));
-      collide(); if(EV.knockout) koStep(sdt); racers.forEach(r=>{ if(!r.out) poseRacer(r,sdt); }); traffic.forEach(o=>poseTraffic(o,sdt));
+      stepPhysics(sdt,inp);
+      racers.forEach(r=>{ if(!r.out) poseRacer(r,sdt); }); traffic.forEach(o=>poseTraffic(o,sdt));
       engine(player.v,true); screech(clamp(player.slip,0,1));
       if(!player.finished) tapeSample(sdt);
       if(player.finished){ if(finishHold===0){ $('#hMsg').textContent=EV.knockout?(player.out?'Out':'Winner'):'Finish'; sfx.beep(true); } finishHold+=dt; slowmo=lerp(slowmo,EV.knockout&&player.out?.8:.3,1-Math.exp(-dt*3)); if(finishHold>(EV.knockout&&player.out?3.4:2.2)) finishRace(); }

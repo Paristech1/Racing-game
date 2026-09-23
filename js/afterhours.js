@@ -1151,18 +1151,21 @@ const MIDNIGHT_CFG={banner:'EVENT 07 · MIDNIGHT EXPRESS',start:[-20,-1950],
   roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
   cams:[[-20,-1050,1,0],[400,-800,0,1],[400,470,0,-1]],
   tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-2268,z1:-835}};
-/* Event 08: Philly landmark tour — long straights, technical turns, every car on the grid (≈8.2 km / lap). */
-const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1280],
-  corners:[[-20,-700,35],[780,-700,35],[780,-280,40],[2420,-280,25],[2420,450,35],[-80,450,35],[-80,-1280,35]],
-  yAt:(x,z)=>z<-250&&z>-360&&x>760?bridgeY(x):(z>400&&x>-100&&x<820?12+(z-400)*.008:0), zMin:-2400, ZS:[-880,-800,...ZS_BASE,450,560,650], jerseyMaxX:2450, toll:true,
-  trackX:(x,zc)=>(x===-20&&zc>-1280&&zc<-700)||(x===-80&&zc>-1280&&zc<450)||(x===780&&zc>-700&&zc<-250)||(x===2420&&zc>-280&&zc<450),
-  trackZ:(z,xc)=>(z===-700&&xc>-20&&xc<780)||(z===-1280&&xc>-80&&xc<20)||(z===450&&xc>-80&&xc<2420),
-  skip:[[-80,70,-880,-700]], excl:[],
-  gantries:[[-20,-1100,'ROOSEVELT BLVD','NORTHEAST PHILLY  ↑'],[420,-700,'SCHUYLKILL','EXPRESSWAY EAST  →'],[1550,-280,'BEN FRANKLIN BRIDGE','CAMDEN · DELAWARE  ↑'],
-    [2420,120,'SPORTS COMPLEX','WELCOME TO SOUTH PHILLY'],[-80,280,'BROAD STREET','CITY HALL · LOVE PARK'],[-80,-550,'ART MUSEUM','ROCKY STEPS  ← 1 MI'],[-20,-1180,'PHILLY CLASSIC','FULL GRID · ALL CARS']],
-  roads:[{ew:1,c:-700,dir:1,a:-20,b:780},{ew:1,c:-1280,dir:-1,a:-80,b:20},{ew:1,c:450,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:780,dir:1,a:-700,b:-280},{ew:0,c:2420,dir:-1,a:-280,b:450}],
-  cams:[[-20,-1150,1,0],[420,-700,0,1],[1680,-280,0,1],[-80,320,0,-1]],
-  decoBridge:true, skyline:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1340,z1:-735}};
+/* Event 08: Philly landmark tour (≈8.8 km / lap). Roosevelt Blvd south, Kelly Drive past Boathouse Row, 6th St,
+   the Ben Franklin Bridge, down past the stadium, back across the Delaware on the I-95 viaduct, then up Broad St past
+   City Hall and the Art Museum steps to the Boulevard U-turn. */
+function phViaductY(x){ const sm=(a,b)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); }; return 16*sm(90,360)*(1-sm(2140,2410)); }
+const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
+  corners:[[-20,-700,35],[720,-700,35],[720,-300,35],[2480,-300,35],[2480,450,35],[-80,450,35],[-80,-1400,30],[-20,-1400,30]],
+  yAt:(x,z)=>z<-250&&z>-360&&x>760?bridgeY(x):(z>400?phViaductY(x):0), zMin:-2400, ZS:[-880,-800,...ZS_BASE,450,560,650], jerseyMaxX:1990,
+  trackX:(x,zc)=>(x===-80&&zc>-1400&&zc<450)||(x===720&&zc>-700&&zc<-250)||(x===2480&&zc>-300&&zc<450),
+  trackZ:(z,xc)=>(z===-700&&xc>-20&&xc<720)||(z===450&&xc>-80&&xc<2480),
+  skip:[[-80,70,-880,-700],[70,720,-800,-700],[-260,-80,-700,-430],[2300,2480,-70,290]], excl:[],
+  gantries:[[-20,-1050,'ROOSEVELT BLVD','US 1 SOUTH · CENTER CITY'],[260,-700,'KELLY DRIVE','BOATHOUSE ROW  →'],[1300,-300,'BEN FRANKLIN BRIDGE','CAMDEN · DELAWARE  ↑'],
+    [2480,-120,'SPORTS COMPLEX','SOUTH PHILLY  ↓'],[1900,450,'I-95 SOUTH','DELAWARE EXPRESSWAY'],[-80,260,'BROAD STREET','CITY HALL · LOVE PARK'],[-80,-440,'ART MUSEUM','ROCKY STEPS  ←'],[-80,-1250,'PHILLY CLASSIC','FULL GRID · ALL CARS']],
+  roads:[{ew:1,c:-700,dir:1,a:-20,b:720},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:720,dir:1,a:-700,b:-300},{ew:0,c:2480,dir:1,a:-300,b:450}],
+  cams:[[-20,-1150,1,0],[420,-700,0,1],[-80,150,-1,0],[2480,-200,1,0]],
+  decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}};
 function buildKnockout(){ return buildCity(GAUNTLET_CFG); }
 function buildDockside(){ return buildCity(DOCKSIDE_CFG); }
 function buildSkyline(){ return buildCity(SKYLINE_CFG); }
@@ -1445,12 +1448,74 @@ function buildCity(C){
   const arena=C.arena?arenaDress():null;
 
   function phillyDress(){
-    const stepM=new THREE.MeshStandardMaterial({color:0x7a7670,roughness:.92});
-    for(let i=0;i<14;i++) boxM(16,.32,3.4,stepM,-118,.16+i*.32,-548-i*.75);
-    const heroM=new THREE.MeshStandardMaterial({color:0x6a4a2a,metalness:.7,roughness:.35});
-    mesh(new THREE.CylinderGeometry(.55,.75,2.2,8),heroM,-118,3.4,-565);
-    mesh(new THREE.SphereGeometry(.65,10,8),heroM,-118,4.7,-565);
-    const rt=mesh(new THREE.PlaneGeometry(7,1.4),new THREE.MeshBasicMaterial({map:CT(signCanvas2('READING TERMINAL','MARKET · 12TH & ARCH',{bg:'#0a0d12',color:'#ffd86a'})),toneMapped:false}),205,8.2,-55); rt.rotation.y=Math.PI;
+    const gold=new THREE.MeshStandardMaterial({color:0xd8b27a,emissive:0x8a5a24,emissiveIntensity:.9,roughness:.65}); // the museum's uplit sandstone
+    const goldHi=new THREE.MeshStandardMaterial({color:0xf0cf94,emissive:0xb07a34,emissiveIntensity:1.1,roughness:.55});
+    const stepM=new THREE.MeshStandardMaterial({color:0x8a8478,emissive:0x2a2418,roughness:.9});
+    const bronze=new THREE.MeshStandardMaterial({color:0x6a4a2a,metalness:.75,roughness:.35,emissive:0x1a1006});
+    const concrete=new THREE.MeshStandardMaterial({color:0x7a7e86,roughness:.9,side:THREE.DoubleSide});
+    const warmLamp=0xffc98a;
+    // ---- Philadelphia Museum of Art on top of the Rocky Steps, facing Broad St ----
+    flat(-128,-90,-640,-490,.03,new THREE.MeshStandardMaterial({color:0x3a3630,roughness:.85})); // plaza
+    for(let i=0;i<18;i++){ const h=(i+1)*.42; boxM(1.5,h,64,stepM,-129-i*1.5,h/2,-565); } // the steps, climbing west
+    const tY=18*.42; boxM(16,tY,110,stepM,-164,tY/2,-565); // terrace
+    boxM(56,15,74,gold,-200,tY+7.5,-565); boxM(58,1.4,76,goldHi,-200,tY+15.7,-565); // central pavilion + cornice
+    for(let i=0;i<8;i++){ const z=-594+i*(58/7); mesh(new THREE.CylinderGeometry(.85,.95,12,12),goldHi,-170,tY+6,z); } // colonnade
+    { const sh=new THREE.Shape(); sh.moveTo(-31,0); sh.lineTo(31,0); sh.lineTo(0,6.5); sh.lineTo(-31,0);
+      const pm=mesh(new THREE.ExtrudeGeometry(sh,{depth:3,bevelEnabled:false}),goldHi,-173,tY+16.4,-565); pm.rotation.y=Math.PI/2; } // pediment
+    [-1,1].forEach(sd=>{ boxM(46,13,26,gold,-186,tY+6.5,-565+sd*52); boxM(48,1.2,28,goldHi,-186,tY+13.6,-565+sd*52); // wings wrapping the courtyard
+      for(let i=0;i<4;i++) mesh(new THREE.CylinderGeometry(.7,.8,10,10),goldHi,-162,tY+5,-565+sd*(42+i*6)); });
+    [[-128,-600],[-128,-530],[-150,-620],[-150,-510],[-165,-565]].forEach(([x,z])=>{ const g=glowSprite(warmLamp,16); g.position.set(x,3,z); S.add(g); }); // uplights
+    const pma=mesh(new THREE.PlaneGeometry(22,2.2),new THREE.MeshBasicMaterial({map:CT(signCanvas2('PHILADELPHIA MUSEUM OF ART','THE ROCKY STEPS',{bg:'#120c06',color:'#ffd9a0'})),toneMapped:false}),-100,3.4,-565); pma.rotation.y=Math.PI/2;
+    // Rocky, arms up, at the foot of the steps
+    boxM(2.4,1.6,2.4,stepM,-110,.8,-522);
+    mesh(new THREE.CylinderGeometry(.34,.28,1.5,10),bronze,-110,2.45,-522); mesh(new THREE.SphereGeometry(.26,10,8),bronze,-110,3.45,-522);
+    [-1,1].forEach(sd=>{ const arm=mesh(new THREE.CylinderGeometry(.09,.09,1.1,6),bronze,-110,3.5,-522+sd*.42); arm.rotation.x=sd*.45;
+      mesh(new THREE.CylinderGeometry(.12,.12,1.4,6),bronze,-110,1.0+.62,-522+sd*.15); });
+    { const g=glowSprite(warmLamp,4); g.position.set(-106,2,-522); S.add(g); }
+    // ---- Boathouse Row on the Schuylkill, along Kelly Drive ----
+    flat(64,726,-800,-772,-1.6,new THREE.MeshStandardMaterial({color:0x04070c,metalness:.95,roughness:.06})); // river
+    flat(64,726,-772,-742,.02,new THREE.MeshStandardMaterial({color:0x2a2e34,roughness:.9})); // bank
+    const houseM=new THREE.MeshStandardMaterial({color:0x22262e,roughness:.8}), roofM=new THREE.MeshStandardMaterial({color:0x14171c,roughness:.7});
+    const HUES=[0xffffff,0xffe2a8,0x7fe8ff,0xff7ad0,0xffffff,0xa6ff9a,0xffd060,0xffffff,0x9fb4ff,0xff9a6a,0xffffff,0x7fe8ff];
+    const outlines=new Map(); const lineM=c=>{ if(!outlines.has(c)) outlines.set(c,new THREE.MeshBasicMaterial({color:c,toneMapped:false})); return outlines.get(c); };
+    for(let i=0;i<12;i++){ const x=96+i*52, w=34+(i%3)*4, h=6+(i%2)*2.4, d=16, zc=-758, c=HUES[i], L=lineM(c), rh=4.2+(i%2);
+      boxM(w,h,d,houseM,x,h/2,zc);
+      const roof=new THREE.CylinderGeometry(1,1,w,3,1); roof.rotateZ(Math.PI/2); const rf=mesh(roof,roofM,x,h+rh*.5,zc); rf.scale.set(1,rh,d*.58);
+      // LED outlines: eaves, corners, and both roof slopes on the road-facing side
+      boxM(w+.3,.12,.12,L,x,h,zc+d/2); boxM(w+.3,.12,.12,L,x,h,zc-d/2); boxM(w+.3,.12,.12,L,x,h+rh,zc);
+      [-1,1].forEach(sx=>{ boxM(.12,h,.12,L,x+sx*w/2,h/2,zc+d/2);
+        const sl=boxM(.12,.12,Math.hypot(d/2,rh)+.2,L,x,h+rh/2,zc+sx*d/4); sl.rotation.x=-sx*Math.atan2(rh,d/2); });
+      for(let k=1;k<4;k++) boxM(1.6,1.8,.05,lineM(0xffe2a8),x-w/2+k*w/4,h*.45,zc+d/2+.03); // lit windows
+      const r=glowSprite(c,5); r.position.set(x,h*.6,zc+d/2+2); S.add(r);
+      const refl=flat(x-w/2,x+w/2,-800,-774,-1.55,new THREE.MeshBasicMaterial({map:poolTex,color:c,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false})); void refl; }
+    const kd=mesh(new THREE.PlaneGeometry(12,1.8),new THREE.MeshBasicMaterial({map:CT(signCanvas2('BOATHOUSE ROW','KELLY DRIVE · SCHUYLKILL RIVER',{bg:'#0a0d12',color:'#e6f2ff'})),toneMapped:false}),400,3,-743.5); void kd;
+    // ---- South Philly stadium beside the Camden leg ----
+    const st=new THREE.Group(); st.position.set(2382,0,110); st.scale.set(1,1,.78); S.add(st);
+    const wallM=new THREE.MeshStandardMaterial({color:0x3a4250,roughness:.7,side:THREE.DoubleSide}), seatM=new THREE.MeshStandardMaterial({color:0x0e3a4a,roughness:.8,side:THREE.DoubleSide});
+    const add=(geo,m,y)=>{ const o=new THREE.Mesh(geo,m); o.position.y=y; st.add(o); return o; };
+    add(new THREE.CylinderGeometry(78,78,22,48,1,true),wallM,11);
+    add(new THREE.CylinderGeometry(76,42,19,48,1,true),seatM,11.5);
+    add(new THREE.TorusGeometry(78,.6,6,64),new THREE.MeshBasicMaterial({color:0x44e8ff,toneMapped:false}),22).rotation.x=Math.PI/2;
+    add(new THREE.TorusGeometry(78,.35,6,64),new THREE.MeshBasicMaterial({color:0x44e8ff,toneMapped:false}),8).rotation.x=Math.PI/2;
+    const field=add(new THREE.CircleGeometry(42,40),new THREE.MeshStandardMaterial({color:0x1f7a3a,emissive:0x0c4a1e,emissiveIntensity:1.2,roughness:.9}),2); field.rotation.x=-Math.PI/2;
+    for(let k=0;k<6;k++){ const a=k/6*Math.PI*2+.26, tx=Math.cos(a)*72, tz=Math.sin(a)*72;
+      const mast=new THREE.Mesh(new THREE.BoxGeometry(1.2,38,1.2),concrete); mast.position.set(tx,19,tz); st.add(mast);
+      const panel=new THREE.Mesh(new THREE.BoxGeometry(7,3.6,.6),new THREE.MeshBasicMaterial({color:0xf4f8ff,toneMapped:false})); panel.position.set(tx*.97,38,tz*.97); panel.lookAt(0,20,0); st.add(panel);
+      const gl=glowSprite(0xeaf4ff,18); gl.position.set(tx*.95,38,tz*.95); st.add(gl); }
+    const sp=mesh(new THREE.PlaneGeometry(26,3.4),new THREE.MeshBasicMaterial({map:CT(signCanvas2('SOUTH PHILLY','SPORTS COMPLEX',{bg:'#06131a',color:'#7ff0ff'})),toneMapped:false}),2462,25,110); sp.rotation.y=Math.PI/2;
+    // ---- I-95 viaduct back across the Delaware: deck, lit parapets, piers ----
+    const onV=p=>p.z>400&&p.y>.6;
+    const VW=W+4.7; // outside the sidewalk
+    [-1,1].forEach(sd=>{ const o=sd*VW;
+      ribbonF(tr,S,concrete,(k,p)=>onV(p)?[o,p.y-1.8,o,p.y+1.25]:null);
+      ribbonF(tr,S,new THREE.MeshBasicMaterial({color:0xffcf8a,toneMapped:false,side:THREE.DoubleSide}),(k,p)=>onV(p)?[sd*(VW-.08),p.y+1.1,sd*(VW-.08),p.y+1.2]:null); });
+    ribbonF(tr,S,concrete,(k,p)=>onV(p)?[-VW,p.y-1.8,VW,p.y-1.8]:null);
+    const piers=[], caps=[];
+    for(let s2=0;s2<tr.L;s2+=42){ frame(s2,f,tr); if(!onV(f.p)||f.p.y<3) continue; orientQ(f,q,basis,nr);
+      const base=f.p.x>BR.river[0]-10&&f.p.x<BR.river[1]+10?-6:0, h=f.p.y-1.8-base;
+      [-1,1].forEach(sd=>{ pv.copy(f.p).addScaledVector(f.r,sd*(W-1)); pv.y=base+h/2; m4.compose(pv,q,new THREE.Vector3(1,h,1)); piers.push(m4.clone()); });
+      pv.copy(f.p); pv.y-=2.5; m4.compose(pv,q,one); caps.push(m4.clone()); }
+    mkInst(new THREE.BoxGeometry(2.4,1,2.4),concrete,piers); mkInst(new THREE.BoxGeometry(2*VW,1.4,2.8),concrete,caps);
   }
 
   function docksideDress(){
@@ -1608,8 +1673,8 @@ const EVENTS=[
    specs:'10.6 KM / 1 LAP / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
    note:'one lap.\nall of it.',load:'Midnight Express. Ten kilometers, one lap, no shortcuts.'},
   {id:'philly',build:buildPhiladelphia,open:true,fullGrid:true,laps:3,name:'Philly Classic',kick:'Event 08',loc:'City to Camden',when:'Roosevelt Blvd to the Ben Franklin Bridge',
-   caption:'Three laps through the landmarks: Roosevelt Blvd, the Schuylkill straight, a full sprint over the Ben Franklin Bridge, Broad Street past City Hall and LOVE Park, then back up 15th. Every car in the archive starts on the same grid.',
-   specs:'8.2 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
+   caption:'Three laps through the landmarks: down Roosevelt Blvd, along Kelly Drive past the lights of Boathouse Row, over the Ben Franklin Bridge, past the South Philly stadium, back across the Delaware on the I-95 viaduct, then up Broad Street past City Hall and the Rocky Steps. Every car in the archive starts on the same grid.',
+   specs:'8.8 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
    note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
@@ -1710,10 +1775,10 @@ EVENTS[7].setup=()=>{ const at=EVENTS[7].sNear;
     [at(1800,-300),0,'over'],[at(2300,-300),-3.6,'sling'],[at(2480,-50),3.6,'shock'],[at(2480,300),0,'refill'],[at(1600,470),-3.6,'shield'],
     [at(1000,470),3.6,'grip'],[at(500,470),0,'long'],[at(-80,250),-3.6,'over'],[at(-80,-400),3.6,'sling'],[at(-80,-1200),0,'refill'],[at(-80,-2000),-3.6,'shock']]); }
 EVENTS[8].setup=()=>{ const at=EVENTS[8].sNear;
-  addPickups(EVENTS[8],[[at(-20,-1150),-3.4,'refill'],[at(-20,-850),3.4,'long'],[at(200,-700),0,'sling'],[at(520,-700),-3.4,'over'],[at(780,-480),3.4,'grip'],
-    [at(1100,-280),0,'refill'],[at(1550,-280),-3.4,'long'],[at(2000,-280),3.4,'over'],[at(2420,80),0,'shield'],[at(2420,350),-3.4,'sling'],
-    [at(1200,450),3.4,'long'],[at(400,450),0,'refill'],[at(-80,380),-3.4,'grip'],[at(-80,50),3.4,'over'],[at(-80,-400),0,'shock'],
-    [at(-20,-1150),0,'desperate',{last:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1680,-280),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
+  addPickups(EVENTS[8],[[at(-20,-1050),-3.4,'refill'],[at(-20,-850),3.4,'long'],[at(200,-700),0,'sling'],[at(520,-700),-3.4,'over'],[at(720,-480),3.4,'grip'],
+    [at(1100,-300),0,'refill'],[at(1550,-300),-3.4,'long'],[at(2100,-300),3.4,'over'],[at(2480,0),0,'shield'],[at(2480,300),-3.4,'sling'],
+    [at(2000,450),3.4,'shock'],[at(1400,450),0,'long'],[at(800,450),-3.4,'refill'],[at(250,450),3.4,'over'],[at(-80,300),-3.4,'grip'],[at(-80,-100),3.4,'over'],[at(-80,-800),0,'shock'],[at(-80,-1200),-3.4,'sling'],
+    [at(-20,-1150),0,'desperate',{last:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1700,-300),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 const puHomF=mkF(), puHomT=new THREE.Vector3();
 function lastPlaceRacer(){

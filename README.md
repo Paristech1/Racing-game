@@ -40,6 +40,12 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
 
 - **Event 04: The Long Night.** Every level in one 8 km loop, 2 laps. It starts on Roosevelt Blvd (a divided road with a tree median, strip malls, a gas station and a speed camera). Then it runs down Spring Garden and 6th St, over the Ben Franklin Bridge to Camden (with westbound traffic on the other deck), and down the Camden waterfront. The return goes back under the Delaware through the Harbor Line tunnel, then along South St and up 15th past City Hall and LOVE Park.
 
+- **Event 08: Philly Classic.** The full archive on one grid, 3 laps of an 8.8 km landmark tour:
+  - Down Roosevelt Blvd, then along Kelly Drive past the outline lights of Boathouse Row on the Schuylkill.
+  - Down 6th St and over the Ben Franklin Bridge, then south past a floodlit South Philly stadium.
+  - Back across the Delaware on a 16 m-high I-95 viaduct with lit parapets.
+  - Up Broad St past City Hall and the golden, uplit Art Museum, with Rocky at the foot of the steps, to the Boulevard U-turn.
+
 - **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
 
   | Rule | What happens |

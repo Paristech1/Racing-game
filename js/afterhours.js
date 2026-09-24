@@ -121,7 +121,7 @@ CARS.push(
   cam:{p:[4.8,.9,-4.2],l:[0,.45,-.2],roll:.08,fov:30}}
 );
 CARS.push(
- {id:'wisp',name:'WISP 07',body:'hatch',paint:0xe8f4ff,metal:.35,rough:.18,rim:0xc8dce8,caliper:0x7dffef,wing:true,accent:0x7dffef,spokes:5,world:'flash',
+ {id:'wisp',sculpt:'wisp',name:'WISP 07',body:'hatch',lowPro:true,paint:0xe8f4ff,metal:.35,rough:.18,rim:0x1a1c20,rimLip:0x0e0f11,caliper:0x7dffef,wing:true,accent:0x7dffef,spokes:5,world:'ice',
   top:97,acc:39,grip:29,nitro:1.55,mass:.52,nitroRegenMul:.28,nosVmax:1.42,nosAccMul:2.05,nosDrainMul:1.18,
   kick:'Carbon tub',loc:'South Street, Loading Bay 2',when:'Tuesday, 01:08',
   caption:'Weighed on a freight scale. The clerk thought the scale was broken.',
@@ -1678,7 +1678,46 @@ function stratosShell(g,def,B,paint,glass){
   K.plate(def,.36,-R-.02);
   return T;
 }
-const SHELLS={stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+
+/* ---- Wisp 07: big carbon-tub EV hatch (kept as the tall hatch the owner likes). Pearl white over a carbon lower tub,
+   floating roof over a black glasshouse, mint light blades front and rear, closed EV nose, big swan-neck wing. ---- */
+function wispShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x9ffff0,.08);
+  paint.color.set(0xaeb9c2); paint.metalness=.3; paint.roughness=.28; paint.envMapIntensity=.7; paint.sheen=new THREE.Color(0x1c3a44); paint.clearcoat=1; paint.clearcoatRoughness=.03; // pearl: soft white, cool sheen, not blown out
+  const mint=new THREE.MeshBasicMaterial({color:def.accent||0x7dffef,toneMapped:false});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:60,inset:.14,
+    hwS:[[-R,.92],[-WB-.1,1.04],[-.5,.95],[0,.93],[.5,.95],[WB+.1,1.02],[F,.88]],
+    ysK:[[-R,.84],[-WB,.84],[0,.78],[WB,.8],[1.7,.72],[F,.56]],
+    yfK:[[-R,1.02],[-WB,1.02],[-.4,.98],[.4,.94],[WB,.9],[1.7,.8],[F,.6]],
+    ycK:[[-R,1.0],[-1.7,1.02],[-1.2,1.0],[0,.96],[.8,.88],[1.5,.78],[F,.58]],
+    hwL:[[-R,.88],[-WB,.84],[0,.9],[WB,.84],[F,.82]],
+    ybK:[[-R,.3],[-1.9,.22],[1.9,.22],[F,.26]]},paint,K);
+  const C={z0:-1.9,z1:1.02,tumble:.12,pow:.45,cwK:[[-1.9,.58],[-1.7,.66],[-.8,.7],[.2,.7],[.7,.62],[1.02,.46]],htK:[[-1.9,1.16],[-1.75,1.48],[-1.0,1.56],[-.2,1.56],[.5,1.36],[1.02,.98]],roof:[-1.7,.35],roofA:1.15};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  // carbon lower tub: sills, splitter, lower door panels, diffuser
+  [1,-1].forEach(sd=>{ K.sill(sd,-WB+WR+.18,WB-WR-.18,.02,.26,carbon); K.sill(sd,WB+WR+.14,F-.2,.02,.18,carbon); K.sill(sd,-R+.2,-WB-WR-.14,.02,.2,carbon);
+    const pts=[]; for(let i=0;i<=10;i++){ const z=lerp(-WB+WR+.2,WB-WR-.2,i/10), c=T.sec(z); pts.push([sd*(c.hl+.012),c.yb+.28,z]); } K.tube(pts,.008,mint,20); K.glow(def.accent||0x7dffef,.45,sd*(T.sec(.4).hl+.02),T.sec(.4).yb+.28,.4);
+    // black pillars under the floating roof, door shuts, camera mirrors
+    K.tube([[sd*kfCR(C.cwK,-1.55)*.95,T.yc(-1.55)+.02,-1.55],[sd*kfCR(C.cwK,-1.55)*.8,canopyY(C,T,kfCR(C.cwK,-1.55)*.8,-1.55),-1.55]],.03,GLOSS_BLACK,4);
+    K.shut(sd,.72); K.shut(sd,-.5);
+    const mp=K.add(new THREE.BoxGeometry(.2,.05,.12),carbon,sd*(kfCR(C.cwK,.75)+.1),T.top(kfCR(C.cwK,.75),.75)+.1,.75); mp.rotation.z=sd*.2;
+    // closed EV nose: mint light blade across the front, slim lamps
+    K.tube([K.P(sd*.3,F-.08),K.P(sd*.62,F-.16),K.P(sd*.84,F-.34)],.014,headM,10); K.glow(0xcfe6ff,.8,sd*.6,T.top(sd*.6,F-.14)+.04,F);
+    K.tube([[sd*.26,.9,-R-.012],[sd*.7,.9,-R-.012],[sd*.88,.86,-R+.04]],.014,tailM,10); K.glow(0xff2030,.8,sd*.6,.9,-R-.07); });
+  K.tube([K.P(-.84,F-.3,.02),K.P(-.4,F-.1,.02),K.P(0,F-.06,.02),K.P(.4,F-.1,.02),K.P(.84,F-.3,.02)],.01,mint,30);
+  K.add(new THREE.PlaneGeometry(1.0,.1),GLOSS_BLACK,0,.34,F+.006); K.splitter(.9,F-.3,F+.03,.2);
+  // rear: mint bar, open carbon diffuser, big swan-neck wing
+  K.tube([[-.24,.9,-R-.014],[.24,.9,-R-.014]],.008,mint,4);
+  K.add(new THREE.PlaneGeometry(1.5,.2),GLOSS_BLACK,0,.44,-R-.008).rotation.y=Math.PI;
+  for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.2,.5),carbon,-.6+i*.2,.24,-R+.22);
+  { const w=K.add(K.airfoil(.46,.055,1.9),carbon,0,1.66,-1.72); w.rotation.y=Math.PI/2; w.rotation.z=.12;
+    [1,-1].forEach(sd=>{ K.tube([[sd*.4,kfCR(C.htK,-1.75)-.04,-1.78],[sd*.4,1.62,-1.8],[sd*.4,1.72,-1.74],[sd*.4,1.7,-1.6]],.028,carbon,14);
+      K.add(new THREE.BoxGeometry(.012,.28,.56),carbon,sd*.96,1.62,-1.74); K.add(new THREE.BoxGeometry(.014,.014,.52),mint,sd*.97,1.76,-1.74); }); }
+  K.plate(def,.62,-R-.02);
+  return T;
+}
+const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1698,7 +1737,7 @@ const STREET={
  zenkai:{glow:0xff2bd6,wheel:'mesh',camber:.08}, // already wears its 37 roundels and windshield banner
  split:{vinyl:'flames',wheel:'twin'},
  overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan'},
- wisp:{vinyl:'stripes',vc:'#7dffef',wheel:'aero'},
+ wisp:{wheel:'fan'},
  stratos:{wheel:'split'},
  volcano:{wheel:'spoke'},
  hellbound:{wheel:'dish',camber:.03},
@@ -1903,16 +1942,6 @@ function buildCar(def,opts){
     box(B.w*.9,.03,.04,acc,0,B.tailY+.07,-Rr-.08);
     [1,-1].forEach(sd=>{ box(.03,.3,.04,acc,sd*B.w*.47,B.tailY-.06,-Rr-.06); box(.22,.012,.4,carbonM,sd*.34,deckY(1.5)+.008,1.5).rotation.x=-Math.atan2(deckY(1.7)-deckY(1.3),.4); });
     for(let i=0;i<3;i++) box(B.w*.6,.02,.1,carbonM,0,B.base+.16+i*.06,F-.02-i*.04).rotation.x=-.4;
-  }
-  if(cid==='wisp'){ // carbon-tub featherweight on the big hatch body: exposed carbon splitter and skirts, mint light blades, pearl sheen
-    const mint=new THREE.MeshBasicMaterial({color:def.accent,toneMapped:false});
-    paint.sheen=new THREE.Color(0x3c7784); paint.clearcoat=1; paint.clearcoatRoughness=.02; // pearl: a cool sheen over the white
-    box(B.w*.96,.03,.34,carbonM,0,B.base+.01,F-.1);
-    box(B.w*.8,.02,.03,mint,0,B.headY+.09,F-.12);
-    [1,-1].forEach(sd=>{ box(.03,.1,B.wb*2-.7,carbonM,sd*(B.w/2+.13),B.base+.1,0); box(.02,.018,B.wb*2-.8,mint,sd*(B.w/2+.15),B.base+.17,0);
-      const s=glowSprite(def.accent,.5); s.position.set(sd*(B.w/2+.15),B.base+.17,.6); g.add(s); });
-    strip(0,.34,cb[0]+.12,cb[2]-.2,carbonM,6,roofY);
-    box(B.w*.7,.025,.03,mint,0,B.base+.14,-Rr-.08);
   }
   if(def.wing){ const wy=B.wingY, wz=B.wingZ;
     if(B.swan||def.swanWing){ [.5,-.5].forEach(x=>{ const p=box(.06,.62,.14,blackM,x,wy-.25,wz+.12); p.rotation.x=.35; }); const w=box(2.1,.06,.55,blackM,0,wy,wz); w.rotation.x=-.12;

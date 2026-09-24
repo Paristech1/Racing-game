@@ -2708,6 +2708,13 @@ function sceneKit(o){
     for(let i=0;i<4;i++){ const a=pts[i], e=pts[(i+1)%4], len=Math.hypot(e[0]-a[0],e[1]-a[1]), mx=(a[0]+e[0])/2-cx, mz=(a[1]+e[1])/2-cz, ml=Math.hypot(mx,mz)||1;
       quad(b,[a[0],y0,a[1]],[e[0],y0,e[1]],[e[0],y1,e[1]],[a[0],y1,a[1]],[mx/ml,0,mz/ml],[[uo,y0/T],[uo+len/T,y0/T],[uo+len/T,y1/T],[uo,y1/T]]); }
     quad(roofB,[pts[0][0],y1,pts[0][1]],[pts[1][0],y1,pts[1][1]],[pts[2][0],y1,pts[2][1]],[pts[3][0],y1,pts[3][1]],[0,1,0],[[0,0],[1,0],[1,1],[0,1]]); };
+  // a distant skyline: towers drawn without fog so they read as a silhouette of lit windows on the horizon
+  // (keep them inside the camera's 1600 m far plane)
+  K.skyline=(o)=>{ if(!K.fac.skyfar){ const t=facadeTex('glass'); K.fac.skyfar={mat:new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:.55,roughness:.35,metalness:.5,fog:false}),pos:[],nor:[],uv:[]}; }
+    const R=rng(o.seed||11), tops=[];
+    for(let i=0;i<o.n;i++){ const u=(R()-.5)*2, v=(R()-.5)*2, core=1-Math.abs(u)*.7, h=(o.h[0]+(o.h[1]-o.h[0])*Math.pow(R(),1.6))*core, wd=o.wd||[22,48], w=wd[0]+R()*(wd[1]-wd[0]), d=wd[0]+R()*(wd[1]-wd[0])*.8;
+      const x=o.cx+u*o.sx, z=o.cz+v*o.sz; K.obox('skyfar',x,z,(R()-.5)*.3,w,d,h,0); if(h>o.h[1]*.6) tops.push([x,h,z]); }
+    tops.forEach(([x,h,z])=>{ const g=glowSprite(0xff2a2a,7); g.position.set(x,h+3,z); g.material.fog=false; S.add(g); }); };
   // a row of buildings facing the road on one side, from s0 to s1 (setback measured from the centerline)
   // true when a footprint (center c, length along t, depth along r) keeps every corner and edge midpoint off the
   // road and sidewalk: frontage on the inside of a bend (or near another leg of the loop) would otherwise sit on it
@@ -2745,6 +2752,7 @@ function buildGameNight(){
   const tr=K.track(resample3(filletPath(V(0,-240),[[0,340,30],[450,340,30],[450,90,28],[820,90,28],[820,-310,30],[360,-310,24],[290,-240,24]].map(([x,z,r])=>[V(x,z),r]),1),()=>0),7,6), W=tr.W;
   K.flat(-700,1500,-900,1000,-.03,new THREE.MeshStandardMaterial({color:0x0c0e12,roughness:.95,metalness:.05}));
   K.road({tex:{center:'rgba(255,196,60,.85)'}}); K.start('EVENT 11 · GAME NIGHT');
+  K.skyline({cx:360,cz:-1010,sx:300,sz:110,n:34,h:[40,240],seed:1682}); // Center City, straight up Broad St
   const lit=K.lights({every:30,color:0xf2f6ff,pool:0x8fa2c8});
   const lotM=new THREE.MeshStandardMaterial({color:0x1b1e24,roughness:.8}), concrete=new THREE.MeshStandardMaterial({color:0x6c7078,roughness:.9,side:THREE.DoubleSide});
   const glowM=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false}), ringM=(c,y,R,g,r)=>{ const t=K.mesh(new THREE.TorusGeometry(R,r||.6,6,72),glowM(c),g.x,y,g.z); t.rotation.x=Math.PI/2; return t; };
@@ -3266,6 +3274,7 @@ function buildFirstLight(){
   for(let i=0;i<8;i++) K.mesh(new THREE.CylinderGeometry(.9,1,12,10),gold,-24+i*6.9,16,993);
   const white=new THREE.MeshStandardMaterial({color:0xe8e2d4,emissive:0x5a5448,emissiveIntensity:.45,roughness:.6});
   [[-70,860],[-52,880]].forEach(([x,z])=>{ K.box(14,6,10,white,x,3,z); for(let i=0;i<4;i++) K.mesh(new THREE.CylinderGeometry(.4,.45,5,8),white,x-5+i*3.3,2.5,z+5.4); });
+  K.skyline({cx:170,cz:1470,sx:190,sz:50,n:36,h:[22,115],wd:[10,24],seed:1776}); // Center City behind the Art Museum, scaled down to read as distant inside the far plane
   // ---- Fairmount Park woods on both banks ----
   const trunks=[], crowns=[], TR_=rng(21);
   for(let i=0;i<900;i++){ const x=-560+TR_()*1120, z=-1300+TR_()*2250; if(rDist(x,z)<70) continue; const s=K.sNear(x,z); frame(s,K.f,tr); if(K.f.p.distanceTo(K.pv.set(x,K.f.p.y,z))<W+9) continue;

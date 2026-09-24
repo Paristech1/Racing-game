@@ -2215,6 +2215,14 @@ function buildCity(C){
   const trackX=C.trackX, trackZ=C.trackZ;
   const SKIP=[[-80,70,-160,20],[720,810,-340,20],[720,810,20,110],[-170,-80,-160,-70],[160,250,20,110],[-260,-170,-70,20],[-350,-260,20,110],[-350,-260,-160,-70],[-440,-350,-250,-160]].concat(C.skip);
   const EXCL=[[720,3300,-366,-274]].concat(C.excl);
+  // a filleted corner cuts inside the lot's corner (r 27-62 m with a 13 m setback): pull any lot corner that would sit
+  // on the road or sidewalk back diagonally until it clears
+  const trSub=tr.pts.filter((p,i)=>i%3===0), clearR=W+4.8;
+  function clearCorners(r){ for(let it=0;it<4;it++){ let moved=false;
+    [[0,2],[0,3],[1,2],[1,3]].forEach(([ix,iz])=>{ const cx=r[ix], cz=r[iz]; let bd=1e18;
+      for(const p of trSub){ const d=(p.x-cx)*(p.x-cx)+(p.z-cz)*(p.z-cz); if(d<bd) bd=d; }
+      const d=Math.sqrt(bd); if(d>=clearR) return; const k=(clearR-d)*.75+.5; r[ix]+=ix?-k:k; r[iz]+=iz===3?-k:k; moved=true; });
+    if(!moved) return; } }
   function grid(XS,ZS,row){
     for(let i=0;i<XS.length-1;i++) for(let j=0;j<ZS.length-1;j++){
       const xa=XS[i],xb=XS[i+1],za=ZS[j],zb=ZS[j+1];
@@ -2224,7 +2232,8 @@ function buildCity(C){
       let rects=[[x0,x1,z0,z1]];
       EXCL.forEach(e=>{ rects=rects.flatMap(r=>{ if(r[1]<=e[0]||r[0]>=e[1]||r[3]<=e[2]||r[2]>=e[3]) return [r];
         const o=[]; if(e[2]-r[2]>14) o.push([r[0],r[1],r[2],e[2]]); if(r[3]-e[3]>14) o.push([r[0],r[1],e[3],r[3]]); return o; }); });
-      rects.forEach(r=>fillLot(r[0],r[1],r[2],r[3],{w:tw&&r[0]===x0,e:te&&r[1]===x1,n:tn&&r[2]===z0,s:ts&&r[3]===z1},(tn||ts)&&za<-250&&xc>250&&xc<520,row));
+      rects.forEach(r=>{ const fr={w:tw&&r[0]===x0,e:te&&r[1]===x1,n:tn&&r[2]===z0,s:ts&&r[3]===z1}; clearCorners(r);
+        if(r[1]-r[0]>6&&r[3]-r[2]>6) fillLot(r[0],r[1],r[2],r[3],fr,(tn||ts)&&za<-250&&xc>250&&xc<520,row); });
     } }
   const ZS=C.ZS;
   grid(C.nwGrid?[-170,-80,70,160,250,340,430,520,610,720,810,900,990]:[-800,-710,-620,-530,-440,-350,-260,-170,-80,70,160,250,340,430,520,610,720,810,900,990],ZS);
@@ -2274,7 +2283,7 @@ function buildCity(C){
   block(FAC.stone,740,800,-285,-240,20);
   // Chinatown gate over 10th St, just off Race
   const redM=new THREE.MeshStandardMaterial({color:0xa01818,emissive:0x400808,roughness:.5}), jade=new THREE.MeshStandardMaterial({color:0x1d6a4a,emissive:0x0a2a1c,roughness:.5}), goldM=new THREE.MeshStandardMaterial({color:0xd8b04a,emissive:0x6a4a10,metalness:.6,roughness:.3});
-  [332.8,347.2].forEach(x=>boxM(1.4,9,1.4,redM,x,4.5,-322)); boxM(17,1,1.2,redM,340,9,-322);
+  [331.6,348.4].forEach(x=>boxM(1.4,9,1.4,redM,x,4.5,-322)); boxM(19.4,1,1.2,redM,340,9,-322); // posts on the sidewalks, clear of the road edge
   [[20,1,4,9.9],[16,.8,3.2,11.2],[10,.7,2.4,12.4]].forEach(([w,h,d,y])=>{ boxM(w,h,d,jade,340,y,-322); boxM(w+.4,.18,d+.2,goldM,340,y-h/2,-322); });
   const ctSign=mesh(new THREE.PlaneGeometry(6,1.2),new THREE.MeshBasicMaterial({map:CT(signCanvas('CHINATOWN',{bg:'#a01818',color:'#ffd86a',size:56})),toneMapped:false}),340,7.8,-322.7); ctSign.rotation.y=Math.PI;
   [334.5,345.5].forEach(x=>{ const s=glowSprite(0xff3a2a,2.2); s.position.set(x,7.4,-323); S.add(s); });
@@ -3391,7 +3400,8 @@ function addChevrons(ev){
     const span=Math.min(t.len*.7,70);
     for(let d=-42;d<=span;d+=12){ frame(t.s0+d,f,tr); orientQ(f,q,b,nr);
       const m=new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.12),new THREE.MeshBasicMaterial({map:CHEV_TEX[t.dir],transparent:true,toneMapped:false,depthWrite:false}));
-      m.position.copy(f.p).addScaledVector(f.r,t.dir*(W-.2)); m.position.y+=2.6; m.quaternion.copy(q); m.rotateY(Math.PI+t.dir*.35); ev.scene.add(m);
+      const walled=ev.id==='tunnel'||f.p.y<-1; // hang them over the curb, clear of the lane; tunnels keep them tight to the wall
+      m.position.copy(f.p).addScaledVector(f.r,t.dir*(walled?W-.1:W+.7)); m.position.y+=2.6; m.quaternion.copy(q); m.rotateY(Math.PI+t.dir*.35); ev.scene.add(m);
       ev.chevrons.push({m,y:m.position.y,i:ev.chevrons.length}); }
     // one big chevron hanging over the road at the entry
     frame(t.s0-55,f,tr); orientQ(f,q,b,nr);
@@ -3691,6 +3701,26 @@ function emitSparks(pos,dir,n,spd){ for(let k=0;k<n;k++){ const i=spI++%SP; spLi
 const smokes=[]; for(let i=0;i<90;i++){ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:smokeTex,transparent:true,depthWrite:false,opacity:0})); s.visible=false; fxGroup.add(s); smokes.push({s,life:0}); }
 let smI=0;
 function emitSmoke(pos,k){ const o=smokes[smI++%smokes.length]; o.life=1.1*(k||1); o.s.visible=true; o.s.position.copy(pos); o.s.scale.setScalar(1.2*(k?1.4:1)); }
+// tire marks: a ring buffer of rubber quads laid behind the rear wheels while a car is sliding or locking up
+const SK=1400, skPos=new Float32Array(SK*12).fill(-999), skIdx=[]; for(let i=0;i<SK;i++){ const a=i*4; skIdx.push(a,a+2,a+1,a+1,a+2,a+3); }
+const skGeo=new THREE.BufferGeometry(); skGeo.setAttribute('position',new THREE.BufferAttribute(skPos,3)); skGeo.setIndex(skIdx);
+const skMesh=new THREE.Mesh(skGeo,new THREE.MeshBasicMaterial({color:0x040405,transparent:true,opacity:.58,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2,side:THREE.DoubleSide}));
+skMesh.frustumCulled=false; fxGroup.add(skMesh);
+let skI=0, skDirty=false; const skW=new THREE.Vector3(), skS=new THREE.Vector3();
+function resetSkids(){ skPos.fill(-999); skDirty=true; racers.forEach(r=>r.skidP=null); }
+function skidStep(r,B){ // uses headV/leftV from poseAt
+  const on=(r.lat>.45||r.brk>.75&&r.v>25)&&!(r.airT>.05)&&r.m.group.position.distanceToSquared(cam.position)<150*150;
+  if(!on){ r.skidP=null; return; }
+  if(!r.skidP) r.skidP=[new THREE.Vector3(),new THREE.Vector3(),false];
+  const P=r.skidP, pos=r.m.group.position;
+  for(let w=0;w<2;w++){ const sd=w?1:-1; skW.copy(pos).addScaledVector(leftV,sd*(B.tr||1)).addScaledVector(headV,-(B.wb||1.4)); skW.y=pos.y+.02;
+    if(!P[2]){ P[w].copy(skW); continue; }
+    const d=P[w].distanceTo(skW); if(d<.3&&w===1) return; if(d<.3) continue;
+    // a segment must run roughly along the car's heading: a shove sideways starts a new mark instead of bridging to it
+    if(d<8&&skS.subVectors(skW,P[w]).dot(headV)>.7*d){ skS.copy(leftV).multiplyScalar(.12); const o=(skI++%SK)*12, a=P[w], b=skW;
+      skPos.set([a.x-skS.x,a.y,a.z-skS.z, a.x+skS.x,a.y,a.z+skS.z, b.x-skS.x,b.y,b.z-skS.z, b.x+skS.x,b.y,b.z+skS.z],o); skDirty=true; }
+    P[w].copy(skW); }
+  P[2]=true; }
 const RN=1400, rainPos=new Float32Array(RN*6), rainP=new Float32Array(RN*3), rainGeo=new THREE.BufferGeometry();
 rainGeo.setAttribute('position',new THREE.BufferAttribute(rainPos,3));
 const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xaec2dc,transparent:true,opacity:.34,depthWrite:false}));
@@ -3719,7 +3749,7 @@ const shieldGeo=new THREE.SphereGeometry(1,24,16), shieldMat=new THREE.MeshBasic
 function setEvent(i){
   EVI=(i+EVENTS.length)%EVENTS.length; EV=ensureEvent(EVENTS[EVI]); RS=EV.scene; TR=EV.track; RS.add(fxGroup); releaseOthers();
   traffic=EV.traffic; EV.traffic.forEach(o=>{ o.m.group.visible=true; }); if(EV.resetTraffic) EV.resetTraffic();
-  slData.forEach(d=>d.s=-1e9);
+  slData.forEach(d=>d.s=-1e9); resetSkids();
 }
 TR=EV.track; RS.add(fxGroup);
 
@@ -4148,7 +4178,8 @@ function stepRacer(r,dt,inp){
   const ac=r.v*r.v*k*.5, sa=r.steer*G*Math.min(1,r.v/18);
   r.vx+=(sa+ac-r.vx*3.2)*dt;
   r.x+=r.vx*dt;
-  r.slip=clamp((Math.abs(ac)-G*.72)/(G*.4),0,1)*(r.v>30?1:0) + (brake&&r.v>35?.6:0);
+  r.lat=clamp((Math.abs(ac)-G*.72)/(G*.4),0,1)*(r.v>30?1:0); r.brk=brakeAmt;
+  r.slip=r.lat + (brake&&r.v>35?.6:0);
   if(r.fxGrip>0&&r.noScrub) r.slip*=.3;
   const regenMul=d.nitroRegenMul!==undefined?d.nitroRegenMul:1;
   const regen=r.noRegen&&r.fxOver>0?0:(.035+r.slip*.12)*dt*(r.isP?1:1.2)*(r.fxRegen>0?2.5:1)*regenMul*(koMod('nitro')?2:1);
@@ -4211,6 +4242,7 @@ function poseAt(g,dist,x,yaw,vx){
 function poseRacer(r,dt){
   r.yaw=Math.atan2(r.vx,Math.max(r.v,4))+r.slip*.12*Math.sign(r.vx||r.steer);
   poseAt(r.m.group,r.dist,r.x,r.yaw,r.vx);
+  skidStep(r,BODIES[r.def.body||'wedge']);
   if(EV.airtime&&r.hy!==undefined){ r.m.group.position.y=r.hy; if(r.airT>0) r.m.group.rotateX(-clamp(r.vy/Math.max(r.v,10),-.35,.35)*.6); }
   // weight transfer: the body squats under power and dives under braking (smoothed so hits don't snap it)
   if(dt>0){ const la=(r.v-(r.pv===undefined?r.v:r.pv))/dt; r.accS=lerp(r.accS||0,clamp(la,-45,35),1-Math.exp(-dt*7)); if(!(r.airT>0)) r.m.group.rotateX(clamp(-r.accS*.0007,-.018,.026)); } r.pv=r.v;
@@ -4382,7 +4414,7 @@ function highlightStep(dt){
 }
 
 const FX={m4:new THREE.Matrix4(),q:new THREE.Quaternion(),sc:new THREE.Vector3(),p:new THREE.Vector3(),b:new THREE.Matrix4(),nr:new THREE.Vector3()};
-function updateFx(dt,focus){
+function updateFx(dt,focus){ if(skDirty){ skGeo.attributes.position.needsUpdate=true; skDirty=false; }
   for(let i=0;i<SP;i++){ if(spLife[i]<=0) continue; spLife[i]-=dt;
     if(spLife[i]<=0){ spPos[i*3+1]=-999; continue; }
     spVel[i*3+1]-=18*dt; spPos[i*3]+=spVel[i*3]*dt; spPos[i*3+1]+=spVel[i*3+1]*dt; spPos[i*3+2]+=spVel[i*3+2]*dt;
@@ -4630,7 +4662,7 @@ function startLoading(){
 }
 function endGhost(){ if(ghostCar){ ghostCar.scene.remove(ghostCar.group); ghostCar=null; } }
 function startRace(){
-  clearRacers();
+  clearRacers(); resetSkids();
   const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id]; RIVAL_BOSS=Math.random()<.15; TAG=null;
   if(tagPick&&!EV.knockout) tagGrid(me);
   else if(EV.knockout){ // every car in the archive on one grid; the six personas spread across the eleven rivals

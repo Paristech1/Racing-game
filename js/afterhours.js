@@ -1167,10 +1167,10 @@ const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
   roads:[{ew:1,c:-700,dir:1,a:-20,b:720},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:720,dir:1,a:-700,b:-300},{ew:0,c:2480,dir:1,a:-300,b:450}],
   cams:[[-20,-1150,1,0],[420,-700,0,1],[-80,150,-1,0],[2480,-200,1,0]],
   decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}};
-/* Event 09: Mt Airy / Germantown — tree-lined rowhome streets, speed bumps, potholes (≈2.6 km / lap). */
+/* Event 10: Mt Airy / Germantown — tree-lined rowhome streets, speed bumps, potholes (≈2.6 km / lap). */
 const MTAIRY_ZS=[-990,-900,-810,-720,-630,-540,-450];
 function mtAiryHills(x,z){ return 2.2*Math.sin((x+520)*.017)*Math.cos((z+820)*.013)+1.1*Math.sin((x+z)*.008); }
-const MTAIRY_CFG={banner:'EVENT 09 · MT AIRY RUN',start:[-480,-720],
+const MTAIRY_CFG={banner:'EVENT 10 · MT AIRY RUN',start:[-480,-720],
   corners:[[-480,-980,28],[-660,-980,24],[-660,-850,22],[-360,-850,24],[-360,-720,26],[-480,-720,20]],
   yAt:(x,z)=>mtAiryHills(x,z), zMin:-1100, ZS:MTAIRY_ZS, jerseyMaxX:-220,
   nwGrid:{XS:[-760,-670,-580,-490,-400,-310,-220], ZS:MTAIRY_ZS},
@@ -1761,7 +1761,7 @@ const EVENTS=[
    caption:'Three laps through the landmarks: down Roosevelt Blvd, along Kelly Drive past the lights of Boathouse Row, over the Ben Franklin Bridge, past the South Philly stadium, back across the Delaware on the I-95 viaduct, then up Broad Street past City Hall and the Rocky Steps. Every car in the archive starts on the same grid.',
    specs:'8.8 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
    note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'},
-  {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 09',loc:'Northwest Philly',when:'Germantown Ave to Lincoln Dr',
+  {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 10',loc:'Northwest Philly',when:'Germantown Ave to Lincoln Dr',
    caption:'Three laps through Mt Airy and Germantown: rowhome blocks, tree-lined Germantown Ave, a kink onto Lincoln Dr, then back through Greene St. The city never repaved it — speed bumps and potholes punish anyone still on the gas.',
    specs:'2.6 KM LOOP / 3 LAPS / 7 CARS / LIVE TRAFFIC / SPEED BUMPS & POTHOLES',
    note:'bumps.\npotholes.\nreal life.',load:'Mt Airy Run. Germantown and Lincoln Dr. Mind the asphalt.'}
@@ -2885,6 +2885,7 @@ function openSheet(){ sheetOpen=true; renderSheet(1); $('#sheet').classList.add(
 function closeSheet(){ sheetOpen=false; $('#sheet').classList.remove('open'); $('#sheet').setAttribute('aria-hidden','true'); }
 function turn(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderPage(dir); if(sheetOpen) renderSheet(dir); }
 function openEvents(){ initAudio(); closeSheet(); sel=page; sfx.shutter(); flash(1); mode='events'; show('events'); renderEvent(0,true); }
+function eventPageHtml(){ return `${EVI+1} <em>/ ${EVENTS.length}</em>`; }
 function renderEvent(dir,force){
   if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); }
   const e=EV;
@@ -2896,7 +2897,7 @@ function renderEvent(dir,force){
   $('#eGhost').textContent=g?`Your ghost: ${fmt(g.t)} in the ${(CARS.find(c=>c.id===g.car)||CARS[0]).name}. Beat it and it gets replaced.`:'No ghost yet. Your first finish becomes the one to beat.';
   $('#eGhost').textContent+=' On the grid: Apex, The Wall, Leech, Bruiser, The Closer, Wildcard. '+PU_DESC;
   if(e.knockout){ bindKoTrack(koMapI); $('#eGhost').textContent='Pick a map on the next screen. Short loops use lap checkpoints; long courses knock out at sectors so you are not running 110 km. Round rules: '+KO_MODS.filter(m=>m.id!=='clean').map(m=>m.name).join(', ')+', and a Final Duel for the last two.'; }
-  $('#ePg').innerHTML=`0${EVI+1} <em>/ 0${EVENTS.length}</em>`;
+  $('#ePg').innerHTML=eventPageHtml();
   if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3']],dir);
   modeT=0; shot=-1;
 }

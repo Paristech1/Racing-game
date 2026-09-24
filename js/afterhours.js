@@ -201,7 +201,8 @@ const EVENT_CAR_BIAS={
  dockside:{gripW:1.08,topW:1.05,nitroW:1.06},
  skyline:{gripW:1.05,topW:1.08,nitroW:1.1},
  midnight:{gripW:1,topW:1.12,nitroW:1.14},
- philly:{gripW:1.02,topW:1.16,nitroW:1.12}
+ philly:{gripW:1.02,topW:1.16,nitroW:1.12},
+ mtairy:{gripW:1.12,topW:.96,nitroW:1.04}
 };
 const RIVAL_CAR_PREF={
  apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk']},
@@ -1166,6 +1167,74 @@ const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
   roads:[{ew:1,c:-700,dir:1,a:-20,b:720},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:720,dir:1,a:-700,b:-300},{ew:0,c:2480,dir:1,a:-300,b:450}],
   cams:[[-20,-1150,1,0],[420,-700,0,1],[-80,150,-1,0],[2480,-200,1,0]],
   decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}};
+/* Event 09: Mt Airy / Germantown — tree-lined rowhome streets, speed bumps, potholes (≈2.6 km / lap). */
+const MTAIRY_ZS=[-990,-900,-810,-720,-630,-540,-450];
+function mtAiryHills(x,z){ return 2.2*Math.sin((x+520)*.017)*Math.cos((z+820)*.013)+1.1*Math.sin((x+z)*.008); }
+const MTAIRY_CFG={banner:'EVENT 09 · MT AIRY RUN',start:[-480,-720],
+  corners:[[-480,-980,28],[-660,-980,24],[-660,-850,22],[-360,-850,24],[-360,-720,26],[-480,-720,20]],
+  yAt:(x,z)=>mtAiryHills(x,z), zMin:-1100, ZS:MTAIRY_ZS, jerseyMaxX:-220,
+  nwGrid:{XS:[-760,-670,-580,-490,-400,-310,-220], ZS:MTAIRY_ZS},
+  trackX:(x,zc)=>(x===-480&&zc>-980&&zc<-720)||(x===-660&&zc>-980&&zc<-850)||(x===-360&&zc>-850&&zc<-720),
+  trackZ:(z,xc)=>(z===-980&&xc>-660&&xc<-480)||(z===-850&&xc>-660&&xc<-360)||(z===-720&&xc>-480&&xc<-360),
+  skip:[[-700,-260,-990,-430]], excl:[],
+  gantries:[[-480,-920,'GERMANTOWN AVE','MT AIRY · CHESTNUT HILL  ↑'],[-660,-910,'LINCOLN DR','WISSAHICKON VALLEY  →'],[-360,-780,'GREENE ST','GERMANTOWN  ↓']],
+  roads:[{ew:0,c:-480,dir:1,a:-980,b:-720},{ew:1,c:-980,dir:-1,a:-660,b:-480},{ew:0,c:-660,dir:-1,a:-980,b:-850},{ew:1,c:-850,dir:1,a:-660,b:-360},{ew:0,c:-360,dir:1,a:-850,b:-720},{ew:1,c:-720,dir:-1,a:-480,b:-360}],
+  cams:[[-480,-860,1,0],[-660,-870,0,1]],
+  mtairy:true,
+  hazards:[
+    [-480,-780,0,'bump'],[-480,-840,0,'bump'],[-480,-900,-3.2,'pothole'],[-480,-950,3,'bump'],
+    [-620,-980,0,'bump'],[-660,-940,0,'pothole'],[-660,-880,3.2,'bump'],[-660,-865,-3,'pothole'],
+    [-500,-850,0,'pothole'],[-420,-850,0,'bump'],[-380,-850,3,'pothole'],
+    [-360,-800,-3.2,'bump'],[-360,-760,0,'pothole'],[-360,-735,3,'bump'],
+    [-430,-720,0,'bump'],[-480,-735,-3,'pothole']
+  ]};
+function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
+  const bumpTex=CT(canvasTex(128,32,(g,w,h)=>{ g.fillStyle='#3a3835'; g.fillRect(0,0,w,h); g.fillStyle='#ffd23b'; for(let i=0;i<6;i++) g.fillRect(i*22+4,10,12,12); }),true);
+  const bumpM=new THREE.MeshStandardMaterial({map:bumpTex,roughness:.88,metalness:.05});
+  const holeM=new THREE.MeshStandardMaterial({color:0x070708,roughness:1,metalness:0});
+  const rimM=new THREE.MeshStandardMaterial({color:0x3a3d42,roughness:.95});
+  const out=[];
+  list.forEach((item,i)=>{ const x=item[0],z=item[1], lane=item[2]||0, type=item[3]||'bump', s=sNear(x,z), w=type==='bump'?3.4:2.6;
+    out.push({id:i,s,x:lane,type,w,_cd:0});
+    frame(s,f,tr); orientQ(f,q,basis,nr);
+    if(type==='bump'){
+      const strip=new THREE.Mesh(new THREE.BoxGeometry(W*1.15,.12,.62),bumpM);
+      strip.position.copy(f.p).addScaledVector(f.r,lane); strip.position.y+=.06; strip.quaternion.copy(q); S.add(strip);
+      const warn=mesh(new THREE.PlaneGeometry(1.1,.55),new THREE.MeshBasicMaterial({map:CT(signCanvas('BUMP',{bg:'#ffd23b',color:'#101114',size:52})),toneMapped:false}),f.p.x,f.p.y+2.2,f.p.z);
+      warn.quaternion.copy(q); warn.rotateX(-Math.PI/2); warn.translateY(.4);
+    } else {
+      const hole=new THREE.Mesh(new THREE.CylinderGeometry(.75,.85,.1,14),holeM);
+      hole.position.copy(f.p).addScaledVector(f.r,lane); hole.position.y+=.03; S.add(hole);
+      const rim=new THREE.Mesh(new THREE.TorusGeometry(.82,.08,8,20),rimM); rim.rotation.x=Math.PI/2; rim.position.copy(hole.position); rim.position.y+=.02; S.add(rim);
+      const crack=mesh(new THREE.CircleGeometry(1.05,16),new THREE.MeshBasicMaterial({color:0x121316,transparent:true,opacity:.85}),hole.position.x,hole.position.y+.04,hole.position.z); crack.rotation.x=-Math.PI/2;
+    } });
+  return out;
+}
+function hazardCrossed(s0,s1,hs,w){
+  const L=TR.L, hw=(w||3)*.55;
+  if(s1>=s0) return hs>=s0-hw&&hs<=s1+hw;
+  return hs>=s0-hw||hs<=s1+hw;
+}
+function applyRoadHazard(r,h){
+  const spd=r.v;
+  if(h.type==='bump'){
+    if(spd>14){ r.v*=clamp(1-.06*(spd/55), .86, .97); r.slip+=.05; r.bumpT=.2; if(r.isP&&spd>32){ shake=Math.max(shake,.35); sfx.hit(); } }
+  } else {
+    r.v*=clamp(.9-spd/500, .72, .88); r.vx+=(Math.random()-.5)*7; r.slip+=clamp(.12+spd/120,.12,.35); r.bumpT=-.16;
+    if(r.isP){ shake=Math.max(shake,.65); sfx.hit(); toast(spd>40?'Pothole. Suspension didn\'t like that.':'Pothole. Watch the patched asphalt.'); }
+  }
+}
+function checkRoadHazards(r,prevDist){
+  if(mode!=='race'||!EV.roadHazards||!TR) return;
+  const L=TR.L, s0=((prevDist%L)+L)%L, s1=((r.dist%L)+L)%L;
+  for(const h of EV.roadHazards){
+    if(h._cd>ghostT) continue;
+    if(!hazardCrossed(s0,s1,h.s,h.w)) continue;
+    if(Math.abs(r.x-(h.x||0))>2.9) continue;
+    h._cd=ghostT+2.2;
+    applyRoadHazard(r,h);
+  }
+}
 function buildKnockout(){ return buildCity(GAUNTLET_CFG); }
 function buildDockside(){ return buildCity(DOCKSIDE_CFG); }
 function buildSkyline(){ return buildCity(SKYLINE_CFG); }
@@ -1173,6 +1242,7 @@ function buildMidnight(){ return buildCity(MIDNIGHT_CFG); }
 function buildBridge(){ return buildCity(BRIDGE_CFG); }
 function buildGrand(){ return buildCity(GRAND_CFG); }
 function buildPhiladelphia(){ return buildCity(PHILLY_CFG); }
+function buildMtAiry(){ return buildCity(MTAIRY_CFG); }
 function buildCity(C){
   const V=(x,z)=>new THREE.Vector2(x,z);
   const path=filletPath(V(C.start[0],C.start[1]),C.corners.map(([x,z,r])=>[V(x,z),r]),1);
@@ -1281,6 +1351,7 @@ function buildCity(C){
   const ZS=C.ZS;
   grid([-800,-710,-620,-530,-440,-350,-260,-170,-80,70,160,250,340,430,520,610,720,810,900,990],ZS);
   grid([1760,1850,1940,2030,2120,2210,2300,2390,2480,2570],ZS);
+  if(C.nwGrid) grid(C.nwGrid.XS,C.nwGrid.ZS);
 
   // ---- landmarks ----
   // City Hall: stone base, corner pavilions, clock tower, cupola and the William Penn statue
@@ -1445,7 +1516,19 @@ function buildCity(C){
   if(C.dockside) docksideDress();
   if(C.skyline) skylineDress();
   if(C.philly) phillyDress();
+  if(C.mtairy) mtairyDress();
   const arena=C.arena?arenaDress():null;
+
+  function mtairyDress(){
+    block(FAC.stone,-740,-680,-960,-900,26); block(FAC.stone,-690,-650,-960,-900,32);
+    const awning=new THREE.MeshStandardMaterial({color:0x7a1818,roughness:.55});
+    boxM(9,.4,5.5,awning,-702,4.9,-932);
+    const wawa=mesh(new THREE.PlaneGeometry(4.8,1.3),new THREE.MeshBasicMaterial({map:CT(signCanvas('WAWA',{bg:'#d42020',color:'#fff',size:56})),toneMapped:false}),-699,6.4,-933); wawa.rotation.y=Math.PI/2;
+    const treeM=new THREE.MeshStandardMaterial({color:0x1d1813,roughness:1}), leafM=new THREE.MeshStandardMaterial({color:0x183822,roughness:1,flatShading:true});
+    for(let z=-960;z<-730;z+=24){ [-508,-452].forEach(x=>{ boxM(.22,4.2,.22,treeM,x,2.1,z+(R_()-.5)*6); mesh(new THREE.IcosahedronGeometry(1.65,0),leafM,x,5.2,z+(R_()-.5)*6); }); }
+    const junc=mesh(new THREE.PlaneGeometry(7,1.5),new THREE.MeshBasicMaterial({map:CT(signCanvas2('MT AIRY','GERMANTOWN AVE',{bg:'#0a0d12',color:'#cfe9ff'})),toneMapped:false}),-672,7.8,-968); junc.rotation.y=Math.PI;
+    flat(-520,-340,-870,-830,.03,new THREE.MeshStandardMaterial({color:0x2a2824,roughness:.9}));
+  }
 
   function phillyDress(){
     const gold=new THREE.MeshStandardMaterial({color:0xd8b27a,emissive:0x8a5a24,emissiveIntensity:.9,roughness:.65}); // the museum's uplit sandstone
@@ -1621,6 +1704,8 @@ function buildCity(C){
     g.setAttribute('position',new THREE.Float32BufferAttribute(b.pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(b.nor,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(b.uv,2));
     S.add(new THREE.Mesh(g,b.mat)); });
 
+  const roadHazards=C.hazards?installRoadHazards(tr,S,sNear,C.hazards,f,q,basis,nr,W):[];
+
   // race-lane traffic
   const obst=[], ocols=[0xd2b23a,0x2a2f38,0xcfd2d8,0x1c3a5a,0x6b1d1d,0xe8e8e8];
   for(let i=0;i<(C.noTraffic?0:7);i++){ const c=buildTrafficCar(ocols[i%ocols.length]); S.add(c.group); obst.push({tr:true,m:c,dist:0,x:0,v:14,vx:0,hitCd:0,isP:false,yaw:0,steer:0}); }
@@ -1635,7 +1720,7 @@ function buildCity(C){
     beaconM.opacity=(ledT%1.6)<.8?1:.15;
     EXTRA.forEach(fn=>fn(dt));
   }
-  return {scene:S,track:tr,traffic:obst,update,sNear,koScreen:arena,
+  return {scene:S,track:tr,traffic:obst,update,sNear,koScreen:arena,roadHazards,
     cams:camAt.map(([x,z])=>({s:sNear(x,z)})),
     resetTraffic(){ [.06,.19,.3,.45,.58,.72,.86].forEach((u,i)=>{ const o=obst[i]; if(!o) return; o.dist=u*tr.L; o.x=[-3.6,3.6,0,-3.6,3.6,0,-3.6][i]; o.v=12+R_()*4; }); }};
 }
@@ -1675,7 +1760,11 @@ const EVENTS=[
   {id:'philly',build:buildPhiladelphia,open:true,fullGrid:true,laps:3,name:'Philly Classic',kick:'Event 08',loc:'City to Camden',when:'Roosevelt Blvd to the Ben Franklin Bridge',
    caption:'Three laps through the landmarks: down Roosevelt Blvd, along Kelly Drive past the lights of Boathouse Row, over the Ben Franklin Bridge, past the South Philly stadium, back across the Delaware on the I-95 viaduct, then up Broad Street past City Hall and the Rocky Steps. Every car in the archive starts on the same grid.',
    specs:'8.8 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
-   note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'}
+   note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'},
+  {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 09',loc:'Northwest Philly',when:'Germantown Ave to Lincoln Dr',
+   caption:'Three laps through Mt Airy and Germantown: rowhome blocks, tree-lined Germantown Ave, a kink onto Lincoln Dr, then back through Greene St. The city never repaved it — speed bumps and potholes punish anyone still on the gas.',
+   specs:'2.6 KM LOOP / 3 LAPS / 7 CARS / LIVE TRAFFIC / SPEED BUMPS & POTHOLES',
+   note:'bumps.\npotholes.\nreal life.',load:'Mt Airy Run. Germantown and Lincoln Dr. Mind the asphalt.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
@@ -1686,7 +1775,7 @@ function releaseEvent(e){ const S=e.scene; if(!S) return; if(fxGroup.parent===S)
   S.traverse(o=>{ if(o.geometry) o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(!m) return;
     ['map','emissiveMap','normalMap','roughnessMap','bumpMap'].forEach(k=>{ if(m[k]&&m[k].dispose) m[k].dispose(); }); m.dispose(); }); });
   if(S.background&&S.background.dispose) S.background.dispose();
-  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns'].forEach(k=>delete e[k]); e._ready=false; }
+  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards'].forEach(k=>delete e[k]); e._ready=false; }
 function releaseOthers(){ EVENTS.forEach(e=>{ if(e.scene&&e.scene!==RS) releaseEvent(e); }); }
 ensureEvent(EVENTS[0]);
 const KO_MAPS=[
@@ -1780,6 +1869,11 @@ EVENTS[8].setup=()=>{ const at=EVENTS[8].sNear;
     [at(1100,-300),0,'refill'],[at(1550,-300),-3.4,'long'],[at(2100,-300),3.4,'over'],[at(2480,0),0,'shield'],[at(2480,300),-3.4,'sling'],
     [at(2000,450),3.4,'shock'],[at(1400,450),0,'long'],[at(800,450),-3.4,'refill'],[at(250,450),3.4,'over'],[at(-80,300),-3.4,'grip'],[at(-80,-100),3.4,'over'],[at(-80,-800),0,'shock'],[at(-80,-1200),-3.4,'sling'],
     [at(-20,-1150),0,'desperate',{last:1}],[at(-20,-980),3.4,'echoboost',{lastTwo:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1700,-300),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
+EVENTS[9].setup=()=>{ const at=EVENTS[9].sNear;
+  addPickups(EVENTS[9],[[at(-480,-820),-3.4,'refill'],[at(-480,-910),3.4,'grip'],[at(-660,-920),0,'shield'],[at(-660,-865),-3.4,'sling'],
+    [at(-500,-850),3.4,'over'],[at(-420,-850),0,'refill'],[at(-360,-780),-3.4,'long'],[at(-360,-735),3.4,'shock'],
+    [at(-480,-735),0,'desperate',{last:1}],[at(-660,-875),3.4,'echoboost',{lastTwo:1}],[at(-480,-880),3.4,'wispflux',{car:'wisp',sig:1}],
+    [at(-360,-760),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 const puHomF=mkF(), puHomT=new THREE.Vector3();
 function raceFieldN(){ return EV.knockout?koActive().length:racers.filter(x=>!x.finished&&!x.out).length; }
@@ -2255,7 +2349,7 @@ function clearRacers(){ racers.forEach(r=>{ r.scene.remove(r.m.group); if(r.trai
 function addRacer(def,isP,dist,x,skill){
   const m=buildCar(def); RS.add(m.group); const rig=rigLights(m.group,BODIES[def.body||'wedge'],false), trail=makeTrail(); RS.add(trail.mesh);
   if(isP){ const h=hist(def.id); m.paint.roughness=clamp(def.rough+h.hits*.004,0,.6); }
-  const r={def,m,scene:RS,isP,dist,x,vx:0,v:0,steer:0,nitro:1,hitCd:0,slip:0,yaw:0,finished:false,finishT:0,laps:[],lapStart:0,hits:0,top:0,skill:skill||1,off:(Math.random()-.5)*3,wob:Math.random()*10,draft:0,burst:0,lit:false,fxLong:0,fxOver:0,fxSling:0,fxShield:0,fxGrip:0,fxRegen:0,fxNosMul:0,towT:0,fxName:{},mass:(def.P&&def.P.mass)||def.mass||1,startDelay:def.P?(def.P.start<0?Math.random()*.55:def.P.start):0,grudge:{}};
+  const r={def,m,scene:RS,isP,dist,x,vx:0,v:0,steer:0,nitro:1,hitCd:0,slip:0,yaw:0,bumpT:0,finished:false,finishT:0,laps:[],lapStart:0,hits:0,top:0,skill:skill||1,off:(Math.random()-.5)*3,wob:Math.random()*10,draft:0,burst:0,lit:false,fxLong:0,fxOver:0,fxSling:0,fxShield:0,fxGrip:0,fxRegen:0,fxNosMul:0,towT:0,fxName:{},mass:(def.P&&def.P.mass)||def.mass||1,startDelay:def.P?(def.P.start<0?Math.random()*.55:def.P.start):0,grudge:{}};
   if(def.P) r.label=addLabel(m.group,def.tag,def.color);
   r.rig=rig; r.trail=trail;
   r.bubble=new THREE.Mesh(shieldGeo,shieldMat); r.bubble.position.y=.8; r.bubble.visible=false; m.group.add(r.bubble);
@@ -2460,6 +2554,7 @@ function stepRacer(r,dt,inp){
     r.vx*=-.3; }
   const prevDist=r.dist, prevLap=Math.floor(r.dist/L);
   r.dist+=r.v*dt/Math.max(.6,1+r.x*k);
+  checkRoadHazards(r,prevDist);
   r.top=Math.max(r.top,r.v);
   checkPickups(r);
   const lap=Math.floor(r.dist/L);
@@ -2506,6 +2601,7 @@ function poseAt(g,dist,x,yaw,vx){
 function poseRacer(r,dt){
   r.yaw=Math.atan2(r.vx,Math.max(r.v,4))+r.slip*.12*Math.sign(r.vx||r.steer);
   poseAt(r.m.group,r.dist,r.x,r.yaw,r.vx);
+  if(r.bumpT){ r.bumpT-=dt; r.m.group.position.y+=Math.sin(clamp(r.bumpT*38,0,12))*(r.bumpT>0?.14:-.1)*clamp(Math.abs(r.bumpT)/.2,0,1); }
   r.m.wheels.forEach(w=>w.rotation.x+=r.v*dt/.37);
   r.m.steers.forEach(s=>s.rotation.y=-r.steer*.35);
   if(r.bubble){ const on=r.fxShield>0; r.bubble.visible=on; if(on){ const k=1+Math.sin(ghostT*9)*.05; r.bubble.scale.set(1.55*k,1.05*k,2.9*k); } }

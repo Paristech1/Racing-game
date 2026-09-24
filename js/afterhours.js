@@ -83,7 +83,7 @@ CARS.push(
   rival:'Rival note: Bruiser will try to push you around. Stay out of his lane.',
   note:'lives in\nthe corners.', notePos:{l:'60%',t:'36%'},
   cam:{p:[-4.2,1.0,3.4],l:[0,.6,.4],roll:-.06,fov:32}},
- {id:'richmond',name:'RICHMOND',body:'truck',paint:0x1d2127,metal:.4,rough:.4,rim:0x0d0e10,caliper:0xff5a1f,wing:false,lightbar:true,world:'desert',
+ {id:'richmond',sculpt:'richmond',name:'RICHMOND',body:'truck',paint:0x1d2127,metal:.4,rough:.4,rim:0x0d0e10,caliper:0xff5a1f,wing:false,world:'desert',
   top:83,acc:24,grip:28,nitro:1.15,mass:2.0,
   kick:'Work truck',loc:'Port Richmond',when:'Shift change, 05:00',
   caption:'Hauls pallets by day. By night it hauls everyone else out of its way.',
@@ -572,7 +572,7 @@ const BODIES={
  hatch:{pts:[[-1.98,.42],[-2.04,.78],[-1.98,1.0],[-1.5,1.06],[-.5,1.04],[.5,1.0],[1.3,.88],[1.82,.7],[2.0,.52],[2.02,.4]],base:.3,
    cab:[[-1.92,1.0],[-1.72,1.52],[-.3,1.6],[.5,1.34],[1.02,1.02]],cabBase:[-1.92,.98,1.02,.98],w:1.84,cw:1.5,wr:.35,wb:1.26,tr:.94,front:2.02,rear:2.04,headY:.76,tailY:.94,wingY:1.66,wingZ:-1.82},
  truck:{pts:[[-2.62,.66],[-2.68,1.06],[-2.6,1.2],[-1.6,1.22],[-.6,1.22],[.2,1.24],[1.1,1.3],[1.9,1.24],[2.5,1.06],[2.64,.78]],base:.56,
-   cab:[[-.62,1.22],[-.5,1.96],[.62,2.0],[1.14,1.62],[1.56,1.3]],cabBase:[-.62,1.2,1.56,1.28],w:2.04,cw:1.8,wr:.5,wb:1.72,tr:1.06,front:2.64,rear:2.68,headY:1.06,tailY:1.02,wingY:2.1,wingZ:-2.2},
+   cab:[[-.62,1.22],[-.5,1.96],[.62,2.0],[1.14,1.62],[1.56,1.3]],cabBase:[-.62,1.2,1.56,1.28],w:2.04,cw:1.8,wr:.5,wb:1.72,tr:.96,front:2.64,rear:2.68,headY:1.06,tailY:1.02,wingY:2.1,wingZ:-2.2},
  coupe:{pts:[[-2.12,.4],[-2.18,.74],[-2.08,.96],[-1.6,1.02],[-.8,1.04],[.2,.98],[1.1,.86],[1.75,.72],[2.12,.54],[2.16,.38]],base:.24,
    cab:[[-1.75,.98],[-1.1,1.24],[-.2,1.32],[.45,1.12],[.9,.9]],cabBase:[-1.75,.96,.9,.88],w:1.9,cw:1.36,wr:.36,wb:1.3,tr:1.0,front:2.16,rear:2.18,headY:.7,tailY:.88,wingY:1.36,wingZ:-1.95},
  classic:{pts:[[-2.2,.42],[-2.3,.7],[-2.2,.86],[-1.6,.94],[-.9,.98],[-.2,.9],[.6,.86],[1.4,.8],[2.0,.66],[2.3,.5],[2.36,.4]],base:.22,
@@ -1485,7 +1485,62 @@ function passyunkShell(g,def,B,paint,glass){
   K.plate(def,.72,-R-.02);
   return T;
 }
-const SHELLS={passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+
+/* ---- Richmond: supercharged work pickup. Tall squared-off nose with a huge grille, raised power bulge, crew cab,
+   open bed with a liner and a pallet, headache rack with a light bar, box flares, steel bumpers, tow hitch. ---- */
+function richmondShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffa060,.1);
+  paint.clearcoat=.6; paint.clearcoatRoughness=.1;
+  const steel=new THREE.MeshStandardMaterial({color:0x2a2d33,metalness:.7,roughness:.45}), liner=new THREE.MeshStandardMaterial({color:0x101113,roughness:.9});
+  const clad=new THREE.MeshStandardMaterial({color:0x08090a,roughness:.7,metalness:.1,envMapIntensity:.4}), orange=new THREE.MeshStandardMaterial({color:def.caliper,roughness:.4,metalness:.3});
+  const amber=new THREE.MeshBasicMaterial({color:0xffa028,toneMapped:false}), wood=new THREE.MeshStandardMaterial({color:0x8a6a44,roughness:.85});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear, bz1=-.72; // bed runs from the tail to bz1
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:64,inset:.1,
+    hwS:[[-R,1.0],[-WB,1.04],[0,1.02],[WB,1.04],[F,.98]],
+    ysK:[[-R,.92],[-WB,.94],[bz1-.05,.94],[bz1+.1,1.14],[WB,1.18],[2.2,1.14],[F,1.02]],
+    yfK:[[-R,1.02],[-WB,1.02],[bz1-.05,1.02],[bz1+.1,1.36],[WB,1.4],[2.2,1.38],[F,1.28]],
+    ycK:[[-R,1.0],[-WB,1.0],[bz1-.05,1.0],[bz1+.1,1.34],[1.0,1.4],[WB,1.42],[2.2,1.42],[F,1.3]],
+    hwL:[[-R,.94],[-WB,.94],[0,.98],[WB,.94],[F,.94]],
+    ybK:[[-R,.62],[-2.3,.52],[2.3,.52],[F,.6]]},paint,K);
+  outlawKit(K,T,{cwK:[[-1,.84],[1,.84]],htK:[[-1,1.9],[1,1.9]],pow:.4});
+  // crew cab: lofted directly (the canopy helper assumes one continuous glasshouse)
+  { const st=[], z0=bz1+.02, z1=1.12; for(let i=0;i<24;i++){ const z=lerp(z0,z1,i/23), t=(z-z0)/(z1-z0), base=T.yc(z)-.02, top=2.02-Math.max(0,t-.72)*1.9, hw=.86-.04*t; st.push({z,pts:[[0,base],[hw,base],[hw*.97,base+(top-base)*.55],[hw*.9,top-.04],[hw*.6,top],[0,top+.005]]}); }
+    K.add(loftGeo(st),glass);
+    const roof=[]; for(let i=0;i<20;i++){ const z=lerp(z0+.02,z1-.35,i/19); roof.push({z,pts:[[0,2.0],[.8,1.97],[.84,2.0],[.6,2.04],[0,2.05]]}); } K.add(loftGeo(roof),paint);
+    [1,-1].forEach(sd=>{ [z0+.03,.18,z1-.3].forEach(z=>K.add(new THREE.BoxGeometry(.05,.62,.08),paint,sd*.84,1.68,z)); // pillars
+      K.tube([[sd*.85,1.36,z0+.05],[sd*.85,1.36,z1-.3]],.012,GLOSS_BLACK,6); }); }
+  // bed: liner, side rails, tailgate, pallet
+  { const bl=bz1-(-R+.05), bm=(bz1+(-R+.05))/2;
+    K.add(new THREE.BoxGeometry(1.7,.03,bl),liner,0,1.02,bm);
+    [1,-1].forEach(sd=>{ K.add(new THREE.BoxGeometry(.12,.44,bl),paint,sd*.93,1.16,bm); K.add(new THREE.BoxGeometry(.02,.4,bl),liner,sd*.86,1.18,bm); K.add(new THREE.BoxGeometry(.16,.03,bl),steel,sd*.93,1.39,bm); });
+    K.add(new THREE.BoxGeometry(2.0,.44,.08),paint,0,1.16,-R+.04); K.add(new THREE.BoxGeometry(1.72,.4,.06),liner,0,1.18,bz1+.02);
+    for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(1.1,.03,.14),wood,0,1.15,-1.75-.36+i*.18);
+    [-.45,0,.45].forEach(x=>K.add(new THREE.BoxGeometry(.12,.1,.9),wood,x,1.08,-1.75)); }
+  // headache rack with an LED bar over the cab
+  [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.06,.8,.06),steel,sd*.78,1.62,bz1-.08)); K.add(new THREE.BoxGeometry(1.62,.06,.06),steel,0,2.02,bz1-.08);
+  [-.4,-.2,0,.2,.4].forEach(x=>K.add(new THREE.BoxGeometry(.08,.035,.05),amber,x,2.07,.3));
+  K.add(new THREE.BoxGeometry(1.5,.07,.14),GLOSS_BLACK,0,2.1,.7); K.add(new THREE.BoxGeometry(1.44,.04,.02),headM,0,2.1,.775); [-.5,0,.5].forEach(x=>K.glow(0xeaf4ff,.8,x,2.1,.82));
+  // power bulge on the bonnet with a black intake
+  K.add(bandGeo((u,z)=>{ const x=lerp(-.44,.44,u), e=Math.sin(Math.PI*clamp((z-1.25)/(F-.2-1.25),0,1)); return [x,T.top(x,z)+.07*Math.sin(Math.PI*u)*Math.sqrt(e)]; },1.25,F-.2,20,8),paint);
+  K.add(new THREE.BoxGeometry(.36,.08,.2),GLOSS_BLACK,0,T.top(0,1.5)+.09,1.5);
+  // front: huge grille with steel bars, stacked lamps, steel bumper, orange tow hooks
+  { const z=F+.006; K.add(new THREE.PlaneGeometry(1.24,.46),GLOSS_BLACK,0,1.0,z);
+    for(let i=0;i<4;i++) K.add(new THREE.BoxGeometry(1.2,.05,.02),exhM,0,.84+i*.11,z+.01);
+    [1,-1].forEach(sd=>{ K.add(new THREE.PlaneGeometry(.2,.3),lensM,sd*.78,1.02,z+.002); [1.1,.96].forEach(y=>K.add(new THREE.BoxGeometry(.16,.03,.02),headM,sd*.78,y,z+.008)); K.glow(0xcfe6ff,1.0,sd*.78,1.04,z+.06);
+      K.add(new THREE.BoxGeometry(.08,.12,.16),orange,sd*.62,.56,z+.12); }); K.add(new THREE.BoxGeometry(2.1,.24,.26),steel,0,.62,F+.04); }
+  // flanks: box flares, clad sills with steps, mud flaps, mirrors; rear: steel bumper, hitch, tall tail lamps
+  [1,-1].forEach(sd=>{ [WB,-WB].forEach(zw=>{ const pts=[]; for(let i=0;i<=12;i++){ const a=Math.PI*(.1+.8*i/12), z=zw-Math.cos(a)*(WR+.16), c=T.sec(z); pts.push([sd*(c.hs+.04),WR+Math.sin(a)*(WR+.14),z]); } K.tube(pts,.06,clad,20,6);
+      K.add(new THREE.BoxGeometry(.34,.4,.02),GLOSS_BLACK,sd*.92,.34,zw-WR-.2); });
+    K.sill(sd,-WB+WR+.24,WB-WR-.24,.02,.26,clad);
+    const pts=[]; for(let i=0;i<=8;i++){ const z=lerp(-WB+WR+.3,WB-WR-.3,i/8), c=T.sec(z); pts.push([sd*(c.hl+.06),c.yb-.02,z]); } K.tube(pts,.04,steel,16);
+    K.shut(sd,.2); K.shut(sd,-.4);
+    { const ms=K.add(new THREE.BoxGeometry(.26,.2,.08),GLOSS_BLACK,sd*1.02,1.58,1.0); void ms; }
+    K.add(new THREE.BoxGeometry(.1,.4,.03),tailM,sd*.84,1.14,-R-.01); K.glow(0xff2030,.9,sd*.84,1.14,-R-.07); });
+  K.add(new THREE.BoxGeometry(2.0,.18,.24),steel,0,.62,-R-.02); K.add(new THREE.BoxGeometry(.1,.1,.26),steel,0,.56,-R-.18);
+  K.pipe(.6,.52,-R-.08,.06); K.plate(def,.9,-R-.02); void carbon;
+  return T;
+}
+const SHELLS={richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1518,7 +1573,7 @@ const VINYLS={
    g.fillStyle=gr; g.strokeStyle='#7a0a05'; g.lineWidth=3;
    [[.62,.2,.9],[.5,.45,.75],[.7,.7,1],[.45,.88,.6]].forEach(([len,y,a])=>{ const L=w*len, Y=h*y; g.beginPath(); g.moveTo(0,Y-h*.2); g.bezierCurveTo(L*.35,Y-h*.26,L*.55,Y-h*.02,L,Y-h*.1*a);
      g.bezierCurveTo(L*.7,Y+h*.02,L*.55,Y+h*.12,L*.8,Y+h*.14); g.bezierCurveTo(L*.45,Y+h*.2,L*.2,Y+h*.12,0,Y+h*.18); g.closePath(); g.fill(); g.stroke(); }); }},
- tribal:{dir:1,draw(g,w,h,c){ g.fillStyle=c;
+ tribal:{dir:0,draw(g,w,h,c){ g.fillStyle=c;
    for(let k=0;k<3;k++){ const x0=40+k*150; g.beginPath(); g.moveTo(x0,h*.5); g.quadraticCurveTo(x0+60,h*.05,x0+170,h*.15); g.quadraticCurveTo(x0+90,h*.3,x0+70,h*.5);
      g.quadraticCurveTo(x0+100,h*.72,x0+190,h*.82); g.quadraticCurveTo(x0+70,h*.95,x0,h*.5); g.fill(); } }},
  checker:{dir:1,draw(g,w,h,c){ const s=16; for(let y=0;y<h;y+=s) for(let x=0;x<w;x+=s){ if(((x+y)/s)%2) continue; const a=Math.max(0,1-x/(w*.75)); if(a<=0) continue;
@@ -1707,24 +1762,6 @@ function buildCar(def,opts){
     box(1.05,.04,.16,amber,0,B.headY-.06,F-.2);
     [1,-1].forEach(sd=>box(.16,.22,.85,paint,sd*(B.w/2+.02),B.base+.32,-1.15));
     paint.clearcoat=1; paint.clearcoatRoughness=.02;
-  }
-  if(cid==='richmond'){ // work pickup: open bed with liner and a pallet, headache rack, amber cab markers, steel bumpers, tow hooks, hitch, arch flares, mud flaps
-    const liner=new THREE.MeshStandardMaterial({color:0x121316,roughness:.85,metalness:.1}), steel=new THREE.MeshStandardMaterial({color:0x2a2d33,metalness:.7,roughness:.45});
-    const amber=new THREE.MeshBasicMaterial({color:0xffa028,toneMapped:false}), orange=new THREE.MeshStandardMaterial({color:def.caliper,roughness:.4,metalness:.3}), wood=new THREE.MeshStandardMaterial({color:0x8a6a44,roughness:.85});
-    const bz0=-2.7, bz1=-.7, bl=bz1-bz0, bm=(bz0+bz1)/2, by=1.35;
-    box(B.w-.06,.02,bl-.1,liner,0,by+.01,bm);
-    [1,-1].forEach(sd=>{ box(.1,.3,bl,paint,sd*(B.w/2+.07),by+.15,bm); box(.12,.03,bl,steel,sd*(B.w/2+.07),by+.31,bm); });
-    box(B.w+.24,.3,.1,paint,0,by+.15,bz0); box(B.w+.24,.3,.08,paint,0,by+.15,bz1);
-    for(let i=0;i<5;i++) box(1.1,.03,.14,wood,0,by+.16,-1.7-.36+i*.18);
-    [-.45,0,.45].forEach(x=>box(.12,.12,.9,wood,x,by+.08,-1.7));
-    [1,-1].forEach(sd=>box(.06,.7,.06,steel,sd*.8,by+.35,bz1-.08)); box(1.66,.06,.06,steel,0,by+.7,bz1-.08); [-.3,0,.3].forEach(x=>box(.03,.64,.03,steel,x,by+.35,bz1-.08));
-    const my=roofY(.66)+.02; [-.4,-.2,0,.2,.4].forEach(x=>box(.08,.035,.05,amber,x,my,.66));
-    box(1.3,.44,.06,steel,0,B.headY-.12,F+.06); for(let i=0;i<3;i++) box(1.2,.05,.08,exhM,0,B.headY-.26+i*.14,F+.09);
-    box(B.w+.1,.22,.22,steel,0,B.base+.02,F+.02); [1,-1].forEach(sd=>box(.08,.12,.16,orange,sd*.62,B.base-.08,F+.12));
-    box(.7,.06,1.0,paint,0,deckY(1.9)+.02,1.9).rotation.x=-Math.atan2(deckY(2.4)-deckY(1.4),1); box(.36,.12,.28,blackM,0,deckY(1.55)+.1,1.55);
-    box(B.w,.14,.24,steel,0,B.base+.02,-Rr-.02); box(.1,.1,.26,steel,0,B.base-.04,-Rr-.16);
-    flares(blackM,.1);
-    [1,-1].forEach(sd=>[1,-1].forEach(sz=>box(.32,.38,.02,blackM,sd*B.tr,.32,sz*B.wb-.66)));
   }
   if(cid==='zenkai'){ // JDM widebody: carbon hood and lip, riveted flares, "37" door roundels, windshield banner, vortex generators, quad round tails, titanium center exit
     const numM=decal(128,128,(c,w,h)=>{ c.fillStyle='#f4f5f7'; c.beginPath(); c.arc(w/2,h/2,w/2-2,0,7); c.fill(); c.fillStyle='#111214'; c.font='800 70px "Arial Narrow",Arial,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('37',w/2,h/2+4); });

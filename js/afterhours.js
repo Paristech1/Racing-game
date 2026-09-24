@@ -2761,7 +2761,17 @@ function renderPage(dir){
   const bests=EVENTS.filter(e=>h.bestBy[e.id]).map(e=>`${e.name.toLowerCase()} ${fmt(h.bestBy[e.id])}`);
   $('#sLog').textContent=h.runs?`raced ${h.runs}×${bests.length?', best '+bests.join(', '):''}${h.hits?`, ${h.hits} hits`:''}`:'';
   if(dir) animIn([['#sHead',''],['#sNote','d2'],['#sFoot','d1'],['#sStamp','d3']],dir);
+  resetStudioOrbit();
   camSnap=true; modeT=0;
+}
+let studioYaw=0, studioPitch=0;
+function resetStudioOrbit(){
+  studioYaw=studioPitch=0;
+  studioCars.forEach(c=>{ c.group.rotation.x=0; c.group.rotation.y=0; });
+}
+function applyStudioOrbit(){
+  const c=studioCars[page]; if(!c) return;
+  c.group.rotation.y=studioYaw; c.group.rotation.x=studioPitch;
 }
 let sheetOpen=false;
 function renderSheet(dir){
@@ -2825,10 +2835,63 @@ $('#rSkip').onclick=()=>{ reportSkip=true; showResultsClassic(true); };
 $('#rView').onclick=()=>{ reportSkip=false; showResultsClassic(false); };
 $('#rWatch').onclick=()=>{ const b=$('#rHiList button'); if(b) b.click(); else showResultsClassic(true); };
 let sx=null, sy=0, swipeEl=null;
-['#select','#events'].forEach(id=>{ const el=$(id); el.style.pointerEvents='auto';
+['#events'].forEach(id=>{ const el=$(id); el.style.pointerEvents='auto';
   el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; sx=e.clientX; sy=e.clientY; swipeEl=id; }); });
 addEventListener('pointerup',e=>{ if(sx===null) return; const dx=e.clientX-sx, dy=e.clientY-sy; sx=null;
-  if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)){ if(mode==='select'&&swipeEl==='#select') turn(dx<0?1:-1); else if(mode==='events'&&swipeEl==='#events') turnEvent(dx<0?1:-1); } });
+  if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)&&mode==='events'&&swipeEl==='#events') turnEvent(dx<0?1:-1); });
+
+let studioPtr=null;
+function studioPtrTarget(e){
+  if(sheetOpen||mode!=='select'&&mode!=='results') return false;
+  if(e.target.closest('button')) return false;
+  const t=e.target;
+  if(mode==='select') return t===canvas||t.id==='sStage'||!!t.closest('#select');
+  return t===canvas||!!t.closest('#results');
+}
+function studioPtrDown(e){
+  if(studioPtr) return;
+  if(!studioPtrTarget(e)) return;
+  e.stopPropagation();
+  studioPtr={x:e.clientX,y:e.clientY,yaw:studioYaw,pitch:studioPitch,intent:null,id:e.pointerId,el:e.currentTarget};
+  const hit=$('#sStage'); if(hit) hit.classList.remove('dragging');
+  try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){}
+}
+function studioPtrMove(e){
+  if(!studioPtr||studioPtr.id!==e.pointerId) return;
+  const dx=e.clientX-studioPtr.x, dy=e.clientY-studioPtr.y;
+  if(studioPtr.intent==null){
+    if(Math.hypot(dx,dy)<14) return;
+    studioPtr.intent=Math.abs(dx)>Math.abs(dy)*1.45?'swipe':'orbit';
+    if(studioPtr.intent==='orbit'){ const hit=$('#sStage'); if(hit) hit.classList.add('dragging'); }
+  }
+  if(studioPtr.intent!=='orbit') return;
+  studioYaw=studioPtr.yaw-dx*.014;
+  studioPitch=clamp(studioPtr.pitch-dy*.01,-.38,.28);
+  applyStudioOrbit();
+}
+function studioPtrUp(e){
+  if(!studioPtr||studioPtr.id!==e.pointerId) return;
+  const dx=e.clientX-studioPtr.x, dy=e.clientY-studioPtr.y, intent=studioPtr.intent;
+  studioPtr=null;
+  const hit=$('#sStage'); if(hit) hit.classList.remove('dragging');
+  const horiz=Math.abs(dx)>36&&Math.abs(dx)>Math.abs(dy)*1.2;
+  if((intent==='swipe'||intent==null)&&horiz&&mode==='select') turn(dx<0?1:-1);
+}
+[canvas,$('#sStage')].forEach(el=>{ if(!el) return;
+  el.addEventListener('pointerdown',studioPtrDown);
+  el.addEventListener('pointermove',studioPtrMove);
+  el.addEventListener('pointerup',studioPtrUp);
+  el.addEventListener('pointercancel',studioPtrUp); });
+$('#select').style.pointerEvents='auto';
+$('#select').addEventListener('pointerdown',studioPtrDown);
+$('#select').addEventListener('pointermove',studioPtrMove);
+$('#select').addEventListener('pointerup',studioPtrUp);
+$('#select').addEventListener('pointercancel',studioPtrUp);
+$('#results').style.pointerEvents='auto';
+$('#results').addEventListener('pointerdown',studioPtrDown);
+$('#results').addEventListener('pointermove',studioPtrMove);
+$('#results').addEventListener('pointerup',studioPtrUp);
+$('#results').addEventListener('pointercancel',studioPtrUp);
 
 function startLoading(){
   initAudio(); sfx.shutter(); flash(1);
@@ -2867,7 +2930,7 @@ function startRace(){
    const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
    addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012);
   }); }
-  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.towT=0; r.fxName={}; });
+  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=0; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
   const boss=racers.find(r=>!r.isP&&(r.def.chassisId==='overload'||r.def.chassisId==='volcano'));
   if(boss&&!EV.knockout) setTimeout(()=>{ if(mode==='race') toast(boss.def.chassisId==='volcano'?`${boss.def.tag} brought the VOLCANO P1. The fastest car in the archive is on the grid.`:`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`); },4200);

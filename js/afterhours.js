@@ -726,6 +726,7 @@ function p1Shell(g,def,B,paint,glass){
     [1,-1].forEach(sd=>{ const ep=K.add(new THREE.BoxGeometry(.012,.2,.62),carbon,sd*.93,1.1,-2.0); ep.rotation.x=-.1;
       const st=K.add(new THREE.BoxGeometry(.04,.3,.1),carbon,sd*.32,.97,-1.98); st.rotation.x=.28; }); }
   [[0xcfe6ff,1.0,.6,.53,1.98],[0xcfe6ff,1.0,-.6,.53,1.98],[0xff2030,.8,0,.82,-2.36]].forEach(a=>K.glow(a[0],a[1],a[2],a[3],a[4]));
+  return T;
 }
 
 /* ---- Kage R: a chopped silver wedge, cab forward, black roof, amber spine ---- */
@@ -775,6 +776,7 @@ function kageShell(g,def,B,paint,glass){
   // ducktail wing on short struts
   { const w=K.add(K.airfoil(.42,.05,1.7),paint,0,.98,-2.0); w.rotation.y=Math.PI/2; w.rotation.z=.08;
     [1,-1].forEach(sd=>{ K.add(new THREE.BoxGeometry(.04,.2,.14),GLOSS_BLACK,sd*.55,.86,-2.14); K.add(new THREE.BoxGeometry(.012,.14,.44),GLOSS_BLACK,sd*.86,.98,-2.2); }); }
+  return T;
 }
 
 /* ---- Overload 3K: quad-motor EV hypercar, pontoon fenders, bubble canopy, dorsal fin, cyan light blades ---- */
@@ -824,6 +826,7 @@ function overloadShell(g,def,B,paint,glass){
       K.add(new THREE.BoxGeometry(.014,.34,.72),carbon,sd*1.01,1.4,-2.02);
       K.add(new THREE.BoxGeometry(.016,.02,.66),blade,sd*1.02,1.57,-2.02); }); }
   { const pr=K.add(new THREE.PlaneGeometry(.42,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'3000HP'),roughness:.5}),0,.5,-2.56); pr.rotation.y=Math.PI; }
+  return T;
 }
 /* ---- outlaw shells (Hellbound, Tempesta, Mantis, Autobahn) ----
    Same kit as above. bandGeo lays a thin grid over any surface (fn(u,z) gives the point at lateral
@@ -894,6 +897,7 @@ function hellboundShell(g,def,B,paint,glass){
   K.add(new THREE.BoxGeometry(1.7,.2,.04),GLOSS_BLACK,0,.44,-R-.01); for(let i=0;i<6;i++) K.add(new THREE.BoxGeometry(.02,.16,.4),carbon,-.5+i*.2,.36,-R+.16);
   [-.66,-.5,.5,.66].forEach(x=>K.pipe(x,.44,-R-.06,.06));
   K.plate(def,.64,-R-.02);
+  return T;
 }
 
 /* ---- Tempesta SV: V12 wedge. Fender peaks, black hood and roof, Y lamps, hex exhausts, swan-neck wing ---- */
@@ -945,6 +949,7 @@ function tempestaShell(g,def,B,paint,glass){
       K.tube([[x,y-.07,z],[x,y,z]],.012,headM,3); K.tube([[x,y,z],[x+sd*.12,y+.05,z]],.012,headM,4); K.tube([[x,y,z],[x-sd*.1,y+.05,z]],.012,headM,4); K.glow(0xcfe6ff,.7,x,y,z+.05); }); }
   K.splitter(.95,F-.4,F+.02,.14);
   K.plate(def,.3,-R-.02);
+  return T;
 }
 
 /* ---- Mantis LT: mid-engine longtail. Teardrop cockpit, black lower body and side scoops, raised air-brake ---- */
@@ -989,6 +994,7 @@ function mantisShell(g,def,B,paint,glass){
   for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.22,.55),carbon,-.6+i*.2,.26,-R+.24);
   K.add(new THREE.BoxGeometry(1.6,.03,.55),carbon,0,.16,-R+.24);
   K.plate(def,.44,-R-.03);
+  return T;
 }
 
 /* ---- Autobahn 63: four-door GT fastback. Vertical-slat chrome grille, long glasshouse, chrome DLO, quad exhaust ---- */
@@ -1034,15 +1040,128 @@ function autobahnShell(g,def,B,paint,glass){
   // pop-up rear spoiler
   { const w=K.add(K.airfoil(.26,.035,1.5),paint,0,T.top(0,-2.3)+.05,-2.2); w.rotation.y=Math.PI/2; w.rotation.z=-.1; }
   K.plate(def,.66,-R-.02);
+  return T;
 }
 const SHELLS={p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+/* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
+   vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
+   wheel: spoke | dish | mesh | fan | split | star | aero.  glow: underglow colour.  camber: static wheel tilt (stance). */
+const STREET={
+ kage:{vinyl:'slash',vc:'#101114',wheel:'split',glow:0xffb020,camber:.04},
+ noctis:{vinyl:'script',vc:'#c9ced6',text:'Noctis',wheel:'dish',glow:0x9b4dff},
+ vanta:{vinyl:'circuit',vc:'#19c2ff',wheel:'aero',glow:0x19c2ff},
+ kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh',glow:0xffc84a},
+ dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star',glow:0xff7a1a},
+ sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'dish',glow:0xff2030}, // ghost checker, black on black
+ granfour:{vinyl:'lightning',vc:'#ffc21a',wheel:'fan',glow:0xffd23b},
+ bell:{vinyl:'stars',vc:'#d8b04a',wheel:'aero',glow:0x4d7bff},
+ passyunk:{vinyl:'sponsor',wheel:'dish',glow:0xeaf4ff,camber:.06},
+ richmond:{vinyl:'tribal',vc:'#ff5a1f',wheel:'star',glow:0xff8a1a},
+ zenkai:{wheel:'mesh',glow:0xff2bd6,camber:.08}, // already wears its 37 roundels and windshield banner
+ split:{vinyl:'flames',wheel:'spoke',glow:0xff3020},
+ overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan',glow:0x2fe6ff},
+ wisp:{vinyl:'stripes',vc:'#7dffef',wheel:'aero',glow:0x7dffef},
+ stratos:{wheel:'split',glow:0xff9a3c},
+ volcano:{wheel:'spoke',glow:0xffc20e},
+ hellbound:{wheel:'dish',glow:0xff2a10,camber:.03},
+ tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split',glow:0xff2438},
+ mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh',glow:0x76d31e},
+ autobahn:{vinyl:'pinstripe',vc:'#c9ced6',wheel:'spoke',glow:0x4d7bff}
+};
+const VINYLS={
+ flames:{dir:1,draw(g,w,h){ const gr=g.createLinearGradient(0,0,w*.8,0); gr.addColorStop(0,'#fff27a'); gr.addColorStop(.35,'#ffb020'); gr.addColorStop(.7,'#ff3a1a'); gr.addColorStop(1,'rgba(200,20,10,0)');
+   g.fillStyle=gr; g.strokeStyle='#7a0a05'; g.lineWidth=3;
+   [[.62,.2,.9],[.5,.45,.75],[.7,.7,1],[.45,.88,.6]].forEach(([len,y,a])=>{ const L=w*len, Y=h*y; g.beginPath(); g.moveTo(0,Y-h*.2); g.bezierCurveTo(L*.35,Y-h*.26,L*.55,Y-h*.02,L,Y-h*.1*a);
+     g.bezierCurveTo(L*.7,Y+h*.02,L*.55,Y+h*.12,L*.8,Y+h*.14); g.bezierCurveTo(L*.45,Y+h*.2,L*.2,Y+h*.12,0,Y+h*.18); g.closePath(); g.fill(); g.stroke(); }); }},
+ tribal:{dir:1,draw(g,w,h,c){ g.fillStyle=c;
+   for(let k=0;k<3;k++){ const x0=40+k*150; g.beginPath(); g.moveTo(x0,h*.5); g.quadraticCurveTo(x0+60,h*.05,x0+170,h*.15); g.quadraticCurveTo(x0+90,h*.3,x0+70,h*.5);
+     g.quadraticCurveTo(x0+100,h*.72,x0+190,h*.82); g.quadraticCurveTo(x0+70,h*.95,x0,h*.5); g.fill(); } }},
+ checker:{dir:1,draw(g,w,h,c){ const s=16; for(let y=0;y<h;y+=s) for(let x=0;x<w;x+=s){ if(((x+y)/s)%2) continue; const a=Math.max(0,1-x/(w*.75)); if(a<=0) continue;
+   g.globalAlpha=a*(Math.random()<a*1.4?1:0); g.fillStyle=c; g.fillRect(x,y,s,s); } g.globalAlpha=1; }},
+ splatter:{dir:0,draw(g,w,h,c){ const R=rng(31); g.fillStyle=c;
+   for(let i=0;i<140;i++){ const x=R()*w, y=h*(1-Math.pow(R(),2.2)), r=1+R()*R()*9; g.globalAlpha=.55+R()*.45; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); if(R()<.15) g.fillRect(x-1,y,2,6+R()*14); }
+   g.globalAlpha=.8; g.fillRect(0,h*.86,w,h*.14); g.globalAlpha=1; }},
+ slash:{dir:1,draw(g,w,h,c){ g.fillStyle=c; [[10,.6],[120,1],[200,.8],[290,.45],[350,.3]].forEach(([x,k])=>{ g.globalAlpha=k; g.beginPath(); g.moveTo(x+60,h*.1); g.lineTo(x+60+120*k,h*.1); g.lineTo(x+120*k,h*.9); g.lineTo(x,h*.9); g.fill(); }); g.globalAlpha=1; }},
+ sponsor:{dir:0,draw(g,w,h){ const tags=[['KAIZEN','#111','#ffd23b'],['AFTERHOURS','#f4f5f7','#111'],['RYU TUNE','#d42020','#fff'],['NIGHT GRIP','#1a6bff','#fff'],['TORQ','#111','#7dff9a']];
+   let x=8; tags.forEach(([t,bg,fg],i)=>{ g.font=`800 ${i%2?22:26}px "Arial Narrow",Arial,sans-serif`; const tw=g.measureText(t).width+18, y=i%2?h*.52:h*.16, hh=i%2?34:40;
+     g.fillStyle=bg; g.fillRect(x,y,tw,hh); g.fillStyle=fg; g.textBaseline='middle'; g.fillText(t,x+9,y+hh/2+1); x+=tw*.72; }); }},
+ script:{dir:0,draw(g,w,h,c,t){ g.font='italic 900 84px Georgia,serif'; g.textAlign='center'; g.textBaseline='middle'; g.lineWidth=6; g.strokeStyle='rgba(0,0,0,.6)'; g.strokeText(t,w/2,h/2+4); g.fillStyle=c; g.fillText(t,w/2,h/2+4);
+   g.fillRect(w*.12,h*.86,w*.76,3); }},
+ number:{dir:0,draw(g,w,h,c,t){ g.font='italic 900 118px "Arial Narrow",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.lineWidth=8; g.strokeStyle=c; g.strokeText(t,w*.5,h/2+6);
+   g.fillStyle='#0b0c0e'; g.fillText(t,w*.5,h/2+6); g.fillStyle=c; g.fillRect(w*.08,h*.5-2,w*.22,4); g.fillRect(w*.7,h*.5-2,w*.22,4); }},
+ gradient:{dir:1,draw(g,w,h,c){ for(let i=0;i<6;i++){ const y=h*(.12+i*.15), gr=g.createLinearGradient(0,0,w*(.95-i*.08),0); gr.addColorStop(0,c); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,y,w,h*(.1-i*.012)); } }},
+ stars:{dir:1,draw(g,w,h,c){ g.fillStyle='#b3121c'; g.fillRect(0,h*.62,w*.9,10); g.fillStyle='#f4f5f7'; g.fillRect(0,h*.62+12,w*.8,6);
+   g.fillStyle=c; const star=(x,y,r)=>{ g.beginPath(); for(let k=0;k<10;k++){ const a=-Math.PI/2+k*Math.PI/5, rr=k%2?r*.42:r; g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); } g.fill(); };
+   for(let i=0;i<7;i++) star(40+i*58,h*.3,18-i*1.6); }},
+ stripes:{dir:1,draw(g,w,h,c){ g.fillStyle=c; [[.34,10],[.52,5]].forEach(([y,t])=>{ g.beginPath(); g.moveTo(0,h*y); g.lineTo(w*.55,h*y); g.lineTo(w*.66,h*(y+.28)); g.lineTo(w,h*(y+.28)); g.lineTo(w,h*(y+.28)+t); g.lineTo(w*.66-4,h*(y+.28)+t); g.lineTo(w*.55-4,h*y+t); g.lineTo(0,h*y+t); g.fill(); }); }},
+ circuit:{dir:0,draw(g,w,h,c){ const R=rng(7); g.strokeStyle=c; g.fillStyle=c; g.lineWidth=3;
+   for(let i=0;i<9;i++){ let x=R()*w*.3, y=12+R()*(h-24); g.beginPath(); g.moveTo(x,y); for(let k=0;k<4;k++){ x+=30+R()*90; g.lineTo(x,y); if(R()<.6){ const d=(R()<.5?-1:1)*20; x+=20; y=clamp(y+d,8,h-8); g.lineTo(x,y); } } g.stroke(); g.beginPath(); g.arc(x,y,5,0,7); g.fill(); } }},
+ lightning:{dir:1,draw(g,w,h,c){ g.fillStyle=c; g.strokeStyle='#111'; g.lineWidth=3; g.beginPath();
+   const pts=[[0,.42],[150,.3],[130,.52],[300,.36],[280,.6],[500,.5],[270,.72],[292,.5],[118,.66],[140,.46],[0,.58]]; pts.forEach(([x,y],i)=>i?g.lineTo(x,h*y):g.moveTo(x,h*y)); g.closePath(); g.fill(); g.stroke(); }},
+ pinstripe:{dir:1,draw(g,w,h,c){ g.strokeStyle=c; g.lineWidth=2.5; [.46,.54].forEach(y=>{ g.beginPath(); g.moveTo(8,h*y); g.lineTo(w*.8,h*y); g.quadraticCurveTo(w*.92,h*y,w*.96,h*(y<.5?.3:.7)); g.stroke(); }); }}
+};
+const VINYL_CACHE={};
+function vinylMat(key,st,frontLeft){ const k=key+'|'+frontLeft; if(VINYL_CACHE[k]) return VINYL_CACHE[k];
+  const V=VINYLS[st.vinyl], tex=CT(canvasTex(512,128,(g,w,h)=>{ if(V.dir&&!frontLeft){ g.translate(w,0); g.scale(-1,1); } V.draw(g,w,h,st.vc||'#fff',st.text||''); }));
+  return VINYL_CACHE[k]=new THREE.MeshStandardMaterial({map:tex,transparent:true,alphaTest:.05,roughness:.32,metalness:.1,polygonOffset:true,polygonOffsetFactor:-2,depthWrite:false}); }
+let UNDERGLOW_TEX=null;
+function underglowTex(){ return UNDERGLOW_TEX||(UNDERGLOW_TEX=CT(canvasTex(128,256,(g,w,h)=>{ const gr=g.createRadialGradient(w/2,h/2,4,w/2,h/2,h*.5); gr.addColorStop(0,'rgba(255,255,255,.95)'); gr.addColorStop(.45,'rgba(255,255,255,.55)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr; g.fillRect(0,0,w,h); }))); }
+// add the street pieces to a built car group. flank(sd,z) -> side-surface points (bottom to top) where a decal sits at station z
+function streetStyle(g,def,B,cid,flank){
+  const st=STREET[cid]; if(!st) return;
+  if(st.glow){ const c=new THREE.Color(st.glow);
+    const pad=new THREE.Mesh(new THREE.PlaneGeometry(B.w+1.2,(B.front+B.rear)*1.05),new THREE.MeshBasicMaterial({map:underglowTex(),color:c,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+    pad.rotation.x=-Math.PI/2; pad.position.set(0,.03,(B.front-B.rear)/2); pad.renderOrder=2; g.add(pad);
+    const neon=new THREE.MeshBasicMaterial({color:c,toneMapped:false});
+    [1,-1].forEach(sd=>{ const n=new THREE.Mesh(new THREE.BoxGeometry(.03,.02,B.wb*2-B.wr*2-.4),neon); n.position.set(sd*(B.w/2-.1),.1,0); g.add(n); }); }
+  if(st.vinyl&&VINYLS[st.vinyl]){ const z0=-B.wb+B.wr+.16, z1=B.wb-B.wr-.16, n=14;
+    [1,-1].forEach(sd=>{ const pos=[],uv=[],idx=[];
+      for(let i=0;i<=n;i++){ const z=z0+(z1-z0)*i/n, pts=flank(sd,z), u=sd>0?1-i/n:i/n; // right flank: nose at canvas left
+        const cum=[0]; for(let j=1;j<pts.length;j++) cum.push(cum[j-1]+Math.hypot(pts[j][0]-pts[j-1][0],pts[j][1]-pts[j-1][1]));
+        pts.forEach((p,j)=>{ pos.push(p[0],p[1],z); uv.push(u,cum[j]/cum[cum.length-1]); }); } // points run bottom to top
+      const m=flank(sd,0).length;
+      for(let i=0;i<n;i++) for(let j=0;j<m-1;j++){ const a=i*m+j, b=a+1, c=a+m, d=c+1; if(sd>0) idx.push(a,b,c,b,d,c); else idx.push(a,c,b,b,c,d); }
+      const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); geo.setIndex(idx); geo.computeVertexNormals();
+      const mesh=new THREE.Mesh(geo,vinylMat(cid,st,sd>0)); mesh.renderOrder=1; g.add(mesh); }); }
+}
+// rim designs; spin is the wheel's spinning group, side = +-1, rimM the rim material
+function wheelStyle(spin,side,style,rimM,def){
+  const at=(o,x)=>{ o.position.x=side*x; spin.add(o); return o; };
+  const spokes=(n,wd,x,len)=>{ for(let k=0;k<n;k++){ const s=new THREE.Mesh(new THREE.BoxGeometry(.03,len,wd),rimM); s.rotation.x=k*Math.PI/n; at(s,x); } };
+  switch(style){
+    case 'dish': // deep dish: wide polished lip, spokes set far back
+      at(new THREE.Mesh(new THREE.RingGeometry(.2,.3,32),chromeTrimM),.158).rotation.y=side*Math.PI/2;
+      spokes(5,.08,.1,.42); break;
+    case 'mesh': // cross-laced mesh: two sets of thin spokes skewed against each other, plus an inner ring
+      for(let k=0;k<12;k++) [1,-1].forEach(t=>{ const s=new THREE.Mesh(new THREE.BoxGeometry(.012,.5,.018),rimM); s.rotation.x=k*Math.PI/12+t*.14; at(s,.155); });
+      at(new THREE.Mesh(new THREE.TorusGeometry(.12,.012,6,24),rimM),.16).rotation.y=Math.PI/2; break;
+    case 'fan': { // turbofan: solid disc with twisted blades
+      at(new THREE.Mesh(new THREE.CircleGeometry(.27,28),rimM),.145).rotation.y=side*Math.PI/2;
+      for(let k=0;k<14;k++){ const b=new THREE.Mesh(new THREE.BoxGeometry(.012,.2,.05),rimM); b.position.set(0,Math.cos(k/14*Math.PI*2)*.17,Math.sin(k/14*Math.PI*2)*.17); b.rotation.x=-k/14*Math.PI*2; b.rotateY(side*.6);
+        at(b,.16); } break; }
+    case 'split': // split five-spoke: each spoke is a pair
+      for(let k=0;k<5;k++) [-.1,.1].forEach(o=>{ const s=new THREE.Mesh(new THREE.BoxGeometry(.02,.25,.03),rimM); const a=k/5*Math.PI*2+o;
+        s.position.set(0,Math.cos(a)*.14,Math.sin(a)*.14); s.rotation.x=-a; at(s,.16); }); break;
+    case 'star': // chunky off-road star: six wide spokes and exposed bolts
+      spokes(3,.1,.16,.52); at(new THREE.Mesh(new THREE.RingGeometry(.24,.27,24),blackM),.162).rotation.y=side*Math.PI/2;
+      for(let k=0;k<12;k++){ const a=k/12*Math.PI*2, nb=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.02,6),chromeTrimM); nb.rotation.z=Math.PI/2; nb.position.set(side*.165,Math.cos(a)*.255,Math.sin(a)*.255); spin.add(nb); } break;
+    case 'aero': // aero cover: flat disc with five teardrop windows
+      at(new THREE.Mesh(new THREE.CircleGeometry(.27,28),rimM),.15).rotation.y=side*Math.PI/2;
+      for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, h=new THREE.Mesh(new THREE.CircleGeometry(.05,14),gapM); h.rotation.y=side*Math.PI/2;
+        h.position.set(side*.152,Math.cos(a)*.17,Math.sin(a)*.17); spin.add(h); } break;
+    default: { const n=def.spokes||6; for(let k=0;k<n;k++){ const s=new THREE.Mesh(new THREE.BoxGeometry(.03,.5,n>10?.03:.07),rimM); s.rotation.x=k*Math.PI/n; at(s,.16); } }
+  }
+}
 function buildCar(def,opts){
   opts=opts||{}; const B=BODIES[def.body||'wedge'], cid=def.chassisId||def.id; // rivals race a copy of an archive car under their own id
   const g=new THREE.Group();
   const paint=new THREE.MeshPhysicalMaterial({color:def.paint,metalness:def.metal,roughness:def.rough,clearcoat:def.matte?0:1,clearcoatRoughness:.03,envMapIntensity:1.25});
   if(!def.matte){ paint.normalMap=CARTEX.flake; paint.normalScale=new THREE.Vector2(.12+def.metal*.18,.12+def.metal*.18); } // metallic flake under a smooth clear coat
   const glass=new THREE.MeshPhysicalMaterial({color:0x0a0e14,metalness:.15,roughness:.02,clearcoat:1,clearcoatRoughness:.02,reflectivity:1,envMapIntensity:1.7});
-  if(SHELLS[def.sculpt]){ paint.normalMap=null; paint.clearcoatRoughness=.015; SHELLS[def.sculpt](g,def,B,paint,glass); } // sculpted bodies: smooth clear coat (the flake map stretches over lofted UVs)
+  let flank=null; // side-surface sampler for the street vinyl
+  if(SHELLS[def.sculpt]){ paint.normalMap=null; paint.clearcoatRoughness=.015; const T=SHELLS[def.sculpt](g,def,B,paint,glass);
+    flank=(sd,z)=>{ const c=T.sec(z), o=.012; return [[sd*(c.hl+o),c.yb+.08],[sd*(c.hl+o),c.ay],[sd*(c.hs*.985+o),Math.max(c.ys-.08,c.ay+.02)],[sd*(c.hs+o*.7),c.ys-.01]]; }; } // sculpted bodies: smooth clear coat (the flake map stretches over lofted UVs)
   else {
   const bodyGeo=profileGeo(B.pts,[[B.pts[0][0]+.1,B.base],[B.pts[B.pts.length-1][0]-.1,B.base],[B.pts[0][0]+.1,B.base]],B.w,.14);
   const cut=opts.cut&&def.cutaway, cutZ=-.75;
@@ -1079,7 +1198,7 @@ function buildCar(def,opts){
   const flares=(m,h)=>[[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{ const x=sx*(B.w/2+.15), y=B.wr*2+h, z=sz*B.wb; // arch cladding: top run plus two raked ends
     box(.16,.07,1.0,m,x,y,z); [1,-1].forEach(e=>box(.16,.07,.38,m,x,y-.12,z+e*.62).rotation.x=e*.75); });
   const hw=B.w/2+.12, F=B.front, Rr=B.rear;
-  if(!cut&&cid!=='bell'){ box(.05,.2,.75,blackM,hw,B.base+.36,-.5); box(.05,.2,.75,blackM,-hw,B.base+.36,-.5); } // bell's intake sits inside its C-sweep
+  if(!cut&&cid!=='bell'&&!(STREET[cid]||{}).vinyl){ box(.05,.2,.75,blackM,hw,B.base+.36,-.5); box(.05,.2,.75,blackM,-hw,B.base+.36,-.5); } // generic side intake, only where no vinyl runs // bell's intake sits inside its C-sweep
   box(1.6,.2,.3,blackM,0,B.base+.08,-Rr+.1); box(2.0,.12,.5,blackM,0,B.base+.01,F-.26);
   const hx=B.w*.36;
   // headlight units: glossy housing, two projector lenses and an LED running-light strip
@@ -1303,7 +1422,10 @@ function buildCar(def,opts){
   const pr=pf.clone(); pr.position.set(0,B.base+.3,-Rr-.06); pr.rotation.y=Math.PI; g.add(pr);
   if(!['noctis','bell','passyunk','zenkai'].includes(cid)) [1,-1].forEach(sd=>pipe(sd*.45,B.base+.22,-Rr-.02,.055)); // those carry their own center exits
   for(let i=0;i<5;i++) box(.025,.12,.4,trimM,-.5+i*.25,B.base+.02,-Rr+.12);
+  if(!cut){ let yTop=9; for(let z=-B.wb;z<=B.wb;z+=.2) yTop=Math.min(yTop,deckY(z)); const y0=B.base+.14, y1=Math.min(yTop-.14,y0+.5); // flat flank
+    flank=(sd,z)=>[[sd*(B.w/2+.146),y0],[sd*(B.w/2+.146),y1]]; }
   }
+  streetStyle(g,def,B,cid,flank||((sd,z)=>[[sd*(B.w/2+.146),B.base+.14],[sd*(B.w/2+.146),B.base+.5]]));
   g.add(shadowPlane(B.w+1.05,(B.front+B.rear)*1.24));
   [[B.tr,B.wb],[-B.tr,B.wb],[B.tr,-B.wb],[-B.tr,-B.wb]].forEach(([x,z])=>{ const s=shadowPlane(.9,1.1); s.position.set(x,.025,z); g.add(s); }); // wheel contact shadows
   const rimM=def.bronze?bronzeM():new THREE.MeshStandardMaterial({color:def.rim,metalness:def.chrome?1:.8,roughness:def.chrome?.08:.3});
@@ -1318,13 +1440,13 @@ function buildCar(def,opts){
     const rotor=new THREE.Mesh(ROTOR_GEO,[barrelM,rotorM,rotorM]); rotor.rotation.z=Math.PI/2; rotor.position.x=side*.02; spin.add(rotor);
     const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc);
     const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
-    const spokes=def.spokes||6;
-    for(let k=0;k<spokes;k++){ const s=new THREE.Mesh(new THREE.BoxGeometry(.03,.5,spokes>10?.03:.07),rimM); s.position.x=side*.16; s.rotation.x=k*Math.PI/spokes; spin.add(s); }
+    wheelStyle(spin,side,(STREET[cid]||{}).wheel,rimM,def);
     const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,12),calM); hub.rotation.z=Math.PI/2; hub.position.x=side*.17; spin.add(hub);
     for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, nut=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.03,6),chromeTrimM); nut.rotation.z=Math.PI/2; nut.position.set(side*.165,Math.cos(a)*.085,Math.sin(a)*.085); spin.add(nut); }
     const cal=new THREE.Mesh(new THREE.BoxGeometry(.07,.2,.18),calM); cal.position.set(side*.06,.14*sc,-.06); holder.add(cal);
     if(cid==='split'){ const k=new THREE.Mesh(new THREE.BoxGeometry(.03,.3,.05),chromeTrimM); k.position.x=side*.2; spin.add(k); } // two-eared knock-off spinner
     if(cid==='overload'){ const hr=new THREE.Mesh(new THREE.RingGeometry(.075,.1,24),new THREE.MeshBasicMaterial({color:def.accent,toneMapped:false,side:THREE.DoubleSide})); hr.rotation.y=side*Math.PI/2; hr.position.x=side*.19; spin.add(hr); } // lit motor ring
+    const cam=(STREET[cid]||{}).camber; if(cam) holder.rotation.z=side*cam; // stance: tops of the wheels tucked in
     wheels.push(spin); if(i<2) steers.push(holder);
   });
   mergeByMaterial(g); wheels.forEach(mergeByMaterial);

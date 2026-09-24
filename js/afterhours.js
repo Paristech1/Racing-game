@@ -1735,7 +1735,7 @@ function wispShell(g,def,B,paint,glass){
 function zephyrShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x14e0c8,.34);
   paint.color.set(def.paint||0x14943c); paint.metalness=.58; paint.roughness=.16; paint.clearcoat=1; paint.clearcoatRoughness=.02; paint.sheen=new THREE.Color(0x0a6e62);
-  const teal=new THREE.MeshStandardMaterial({color:0x0e8f86,metalness:.62,roughness:.18,clearcoat:1,clearcoatRoughness:.04,envMapIntensity:1.15});
+  const teal=new THREE.MeshPhysicalMaterial({color:0x0e8f86,metalness:.62,roughness:.18,clearcoat:1,clearcoatRoughness:.04,envMapIntensity:1.15});
   const blade=new THREE.MeshBasicMaterial({color:def.accent||0x14e0c8,toneMapped:false});
   const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
   const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:56,inset:.12,

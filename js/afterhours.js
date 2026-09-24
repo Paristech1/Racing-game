@@ -4086,6 +4086,14 @@ function buildKensington(){
   lampCones(S,lamps.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,4.4,0))));
   { const pools=lamps.filter((m,i)=>i%2===0).map(m=>{ const v=new THREE.Vector3().setFromMatrixPosition(m); v.y=.05; return new THREE.Matrix4().compose(v,new THREE.Quaternion(),K.one); }); const g=new THREE.PlaneGeometry(16,16); g.rotateX(-Math.PI/2);
     K.inst(g,new THREE.MeshBasicMaterial({map:poolTex,color:0xc07a30,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false}),pools); }
+  // crosstie shadows: the sodium lamps under the deck throw the El's ties onto the road as dark slats
+  { const sl=[]; for(let u=1;u<EL.len;u+=1.25){ const p=elP(u,0); p.y=.045; sl.push(new THREE.Matrix4().compose(p,q,K.one)); }
+    K.inst(new THREE.PlaneGeometry(15.6,.55).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.42,depthWrite:false}),sl); }
+  // graffiti tags on the column bases, four hands
+  { const TAGS=[['KNSGTN','#ff3bd4','#1a1a1a'],['EL BOYZ','#3bf2ff','#2a1a3a'],['NO SLEEP','#ffe03b','#2a0a0a'],['FRNKFRD','#7dff6a','#0a1a2a']];
+    TAGS.forEach(([t,c,o],k)=>{ const tex=CT(canvasTex(128,96,(g,w,h)=>{ g.font='italic 900 30px "Arial Black",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.lineWidth=7; g.strokeStyle=o; g.save(); g.translate(w/2,h/2); g.rotate(-.18); g.strokeText(t,0,0); g.fillStyle=c; g.fillText(t,0,0); g.restore(); }));
+      const ms=cols.filter((m,n)=>n%4===k).map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,-EL.y/2+1.5,.456)));
+      K.inst(new THREE.PlaneGeometry(1.05,.8),new THREE.MeshStandardMaterial({map:tex,transparent:true,roughness:.8,polygonOffset:true,polygonOffsetFactor:-2}),ms); }); }
   // ---- El trains: two four-car sets, one each way ----
   const winTex=CT(canvasTex(256,64,(g,w,h)=>{ g.fillStyle='#1a1d22'; g.fillRect(0,0,w,h); g.fillStyle='#fff3d6'; for(let i=0;i<8;i++) g.fillRect(8+i*31,18,22,22); g.fillStyle='#2f6fd6'; g.fillRect(0,48,w,6); }));
   const carM=new THREE.MeshStandardMaterial({color:0xc8ccd2,metalness:.7,roughness:.35,emissive:0xffffff,emissiveMap:winTex,emissiveIntensity:1,map:winTex});

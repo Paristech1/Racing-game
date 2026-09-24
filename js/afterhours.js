@@ -376,6 +376,13 @@ function makeEnv(kind){
       for(let i=0;i<16;i++) g.fillRect(i*64+8,70+(i%3)*28,40,7);
       g.fillRect(0,150,w,4); g.fillRect(0,196,w,3);
       g.globalAlpha=.6; g.fillRect(300,20,420,30); g.globalAlpha=1;
+    } else if(kind==='tunnel'){ // inside a lit road tube: dark vault, two rows of LED strips overhead, tiled walls glowing low, green exits
+      const gr=g.createLinearGradient(0,0,0,h);
+      gr.addColorStop(0,'#05070a');gr.addColorStop(.3,'#0c1118');gr.addColorStop(.46,'#3a4450');gr.addColorStop(.5,'#8e9aa8');gr.addColorStop(.56,'#2a3038');gr.addColorStop(1,'#07080a');
+      g.fillStyle=gr;g.fillRect(0,0,w,h);
+      g.fillStyle='#ffffff'; for(let i=0;i<32;i++){ g.fillRect(i*32+4,h*.16,20,6); g.fillRect(i*32+12,h*.24,16,5); } // ceiling strips, streaking past
+      g.fillStyle='rgba(230,240,255,.55)'; g.fillRect(0,h*.47,w,5);                                           // wall-wash line
+      for(let i=0;i<8;i++){ g.fillStyle=i%2?'#3dff8a':'#ff8a2a'; g.fillRect(i*128+40,h*.5,10,6); }        // exit signs and SOS boxes
     } else if(kind==='street'){
       const gr=g.createLinearGradient(0,0,0,h);
       gr.addColorStop(0,'#04060a');gr.addColorStop(.42,'#101828');gr.addColorStop(.5,'#3a4050');gr.addColorStop(.56,'#161b24');gr.addColorStop(1,'#050608');
@@ -396,7 +403,7 @@ function makeEnv(kind){
   const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping; t.encoding=THREE.sRGBEncoding;
   const rt=pmrem.fromEquirectangular(t); t.dispose(); return rt.texture;
 }
-const ENV={ice:makeEnv('ice'),flash:makeEnv('flash'),street:makeEnv('street')};
+const ENV={ice:makeEnv('ice'),flash:makeEnv('flash'),street:makeEnv('street'),tunnel:makeEnv('tunnel')};
 
 const glowTex=new THREE.CanvasTexture(canvasTex(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.5)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}));
 const poolTex=new THREE.CanvasTexture(canvasTex(128,128,(g)=>{const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(255,255,255,.9)');r.addColorStop(.45,'rgba(255,255,255,.35)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,128,128);}));
@@ -1063,28 +1070,30 @@ function autobahnShell(g,def,B,paint,glass){
 const SHELLS={p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
-   wheel: spoke | dish | mesh | fan | split | star | aero.  glow: underglow colour.  camber: static wheel tilt (stance). */
+   wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
+   glow: underglow colour. Only the street-meet tuners run it (Noctis, Passyunk, Zenkai); on a hypercar, a classic or a
+   work truck it reads as a costume. */
 const STREET={
- kage:{vinyl:'slash',vc:'#101114',wheel:'split',glow:0xffb020,camber:.04},
- noctis:{vinyl:'script',vc:'#c9ced6',text:'Noctis',wheel:'dish',glow:0x9b4dff},
- vanta:{vinyl:'circuit',vc:'#19c2ff',wheel:'aero',glow:0x19c2ff},
- kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh',glow:0xffc84a},
- dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star',glow:0xff7a1a},
- sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'dish',glow:0xff2030}, // ghost checker, black on black
- granfour:{vinyl:'lightning',vc:'#ffc21a',wheel:'fan',glow:0xffd23b},
- bell:{vinyl:'stars',vc:'#d8b04a',wheel:'aero',glow:0x4d7bff},
- passyunk:{vinyl:'sponsor',wheel:'dish',glow:0xeaf4ff,camber:.06},
- richmond:{vinyl:'tribal',vc:'#ff5a1f',wheel:'star',glow:0xff8a1a},
- zenkai:{wheel:'mesh',glow:0xff2bd6,camber:.08}, // already wears its 37 roundels and windshield banner
- split:{vinyl:'flames',wheel:'spoke',glow:0xff3020},
- overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan',glow:0x2fe6ff},
- wisp:{vinyl:'stripes',vc:'#7dffef',wheel:'aero',glow:0x7dffef},
- stratos:{wheel:'split',glow:0xff9a3c},
- volcano:{wheel:'spoke',glow:0xffc20e},
- hellbound:{wheel:'dish',glow:0xff2a10,camber:.03},
- tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split',glow:0xff2438},
- mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh',glow:0x76d31e},
- autobahn:{vinyl:'pinstripe',vc:'#c9ced6',wheel:'spoke',glow:0x4d7bff}
+ kage:{vinyl:'slash',vc:'#101114',wheel:'split',camber:.04},
+ noctis:{glow:0x9b4dff,vinyl:'script',vc:'#c9ced6',text:'Noctis',wheel:'dish'},
+ vanta:{vinyl:'circuit',vc:'#19c2ff',wheel:'aero'},
+ kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh'},
+ dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star'},
+ sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'dish'}, // ghost checker, black on black
+ granfour:{vinyl:'lightning',vc:'#ffc21a',wheel:'fan'},
+ bell:{vinyl:'stars',vc:'#d8b04a',wheel:'aero'},
+ passyunk:{glow:0x2fd6ff,vinyl:'sponsor',wheel:'dish',camber:.06},
+ richmond:{vinyl:'tribal',vc:'#ff5a1f',wheel:'star'},
+ zenkai:{glow:0xff2bd6,wheel:'mesh',camber:.08}, // already wears its 37 roundels and windshield banner
+ split:{vinyl:'flames',wheel:'spoke'},
+ overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan'},
+ wisp:{vinyl:'stripes',vc:'#7dffef',wheel:'aero'},
+ stratos:{wheel:'split'},
+ volcano:{wheel:'spoke'},
+ hellbound:{wheel:'dish',camber:.03},
+ tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
+ mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
+ autobahn:{vinyl:'pinstripe',vc:'#c9ced6',wheel:'spoke'}
 };
 const VINYLS={
  flames:{dir:1,draw(g,w,h){ const gr=g.createLinearGradient(0,0,w*.8,0); gr.addColorStop(0,'#fff27a'); gr.addColorStop(.35,'#ffb020'); gr.addColorStop(.7,'#ff3a1a'); gr.addColorStop(1,'rgba(200,20,10,0)');
@@ -1122,17 +1131,34 @@ const VINYL_CACHE={};
 function vinylMat(key,st,frontLeft){ const k=key+'|'+frontLeft; if(VINYL_CACHE[k]) return VINYL_CACHE[k];
   const V=VINYLS[st.vinyl], tex=CT(canvasTex(512,128,(g,w,h)=>{ if(V.dir&&!frontLeft){ g.translate(w,0); g.scale(-1,1); } V.draw(g,w,h,st.vc||'#fff',st.text||''); }));
   return VINYL_CACHE[k]=new THREE.MeshStandardMaterial({map:tex,transparent:true,alphaTest:.05,roughness:.32,metalness:.1,polygonOffset:true,polygonOffsetFactor:-2,depthWrite:false}); }
-let UNDERGLOW_TEX=null;
-function underglowTex(){ return UNDERGLOW_TEX||(UNDERGLOW_TEX=CT(canvasTex(128,256,(g,w,h)=>{ const gr=g.createRadialGradient(w/2,h/2,4,w/2,h/2,h*.5); gr.addColorStop(0,'rgba(255,255,255,.95)'); gr.addColorStop(.45,'rgba(255,255,255,.55)'); gr.addColorStop(1,'rgba(255,255,255,0)');
-  g.fillStyle=gr; g.fillRect(0,0,w,h); }))); }
+/* underglow as a real LED kit reads at night: strips hidden under the sills throw a soft pool that hugs the car's
+   footprint, brightest right under the sill line and dying out within a metre past the body; the middle stays
+   dark (the car is in the way), so the contact shadow still grounds it. Baked into a texture per body shape rather
+   than real lights (threejs-lighting: limit light count, bake where you can), tone-mapped so it never blows the bloom. */
+const UG_TEX={}, UG_MAT={}, UG_STRIP={};
+function underglowTex(B){ const W=B.w+2.6, L=B.front+B.rear+1.6, k=B.w.toFixed(2)+'|'+L.toFixed(2); if(UG_TEX[k]) return UG_TEX[k];
+  const hx=B.w/2-.14, hz=(B.front+B.rear)/2-.45, cw=64, ch=160;
+  return UG_TEX[k]=CT(canvasTex(cw,ch,(g,w,h)=>{ const im=g.createImageData(w,h);
+    for(let j=0;j<h;j++) for(let i=0;i<w;i++){ const x=((i+.5)/w-.5)*W, z=((j+.5)/h-.5)*L, ax=Math.abs(x), az=Math.abs(z);
+      const dx=ax-hx, dz=az-hz, out=Math.hypot(Math.max(dx,0),Math.max(dz,0));        // distance past the sill line
+      const sill=Math.exp(-dx*dx/(2*.42*.42));                                              // strips run along the sides
+      const ends=clamp((hz+.55-az)/.9,0,1);                                               // and stop short of the bumpers
+      const a=clamp((.16+.84*sill)*(.35+.65*ends)*Math.exp(-out/.62),0,1);
+      im.data.set([255,255,255,Math.round(255*a*a*(3-2*a))],(j*w+i)*4); }
+    g.putImageData(im,0,0); })); }
+function underglowMats(c,tex){ const k=c.getHexString()+'|'+tex.uuid; if(!UG_MAT[k]){
+    UG_MAT[k]=new THREE.MeshBasicMaterial({map:tex,color:c.clone().multiplyScalar(.8),transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3});
+    UG_STRIP[k]=new THREE.MeshBasicMaterial({color:c,toneMapped:false}); } // the strip itself is the one authored emissive bit
+  return [UG_MAT[k],UG_STRIP[k]]; }
 // add the street pieces to a built car group. flank(sd,z) -> side-surface points (bottom to top) where a decal sits at station z
 function streetStyle(g,def,B,cid,flank){
   const st=STREET[cid]; if(!st) return;
-  if(st.glow){ const c=new THREE.Color(st.glow);
-    const pad=new THREE.Mesh(new THREE.PlaneGeometry(B.w+1.2,(B.front+B.rear)*1.05),new THREE.MeshBasicMaterial({map:underglowTex(),color:c,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
-    pad.rotation.x=-Math.PI/2; pad.position.set(0,.03,(B.front-B.rear)/2); pad.renderOrder=2; g.add(pad);
-    const neon=new THREE.MeshBasicMaterial({color:c,toneMapped:false});
-    [1,-1].forEach(sd=>{ const n=new THREE.Mesh(new THREE.BoxGeometry(.03,.02,B.wb*2-B.wr*2-.4),neon); n.position.set(sd*(B.w/2-.1),.1,0); g.add(n); }); }
+  if(st.glow){ const c=new THREE.Color(st.glow), [poolM,stripM]=underglowMats(c,underglowTex(B));
+    const pool=new THREE.Mesh(new THREE.PlaneGeometry(B.w+2.6,B.front+B.rear+1.6),poolM);
+    pool.rotation.x=-Math.PI/2; pool.position.set(0,.028,(B.front-B.rear)/2); pool.renderOrder=2; g.add(pool);
+    // the LED strips: tucked under the sills between the wheels, seen only from low angles and as a thin edge line
+    const len=Math.max(.6,B.wb*2-B.wr*2-.5);
+    [1,-1].forEach(sd=>{ const n=new THREE.Mesh(new THREE.BoxGeometry(.035,.018,len),stripM); n.position.set(sd*(B.w/2-.16),Math.max(.09,B.base-.05),0); g.add(n); }); }
   if(st.vinyl&&VINYLS[st.vinyl]){ const z0=-B.wb+B.wr+.16, z1=B.wb-B.wr-.16, n=14;
     [1,-1].forEach(sd=>{ const pos=[],uv=[],idx=[];
       for(let i=0;i<=n;i++){ const z=z0+(z1-z0)*i/n, pts=flank(sd,z), u=sd>0?1-i/n:i/n; // right flank: nose at canvas left
@@ -1530,46 +1556,107 @@ function roadStuds(tr,S,offs,col,every){ const mat=new THREE.MeshBasicMaterial({
 
 /* ---- Event 01: Harbor Line tunnel ---- */
 function buildTunnel(){
+  /* Event 01, rebuilt as a real immersed-tube road tunnel. Borrowed from the vetted blender-skills (ideas only, no code):
+     product-polish -> a key/fill/rim/bounce rig and no noisy normal maps on glossy surfaces (they read as dotty reflections);
+     polyhaven-studio-setup -> light and reflect from an environment map (ENV.tunnel, baked from the tube's own strips);
+     polyhaven-texture-apply -> full PBR sets on the big surfaces (glazed tile, painted concrete, ribbed soffit).
+     Adapted to r128 with the threejs-lighting/materials/textures skills: canvas PBR maps, data maps left linear, instancing. */
   const ctrl=[[0,0,0],[0,0,-260],[60,6,-420],[220,10,-470],[380,6,-400],[430,0,-240],[360,-4,-80],[420,0,80],[380,6,240],[220,10,300],[60,4,260],[-40,0,140]].map(p=>new THREE.Vector3(p[0],p[1],p[2]));
   const curve=new THREE.CatmullRomCurve3(ctrl,true,'centripetal');
   const tr=makeTrack(curve.getSpacedPoints(1600).slice(0,1600),8,7.5);
-  const W=tr.W,H=tr.H;
+  const W=tr.W,H=tr.H, WR=W+1.4, WL=W+.3; // walls: the service walkway on the +r side pushes that wall out
   const S=new THREE.Scene();
-  S.fog=new THREE.FogExp2(0x8a9cb4,0.0072); S.background=new THREE.Color(0x8a9cb4); S.environment=ENV.ice;
-  S.userData.bloom={strength:.45,radius:.4,threshold:.9};
-  S.add(new THREE.HemisphereLight(0xd6e4ff,0x0a0d12,.9));
-  const dl=new THREE.DirectionalLight(0xe8f0ff,.6); dl.position.set(0,1,.3); S.add(dl);
+  S.fog=new THREE.FogExp2(0x1a2029,.0052); S.background=new THREE.Color(0x0b0e13); S.environment=ENV.tunnel;
+  S.userData.bloom={strength:.62,radius:.45,threshold:.86};
+  // four-point rig: soft cool key from the strips overhead, faint fill, a rim from behind the cars, warm bounce off the road
+  S.add(new THREE.HemisphereLight(0xcfdcf0,0x2a2218,.62));
+  const key=new THREE.DirectionalLight(0xe8f0ff,.55); key.position.set(0,1,.15); S.add(key);
+  const rim=new THREE.DirectionalLight(0x9fc4ff,.35); rim.position.set(0,.4,-1); S.add(rim);
+  const dataTex=(c,rx,ry)=>{ const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; }; // linear: bump/roughness
+  const colTex=(c,rx,ry)=>{ const t=CT(c,true); t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; };                                        // sRGB: albedo/emissive
+  // ---- road: fresh asphalt, lane lines, no bump (product-polish: noisy normals on a glossy surface = dotty glints) ----
   const roadTex=CT(canvasTex(256,512,(g,w,h)=>{
-    g.fillStyle='#1a1d22'; g.fillRect(0,0,w,h);
-    for(let i=0;i<5000;i++){ const v=20+Math.random()*30; g.fillStyle=`rgba(${v},${v+3},${v+8},.6)`; g.fillRect(Math.random()*w,Math.random()*h,1.5,1.5); }
-    g.fillStyle='rgba(235,240,248,.85)'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h);
-    g.fillStyle='rgba(235,240,248,.7)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45));
-    g.fillStyle='rgba(0,0,0,.25)'; for(let i=0;i<6;i++) g.fillRect(w*(.2+i*.12),0,10,h);
-  }),true);
-  ribbon(tr,S,-W-.3,W+.3,.01,.01,wetRoad(new THREE.MeshStandardMaterial({map:roadTex,roughness:.55,metalness:.15,side:THREE.DoubleSide})),24); // glossier than this and the bright walls turn the bump map into blotches
-  const barrierM=new THREE.MeshStandardMaterial({color:0x14181e,roughness:.4,metalness:.5,side:THREE.DoubleSide});
-  const wallM=new THREE.MeshStandardMaterial({color:0xb2bfd0,roughness:.95,emissive:0x2a3444,side:THREE.DoubleSide});
-  const stripeM=new THREE.MeshBasicMaterial({color:0xe6f2ff,toneMapped:false,side:THREE.DoubleSide});
-  [-1,1].forEach(sd=>{ const o=sd*(W+.3), oi=sd*(W+.25);
-    ribbon(tr,S,o,o,0,1.1,barrierM); ribbon(tr,S,o,o,1.1,H,wallM); ribbon(tr,S,oi,oi,1.18,1.3,stripeM); });
-  ribbon(tr,S,-W-.3,W+.3,H,H,new THREE.MeshBasicMaterial({color:0x030406,side:THREE.DoubleSide}));
+    g.fillStyle='#1b1e23'; g.fillRect(0,0,w,h);
+    for(let i=0;i<5000;i++){ const v=22+Math.random()*26; g.fillStyle=`rgba(${v},${v+2},${v+6},.5)`; g.fillRect(Math.random()*w,Math.random()*h,1.4,1.4); }
+    g.fillStyle='rgba(235,240,248,.88)'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h);
+    g.fillStyle='rgba(235,240,248,.72)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45));
+    g.fillStyle='rgba(0,0,0,.18)'; for(let i=0;i<6;i++) g.fillRect(w*(.2+i*.12),0,10,h); }),true);
+  ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughnessMap:WETMAPS.dry,roughness:.62,metalness:.1,envMapIntensity:.8,side:THREE.DoubleSide}),24);
+  // ---- walls: glazed white tile to 3.6 m with a harbor-blue band; painted concrete panels above; ribbed dark soffit ----
+  // ribbon UVs: u runs up the wall (yA->yB), v along the tube every vScale metres
+  const tileC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c4c9cf'; g.fillRect(0,0,w,h); const n=16, t=w/n;
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const v=196+((i*37+j*53)%9); g.fillStyle=`rgb(${v},${v+3},${v+7})`; g.fillRect(i*t+1,j*t+1,t-2,t-2); }
+    g.fillStyle='#1f5f8e'; g.fillRect(w*.24,0,t*1.2,h); g.fillStyle='#2a7ab0'; g.fillRect(w*.24+t*1.4,0,t*.35,h);                       // blue band, up the u axis
+    g.fillStyle='rgba(80,70,60,.18)'; g.fillRect(0,0,t*1.4,h); });                                                                          // road grime at the foot
+  const tileB=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h); g.fillStyle='#000'; const t=w/16; for(let i=0;i<=16;i++){ g.fillRect(i*t-1,0,2,h); g.fillRect(0,i*t-1,w,2); } });
+  const tileM=new THREE.MeshStandardMaterial({map:colTex(tileC),bumpMap:dataTex(tileB),bumpScale:.018,roughness:.36,metalness:0,envMapIntensity:.85,side:THREE.DoubleSide});
+  const panelC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#4a525c'; g.fillRect(0,0,w,h);
+    for(let i=0;i<900;i++){ const v=64+Math.random()*22; g.fillStyle=`rgba(${v},${v+6},${v+12},.35)`; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
+    g.fillStyle='#2a3038'; g.fillRect(0,0,w,3); g.fillRect(0,h/2-1,w,3);                                                                   // panel joints along the tube
+    g.fillStyle='rgba(20,22,26,.35)'; for(let k=0;k<5;k++) g.fillRect(Math.random()*w*.2,Math.random()*h,w*.18,8); });
+  const panelM=new THREE.MeshStandardMaterial({map:colTex(panelC),roughness:.85,metalness:.05,side:THREE.DoubleSide});
+  const soffitC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#15181d'; g.fillRect(0,0,w,h); g.fillStyle='#0b0d10'; for(let j=0;j<h;j+=32) g.fillRect(0,j,w,10);
+    g.fillStyle='#262b33'; g.fillRect(w*.28,0,6,h); g.fillRect(w*.72-6,0,6,h); });                                                           // rib joints across, cable runs along
+  const barrierM=new THREE.MeshStandardMaterial({color:0x2a2f36,roughness:.55,metalness:.3,side:THREE.DoubleSide});
+  const curbTopM=new THREE.MeshStandardMaterial({color:0x6b7078,roughness:.9,side:THREE.DoubleSide});
+  const railM=new THREE.MeshStandardMaterial({color:0xc9ced6,metalness:.85,roughness:.3,side:THREE.DoubleSide});
+  const glowLine=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false,side:THREE.DoubleSide});
+  [-1,1].forEach(sd=>{ const o=sd*(sd>0?WR:WL);
+    ribbon(tr,S,o,o,0,.35,barrierM);                  // kerb / plinth
+    ribbon(tr,S,o,o,.35,3.6,tileM,3.3);               // glazed tile
+    ribbon(tr,S,o,o,3.6,H,panelM,12);                 // painted panels
+    ribbon(tr,S,sd*(o*sd-.02),sd*(o*sd-.02),3.58,3.66,glowLine(0x9fd0ff)); // wall-wash line at the tile cap
+    ribbon(tr,S,sd*(o*sd-.35),sd*(o*sd-.02),H-1.05,H-1.05,barrierM);      // cable tray
+  });
+  // the service walkway: raised kerb, walking surface, a handrail on the wall
+  ribbon(tr,S,W+.3,W+.3,0,.3,curbTopM); ribbon(tr,S,W+.3,WR,.3,.3,curbTopM);
+  ribbon(tr,S,WR-.08,WR-.08,1.02,1.08,railM);
+  { const g=new THREE.MeshStandardMaterial({map:colTex(soffitC,1,1),roughness:.9,side:THREE.DoubleSide}); g.map.repeat.set(1,1); ribbon(tr,S,-WL,WR,H,H,g,8); }
   const f=mkF(), m4=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(1,1,1), p=new THREE.Vector3(), basis=new THREE.Matrix4(), nr=new THREE.Vector3();
+  // orientQ maps local +x to -r, so a wall plane on the -r wall faces +r with rotateY(-PI/2), and vice versa
+  const place=(arr,s,x,y,scale)=>{ frame(s,f,tr); orientQ(f,q,basis,nr); p.copy(f.p).addScaledVector(f.r,x); p.y+=y; m4.compose(p,q,scale||sc); arr.push(m4.clone()); };
+  const inst=(geo,mat,arr)=>{ if(!arr.length) return null; const im=new THREE.InstancedMesh(geo,mat,arr.length); arr.forEach((m,i)=>im.setMatrixAt(i,m)); S.add(im); return im; };
+  // ---- continuous LED strips (the key light), with their streaks on the road ----
   const lightM=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
-  const nStrip=Math.floor(tr.L/13), strips=new THREE.InstancedMesh(new THREE.BoxGeometry(.4,.08,8),lightM,nStrip*2);
-  let c=0; for(let i=0;i<nStrip;i++){ frame(i*13,f,tr); orientQ(f,q,basis,nr);
-    [-3.4,3.4].forEach(x=>{ p.copy(f.p).addScaledVector(f.r,x); p.y+=H-.08; m4.compose(p,q,sc); strips.setMatrixAt(c++,m4); }); }
-  S.add(strips);
-  { const st=[]; for(let i=0;i<nStrip;i++){ frame(i*13,f,tr); orientQ(f,q,basis,nr); [-3.4,3.4].forEach(x=>{ p.copy(f.p).addScaledVector(f.r,x); p.y+=.04; m4.compose(p,q,sc); st.push(m4.clone()); }); } lampStreaks(S,st,true); }
-  const nSl=Math.floor(tr.L/34), slits=new THREE.InstancedMesh(new THREE.BoxGeometry(.08,3.6,.7),lightM,nSl*2);
-  c=0; for(let i=0;i<nSl;i++){ frame(i*34+6,f,tr); orientQ(f,q,basis,nr);
-    [-(W+.2),W+.2].forEach(x=>{ p.copy(f.p).addScaledVector(f.r,x); p.y+=3.4; m4.compose(p,q,sc); slits.setMatrixAt(c++,m4); }); }
-  S.add(slits);
+  const strips=[], st=[]; for(let s=0;s<tr.L;s+=13) [-3.4,3.4].forEach(x=>{ place(strips,s,x,H-.08); place(st,s,x,.04); });
+  inst(new THREE.BoxGeometry(.4,.08,8),lightM,strips); lampStreaks(S,st,true);
+  // ---- tunnel furniture ----
+  const darkMetal=new THREE.MeshStandardMaterial({color:0x3a4048,metalness:.7,roughness:.4});
+  const fans=[], fanRings=[]; for(let s=60;s<tr.L-40;s+=150) [-2.2,2.2].forEach(x=>{ place(fans,s,x,H-1.1); place(fanRings,s-1.7,x,H-1.1); place(fanRings,s+1.7,x,H-1.1); });
+  inst(new THREE.CylinderGeometry(.62,.62,3.2,16).rotateX(Math.PI/2),darkMetal,fans);                        // jet fans, in pairs
+  inst(new THREE.TorusGeometry(.64,.07,6,20),new THREE.MeshStandardMaterial({color:0x8a939e,metalness:.8,roughness:.3}),fanRings);
+  const hangers=[]; for(let s=60;s<tr.L-40;s+=150) [-2.2,2.2].forEach(x=>place(hangers,s,x,H-.4)); inst(new THREE.BoxGeometry(.12,.7,.12),darkMetal,hangers);
+  // lane-control signals over each lane: green arrows (the left lane shows a yellow merge arrow near the bends)
+  const arrowT=(c,diag)=>CT(canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#050607'; g.fillRect(0,0,w,h); g.strokeStyle=c; g.lineWidth=7; g.lineCap='round';
+    g.beginPath(); if(diag){ g.moveTo(18,16); g.lineTo(46,46); g.moveTo(46,26); g.lineTo(46,46); g.lineTo(26,46); } else { g.moveTo(32,12); g.lineTo(32,50); g.moveTo(18,36); g.lineTo(32,50); g.lineTo(46,36); } g.stroke(); }));
+  const sigBox=[], sigG=[], sigY=[], sigBeam=[];
+  for(let s=110;s<tr.L-60;s+=230){ place(sigBeam,s,(WR-WL)/2,H-.9,new THREE.Vector3(1,1,1)); [-5.5,0,5.5].forEach((x,i)=>{ place(sigBox,s,x,H-1.55); place(i===0&&(Math.round(s/230)%2)?sigY:sigG,s-.18,x,H-1.55); }); }
+  inst(new THREE.BoxGeometry(2*W+1.2,.25,.3),darkMetal,sigBeam); inst(new THREE.BoxGeometry(1,1,.3),darkMetal,sigBox);
+  const sigGeo=new THREE.PlaneGeometry(.86,.86).rotateY(Math.PI); // faces oncoming traffic
+  inst(sigGeo,new THREE.MeshBasicMaterial({map:arrowT('#35ff7a'),toneMapped:false}),sigG); inst(sigGeo,new THREE.MeshBasicMaterial({map:arrowT('#ffc21a',true),toneMapped:false}),sigY);
+  // emergency exits on the left wall (green running-man boxes, door frames); SOS cabinets on the walkway side
+  const exitT=CT(canvasTex(128,48,(g,w,h)=>{ g.fillStyle='#0a8a3a'; g.fillRect(0,0,w,h); g.fillStyle='#eafff0'; g.font='900 26px "Arial Narrow",Arial,sans-serif'; g.textBaseline='middle'; g.fillText('EXIT',44,25);
+    g.lineWidth=4; g.strokeStyle='#eafff0'; g.lineCap='round'; g.beginPath(); g.arc(20,11,4,0,7); g.moveTo(20,16); g.lineTo(16,28); g.lineTo(24,40); g.moveTo(16,28); g.lineTo(8,38); g.moveTo(19,20); g.lineTo(28,24); g.moveTo(19,20); g.lineTo(10,22); g.stroke(); }));
+  const sosT=CT(canvasTex(64,96,(g,w,h)=>{ g.fillStyle='#ff7a14'; g.fillRect(0,0,w,h); g.fillStyle='#1a0c02'; g.font='900 22px Arial,sans-serif'; g.textAlign='center'; g.fillText('SOS',w/2,30); g.fillRect(14,44,36,40); g.fillStyle='#ffd2a0'; g.fillRect(20,50,24,8); }));
+  const doors=[], exitsS=[], sos=[];
+  for(let s=90;s<tr.L-40;s+=180){ place(doors,s,-(WL-.05),1.25); place(exitsS,s,-(WL-.06),2.85); }
+  for(let s=45;s<tr.L-20;s+=120) place(sos,s,WR-.06,1.3);
+  inst(new THREE.PlaneGeometry(1.9,2.8).rotateY(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x22262c,roughness:.6,metalness:.5}),doors.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(.03,.1,0)))); // frame, just behind the door (local +x is toward this wall)
+  inst(new THREE.PlaneGeometry(1.5,2.5).rotateY(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x173326,roughness:.5,metalness:.4,emissive:0x04140a}),doors);
+  inst(new THREE.PlaneGeometry(1.3,.5).rotateY(-Math.PI/2),new THREE.MeshBasicMaterial({map:exitT,toneMapped:false}),exitsS);
+  inst(new THREE.PlaneGeometry(.64,.96).rotateY(Math.PI/2),new THREE.MeshBasicMaterial({map:sosT,toneMapped:false}),sos);
+  // distance markers every 100 m on the tile (upper right)
+  const dm=[]; for(let s=100;s<tr.L;s+=100) dm.push(s);
+  dm.forEach(s=>{ frame(s,f,tr); orientQ(f,q,basis,nr); const m=new THREE.Mesh(new THREE.PlaneGeometry(.9,.5),new THREE.MeshBasicMaterial({map:CT(signCanvas(String(s),{w:128,h:64,bg:'#101418',color:'#dfe8f2',size:40}))}));
+    m.position.copy(f.p).addScaledVector(f.r,WR-.07); m.position.y+=2.6; m.quaternion.copy(q); m.rotateY(Math.PI/2); S.add(m); });
+  // ---- start gantry and grid ----
   frame(0,f,tr); orientQ(f,q,basis,nr);
   const gan=new THREE.Mesh(new THREE.BoxGeometry(2*W,.35,.35),new THREE.MeshBasicMaterial({color:0xff2a3a,toneMapped:false}));
   gan.position.copy(f.p); gan.position.y+=H-.6; gan.quaternion.copy(q); S.add(gan);
   addStartLine(S,f,q,2*W);
-  return {scene:S,track:tr,traffic:[],cams:[],update:null};
+  return {scene:S,track:tr,traffic:[],cams:[],update:null,introCrane:true};
 }
+
 function addStartLine(S,f,q,w){
   const chk=new THREE.CanvasTexture(canvasTex(128,16,(g)=>{for(let x=0;x<16;x++)for(let y=0;y<2;y++){g.fillStyle=(x+y)%2?'#e8ecf2':'#111';g.fillRect(x*8,y*8,8,8);}}));
   const line=new THREE.Mesh(new THREE.PlaneGeometry(w,1.4),new THREE.MeshBasicMaterial({map:chk,transparent:true,opacity:.8}));
@@ -2744,6 +2831,35 @@ function loopPts(ctrl,yf){ const c=new THREE.CatmullRomCurve3(ctrl.map(p=>new TH
    Every team in town has a Crowd Roar pad in its colors; the ballpark fires off the fireworks on a lead change. */
 const SPORTS={birds:{css:'#18b3a6',c:0x18b3a6,chant:'GO BIRDS'},phils:{css:'#e81828',c:0xe81828,chant:'RING THE BELL'},sixers:{css:'#1d6fd6',c:0x1d6fd6,chant:'TRUST THE PROCESS'},
   flyers:{css:'#f74902',c:0xf74902,chant:'LET\'S GO FLYERS'},union:{css:'#d8bf7a',c:0xd8bf7a,chant:'DOOP DOOP DOOP'}};
+// real team palettes for the buildings (SPORTS.*.c stays the bright pad / firework colour)
+const TEAM_PAL={sixers:['#006bb6','#ed174c','#ffffff'],flyers:['#f74902','#0b0b0d','#ffffff'],birds:['#004c54','#a5acaf','#0b0b0d'],phils:['#e81828','#002d72','#ffffff']};
+/* stadium marks: close to each club's look (colours, shapes, lettering style) without copying the actual logos */
+const EMBLEM_CACHE={};
+function teamEmblem(team){ if(EMBLEM_CACHE[team]) return EMBLEM_CACHE[team]; const P=TEAM_PAL[team];
+  return EMBLEM_CACHE[team]=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#05070a'; g.fillRect(0,0,w,h); const cx=w/2, cy=h/2;
+    const star=(x,y,r,c)=>{ g.fillStyle=c; g.beginPath(); for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.45:r; g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); } g.closePath(); g.fill(); };
+    if(team==='sixers'){ // blue ball, red seams, ring of stars, "76"
+      g.fillStyle=P[0]; g.beginPath(); g.arc(cx,cy,104,0,7); g.fill(); g.strokeStyle=P[2]; g.lineWidth=6; g.stroke();
+      for(let i=0;i<13;i++){ const a=i/13*Math.PI*2-Math.PI/2; star(cx+Math.cos(a)*86,cy+Math.sin(a)*86,9,P[2]); }
+      g.fillStyle=P[1]; g.beginPath(); g.arc(cx,cy,62,0,7); g.fill(); g.strokeStyle='#0b0b0d'; g.lineWidth=3; g.beginPath(); g.moveTo(cx-62,cy); g.lineTo(cx+62,cy); g.moveTo(cx,cy-62); g.lineTo(cx,cy+62); g.stroke();
+      g.fillStyle=P[2]; g.font='900 64px "Arial Black",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('76',cx,cy+4); }
+    else if(team==='flyers'){ // orange "P" on its side with speed wings and a dot
+      g.fillStyle=P[1]; g.beginPath(); g.arc(cx,cy,110,0,7); g.fill(); g.strokeStyle=P[0]; g.lineWidth=5; g.stroke();
+      g.fillStyle=P[0]; for(let k=0;k<4;k++){ g.beginPath(); g.moveTo(34+k*6,96+k*22); g.lineTo(150,96+k*22); g.lineTo(150,110+k*22); g.lineTo(46+k*6,110+k*22); g.closePath(); g.fill(); }
+      g.beginPath(); g.moveTo(120,60); g.lineTo(186,60); g.bezierCurveTo(232,60,232,150,186,150); g.lineTo(150,150); g.lineTo(150,200); g.lineTo(120,200); g.closePath(); g.fill();
+      g.fillStyle=P[1]; g.beginPath(); g.arc(172,105,22,0,7); g.fill(); g.fillStyle=P[0]; g.beginPath(); g.arc(172,105,11,0,7); g.fill(); }
+    else if(team==='birds'){ // midnight green disc, silver-white eagle head in profile facing left
+      g.fillStyle=P[0]; g.beginPath(); g.arc(cx,cy,110,0,7); g.fill(); g.strokeStyle=P[1]; g.lineWidth=7; g.stroke();
+      g.fillStyle='#f4f7f6'; g.beginPath(); g.moveTo(46,122); g.bezierCurveTo(70,78,120,56,168,62); g.bezierCurveTo(200,66,214,92,206,120);
+      g.lineTo(226,150); g.bezierCurveTo(200,146,190,176,196,206); g.bezierCurveTo(150,186,118,160,100,148); g.lineTo(46,150); g.bezierCurveTo(60,140,62,130,46,122); g.closePath(); g.fill();
+      g.fillStyle=P[1]; g.beginPath(); g.moveTo(46,122); g.lineTo(96,128); g.lineTo(46,150); g.bezierCurveTo(60,140,62,130,46,122); g.fill(); // beak
+      g.fillStyle=P[0]; g.beginPath(); g.moveTo(104,98); g.lineTo(138,92); g.lineTo(118,108); g.closePath(); g.fill(); // eye
+      g.strokeStyle=P[1]; g.lineWidth=4; for(let k=0;k<3;k++){ g.beginPath(); g.moveTo(150+k*14,112+k*6); g.lineTo(210-k*4,130+k*14); g.stroke(); } }
+    else { // phils: cream field, red script-style P, navy star
+      g.fillStyle='#f6f1e6'; g.beginPath(); g.arc(cx,cy,110,0,7); g.fill(); g.strokeStyle=P[1]; g.lineWidth=6; g.stroke();
+      g.save(); g.translate(cx+6,cy+10); g.transform(1,0,-.28,1,0,0); g.fillStyle=P[0]; g.font='italic 900 190px Georgia,"Times New Roman",serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('P',0,0); g.restore();
+      star(cx+44,cy-30,18,P[1]); }
+  }); }
 function padCanvas(team){ const T=SPORTS[team]; return canvasTex(256,256,(g,w,h)=>{ g.fillStyle='rgba(0,0,0,0)'; g.clearRect(0,0,w,h);
   g.strokeStyle=T.css; g.lineWidth=10; g.shadowColor=T.css; g.shadowBlur=18; g.strokeRect(12,12,w-24,h-24);
   g.fillStyle=T.css; for(let k=0;k<3;k++){ const y=190-k*58; g.beginPath(); g.moveTo(40,y); g.lineTo(128,y-44); g.lineTo(216,y); g.lineTo(216,y-16); g.lineTo(128,y-60); g.lineTo(40,y-16); g.closePath(); g.fill(); } }); }
@@ -2757,12 +2873,30 @@ function buildGameNight(){
   const lotM=new THREE.MeshStandardMaterial({color:0x1b1e24,roughness:.8}), concrete=new THREE.MeshStandardMaterial({color:0x6c7078,roughness:.9,side:THREE.DoubleSide});
   const glowM=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false}), ringM=(c,y,R,g,r)=>{ const t=K.mesh(new THREE.TorusGeometry(R,r||.6,6,72),glowM(c),g.x,y,g.z); t.rotation.x=Math.PI/2; return t; };
   const mast=(x,z,h,c)=>{ K.box(1.2,h,1.2,concrete,x,h/2,z); K.box(7,3.4,1,glowM(0xf4f8ff),x,h,z); K.glow(c||0xeaf4ff,20,x,h,z); };
-  // ---- the arena (Sixers + Flyers), with the ice tunnel under its loading deck on Zinkoff ----
-  const A={x:225,z:200};
-  K.mesh(new THREE.CylinderGeometry(72,74,26,48),new THREE.MeshStandardMaterial({color:0x232a36,roughness:.6,metalness:.3}),A.x,13,A.z);
-  K.mesh(new THREE.SphereGeometry(74,40,10,0,Math.PI*2,0,.42),new THREE.MeshStandardMaterial({color:0x3a4250,roughness:.5,metalness:.4}),A.x,-2,A.z).scale.y=.55;
-  ringM(SPORTS.flyers.c,24.5,74.4,A,.7); ringM(SPORTS.sixers.c,15,74.6,A,.5); ringM(0xed174c,8,74.6,A,.35);
-  K.sign(signCanvas2('THE ARENA','SIXERS · FLYERS · TONIGHT',{bg:'#0b1220',color:'#f74902'}),30,9,A.x-74.5,15,A.z,-Math.PI/2);
+  // ---- helpers: rounded-rectangle footprints extruded upward, facade textures with lit concourses ----
+  const rrShape=(w,d,r)=>{ const sh=new THREE.Shape(), x=w/2, z=d/2; sh.moveTo(-x+r,-z); sh.lineTo(x-r,-z); sh.quadraticCurveTo(x,-z,x,-z+r); sh.lineTo(x,z-r); sh.quadraticCurveTo(x,z,x-r,z);
+    sh.lineTo(-x+r,z); sh.quadraticCurveTo(-x,z,-x,z-r); sh.lineTo(-x,-z+r); sh.quadraticCurveTo(-x,-z,-x+r,-z); return sh; };
+  const upExtrude=(sh,h)=>{ const g=new THREE.ExtrudeGeometry(sh,{depth:h,bevelEnabled:false,curveSegments:10}); g.rotateX(-Math.PI/2); return g; }; // footprint in x/z, rises 0..h
+  const ribbon=(w,d,r,t,y,col)=>{ const o=rrShape(w+t,d+t,r+t/2); o.holes.push(rrShape(w-.2,d-.2,r)); const m=new THREE.Mesh(upExtrude(o,.9),glowM(col)); return m; };
+  const facade=(draw,rx,ry)=>{ const map=CT(canvasTex(256,128,(g,w,h)=>draw(g,w,h,false)),true), em=CT(canvasTex(256,128,(g,w,h)=>draw(g,w,h,true)),true);
+    [map,em].forEach(t=>t.repeat.set(rx,ry)); return {map,em}; };
+  const screen=(x,y,z,w,h,ry,tex)=>{ const m=K.mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}),x,y,z); m.rotation.y=ry; return m; };
+  // ---- the arena (Sixers + Flyers): rounded glass-and-stone box, LED ribbons, corner screens; the ice tunnel under its loading deck on Zinkoff ----
+  const A={x:225,z:200}, AW=128, AD=100, AR=22;
+  const glassF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':'#0d1624'; g.fillRect(0,0,w,h);
+    g.fillStyle=em?'#ffd9a0':'#3a4a60'; g.fillRect(0,h*.22,w,h*.42); if(em){ g.fillStyle='#fff1d6'; for(let i=0;i<14;i++) g.fillRect(Math.random()*w,h*.3,6+Math.random()*10,h*.26); }
+    g.fillStyle=em?'#000':'#1a2230'; for(let x=0;x<w;x+=16) g.fillRect(x,0,3,h); },1/16,1/10);
+  const stoneF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':'#b8a88c'; g.fillRect(0,0,w,h); if(em) return; g.fillStyle='rgba(60,50,40,.35)'; for(let y=0;y<h;y+=16) g.fillRect(0,y,w,2); for(let x=0;x<w;x+=64) g.fillRect(x,0,2,h); },1/24,1/18);
+  const lowBand=K.mesh(upExtrude(rrShape(AW,AD,AR),10),new THREE.MeshStandardMaterial({map:glassF.map,emissive:0xffffff,emissiveMap:glassF.em,emissiveIntensity:.9,roughness:.25,metalness:.5}),A.x,0,A.z);
+  K.mesh(upExtrude(rrShape(AW+3,AD+3,AR+1.5),18),new THREE.MeshStandardMaterial({map:stoneF.map,roughness:.85}),A.x,10,A.z);
+  K.mesh(upExtrude(rrShape(AW+6,AD+6,AR+3),1.4),new THREE.MeshStandardMaterial({color:0x1a1e25,roughness:.7,metalness:.3}),A.x,28,A.z); // flat roof with a lip
+  K.mesh(upExtrude(rrShape(AW-30,AD-30,AR),4),new THREE.MeshStandardMaterial({color:0x252a32,roughness:.8}),A.x,29.4,A.z);             // roof plant
+  [[TEAM_PAL.flyers[0],26.4],[TEAM_PAL.sixers[0],12.4],[TEAM_PAL.sixers[1],11.2]].forEach(([c,y])=>{ const r=ribbon(AW+3,AD+3,AR+1.5,.9,y,new THREE.Color(c)); r.position.set(A.x,y,A.z); S.add(r); });
+  const scrT={sixers:CT(teamEmblem('sixers')),flyers:CT(teamEmblem('flyers'))}, arenaScr=[];
+  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz],i)=>{ const x=A.x+sx*(AW/2-AR*.29+3.6), z=A.z+sz*(AD/2-AR*.29+3.6); // clear of the curved corner (a flat panel's edges sag ~1.2 m into it)
+    arenaScr.push(screen(x,19,z,15,15,Math.atan2(sx,sz),i%2?scrT.flyers:scrT.sixers)); });
+  K.sign(signCanvas2('SOUTH PHILLY ARENA','SIXERS · FLYERS · TONIGHT',{bg:'#0b1220',color:TEAM_PAL.flyers[0]}),40,9,A.x-AW/2-1.6,19,A.z,-Math.PI/2);
+  K.sign(signCanvas2('THE ARENA','HOME OF THE SIXERS & FLYERS',{bg:'#0b1220',color:'#9fc8ff'}),40,9,A.x,19,A.z+AD/2+1.6,0);
   const deckM=new THREE.MeshStandardMaterial({color:0x2a2f38,roughness:.7,metalness:.3});
   K.box(140,1.6,34,deckM,235,7.6,340); K.box(140,.3,1,glowM(0x6fd8ff),235,6.7,324); K.box(140,.3,1,glowM(0x6fd8ff),235,6.7,356);
   for(let x=170;x<=300;x+=26) [324,356].forEach(z=>K.box(1.4,7,1.4,concrete,x,3.5,z));
@@ -2773,24 +2907,65 @@ function buildGameNight(){
   iceTex.repeat.set(1,6);
   const ice=K.flat(175,295,333,347,.03,new THREE.MeshStandardMaterial({map:iceTex,roughness:.04,metalness:.25,transparent:true,opacity:.82,envMapIntensity:2})); ice.material.map.rotation=Math.PI/2;
   K.sign(signCanvas2('ZAMBONI TUNNEL','ICE ON THE ROAD · EASY ON IT',{bg:'#0a1a2a',color:'#bfeaff'}),14,4.4,165,4.6,340,-Math.PI/2);
-  // ---- the football stadium (Birds): open bowl, swooping canopy wings, six light masts ----
-  const L={x:640,z:250};
-  K.mesh(new THREE.CylinderGeometry(80,80,24,56,1,true),new THREE.MeshStandardMaterial({color:0x2a3440,roughness:.7,side:THREE.DoubleSide}),L.x,12,L.z);
-  K.mesh(new THREE.CylinderGeometry(78,44,21,56,1,true),new THREE.MeshStandardMaterial({color:0x0b3a3f,roughness:.8,side:THREE.DoubleSide}),L.x,12.5,L.z);
-  ringM(SPORTS.birds.c,24,80.4,L,.8); ringM(0xc0c8d0,10,80.4,L,.35);
-  const field=K.mesh(new THREE.CircleGeometry(44,40),new THREE.MeshStandardMaterial({color:0x1f7a3a,emissive:0x0c4a1e,emissiveIntensity:1.3,roughness:.9}),L.x,2,L.z); field.rotation.x=-Math.PI/2; field.scale.set(.62,1,1);
-  [-1,1].forEach(sd=>{ const wing=K.mesh(new THREE.CylinderGeometry(96,96,10,32,1,true,sd>0?-.55:Math.PI-.55,1.1),new THREE.MeshStandardMaterial({color:0x9aa6b0,metalness:.6,roughness:.3,side:THREE.DoubleSide,emissive:0x0a3a3c}),L.x,34,L.z); wing.rotation.z=sd*.12; });
-  for(let k=0;k<6;k++){ const a=k/6*Math.PI*2+.26; mast(L.x+Math.cos(a)*74,L.z+Math.sin(a)*74,40); }
-  K.sign(signCanvas2('GO BIRDS','E · A · G · L · E · S',{bg:'#003a40',color:'#dff7f4'}),34,10,L.x,30,L.z-80.6,Math.PI);
-  // ---- the ballpark (Phils): a fan of seats around the diamond, and the neon Liberty Bell that swings ----
-  // home plate at B, the field fans out north (theta around PI in three's cylinder angles), the seats wrap the plate to the south
-  const B={x:620,z:-110}, seatM=new THREE.MeshStandardMaterial({color:0x3a1820,roughness:.8,side:THREE.DoubleSide});
+  // ---- the football stadium (Birds): oval bowl in midnight-green glass, the two swept silver wing canopies over the
+  //      sidelines, end-zone video boards, a striped field with green end zones ----
+  const L={x:640,z:250}, LA=96, LB=74, bowlH=26;
+  const greenF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':TEAM_PAL.birds[0]; g.fillRect(0,0,w,h); g.fillStyle=em?'#0a3a36':'#0f6a70'; g.fillRect(0,h*.15,w,h*.55);
+    if(em){ g.fillStyle='#bff3ea'; for(let i=0;i<10;i++) g.fillRect(Math.random()*w,h*.25,5,h*.3); }
+    g.fillStyle=em?'#000':'#a5acaf'; for(let x=0;x<w;x+=22) g.fillRect(x,0,4,h); },40,1);
+  { const f=new THREE.CylinderGeometry(1,1,bowlH,72,1,true); f.scale(LA,1,LB); K.mesh(f,new THREE.MeshStandardMaterial({map:greenF.map,emissive:0xffffff,emissiveMap:greenF.em,emissiveIntensity:.8,roughness:.35,metalness:.5,side:THREE.DoubleSide}),L.x,bowlH/2,L.z);
+    const seats=new THREE.CylinderGeometry(.97,.6,bowlH-2,72,1,true); seats.scale(LA,1,LB); K.mesh(seats,new THREE.MeshStandardMaterial({color:0x1d4a4e,roughness:.85,side:THREE.DoubleSide}),L.x,bowlH/2+1,L.z);
+    const rim=new THREE.TorusGeometry(1,.012,6,96); rim.rotateX(Math.PI/2); rim.scale(LA+.4,1,LB+.4); [[bowlH,SPORTS.birds.c],[9,0xc8d0d6]].forEach(([y,c])=>K.mesh(rim.clone(),glowM(c),L.x,y,L.z)); }
+  { const fc=canvasTex(512,224,(g,w,h)=>{ for(let i=0;i<12;i++){ g.fillStyle=i%2?'#1e7a38':'#228a40'; g.fillRect(i*w/12,0,w/12+1,h); }
+      g.fillStyle=TEAM_PAL.birds[0]; g.fillRect(0,0,w*.09,h); g.fillRect(w*.91,0,w*.09,h);
+      g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=2; g.strokeRect(2,6,w-4,h-12); for(let i=1;i<10;i++){ const x=w*.09+i*w*.082; g.beginPath(); g.moveTo(x,6); g.lineTo(x,h-6); g.stroke(); }
+      g.fillStyle='#f4f7f6'; g.font='900 30px "Arial Black",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      [[w*.045,-1],[w*.955,1]].forEach(([x,r])=>{ g.save(); g.translate(x,h/2); g.rotate(r*Math.PI/2); g.fillText('BIRDS',0,0); g.restore(); });
+      g.drawImage(teamEmblem('birds'),w/2-44,h/2-44,88,88); });
+    const field=K.mesh(new THREE.PlaneGeometry(112,49),new THREE.MeshStandardMaterial({map:CT(fc),emissive:0xffffff,emissiveMap:CT(fc),emissiveIntensity:.35,roughness:.9}),L.x,1.2,L.z); field.rotation.x=-Math.PI/2; }
+  // the wings: a silver canopy over each sideline that sweeps up at both ends (the Linc's signature silhouette)
+  { const wingM=new THREE.MeshStandardMaterial({color:0xb4bcc4,metalness:.75,roughness:.28,side:THREE.DoubleSide,emissive:0x0c2a2c});
+    [-1,1].forEach(sd=>{ const n=28, pos=[], idx=[], edge=[];
+      for(let i=0;i<=n;i++){ const u=i/n*2-1, x=L.x+u*LA*.92, lift=u*u;
+        pos.push(x,bowlH+2+lift*9,L.z+sd*(LB*.62-lift*6), x,bowlH+7+lift*16,L.z+sd*(LB+6-lift*10)); edge.push(new THREE.Vector3(x,bowlH+2+lift*9,L.z+sd*(LB*.62-lift*6)));
+        if(i<n){ const a=i*2; idx.push(a,a+1,a+2,a+1,a+3,a+2); } }
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g,wingM));
+      S.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge),48,.45,6,false),glowM(SPORTS.birds.c))); // lit leading edge
+      for(let u=-.7;u<=.71;u+=.35){ const x=L.x+u*LA*.92; K.box(1.2,bowlH+8,1.2,wingM,x,(bowlH+8)/2,L.z+sd*(LB+3)); } }); }
+  { const eb=CT(canvasTex(512,224,(g,w,h)=>{ g.fillStyle='#05070a'; g.fillRect(0,0,w,h); g.drawImage(teamEmblem('birds'),14,12,200,200);
+      g.fillStyle='#f4f7f6'; g.font='900 52px "Arial Narrow",Arial,sans-serif'; g.textAlign='left'; g.textBaseline='middle'; g.fillText('GO BIRDS',228,88,270);
+      g.fillStyle='#a5acaf'; g.font='800 28px "Arial Narrow",Arial,sans-serif'; g.fillText('FLY · EAGLES · FLY',236,150); }));
+    [-1,1].forEach(sd=>{ const x=L.x+sd*(LA-8); screen(x,bowlH+10,L.z,30,13,sd>0?-Math.PI/2:Math.PI/2,eb); [-10,10].forEach(o=>K.box(1,bowlH+4,1,concrete,x+sd*.8,(bowlH+4)/2,L.z+o)); }); }
+  for(let k=0;k<6;k++){ const a=k/6*Math.PI*2+.26; mast(L.x+Math.cos(a)*(LA+10),L.z+Math.sin(a)*(LB+10),44); }
+  K.sign(signCanvas2('GO BIRDS','E · A · G · L · E · S',{bg:'#003a40',color:'#dff7f4'}),30,9,L.x,bowlH-9,L.z-LB-1.2,Math.PI); // on the facade, under the wing
+  // ---- the ballpark (Phils): red brick wall with arches, red seats around the plate, the diamond, a navy outfield wall,
+  //      the scoreboard in left-center and the neon Liberty Bell that swings on a lead change ----
+  // home plate at B, the field fans out toward -z (theta around PI in three's cylinder angles; CircleGeometry/RingGeometry
+  // angles live in the xy plane, so the same direction is theta PI/2 there), the seats wrap the plate on the +z side
+  const B={x:620,z:-110}, seatM=new THREE.MeshStandardMaterial({color:0x5e0c16,roughness:.8,side:THREE.DoubleSide});
+  const brickF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':'#7a2a1e'; g.fillRect(0,0,w,h); if(!em){ g.fillStyle='rgba(30,10,8,.35)'; for(let y=0;y<h;y+=6) g.fillRect(0,y,w,1); }
+      for(let x=18;x<w;x+=64){ g.fillStyle=em?'#ffcf9a':'#2a0c0a'; g.beginPath(); g.moveTo(x,h); g.lineTo(x,h*.45); g.arc(x+14,h*.45,14,Math.PI,0); g.lineTo(x+28,h); g.fill(); } },26,1);
+  K.mesh(new THREE.CylinderGeometry(73,73,22,48,1,true,-.66*Math.PI,1.32*Math.PI),new THREE.MeshStandardMaterial({map:brickF.map,emissive:0xffffff,emissiveMap:brickF.em,emissiveIntensity:.8,roughness:.9,side:THREE.DoubleSide}),B.x,11,B.z);
   K.mesh(new THREE.CylinderGeometry(70,32,20,40,1,true,-.66*Math.PI,1.32*Math.PI),seatM,B.x,10,B.z);
   K.mesh(new THREE.CylinderGeometry(112,104,7,30,1,true,.76*Math.PI,.48*Math.PI),seatM,B.x,3.5,B.z); // outfield bleachers
-  { const rim=new THREE.Mesh(new THREE.TorusGeometry(70,.5,6,60,1.32*Math.PI),glowM(SPORTS.phils.c)); rim.rotation.x=Math.PI/2; rim.rotation.z=.5*Math.PI-.66*Math.PI; rim.position.set(B.x,20,B.z); S.add(rim); }
-  const grass=K.mesh(new THREE.CircleGeometry(100,40,.75*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({color:0x216e36,emissive:0x0f4a20,emissiveIntensity:1.3,roughness:.9}),B.x,.4,B.z); grass.rotation.x=-Math.PI/2;
-  const dirt=K.flat(-14,14,-14,14,.5,new THREE.MeshStandardMaterial({color:0x7a4a2a,emissive:0x2a1406,roughness:1})); dirt.position.set(B.x,.5,B.z-20); dirt.rotation.y=Math.PI/4;
-  [-.6,-.3,.3,.6,.8,1.2].forEach(k=>{ const a=k*Math.PI; mast(B.x+Math.sin(a)*(k>.7?118:80),B.z+Math.cos(a)*(k>.7?118:80),44,0xffe8e8); });
+  { const rim=new THREE.Mesh(new THREE.TorusGeometry(73.2,.5,6,60,1.32*Math.PI),glowM(SPORTS.phils.c)); rim.rotation.x=Math.PI/2; rim.rotation.z=.5*Math.PI-.66*Math.PI; rim.position.set(B.x,22,B.z); S.add(rim); }
+  { const stripes=CT(canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#1f7436'; g.fillRect(0,0,w,h); g.fillStyle='#248440'; g.fillRect(0,0,w/2,h); }),true); stripes.repeat.set(10,10);
+    const grass=K.mesh(new THREE.CircleGeometry(100,40,.25*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({map:stripes,emissive:0x0f4a20,emissiveIntensity:1.1,roughness:.9}),B.x,.4,B.z); grass.rotation.x=-Math.PI/2;
+    const track=K.mesh(new THREE.RingGeometry(95,100,40,1,.25*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({color:0x7a4a2a,emissive:0x2a1406,roughness:1}),B.x,.45,B.z); track.rotation.x=-Math.PI/2; }
+  // infield: dirt diamond, grass square, bases, mound (home at B, second base 38 m out along -z)
+  { const dirtM=new THREE.MeshStandardMaterial({color:0x8a5530,emissive:0x2a1406,roughness:1});
+    const dirt=K.mesh(new THREE.CircleGeometry(36,32,.25*Math.PI,.5*Math.PI),dirtM,B.x,.5,B.z); dirt.rotation.x=-Math.PI/2;
+    const inf=K.flat(-13,13,-13,13,.55,new THREE.MeshStandardMaterial({color:0x248440,emissive:0x0f4a20,roughness:.9})); inf.position.set(B.x,.55,B.z-19.4); inf.rotation.y=Math.PI/4;
+    [[0,0],[19.4,-19.4],[0,-38.8],[-19.4,-19.4]].forEach(([x,z])=>K.box(.8,.12,.8,new THREE.MeshBasicMaterial({color:0xffffff}),B.x+x,.62,B.z+z));
+    const mound=K.mesh(new THREE.CylinderGeometry(2.8,3,.4,16),dirtM,B.x,.62,B.z-18.4); void mound; }
+  K.mesh(new THREE.CylinderGeometry(100.5,100.5,3,40,1,true,.75*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({color:0x14264a,roughness:.8,side:THREE.DoubleSide}),B.x,1.9,B.z); // padded outfield wall
+  [-.6,-.3,.3,.6,.8,1.2].forEach(k=>{ const a=k*Math.PI; mast(B.x+Math.sin(a)*(k>.7?118:82),B.z+Math.cos(a)*(k>.7?118:82),44,0xffe8e8); });
+  { const sa=.84*Math.PI, sx=B.x+124*Math.sin(sa), sz=B.z+124*Math.cos(sa), face=Math.atan2(B.x-sx,B.z-sz);
+    const sb=CT(canvasTex(512,256,(g,w,h)=>{ g.fillStyle='#07090c'; g.fillRect(0,0,w,h); g.drawImage(teamEmblem('phils'),14,20,210,210);
+      g.fillStyle='#f6f1e6'; g.font='italic 900 76px Georgia,"Times New Roman",serif'; g.textAlign='left'; g.textBaseline='middle'; g.fillText('Phils',240,86);
+      g.fillStyle=TEAM_PAL.phils[0]; g.font='800 26px "Arial Narrow",Arial,sans-serif'; g.fillText('RED OCTOBER · RING THE BELL',244,150);
+      g.fillStyle='#ffd23b'; g.font='800 22px "Courier New",monospace'; g.fillText('1 2 3 4 5 6 7 8 9  R H E',244,196); }));
+    const scr=screen(sx,32,sz,34,17,face,sb); void scr; [-12,12].forEach(o=>K.box(1.2,24,1.2,concrete,sx+Math.cos(face)*o,12,sz-Math.sin(face)*o)); }
   const bx=B.x+112*Math.sin(1.12*Math.PI), bz=B.z+112*Math.cos(1.12*Math.PI);
   const bellG=new THREE.Group(); bellG.position.set(bx,40,bz); S.add(bellG);
   K.box(1.6,40,1.6,concrete,bx,20,bz);
@@ -2798,7 +2973,7 @@ function buildGameNight(){
     g.beginPath(); g.moveTo(128,24); g.bezierCurveTo(70,30,74,120,56,176); g.lineTo(34,208); g.lineTo(222,208); g.lineTo(200,176); g.bezierCurveTo(182,120,186,30,128,24); g.stroke();
     g.beginPath(); g.arc(128,222,14,0,7); g.stroke(); g.beginPath(); g.moveTo(150,70); g.lineTo(138,120); g.lineTo(156,150); g.stroke(); })),transparent:true,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
   bell.position.y=-10; bellG.add(bell); bellG.rotation.y=Math.PI*.2;
-  K.sign(signCanvas2('THE BALLPARK','RING THE BELL',{bg:'#2a060a',color:'#ffd6d6'}),26,8,B.x,12,B.z+71,0);
+  K.sign(signCanvas2('THE BALLPARK','RING THE BELL',{bg:'#2a060a',color:'#ffd6d6'}),26,8,B.x,14,B.z+74,0);
   // ---- Crowd Roar pads: one lane each, so you pick your team ----
   const pads=[], padT={};
   const pad=(x,z,lane,team)=>{ const s=K.sNear(x,z); K.at(s,lane); const m=new THREE.Mesh(new THREE.PlaneGeometry(4.6,6),new THREE.MeshBasicMaterial({map:padT[team]||(padT[team]=CT(padCanvas(team))),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
@@ -2863,6 +3038,7 @@ function buildGameNight(){
     padT0+=dt; pads.forEach((p,i)=>{ p.m.material.opacity=.55+.45*Math.max(0,Math.sin(padT0*5-i)); });
     puffs.forEach(o=>{ o.t+=dt*.4; const k=o.t%1; o.s.position.set(o.base.x+k*2,o.base.y+k*7,o.base.z); o.s.material.opacity=.35*(1-k); o.s.scale.setScalar(2+k*5); });
     tents.forEach((t,i)=>{ t.material.emissiveIntensity=.3+.15*Math.sin(ghostT*2+i); });
+    const flip=Math.floor(ghostT/4)%2; arenaScr.forEach((m,i)=>{ const want=(i+flip)%2?scrT.flyers:scrT.sixers; if(m.material.map!==want){ m.material.map=want; m.material.needsUpdate=true; } });
   }
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],pads,surf:[{s0:K.sNear(176,340),s1:K.sNear(294,340),grip:.5,name:'ice'}]};
 }
@@ -5086,6 +5262,18 @@ function chaseCam(dt,r,inp){
   const h=78+26*(1-Math.exp(-r.v/75))+boost*8; // widens with speed, then levels off instead of fish-eyeing past 300 mph
   cam.fov=lerp(cam.fov,clamp(hfovToV(h),52,98),1-Math.exp(-dt*4)); cam.updateProjectionMatrix();
 }
+/* countdown reveal for boards that ask for it (EV.introCrane): the crane shot from the blender-skills set, adapted to a
+   road tube. Starts low in front of the car looking back at it, then rises and swings round into the chase position
+   by the time the lights go green, easing out so the hand-off to chaseCam is seamless. */
+const craneOff=new THREE.Vector3(), craneLook=new THREE.Vector3();
+function craneIntro(r){ const k=clamp(1-(countdown-.6)/3,0,1), e=k*k*(3-2*k); if(e>=1) return;
+  frame(r.dist,F); const pos=r.m.group.position, side=r.x>0?-1:1;
+  // orbit, don't cut: angle, radius and height ease separately so the camera swings round the car instead of through it
+  craneOff.subVectors(cam.position,pos); const endA=Math.atan2(craneOff.dot(F.r),craneOff.dot(F.t)), endR=Math.hypot(craneOff.dot(F.r),craneOff.dot(F.t)), endY=craneOff.y;
+  let startA=Math.atan2(side*3.2,9); if(Math.abs(endA-startA)>Math.PI) startA+=startA<endA?Math.PI*2:-Math.PI*2;
+  const ang=lerp(startA,endA,e), rad=Math.max(5.2,lerp(9.6,endR,e)), y=lerp(.45,endY,e*e);                  // low -> high: the crane move
+  cam.position.copy(pos).addScaledVector(F.t,Math.cos(ang)*rad).addScaledVector(F.r,Math.sin(ang)*rad); cam.position.y=pos.y+y;
+  craneLook.copy(pos); craneLook.y+=.8; tmpV.copy(craneLook).lerp(camLook,e); cam.lookAt(tmpV); }
 let shot=0;
 function cineCam(dt,r){
   frame(r.dist,F); const pos=r.m.group.position;
@@ -5180,6 +5368,7 @@ function loop(now){
         else ghostCar.group.visible=false; }
       const focus=EV.knockout&&player.out?(koLeader()||player):player;
       updateFx(sdt,focus); chaseCam(dt,focus,player.out?null:inp);
+      if(countdown>0&&EV.introCrane&&focus===player) craneIntro(player);
       if(EV.knockout&&KO&&KO.bannerT>0){ KO.bannerT-=dt; if(KO.bannerT<=0) $('#hRound').className='round'; }
       const place=standings().indexOf(player)+1, nOn=EV.knockout?koActive().length:racers.length;
       $('#hPos').innerHTML=`${place}<small>/${nOn}</small>`;

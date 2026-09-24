@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,300..900;1,62..125,300..900&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/afterhours.css?v=15">
+<link rel="stylesheet" href="css/afterhours.css?v=16">
 </head>
 <body>
 <canvas id="gl"></canvas>
@@ -59,6 +59,14 @@
   <div class="foot gfoot"><button class="cta" id="gStart">Start tournament</button></div>
 </section>
 
+<section id="tagteam" class="screen">
+  <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span id="tEv">Tag team</span><button id="tBack">Back</button></span></div>
+  <h1 class="hl ghl"><span class="k">Tag team</span><span>Pick your partner</span></h1>
+  <p class="gsub" id="tSub"></p>
+  <div class="gmaps tcars" id="tCars"></div>
+  <div class="foot gfoot"><button class="cta" id="tStart">Start tag team</button></div>
+</section>
+
 <section id="events" class="screen">
   <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span>Pick tonight's event</span><button id="eBack">Back</button></span></div>
   <h1 class="hl" id="eHead"></h1>
@@ -69,7 +77,7 @@
     <div class="specs" id="eSpecs"></div>
     <div class="rule"></div>
     <div class="caprow"><div><div class="cap" id="eCap"></div><div class="rivaln" id="eGhost"></div></div><div class="pg" id="ePg"></div></div>
-    <div class="actions"><div class="nav"><button id="ePrev" aria-label="Previous event">←</button><button id="eNext" aria-label="Next event">→</button></div><button class="cta" id="eGo">Race here</button></div>
+    <div class="actions"><div class="nav"><button id="ePrev" aria-label="Previous event">←</button><button id="eNext" aria-label="Next event">→</button></div><button class="cta ghost sm" id="eTag">Tag team</button><button class="cta" id="eGo">Race here</button></div>
   </div>
 </section>
 
@@ -81,11 +89,12 @@
   <div class="toast" id="hToast"></div>
   <div class="msg" id="hMsg"></div>
   <div class="round" id="hRound"></div>
+  <div class="tagbox" id="hTag"></div>
   <div class="turn" id="hTurn"></div>
   <div class="spd"><b id="hSpd">0</b><span>MPH</span><div class="stg" id="hStg"><i></i><i></i><i></i><i></i></div><div class="nb"><i id="hNos"></i></div><div class="fxl" id="hFx"></div></div>
   <div class="pads">
     <div class="grp"><button class="pad" data-k="left" aria-label="Steer left">◀</button><button class="pad" data-k="right" aria-label="Steer right">▶</button></div>
-    <div class="grp"><button class="pad sm" data-k="brake">Brake</button><button class="pad sm nos" data-k="nitro">Boost</button></div>
+    <div class="grp"><button class="pad sm tagb" id="tagBtn" aria-label="Tag your partner">Tag</button><button class="pad sm" data-k="brake">Brake</button><button class="pad sm nos" data-k="nitro">Boost</button></div>
   </div>
 </section>
 
@@ -120,6 +129,6 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="js/afterhours.js?v=19"></script>
+<script src="js/afterhours.js?v=20"></script>
 </body>
 </html>

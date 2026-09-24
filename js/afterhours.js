@@ -1502,6 +1502,13 @@ function ribbon(tr,S,offA,offB,yA,yB,mat,vScale){
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals();
   const m=new THREE.Mesh(g,mat); S.add(m); return m;
 }
+// raised pavement markers along the lane lines: tiny unlit studs that pick out the lanes at night. Keep their color
+// under the bloom threshold: a sub-pixel stud feeding the bloom mips smears into dark blocks around it
+const STUD_GEO=new THREE.BoxGeometry(.14,.04,.09), XAX=new THREE.Vector3(1,0,0);
+function roadStuds(tr,S,offs,col,every){ const mat=new THREE.MeshBasicMaterial({color:col,toneMapped:false}), step=Math.max(1,Math.round((every||12)/tr.ds)), q=new THREE.Quaternion(), rv=new THREE.Vector3(), one=new THREE.Vector3(1,1,1), arr=[];
+  for(let i=0;i<tr.N;i+=step){ const p=tr.pts[i], r=tr.R[i]; rv.set(r.x,0,r.z).normalize(); q.setFromUnitVectors(XAX,rv);
+    offs.forEach(o=>arr.push(new THREE.Matrix4().compose(new THREE.Vector3(p.x+r.x*o,p.y+.035,p.z+r.z*o),q,one))); }
+  return instAll(S,STUD_GEO,mat,arr); }
 
 /* ---- Event 01: Harbor Line tunnel ---- */
 function buildTunnel(){
@@ -1963,7 +1970,7 @@ const DOCKSIDE_CFG={banner:'EVENT 05 · DOCKSIDE DASH',start:[160,-340],
 /* Event 06: Center City mix with a raised skyline straight (≈4 km). */
 const SKYLINE_CFG={banner:'EVENT 06 · SKYLINE CIRCUIT',start:[40,20],
   corners:[[430,20,30],[430,-340,30],[-80,-340,30],[-80,470,30],[720,470,30],[720,20,30]],
-  yAt:(x,z)=>z>400&&x>-20&&x<760?12+(z-400)*.008:0, zMin:-1600, ZS:ZS_BASE.concat([470,560]), jerseyMaxX:820, noTraffic:true, skyline:true,
+  yAt:(x,z)=>{ const sm=(a,b,v)=>{ const t=clamp((v-a)/(b-a),0,1); return t*t*(3-2*t); }; return 12*sm(-40,130,x)*sm(250,420,z); }, /* ramps up South St and back down 6th St (was a 12 m step) */ zMin:-1600, ZS:ZS_BASE.concat([470,560]), jerseyMaxX:820, noTraffic:true, skyline:true,
   trackX:(x,zc)=>(x===-80&&zc>-340&&zc<470)||(x===430&&zc>-340&&zc<20)||(x===720&&zc>-340&&zc<470),
   trackZ:(z,xc)=>(z===20&&xc>-80&&xc<430)||(z===-340&&xc>-80&&xc<430)||(z===470&&xc>-80&&xc<720),
   skip:[], excl:[],
@@ -2142,6 +2149,7 @@ function buildCity(C){
     g.fillStyle='rgba(0,0,0,.22)'; for(let i=0;i<5;i++) g.fillRect(w*(.18+i*.15),0,12,h); }),true);
   const roadMat=wetRoad(new THREE.MeshStandardMaterial({map:roadTex,roughness:.45,metalness:.15,side:THREE.DoubleSide}));
   ribbon(tr,S,-W-.3,W+.3,.01,.01,roadMat,24);
+  roadStuds(tr,S,[.34,.66].map(u=>-W-.3+(2*W+.6)*u),0x9098a4,9);
   const walkM=new THREE.MeshStandardMaterial({color:0x3a3d44,roughness:.9,side:THREE.DoubleSide}), curbM=new THREE.MeshStandardMaterial({color:0x6e737c,roughness:.85,side:THREE.DoubleSide});
   [-1,1].forEach(sd=>{ ribbon(tr,S,sd*(W+.3),sd*(W+4.5),.16,.16,walkM); ribbon(tr,S,sd*(W+.3),sd*(W+.3),0,.16,curbM); });
   const addStart=()=>{ frame(0,f,tr); orientQ(f,q,basis,nr); addStartLine(S,f,q,2*W);
@@ -2373,7 +2381,7 @@ function buildCity(C){
     const blade=new THREE.Mesh(new THREE.PlaneGeometry(2.6,.5),new THREE.MeshBasicMaterial({map:CT(signCanvas(name,{bg:'#0f5a32',color:'#f4f7f2',size:54,weight:700})),side:THREE.DoubleSide}));
     blade.position.set(px,7.6,pz); blade.rotation.y=ry; S.add(blade); }
   C.roads.forEach(rd=>{ const lo=Math.min(rd.a,rd.b)+40, hi=Math.max(rd.a,rd.b)-40, names=rd.ew?NAMES_X:NAMES_Z, dir=rd.dir;
-    Object.keys(names).forEach(k=>{ const c=+k; if(c<=lo||c>=hi) return;
+    Object.keys(names).forEach(k=>{ const c=+k; if(c<=lo||c>=hi) return; if(C.yAt(rd.ew?c:rd.c,rd.ew?rd.c:c)>.5) return; // no street-level crossing under an elevated stretch
       if(rd.ew){ const xc=c, zc=rd.c; [xc-9,xc+9].forEach(x=>{ for(let z=zc-6.4;z<=zc+6.4;z+=1.25){ pv.set(x,.035,z); m4.compose(pv,new THREE.Quaternion(),one); zX.push(m4.clone()); } });
         signal(xc-dir*11,zc+dir*(W+3),dir,0,names[k]); }
       else { const xc=rd.c, zc=c; [zc-9,zc+9].forEach(z=>{ for(let x=xc-6.4;x<=xc+6.4;x+=1.25){ pv.set(x,.035,z); m4.compose(pv,new THREE.Quaternion(),one); zZ.push(m4.clone()); } });
@@ -2473,9 +2481,15 @@ function buildCity(C){
     const sg=mesh(new THREE.PlaneGeometry(8,1.6),new THREE.MeshBasicMaterial({map:CT(signCanvas2('PORT RICHMOND','CONTAINER YARD',{bg:'#0a0d12',color:'#e6f2ff'})),toneMapped:false}),200,6,-326); sg.rotation.y=Math.PI;
   }
   function skylineDress(){
-    const rail=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:.8,roughness:.25,side:THREE.DoubleSide});
-    ribbonF(tr,S,rail,(k,p)=>p.y>10&&p.z>380&&p.x>100&&p.x<740?[W+3.8,p.y+.4,W+3.8,p.y+1.1]:null);
-    ribbonF(tr,S,new THREE.MeshBasicMaterial({color:0xffcf8a,toneMapped:false,side:THREE.DoubleSide}),(k,p)=>p.y>10&&p.z>380&&p.x>100&&p.x<740?[-(W+3.8),p.y+.55,-(W+3.8),p.y+.62]:null);
+    const rail=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:.8,roughness:.25,side:THREE.DoubleSide}), up=p=>p.y>1.2;
+    // the viaduct itself: parapet rails, an amber light line, a deck fascia and underside, and piers down to the street
+    [-1,1].forEach(sd=>{ ribbonF(tr,S,rail,(k,p)=>up(p)?[sd*(W+3.8),p.y+.4,sd*(W+3.8),p.y+1.1]:null);
+      ribbonF(tr,S,new THREE.MeshBasicMaterial({color:0xffcf8a,toneMapped:false,side:THREE.DoubleSide}),(k,p)=>up(p)?[sd*(W+3.85),p.y+.55,sd*(W+3.85),p.y+.62]:null);
+      ribbonF(tr,S,curbM,(k,p)=>up(p)?[sd*(W+4.5),p.y+.16,sd*(W+4.5),p.y-1.3]:null); });
+    ribbonF(tr,S,new THREE.MeshStandardMaterial({color:0x1a1d22,roughness:.9,side:THREE.DoubleSide}),(k,p)=>up(p)?[-(W+4.5),p.y-1.3,W+4.5,p.y-1.3]:null);
+    const piers=[]; for(let s=0;s<tr.L;s+=28){ frame(s,f,tr); if(f.p.y<3.5) continue; orientQ(f,q,basis,nr);
+      [-1,1].forEach(sd=>{ pv.copy(f.p).addScaledVector(f.r,sd*(W-1)); const h=f.p.y-1.3; pv.y=h/2; m4.compose(pv,q,new THREE.Vector3(1,h,1)); piers.push(m4.clone()); }); }
+    mkInst(new THREE.BoxGeometry(1.4,1,1.4),curbM,piers);
     const glow=glowSprite(0xffcf8a,12); glow.position.set(720,18,470); S.add(glow);
   }
 
@@ -2621,6 +2635,7 @@ function sceneKit(o){
   K.road=(opts)=>{ opts=opts||{}; const tr=K.tr, W=tr.W;
     const mat=wetRoad(new THREE.MeshStandardMaterial({map:streetTex(opts.tex),roughness:.45,metalness:.15,side:THREE.DoubleSide}));
     ribbon(tr,S,-W-.3,W+.3,.01,.01,mat,24);
+    if(opts.studs!==false){ const yc=opts.tex&&opts.tex.center; roadStuds(tr,S,yc?[0]:[.34,.66].map(u=>-W-.3+(2*W+.6)*u),yc?0xb08030:0x9098a4,yc?11:9); } // amber between a double yellow
     const walkM=new THREE.MeshStandardMaterial({color:opts.walk||0x3a3d44,roughness:.9,side:THREE.DoubleSide}), curbM=new THREE.MeshStandardMaterial({color:opts.curb||0x6e737c,roughness:.85,side:THREE.DoubleSide});
     const sk=opts.skip||(()=>false);
     [-1,1].forEach(sd=>{ ribbonF(tr,S,walkM,(k,p)=>sk(p,k)?null:[sd*(W+.3),p.y+.16,sd*(W+4.5),p.y+.16]); ribbonF(tr,S,curbM,(k,p)=>sk(p,k)?null:[sd*(W+.3),p.y,sd*(W+.3),p.y+.16]);
@@ -2906,6 +2921,9 @@ function buildMtAiry(){
     if(leg(nr.s)==='lincoln'){ frame(nr.s,f,tr); const side=(x-nr.p.x)*f.r.x+(z-nr.p.z)*f.r.z; // +r is the creek side
       if(side>W+2) y-=Math.min(9,(side-W-2)*.45)*(side<70?1:Math.max(0,1-(side-70)/60)); else if(side<-(W+2)) y+=Math.min(10,(-side-W-2)*.3); }
     else if(nr.d>W+6) y+=Math.min(3,(nr.d-W-6)*.03);
+    // the grid is ~17 m a cell, so a hillside vertex beside the road gets interpolated up through the lane:
+    // cap the terrain under a gentle slope away from the road edge (a steeper cap still pokes through along the chord)
+    y=Math.min(y,nr.p.y-.45+Math.max(0,nr.d-(W+1))*.1);
     tp.setY(i,y); const g=.06+.04*Math.sin(x*.05)*Math.cos(z*.04); tcol.push(g*.8,g*1.25,g*.75); }
   tg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tg.computeVertexNormals();
   K.mesh(tg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),0,0,0);
@@ -3051,7 +3069,7 @@ function buildKensington(){
   const onEl=p=>Math.abs(p.x+p.z-80)<.8, d=new THREE.Vector3(1,0,-1).normalize(), side=new THREE.Vector3(.7071,0,.7071), elYaw=Math.atan2(d.x,d.z);
   const elP=(u,lat)=>new THREE.Vector3(EL.a[0]+d.x*u+side.x*lat,0,EL.a[1]+d.z*u+side.z*lat);
   K.flat(-900,1300,-1000,900,-.03,new THREE.MeshStandardMaterial({color:0x0d0c0b,roughness:.95}));
-  K.road({tex:{center:'rgba(255,196,60,.85)'},walk:0x3a3833});
+  K.road({tex:{center:'rgba(255,196,60,.85)'},walk:0x3a3833,studs:false}); // the El columns stand on the center line
   K.start('EVENT 13 · UNDER THE EL');
   K.lights({every:30,color:0xffc07a,pool:0xb07a3a,skip:p=>onEl(p)});
   // ---- the El: deck, girders, columns at the curbs and down the median, sodium lamps hung underneath ----
@@ -4137,7 +4155,7 @@ function stepRacer(r,dt,inp){
   r.nitro=d.noBoost?0:Math.min(Math.max(1,r.nitro),r.nitro+regen);
   const lim=W-1.1; r.hitCd-=dt;
   if(Math.abs(r.x)>lim){ const sd=Math.sign(r.x); r.x=sd*lim;
-    if(r.hitCd<=0&&Math.abs(r.vx)>3){ if(!shielded){ r.v*=.88; r.hits++; } r.hitCd=.35;
+    if(r.hitCd<=0&&Math.abs(r.vx)>3){ if(!shielded){ r.v*=1-clamp(Math.abs(r.vx)/60,.04,.12); r.hits++; } r.hitCd=.35; // a glancing scrape costs less than a square hit
       if(r.isP){ shake=shielded?.25:.7; sfx.hit(); }
       tmpV.copy(F.p).addScaledVector(F.r,r.x+sd*1); tmpV.y+=.4; emitSparks(tmpV,F.t,26,r.v*.25); }
     else if(Math.random()<.5){ tmpV.copy(F.p).addScaledVector(F.r,r.x+sd*1); tmpV.y+=.4; emitSparks(tmpV,F.t,2,r.v*.2); if(!shielded) r.v*=1-.25*dt; }
@@ -4194,6 +4212,9 @@ function poseRacer(r,dt){
   r.yaw=Math.atan2(r.vx,Math.max(r.v,4))+r.slip*.12*Math.sign(r.vx||r.steer);
   poseAt(r.m.group,r.dist,r.x,r.yaw,r.vx);
   if(EV.airtime&&r.hy!==undefined){ r.m.group.position.y=r.hy; if(r.airT>0) r.m.group.rotateX(-clamp(r.vy/Math.max(r.v,10),-.35,.35)*.6); }
+  // weight transfer: the body squats under power and dives under braking (smoothed so hits don't snap it)
+  if(dt>0){ const la=(r.v-(r.pv===undefined?r.v:r.pv))/dt; r.accS=lerp(r.accS||0,clamp(la,-45,35),1-Math.exp(-dt*7)); if(!(r.airT>0)) r.m.group.rotateX(clamp(-r.accS*.0007,-.018,.026)); } r.pv=r.v;
+  if(r.label){ const cd=r.m.group.position.distanceTo(cam.position); r.label.material.opacity=clamp((cd-5)/7,0,1)*clamp((170-cd)/50,0,1); } // no screen-filling tag when a car is on your bumper
   if(r.bumpT){ r.bumpT-=dt; r.m.group.position.y+=Math.sin(clamp(r.bumpT*38,0,12))*(r.bumpT>0?.14:-.1)*clamp(Math.abs(r.bumpT)/.2,0,1); }
   r.m.wheels.forEach(w=>w.rotation.x+=r.v*dt/.37);
   r.m.steers.forEach(s=>s.rotation.y=-r.steer*.35);
@@ -4857,7 +4878,7 @@ function finishTagTeam(){
 
 /* ---------------- CAMERA RIGS ---------------- */
 const tgt=new THREE.Vector3();
-const camOff=new THREE.Vector3();
+const camOff=new THREE.Vector3(), camAim=new THREE.Vector3(); let camSnapAim=true;
 function chaseCam(dt,r,inp){
   frame(r.dist,F);
   headV.copy(F.t).multiplyScalar(Math.cos(r.yaw*.6)).addScaledVector(F.r,Math.sin(r.yaw*.6)).normalize();
@@ -4865,11 +4886,14 @@ function chaseCam(dt,r,inp){
   tgt.copy(pos).addScaledVector(headV,-(7.2+boost*.8)).addScaledVector(UP,2.3);
   // smooth the camera's offset from the car, not its world position: a world-space lerp trails v/9 m behind
   // (20 m at 400 mph), swinging the camera through buildings on bends
-  if(camSnap||!camOff.lengthSq()){ camOff.subVectors(tgt,pos); camSnap=false; } else camOff.lerp(tmpV.subVectors(tgt,pos),1-Math.exp(-dt*9));
+  if(camSnap||!camOff.lengthSq()){ camOff.subVectors(tgt,pos); camSnap=false; camSnapAim=true; } else camOff.lerp(tmpV.subVectors(tgt,pos),1-Math.exp(-dt*9));
   camPos.copy(pos).add(camOff);
   cam.position.copy(camPos);
   if(shake>0){ cam.position.x+=(Math.random()-.5)*shake*.5; cam.position.y+=(Math.random()-.5)*shake*.4; shake=Math.max(0,shake-dt*2.2); }
   camLook.copy(pos).addScaledVector(headV,8).addScaledVector(UP,1);
+  // look into the bend (and over the crest) a little: aim part-way at the road further ahead
+  { const la=clamp(12+r.v*.16,12,36); frame(r.dist+la,F2); tmpV.copy(F2.p).addScaledVector(F2.r,r.x*.5); tmpV.y+=1+(pos.y-F.p.y);
+    tmpV.sub(pos).setLength(8).add(pos); camAim.lerp(tmpV.sub(camLook),camSnapAim?1:1-Math.exp(-dt*5)); camSnapAim=false; camLook.addScaledVector(camAim,.28); }
   if(camTag.t>0){ camTag.t=Math.max(0,camTag.t-dt); const k=1-Math.pow(camTag.t/.45,2); cam.position.lerpVectors(camTag.from,cam.position,k); camLook.lerpVectors(camTag.look,camLook,k); }
   cam.lookAt(camLook); cam.rotateZ(-r.steer*.05-r.vx*.004);
   const h=78+26*(1-Math.exp(-r.v/75))+boost*8; // widens with speed, then levels off instead of fish-eyeing past 300 mph

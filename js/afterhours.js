@@ -23,7 +23,7 @@ const CARS=[
   rival:'Rival note: heavy through the chicane. Save boost for the exits.',
   note:'slides like\nbutter.', notePos:{l:'8%',t:'38%'},
   cam:{p:[-4.6,1.0,3.1],l:[0,0.5,0.7],roll:-.06,fov:30}},
- {id:'vanta',name:'VANTA LM',body:'vanta',paint:0xf2f5f8,metal:.45,rough:.22,rim:0x0e1012,caliper:0x19c2ff,wing:true,world:'ice',
+ {id:'vanta',sculpt:'vanta',name:'VANTA LM',body:'vanta',lowPro:true,paint:0xf2f5f8,metal:.45,rough:.22,rim:0x0e1012,caliper:0x19c2ff,wing:true,world:'ice',
   top:86,acc:24,grip:34,nitro:.9,
   kick:'Archive',loc:'North Cut',when:'Last run, 04:40',
   caption:'Built for a circuit that isn\'t there anymore. Now it lives in the tunnels.',
@@ -588,7 +588,7 @@ const BODIES={
  noctis:{pts:[[-2.12,.34],[-2.2,.68],[-2.02,.86],[-1.3,.94],[-.35,.96],[.55,.92],[1.4,.8],[2.1,.64],[2.5,.48],[2.54,.34]],base:.22,
    cab:[[-1.62,.92],[-1.08,1.26],[-.15,1.32],[.4,1.08],[.72,.88]],cabBase:[-1.62,.9,.72,.86],w:1.98,cw:1.4,wr:.37,wb:1.5,tr:.9,front:2.54,rear:2.2,headY:.6,tailY:.8,wingY:1.16,wingZ:-1.9},
  vanta:{pts:[[-2.72,.26],[-2.78,.48],[-2.55,.62],[-1.75,.7],[-.75,.72],[.25,.66],[1.2,.5],[1.9,.36],[2.32,.28],[2.36,.22]],base:.14,
-   cab:[[-.25,.68],[.15,.98],[.65,1.02],[1.02,.84],[1.22,.58]],cabBase:[-.25,.66,1.22,.56],w:2.08,cw:1.14,wr:.36,wb:1.55,tr:1.08,front:2.36,rear:2.78,headY:.4,tailY:.54,wingY:1.14,wingZ:-2.4,swan:true},
+   cab:[[-.25,.68],[.15,.98],[.65,1.02],[1.02,.84],[1.22,.58]],cabBase:[-.25,.66,1.22,.56],w:2.08,cw:1.14,wr:.36,wb:1.55,tr:.94,front:2.36,rear:2.78,headY:.4,tailY:.54,wingY:1.14,wingZ:-2.4,swan:true},
  stratos:{pts:[[-2.58,.28],[-2.64,.7],[-2.38,.96],[-1.5,1.02],[-.45,.92],[.55,.72],[1.4,.52],[2.0,.4],[2.38,.32],[2.42,.24]],base:.16,
    cab:[[-.85,.92],[-.25,1.26],[.5,1.3],[1.0,1.02],[1.32,.68]],cabBase:[-.85,.9,1.32,.66],w:2.1,cw:1.22,wr:.37,wb:1.5,tr:1.05,front:2.42,rear:2.64,headY:.46,tailY:.86,wingY:1.52,wingZ:-2.28,swan:true},
  muscle:{pts:[[-2.4,.42],[-2.46,.84],[-2.36,1.0],[-1.6,1.05],[-.4,1.07],[.6,1.06],[1.5,1.03],[2.2,.97],[2.46,.84],[2.5,.46]],base:.26, // long-hood widebody coupe
@@ -1140,7 +1140,54 @@ function noctisShell(g,def,B,paint,glass){
   K.plate(def,.52,-R-.02); void carbon;
   return T;
 }
-const SHELLS={noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+
+/* ---- Vanta LM: Le Mans prototype. Very low tub between tall wheel pods, bubble cockpit pushed forward, shark fin
+   running back into a longtail, black canopy, cyan ducts, number roundels, swan-neck wing. ---- */
+function vantaShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x9fdcff,.18);
+  paint.clearcoat=1; paint.clearcoatRoughness=.03;
+  const cyan=new THREE.MeshStandardMaterial({color:0x19c2ff,emissive:0x0a3a60,emissiveIntensity:.6,roughness:.3,metalness:.2});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:70,inset:.1,
+    hwS:[[-R,.94],[-2.2,1.04],[-WB,1.1],[-.9,1.0],[0,.94],[.8,.98],[WB,1.08],[2.0,1.0],[F,.84]],
+    ysK:[[-R,.58],[-WB,.72],[-.6,.5],[.5,.48],[WB,.7],[2.0,.5],[F,.3]],
+    yfK:[[-R,.66],[-2.1,.72],[-WB,.78],[-.7,.62],[.4,.6],[WB,.76],[2.0,.56],[F,.32]],
+    ycK:[[-R,.62],[-2.2,.68],[-1.4,.68],[-.4,.6],[.4,.56],[1.2,.5],[1.9,.4],[F,.26]],
+    hwL:[[-R,.9],[-WB,.8],[0,.86],[WB,.8],[F,.76]],
+    ybK:[[-R,.26],[-2.4,.15],[2.1,.14],[F,.18]]},paint,K);
+  const C={z0:-.45,z1:1.3,tumble:.04,pow:.7,cwK:[[-.45,.2],[-.15,.48],[.35,.55],[.85,.5],[1.15,.34],[1.3,.14]],htK:[[-.45,.68],[-.15,.9],[.35,1.02],[.85,.94],[1.15,.74],[1.3,.52]],roof:[-.2,.95],roofA:.85};
+  sculptCanopy(g,C,T,glass,GLOSS_BLACK,K); outlawKit(K,T,C);
+  // shark fin from the cockpit to the tail
+  { const fs=new THREE.Shape(); fs.moveTo(0,0); fs.lineTo(2.3,0); fs.quadraticCurveTo(1.0,.12,0,.34); fs.lineTo(0,0);
+    const f=K.add(new THREE.ExtrudeGeometry(fs,{depth:.028,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:2}),paint,-.014,T.yc(-2.7)+.01,-2.72); f.rotation.y=-Math.PI/2; }
+  // black engine cover band with louvres, cyan fin edge
+  K.top(-.42,.42,-2.3,-.6,GLOSS_BLACK,.006,20);
+  for(let i=0;i<8;i++){ const z=-.9-i*.14; K.add(new THREE.BoxGeometry(.7,.012,.05),carbon,0,T.top(0,z)+.014,z).rotation.x=-.1; }
+  K.tube([[0,T.yc(-2.7)+.35,-2.7],[0,T.yc(-1.6)+.2,-1.6],[0,kfCR(C.htK,-.35)+.02,-.4]],.009,cyan,20);
+  [1,-1].forEach(sd=>{
+    // stacked LED lamps on the front wheel pods
+    [0,1,2,3].forEach(i=>{ const z=F-.3-i*.07, x=sd*.78; const d=K.add(new THREE.SphereGeometry(.028,10,8),headM,x,T.top(x,z)+.01,z); d.scale.y=.5; });
+    K.tube([K.P(sd*.62,F-.5),K.P(sd*.86,F-.34)],.009,headM,6); K.glow(0xcfe6ff,.9,sd*.78,T.top(sd*.78,F-.3)+.05,F-.1);
+    // cyan side duct behind the door, number roundel, sidepod intake
+    const ci=T.sec(-.9), it=K.add(K.scoop(1.0,.36),cyan,sd>0?ci.hl+.02:-(ci.hl+.08),ci.yb+.08,-.95); it.rotation.y=Math.PI/2;
+    const s=T.sec(.55), rd=K.add(new THREE.CircleGeometry(.15,28),new THREE.MeshStandardMaterial({color:0xf4f6fa,roughness:.4}),sd*(s.hs+.012),s.ys-.08,.55); rd.rotation.y=sd*Math.PI/2;
+    const nm=K.add(new THREE.PlaneGeometry(.2,.2),new THREE.MeshBasicMaterial({map:CT(canvasTex(128,128,(c,w,h)=>{ c.fillStyle='#0a0c10'; c.font='900 96px "Arial Narrow",Arial,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('7',w/2,h/2+6); })),transparent:true}),sd*(s.hs+.016),s.ys-.08,.55); nm.rotation.y=sd*Math.PI/2;
+    K.mirror(sd,1.0,paint);
+    // thin tail light blade across each rear pod
+    K.tube([[sd*.3,.64,-R-.012],[sd*.7,.64,-R-.012],[sd*.92,.6,-R+.03]],.012,tailM,10); K.glow(0xff2030,.8,sd*.7,.64,-R-.07); });
+  // front: black splitter and dive planes, rear: open diffuser, swan-neck wing
+  K.splitter(1.0,F-.4,F+.02,.14);
+  [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.28,.012,.14),carbon,sd*.8,.26,F-.12).rotation.z=sd*.2);
+  K.add(new THREE.PlaneGeometry(1.7,.26),gapM,0,.4,-R-.01).rotation.y=Math.PI;
+  for(let i=0;i<9;i++) K.add(new THREE.BoxGeometry(.02,.24,.7),carbon,-.8+i*.2,.24,-R+.3);
+  K.add(new THREE.BoxGeometry(1.8,.03,.7),carbon,0,.13,-R+.3);
+  { const w=K.add(K.airfoil(.5,.06,2.06),carbon,0,1.08,-2.42); w.rotation.y=Math.PI/2; w.rotation.z=.1;
+    [1,-1].forEach(sd=>{ K.tube([[sd*.35,T.top(sd*.35,-2.5),-2.5],[sd*.35,.95,-2.5],[sd*.35,1.14,-2.44],[sd*.35,1.12,-2.3]],.028,carbon,14);
+      K.add(new THREE.BoxGeometry(.014,.3,.66),carbon,sd*1.04,1.02,-2.45); K.add(new THREE.BoxGeometry(.016,.016,.6),cyan,sd*1.05,1.16,-2.45); }); }
+  K.plate(def,.42,-R-.02);
+  return T;
+}
+const SHELLS={vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1149,7 +1196,7 @@ const SHELLS={noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShel
 const STREET={
  kage:{vinyl:'slash',vc:'#101114',wheel:'split',camber:.04},
  noctis:{glow:0x9b4dff,vinyl:'script',vc:'#c9ced6',text:'Noctis',wheel:'mesh'},
- vanta:{vinyl:'circuit',vc:'#19c2ff',wheel:'aero'},
+ vanta:{wheel:'aero'},
  kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh'},
  dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star'},
  sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'dish'}, // ghost checker, black on black
@@ -1362,14 +1409,6 @@ function buildCar(def,opts){
     box(1.05,.04,.16,amber,0,B.headY-.06,F-.2);
     [1,-1].forEach(sd=>box(.16,.22,.85,paint,sd*(B.w/2+.02),B.base+.32,-1.15));
     paint.clearcoat=1; paint.clearcoatRoughness=.02;
-  }
-  if(cid==='vanta'){ // longtail LM: black canopy, cyan side ducts, number roundel on the door
-    box(B.cw*.85,.025,1.05,blackM,0,B.cab[2][1]+.02,.45);
-    const cyan=new THREE.MeshStandardMaterial({color:0x19c2ff,emissive:0x0a2844,emissiveIntensity:.45,roughness:.35,metalness:.2});
-    [1,-1].forEach(sd=>box(.04,.16,.55,cyan,sd*(B.w/2+.06),B.base+.32,-.9));
-    const disc=new THREE.Mesh(new THREE.CircleGeometry(.14,24),new THREE.MeshStandardMaterial({color:0x19c2ff,roughness:.4,metalness:.15})); disc.position.set(-(B.w/2+.13),.72,.55); disc.rotation.y=-Math.PI/2; g.add(disc);
-    const num=new THREE.Mesh(new THREE.CircleGeometry(.09,20),new THREE.MeshBasicMaterial({color:0x0a0c10})); num.position.set(-(B.w/2+.14),.72,.55); num.rotation.y=-Math.PI/2; g.add(num);
-    paint.clearcoat=1; paint.clearcoatRoughness=.06;
   }
   if(cid==='kern'){ // rear-engine GT: round chrome-ringed lamps, gold twin stripes over the front lid and roof, carbon splitter and door blades
     const gold=new THREE.MeshStandardMaterial({color:def.caliper,roughness:.28,metalness:.75});

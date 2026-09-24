@@ -4441,10 +4441,10 @@ function ghostState(t){
 const r2=v=>Math.round(v*100)/100;
 
 /* ---------------- RACE TAPE (all racers — powers highlights + race report) ---------------- */
-let raceTape=null, tapeAcc=0, tapeLeader=null, tapePlace=0, hiPlay=null, hiCars=[], reportSkip=false;
+let raceTape=null, tapeAcc=0, tapeLeader=null, tapePlace=0, hiPlay=null, hiCars=[], reportSkip=true;
 function tapeReset(){
   raceTape={snaps:[],events:[],margin:null,battle:false};
-  tapeLeader=null; tapePlace=0; tapeAcc=0; reportSkip=false;
+  tapeLeader=null; tapePlace=0; tapeAcc=0; reportSkip=true;
 }
 function tapeSample(sdt){
   if(!raceTape||mode!=='race'||countdown>0) return;

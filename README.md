@@ -126,7 +126,7 @@ Your car's class adds a twist. **Heavy** cars (Richmond, Dune-R, Sovereign, Gran
 
 ## Cars
 
-Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1
+Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1 · Zephyr 960
 
 - **Bell 76:** blue and gold, the highest top speed and the biggest boost in the game. Built for the bridge.
 - **Passyunk R:** a light hot hatch with the most grip and acceleration.
@@ -135,7 +135,8 @@ Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sover
 - **Split 63:** a black split-window restomod with chrome bumpers, side-exit pipes and red-lipped wheels.
 - **Kage R:** a chopped silver wedge with a wide cab-forward greenhouse and a black roof, crossed nose to tail by an amber spine. It has slit LED headlights, NACA haunch scoops, a louvred deck and a ducktail airfoil.
 - **Overload 3K:** a 3,000 hp quad-motor electric hypercar with a sculpted body: pontoon fenders, a tinted bubble canopy, a lit dorsal fin, and cyan light blades across the nose and along the rockers. It has camera pods for mirrors, a glowing diffuser and a swan-neck airfoil wing. The most powerful car in the game. Rivals only bring it now and then (you'll get a warning), but it's always in the Gauntlet.
-- **Volcano P1:** a Volcano-yellow hybrid hypercar modeled on the McLaren P1, with its own sculpted body. The body is lofted from cross-sections, so it has tumblehome, a pinched waist, bulging haunches and fender peaks. It has a teardrop glass canopy with a body-colored roof and snorkel, tube-built light signatures (the smile intake, boomerang LEDs and a C-shaped tail light), and a raked carbon side scoop. At the back: a real airfoil-section active wing, a twill carbon-fibre splitter, louvres and diffuser, center-exit exhausts, and a fresnel rim on the paint so the shape reads at night. It has the highest top speed in the archive, flat out and on boost. Like the Overload, rivals only bring it on a boss night.
+- **Zephyr 960:** a green-and-teal featherweight dart. The lightest car in the archive, the hardest launch, and a 960 mph top speed. Boost comes back very slowly. Rivals only bring it on a boss night.
+- **Volcano P1:** a Volcano-yellow hybrid hypercar modeled on the McLaren P1, with its own sculpted body. The body is lofted from cross-sections, so it has tumblehome, a pinched waist, bulging haunches and fender peaks. It has a teardrop glass canopy with a body-colored roof and snorkel, tube-built light signatures (the smile intake, boomerang LEDs and a C-shaped tail light), and a raked carbon side scoop. At the back: a real airfoil-section active wing, a twill carbon-fibre splitter, louvres and diffuser, center-exit exhausts, and a fresnel rim on the paint so the shape reads at night. It has the highest top speed of the regular hypercars, flat out and on boost. The Zephyr 960 is faster. Like the Overload, rivals only bring it on a boss night.
 
 Every car has metallic-flake paint under a clear coat, and details down to the wheels:
 - LED running lights and projector headlights, taillight clusters and a third brake light.

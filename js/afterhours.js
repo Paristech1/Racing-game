@@ -144,9 +144,19 @@ CARS.push(
   kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
   caption:'Volcano yellow, a teardrop canopy and a snorkel on the roof. The wing stands up at speed and it still pulls.',
   specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.5S / LIGHTEST · FASTEST LAUNCH IN THE ARCHIVE',
-  rival:'Rival note: nothing in the archive touches it flat out. Beat it in the corners or not at all.',
+  rival:'Rival note: only the Zephyr is faster in a straight line. Beat this one in the corners or not at all.',
   note:'fastest\nthing here.', notePos:{l:'60%',t:'34%'},
   cam:{p:[4.4,1.0,-3.9],l:[0,.5,-.2],roll:.07,fov:31}}
+);
+CARS.push(
+ {id:'zephyr',sculpt:'zephyr',name:'ZEPHYR 960',body:'zephyr',lowPro:true,paint:0x14943c,metal:.58,rough:.14,rim:0x101416,caliper:0x14e0c8,wing:true,accent:0x14e0c8,livery:0x14e0c8,spokes:5,world:'ice',plate:'960 MPH',
+  top:429,acc:88,grip:31,nitro:1.45,mass:.22,nitroRegenMul:.08,nosVmax:1,nosAccMul:2.6,vcap:429,
+  kick:'Featherweight',loc:'Navy Yard, Slip 4',when:'Unregistered, 01:11',
+  caption:'Green over teal, weighed like a bicycle and geared for nine hundred and sixty. The boost comes back when it feels like it.',
+  specs:'TWIN E-MOTOR / 1,640 HP / 1,180 LB / 0–60 IN 1.1S / 960 MPH',
+  rival:'Rival note: it is gone before the lights change. Do not bother chasing the boost light.',
+  note:'light.\nthen gone.', notePos:{l:'60%',t:'34%'},
+  cam:{p:[4.2,.85,-3.6],l:[0,.42,-.15],roll:.06,fov:30}}
 );
 // four outlaw cars: 500 / 600 / 700 / 800 mph, each unlocked its own way (see stepRacer). Player-only, never rivals.
 CARS.push(
@@ -204,7 +214,8 @@ const SHEETS={
  tempesta:{engine:'6.5L V12 + three e-motors',power:'1,100 hp',torque:'800 lb-ft',zero:'2.3 s',vmax:'600 mph',weight:'3,900 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'},
  mantis:{engine:'4.0L twin-turbo V8',power:'890 hp',torque:'700 lb-ft',zero:'2.6 s',vmax:'700 mph',weight:'2,950 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
  autobahn:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'830 hp',torque:'1,030 lb-ft',zero:'2.9 s',vmax:'800 mph',weight:'4,650 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
- stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'}
+ stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'},
+ zephyr:{engine:'Twin axial-flux e-motors, carbon monocoque',power:'1,640 hp',torque:'1,280 lb-ft',zero:'1.1 s',vmax:'960 mph',weight:'1,180 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
 const LAPS=2; // default; an event can set its own laps
@@ -262,7 +273,7 @@ function buildRivalForEvent(rival,eventId,taken){
  for(const c of CARS){
   if(taken.includes(c.id)) continue;
   if(c.outlaw) continue; // the 500-800 mph cars are player-only
-  if((c.id==='overload'||c.id==='volcano')&&!RIVAL_BOSS) continue; // the 3,000 hp car only shows up on a rival's grid now and then (rolled once per race)
+  if((c.id==='overload'||c.id==='volcano'||c.id==='zephyr')&&!RIVAL_BOSS) continue; // the 3,000 hp car, the Volcano and the 960 only show up on a rival's grid now and then
   const pref=rp.ids&&rp.ids.includes(c.id)?9:0;
   const sc=c.grip*(eb.gripW||1)*(rp.gripW||1)+c.top*(eb.topW||1)*(rp.topW||1)+c.nitro*18*(eb.nitroW||1)*(rp.nitroW||1)+pref+Math.random()*4;
   if(sc>bestSc){ bestSc=sc; best=c; }
@@ -600,7 +611,9 @@ const BODIES={
  autobahn:{pts:[[-2.5,.42],[-2.56,.78],[-2.42,.94],[-1.8,.99],[-.6,1.0],[.5,.98],[1.4,.9],[2.1,.76],[2.48,.6],[2.52,.4]],base:.26, // four-door fastback
    cab:[[-2.2,.96],[-1.3,1.3],[.2,1.42],[.95,1.18],[1.4,.94]],cabBase:[-2.2,.94,1.4,.93],w:1.98,cw:1.5,wr:.37,wb:1.5,tr:.9,front:2.52,rear:2.56,headY:.66,tailY:.86,wingY:1.08,wingZ:-2.35},
  bell:{pts:[[-2.66,.34],[-2.72,.62],[-2.52,.84],[-1.7,.96],[-.7,.99],[.3,.92],[1.2,.76],[1.85,.58],[2.26,.42],[2.3,.3]],base:.2,
-   cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:.94,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36}
+   cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:.94,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36},
+ zephyr:{pts:[[-2.62,.22],[-2.68,.46],[-2.48,.6],[-1.6,.66],[-.5,.64],[.5,.56],[1.4,.42],[2.05,.3],[2.42,.22],[2.46,.16]],base:.12,
+   cab:[[-.7,.62],[-.15,.9],[.45,.94],[.9,.74],[1.15,.5]],cabBase:[-.7,.6,1.15,.48],w:1.72,cw:1.05,wr:.33,wb:1.48,tr:.9,front:2.46,rear:2.68,headY:.38,tailY:.52,wingY:1.02,wingZ:-2.32,swan:true}
 };
 const bronzeM=()=>new THREE.MeshStandardMaterial({color:0x8a5a2b,metalness:1,roughness:.25});
 /* Fold a group's direct child meshes into one mesh per material (transforms baked in). A detailed car is
@@ -1717,7 +1730,49 @@ function wispShell(g,def,B,paint,glass){
   K.plate(def,.62,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+/* ---- Zephyr 960: narrow featherweight dart. Green upper body, teal lower cladding and light blades,
+   lofted the same way as the other sculpted cars (cross-sections, tubes, airfoil, fresnel rim). ---- */
+function zephyrShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x14e0c8,.34);
+  paint.color.set(def.paint||0x14943c); paint.metalness=.58; paint.roughness=.16; paint.clearcoat=1; paint.clearcoatRoughness=.02; paint.sheen=new THREE.Color(0x0a6e62);
+  const teal=new THREE.MeshPhysicalMaterial({color:0x0e8f86,metalness:.62,roughness:.18,clearcoat:1,clearcoatRoughness:.04,envMapIntensity:1.15});
+  const blade=new THREE.MeshBasicMaterial({color:def.accent||0x14e0c8,toneMapped:false});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:56,inset:.12,
+    hwS:[[-R,.72],[-WB-.05,.86],[-.6,.78],[.15,.74],[WB,.84],[1.9,.78],[F,.58]],
+    ysK:[[-R,.52],[-WB,.58],[0,.5],[WB,.54],[1.7,.42],[F,.28]],
+    yfK:[[-R,.64],[-WB,.66],[-.4,.6],[.5,.54],[WB,.5],[1.7,.38],[F,.24]],
+    ycK:[[-R,.6],[-1.5,.64],[-.6,.62],[.2,.54],[1.0,.42],[1.7,.32],[F,.22]],
+    hwL:[[-R,.66],[-WB,.62],[0,.68],[WB,.62],[1.6,.58],[F,.5]],
+    ybK:[[-R,.2],[-2.1,.12],[1.9,.12],[F,.16]]},paint,K);
+  const C={z0:-1.15,z1:.95,tumble:.1,pow:.55,cwK:[[-1.15,.22],[-.7,.48],[-.1,.52],[.45,.46],[.95,.22]],htK:[[-1.15,.64],[-.75,.96],[-.15,1.04],[.4,.9],[.95,.58]],roof:[-.85,.25],roofA:1.05};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  [1,-1].forEach(sd=>{
+    K.sill(sd,-R+.25,F-.18,.02,.22,teal);
+    const pts=[]; for(let i=0;i<=12;i++){ const z=lerp(-WB+WR+.15,WB-WR-.15,i/12), c=T.sec(z); pts.push([sd*(c.hl+.014),c.yb+.2,z]); }
+    K.tube(pts,.01,blade,22); K.glow(def.accent||0x14e0c8,.55,sd*(T.sec(0).hl+.02),T.sec(0).yb+.2,0);
+    K.shut(sd,.55); K.shut(sd,-.35);
+    K.tube([K.P(sd*.22,F-.06),K.P(sd*.42,F-.16),K.P(sd*.55,F-.32)],.012,blade,10);
+    K.lens(sd*.42,T.top(sd*.42,F-.14)+.02,F-.08,.16,.04,.14,.28,sd*.25);
+    K.glow(0xd8fff6,.7,sd*.4,T.top(sd*.4,F-.12)+.03,F);
+    K.tube([[sd*.2,.52,-R-.01],[sd*.48,.5,-R-.01],[sd*.58,.42,-R+.04]],.012,tailM,8);
+    K.glow(0xff2030,.7,sd*.42,.48,-R-.06);
+    const it=K.add(K.scoop(.7,.28),carbon,sd>0?.72:-.78,.28,-.2); it.rotation.y=Math.PI/2;
+    K.mirror(sd,.55,carbon);
+  });
+  K.top(-.08,.08,-.4,F-.2,blade,.01,18);
+  K.tube([K.P(-.55,F-.28,.01),K.P(0,F-.04,.01),K.P(.55,F-.28,.01)],.012,blade,24);
+  K.splitter(.72,F-.28,F+.02,.14);
+  K.add(new THREE.PlaneGeometry(.9,.08),GLOSS_BLACK,0,.28,F+.004);
+  for(let i=0;i<6;i++) K.add(new THREE.BoxGeometry(.016,.16,.42),carbon,-.42+i*.17,.18,-R+.2);
+  K.add(new THREE.BoxGeometry(1.15,.02,.5),teal,0,.14,-R+.18);
+  { const w=K.add(K.airfoil(.42,.05,1.55),carbon,0,1.02,-2.05); w.rotation.y=Math.PI/2; w.rotation.z=.1;
+    [1,-1].forEach(sd=>{ K.tube([[sd*.32,T.yc(-1.7)+.02,-1.85],[sd*.32,.95,-1.95],[sd*.32,1.08,-1.9],[sd*.32,1.04,-1.72]],.024,carbon,14);
+      K.add(new THREE.BoxGeometry(.01,.22,.48),teal,sd*.78,.98,-1.9); }); }
+  K.plate(def,.4,-R-.02);
+  return T;
+}
+const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell,zephyr:zephyrShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1743,7 +1798,8 @@ const STREET={
  hellbound:{wheel:'dish',camber:.03},
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
  mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
- autobahn:{wheel:'twin'}
+ autobahn:{wheel:'twin'},
+ zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
 };
 const VINYLS={
  flames:{dir:1,draw(g,w,h){ const gr=g.createLinearGradient(0,0,w*.8,0); gr.addColorStop(0,'#fff27a'); gr.addColorStop(.35,'#ffb020'); gr.addColorStop(.7,'#ff3a1a'); gr.addColorStop(1,'rgba(200,20,10,0)');
@@ -5620,7 +5676,8 @@ function startRace(){
   personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.clean=0; r._hits=r.hits; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
   const boss=racers.find(r=>!r.isP&&(r.def.chassisId==='overload'||r.def.chassisId==='volcano'));
-  if(boss&&!EV.knockout) setTimeout(()=>{ if(mode==='race') toast(boss.def.chassisId==='volcano'?`${boss.def.tag} brought the VOLCANO P1. The fastest car in the archive is on the grid.`:`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`); },4200);
+  if(boss&&!EV.knockout) setTimeout(()=>{ if(mode!=='race') return; const id=boss.def.chassisId;
+    toast(id==='zephyr'?`${boss.def.tag} brought the ZEPHYR 960. Nine hundred and sixty on the grid.`:(id==='volcano'?`${boss.def.tag} brought the VOLCANO P1.`:`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`)); },4200);
   if(EV.knockout||TAG){ ghostData=null; endGhost(); } else { loadGhost(); spawnGhost(); } ghostRec=[]; ghostAcc=0; camFlashes=0;
   document.body.classList.toggle('tagmode',!!TAG); $('#hTag').className='tagbox'; camTag.t=0;
   tapeReset(); KO=null; LOOK.lightsOut=false; applyLights(); if(EV.knockout) koStart();
@@ -5779,7 +5836,7 @@ let tagPick=null, TAG=null;
 const camTag={t:0,from:new THREE.Vector3(),look:new THREE.Vector3()};
 // partners come from the regular archive: the outlaw cars are player-only, and your partner is AI half the time
 function suggestPartner(me){ const want={heavy:'nimble',nimble:'heavy',muscle:'nimble',balanced:'muscle'}[carClass(me)];
-  return CARS.find(c=>c.id!==me.id&&!c.outlaw&&carClass(c)===want&&c.id!=='overload'&&c.id!=='volcano')||CARS.find(c=>c.id!==me.id&&!c.outlaw); }
+  return CARS.find(c=>c.id!==me.id&&!c.outlaw&&carClass(c)===want&&c.id!=='overload'&&c.id!=='volcano'&&c.id!=='zephyr')||CARS.find(c=>c.id!==me.id&&!c.outlaw&&c.id!=='zephyr'); }
 function openTagTeam(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='tagteam'; show('tagteam');
   const me=CARS[sel]; if(!tagPick||tagPick.me!==me.id) tagPick={me:me.id,partner:suggestPartner(me).id}; renderTagTeam(); }
 function renderTagTeam(){ const me=CARS[sel], sug=suggestPartner(me).id;

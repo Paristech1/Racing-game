@@ -46,6 +46,8 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - Back across the Delaware on a 16 m-high I-95 viaduct with lit parapets.
   - Up Broad St past City Hall and the golden, uplit Art Museum, with Rocky at the foot of the steps, to the Boulevard U-turn.
 
+- **Event 10: Mt Airy Run.** Northwest Philly — Germantown Ave, Lincoln Dr, and Greene St, 3 laps. Speed bumps and potholes on the racing line (live traffic, 7 cars).
+
 - **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
 
   | Rule | What happens |
@@ -152,4 +154,6 @@ Your race history is saved in your browser: runs, wins, best time per event, and
 index.html           screens and HUD markup
 css/afterhours.css   magazine and HUD styling
 js/afterhours.js     game: cars, tracks, AI, physics, audio, UI
+.cursor/skills/      Three.js agent skills (see AGENTS.md)
+AGENTS.md            instructions for coding agents on this repo
 ```

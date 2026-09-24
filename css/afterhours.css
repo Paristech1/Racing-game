@@ -120,6 +120,10 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .tbl{display:grid;grid-template-columns:auto 1fr;gap:3px 16px;font-size:14px;margin:14px 0 4px;font-variant-numeric:tabular-nums}
 .tbl dt{color:var(--dim)} .tbl dd{margin:0;font-weight:700}
 #events .hl{font-size:clamp(40px,12.5vw,112px)}
+.eroster{position:relative;margin:0 0 12px;display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;pointer-events:auto;-webkit-overflow-scrolling:touch;z-index:2}
+.eroster::-webkit-scrollbar{height:3px}
+.epick{flex:0 0 auto;padding:8px 11px;border:1px solid rgba(255,255,255,.32);background:rgba(6,8,12,.45);font-size:11px;font-weight:700;font-stretch:80%;line-height:1.25;max-width:11em;text-align:left;white-space:normal}
+.epick.on{border-color:var(--ice);box-shadow:0 0 0 1px rgba(159,211,255,.35) inset;color:var(--ice)}
 #hud .board{position:absolute;left:18px;top:calc(env(safe-area-inset-top,0px) + 74px);list-style:none;margin:0;padding:0;font-size:11px;font-weight:700;font-stretch:80%;line-height:1.45;color:var(--dim);pointer-events:none}
 #hud .board b{display:inline-block;width:14px;color:rgba(242,245,248,.45)}
 #hud .board .me{color:var(--ink)}
@@ -204,3 +208,10 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .hilist b{display:inline-block;width:2.2em;color:var(--dim);font-weight:800}
 .hilist span{display:block;margin-top:4px;color:var(--dim);font-size:12px;font-weight:500}
 #rClassic .foot{position:absolute;left:18px;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px)}
+/* short landscape windows: keep the event footer (roster, specs, copy) clear of the headline */
+@media (max-height:640px) and (min-aspect-ratio:1/1){
+  #events .hl{font-size:clamp(34px,8.5vw,84px)}
+  #eGhost{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #events .eroster{margin-bottom:8px}
+  #events .epick{padding:6px 9px}
+}

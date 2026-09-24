@@ -3819,7 +3819,8 @@ function buildManayunk(){
     for(const p of sub){ const d=Math.hypot(p.x-x,p.z-z); if(d<dmin) dmin=d; if(d>420) continue; const w=1/Math.pow(d+4,3); ws+=w; ys+=w*p.y; }
     let y=(ws?ys/ws:0)-1.4-Math.max(0,dmin-60)*.01; if(z>78&&x>-900) y=Math.min(y,-4.5); tp.setY(i,y); }
   tg.computeVertexNormals(); K.mesh(tg,new THREE.MeshStandardMaterial({color:0x10150f,roughness:1}),0,0,0);
-  const water=new THREE.MeshStandardMaterial({color:0x03060a,metalness:.95,roughness:.08});
+  const waterN=WETMAPS.normal.clone(); waterN.needsUpdate=true; waterN.repeat.set(40,40);
+  const water=new THREE.MeshStandardMaterial({color:0x04080d,metalness:.9,roughness:.12,normalMap:waterN,normalScale:new THREE.Vector2(.45,.45),envMapIntensity:1.4});
   K.flat(-1400,1200,82,900,-2.4,water);
   K.road({tex:{},skirt:new THREE.MeshStandardMaterial({color:0x151a14,roughness:1,side:THREE.DoubleSide}),walk:0x48443c});
   ribbonF(tr,S,water,(k,p)=>k*tr.ds<mainEnd?[W+6.2,p.y-1.1,W+11,p.y-1.1]:null); // the Manayunk Canal, just past the towpath
@@ -3849,12 +3850,23 @@ function buildManayunk(){
     K.pv.set(x,y+.6,z); K.m4.compose(K.pv,new THREE.Quaternion(),K.one); trunks.push(K.m4.clone()); K.pv.y+=3.6; K.m4.compose(K.pv,new THREE.Quaternion(),new THREE.Vector3(1,1,1).multiplyScalar(.9+K.R()*.8)); crowns.push(K.m4.clone()); }
   K.inst(new THREE.CylinderGeometry(.2,.28,4.2,6),new THREE.MeshStandardMaterial({color:0x221b15,roughness:1}),trunks);
   K.inst(new THREE.IcosahedronGeometry(2.8,0),new THREE.MeshStandardMaterial({color:0x17281a,roughness:1,flatShading:true}),crowns);
+  // festoon string lights zig-zagging across Main St between the shopfronts: sagging wires with warm bulbs
+  { const bulbs=[], wires=[], bc=[], WARM=[[1,.78,.45],[1,.62,.3],[1,.86,.6]];
+    for(let s=40,k=0;s<mainEnd-40;s+=14,k++){ const a=K.at(s,-(W+4.6),6.4).clone(), b=K.at(s+10,W+5.6,6.4).clone(), pts=[];
+      for(let t=0;t<=16;t++){ const u=t/16, p=a.clone().lerp(b,u); p.y-=Math.sin(Math.PI*u)*1.1; pts.push(p); if(t%2===0&&t>0&&t<16){ bulbs.push(p.x,p.y-.12,p.z); const c=WARM[(t+k)%3]; bc.push(...c); } }
+      wires.push(pts); }
+    const wg=new THREE.BufferGeometry(), wp=[]; wires.forEach(pts=>{ for(let t=0;t<pts.length-1;t++) wp.push(pts[t].x,pts[t].y,pts[t].z,pts[t+1].x,pts[t+1].y,pts[t+1].z); });
+    wg.setAttribute('position',new THREE.Float32BufferAttribute(wp,3)); S.add(new THREE.LineSegments(wg,new THREE.LineBasicMaterial({color:0x14161a})));
+    const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(bulbs,3)); bg.setAttribute('color',new THREE.Float32BufferAttribute(bc,3));
+    S.add(new THREE.Points(bg,new THREE.PointsMaterial({map:glowTex,size:1.1,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})));
+    S.add(new THREE.Points(bg,new THREE.PointsMaterial({color:0xfff2d8,size:.16,vertexColors:false}))); }
   K.gantry(K.sNear(-200,60),'MAIN STREET','MANAYUNK · CANAL  →',{bg:'#0f5a32'});
   K.gantry(K.sNear(430,-110),'THE WALL','11% GRADE · KEEP IT PINNED',{bg:'#ffd23b',color:'#101114'});
   K.gantry(K.sNear(180,-386),'MANAYUNK AVE','CRESTS · AIR TIME',{bg:'#2a1c06',color:'#ffd9a0'});
   K.gantry(K.sNear(-520,-300),'GREEN LANE','STEEP DESCENT  ↓',{bg:'#0f5a32'});
   K.flush();
-  return {scene:S,track:tr,traffic:[],update:null,sNear:K.sNear,cams:[],slopeG:1.5,airtime:true};
+  const update=dt=>{ waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; };
+  return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],slopeG:1.5,airtime:true};
 }
 
 /* ---- Event 10: Mt Airy Run, Northwest Philly (≈2.6 km / lap) ----

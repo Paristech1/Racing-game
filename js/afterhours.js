@@ -3912,6 +3912,7 @@ function initAudio(){
   o0.start(); o1.start(); o2.start();
   const loop=(filterType,f,q,buf)=>{ const n=AC.createBufferSource(); n.buffer=buf||noiseBuf; n.loop=true; const bf=AC.createBiquadFilter(); bf.type=filterType; bf.frequency.value=f; bf.Q.value=q; const gg=AC.createGain(); gg.gain.value=0; n.connect(bf); bf.connect(gg); gg.connect(master); n.start(); return gg; };
   scrGain=loop('bandpass',2400,4,pinkBuf); windGain=loop('lowpass',620,.85,pinkBuf); rainGain=loop('highpass',2800,.35,noiseBuf);
+  musicInit(AC,master); setInterval(musicTick,30);
 }
 function sfxOut(node){ node.connect(sfxBus||master); }
 function envAD(g,t,a,d,peak){ g.gain.setValueAtTime(.001,t); g.gain.exponentialRampToValueAtTime(Math.max(peak,.002),t+a); g.gain.exponentialRampToValueAtTime(.001,t+a+d); }
@@ -3994,6 +3995,118 @@ function screech(a){
   const g=soundOn?clamp(a,0,1)*.16:0;
   scrGain.gain.setTargetAtTime(g,AC.currentTime,.04);
   if(g>.08) burst(.06,'bandpass',1800,4200,g*.35,3,(Math.random()-.5)*.4,noiseBuf);
+}
+
+/* ---------------- MUSIC ---------------- */
+// procedural night-drive synthwave in A minor, 16-bar form. menus get pads, arp and a soft melody;
+// loading and the countdown build with a riser, and the full band drops on GO (bar 0 lands on the green light)
+const MUS={
+  bpm:112,
+  // 8-bar cycle: Am F C G | Am F G E
+  chords:[[45,[57,60,64]],[41,[57,60,65]],[48,[55,60,64]],[43,[55,59,62]],[45,[57,60,64]],[41,[57,60,65]],[43,[55,59,62]],[40,[56,59,64]]],
+  arp:[0,1,2,3,4,3,2,1,0,2,3,5,4,2,1,2],
+  // [step, midi, length in 16ths] per bar
+  lead:[
+    [[0,76,6],[6,74,2],[8,72,4],[12,69,4]], [[0,72,6],[6,74,2],[8,76,8]],
+    [[0,79,6],[6,77,2],[8,76,4],[12,74,4]], [[0,74,12],[12,71,4]],
+    [[0,76,4],[4,81,4],[8,79,4],[12,76,4]], [[0,77,6],[6,76,2],[8,72,8]],
+    [[0,74,6],[6,76,2],[8,79,8]],            [[0,80,8],[8,76,4],[12,71,4]]],
+  levels:[
+    {out:.55,pad:.9,arp:.55,bass:.7,lead:.6,kit:0, hat:.6,cut:900},   // menus and results
+    {out:.55,pad:.9,arp:.8, bass:.8,lead:0, kit:.7,hat:.9,cut:1800},  // loading and countdown
+    {out:.42,pad:.6,arp:.75,bass:1, lead:1, kit:1, hat:1, cut:3200}]  // racing
+};
+let M=null, musicOn=SAVE.musicOff?false:true;
+const mf=m=>440*Math.pow(2,(m-69)/12);
+function musicInit(ctx,dest){
+  const sr=ctx.sampleRate, g=(v,to)=>{ const n=ctx.createGain(); n.gain.value=v; if(to) n.connect(to); return n; };
+  const out=g(0,dest), duck=g(1,out);
+  const rev=ctx.createConvolver(), len=sr*2.4|0, ir=ctx.createBuffer(2,len,sr);
+  for(let c=0;c<2;c++){ const d=ir.getChannelData(c); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2); }
+  rev.buffer=ir; rev.connect(g(.3,out));
+  const dl=ctx.createDelay(1.5), dlF=ctx.createBiquadFilter(), fb=g(.34);
+  dl.delayTime.value=60/MUS.bpm*.75; dlF.type='lowpass'; dlF.frequency.value=2400;
+  dl.connect(dlF); dlF.connect(fb); fb.connect(dl); dlF.connect(g(.26,duck));
+  const L={}; ['pad','arp','bass','lead','kit','hat'].forEach(k=>{ L[k]=g(0,k==='kit'||k==='hat'?out:duck); });
+  L.pad.connect(rev); L.lead.connect(rev); L.lead.connect(dl); L.arp.connect(dl);
+  const arpF=ctx.createBiquadFilter(); arpF.type='lowpass'; arpF.frequency.value=900; arpF.Q.value=4; arpF.connect(L.arp);
+  const nb=ctx.createBuffer(1,sr,sr), w=nb.getChannelData(0); for(let i=0;i<w.length;i++) w[i]=Math.random()*2-1;
+  M={ctx,out,duck,L,arpF,nb,step:0,bar:0,nextT:0,level:-1,vol:-1,cd:false};
+}
+function mVoice(t,midi,dur,vol,types,to,o){
+  const c=M.ctx, g=c.createGain(), f=c.createBiquadFilter(), a=o.atk||.005, r=o.rel||.08, end=t+Math.max(dur,a+.01);
+  f.type='lowpass'; f.Q.value=o.q||.8; f.frequency.setValueAtTime(o.cut||4000,t);
+  if(o.cutEnd) f.frequency.exponentialRampToValueAtTime(o.cutEnd,end);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+a); g.gain.linearRampToValueAtTime(vol*(o.sus||1),end); g.gain.linearRampToValueAtTime(0,end+r);
+  f.connect(g); g.connect(to);
+  (o.dets||[0]).forEach((d,i)=>{ const os=c.createOscillator(); os.type=types[i%types.length]; os.frequency.value=mf(midi); os.detune.value=d;
+    os.connect(f); os.start(t); os.stop(end+r+.05); });
+}
+function mNoise(t,dur,type,f0,f1,vol,q,to,atk){
+  const c=M.ctx, n=c.createBufferSource(), f=c.createBiquadFilter(), g=c.createGain();
+  n.buffer=M.nb; n.loop=true; f.type=type; f.Q.value=q; f.frequency.setValueAtTime(f0,t); f.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(atk?.0001:vol,t); if(atk) g.gain.exponentialRampToValueAtTime(vol,t+atk); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  n.connect(f); f.connect(g); g.connect(to); n.start(t); n.stop(t+dur+.02);
+}
+const mDrum={
+  kick(t,v){ const c=M.ctx, o=c.createOscillator(), g=c.createGain();
+    o.frequency.setValueAtTime(165,t); o.frequency.exponentialRampToValueAtTime(42,t+.12);
+    g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.001,t+.4);
+    o.connect(g); g.connect(M.L.kit); o.start(t); o.stop(t+.42);
+    mNoise(t,.015,'highpass',3000,3000,v*.25,.7,M.L.kit);
+    M.duck.gain.setValueAtTime(.35,t); M.duck.gain.linearRampToValueAtTime(1,t+.24); },
+  snare(t,v){ mNoise(t,.22,'bandpass',1900,1400,v,.7,M.L.kit);
+    const c=M.ctx, o=c.createOscillator(), g=c.createGain(); o.type='triangle';
+    o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(150,t+.1);
+    g.gain.setValueAtTime(v*.6,t); g.gain.exponentialRampToValueAtTime(.001,t+.12); o.connect(g); g.connect(M.L.kit); o.start(t); o.stop(t+.14); },
+  hat(t,v,open){ mNoise(t,open?.16:.04,'highpass',7200,9000,v,.9,M.L.hat); },
+  crash(t){ mNoise(t,1.8,'highpass',4200,2600,.14,.5,M.L.hat); },
+  riser(t,d){ mNoise(t,d,'bandpass',300,5200,.16,2.2,M.L.hat,d*.9); }
+};
+function musicWanted(){
+  if(mode==='race') return countdown>0?1:2;
+  if(mode==='highlight') return 2;
+  return mode==='loading'?1:0;
+}
+function mSetLevel(lv,t){
+  const P=MUS.levels[lv];
+  Object.keys(M.L).forEach(k=>M.L[k].gain.setTargetAtTime(P[k],t,lv===2?.02:.6));
+  M.arpF.frequency.setTargetAtTime(P.cut,t,lv===2?.05:.8);
+  if(lv===2&&M.level!==2){ M.step=0; M.bar=0; mDrum.crash(t); mDrum.kick(t,.9); }
+  M.level=lv;
+}
+function mStep(t){
+  const s=M.step%16, bar=M.bar%16, ch=MUS.chords[bar%8], root=ch[0], pad=ch[1], lv=M.level, sp=60/MUS.bpm/4;
+  if(s===0) pad.forEach(n=>mVoice(t,n,sp*16,.045,['sawtooth'],M.L.pad,{dets:[-10,10],atk:.5,rel:.9,cut:lv===2?1500:900,q:.6}));
+  const tones=pad.map(n=>n+12).concat(pad.map(n=>n+24));
+  mVoice(t,tones[MUS.arp[s]],sp*.9,.05,['square'],M.arpF,{rel:.05,cut:8000});
+  if(lv>=1){
+    if(lv===2||s%2===0) mVoice(t,root+(s%4===2?12:0),sp*.85,s%4===0?.09:.13,['sawtooth','square'],M.L.bass,{dets:[0,-6],cut:1100,cutEnd:220,q:3,rel:.03});
+  } else if(s===0||s===8||s===14){
+    mVoice(t,root+(s===14?12:0),sp*(s===0?8:s===8?6:2),.12,['sawtooth','sine'],M.L.bass,{dets:[0,0],cut:500,atk:.02,rel:.2,sus:.6});
+  }
+  if(lv===2){
+    if(s%4===0) mDrum.kick(t,.85);
+    if(s===4||s===12) mDrum.snare(t,.32);
+    if(bar===15&&s>=8&&s!==12) mDrum.snare(t,.06+(s-8)*.025);
+    mDrum.hat(t,s%4===2?.09:.035,s%4===2);
+  } else if(s%4===2) mDrum.hat(t,.04,lv===1);
+  if(bar>=8&&lv!==1) MUS.lead[bar%8].forEach(([st,n,len])=>{ if(st!==s) return;
+    if(lv===2) mVoice(t,n,sp*len,.05,['sawtooth'],M.L.lead,{dets:[-8,8],atk:.02,rel:.3,cut:3400,cutEnd:1500,q:1.5,sus:.8});
+    else mVoice(t,n-12,sp*len,.07,['triangle'],M.L.lead,{atk:.03,rel:.5,cut:2200,sus:.7}); });
+  M.step++; if(M.step%16===0) M.bar++;
+}
+function musicTick(){
+  if(!M) return; const now=M.ctx.currentTime, sp=60/MUS.bpm/4;
+  const vol=soundOn&&musicOn&&!document.hidden?MUS.levels[Math.max(M.level,0)].out:0;
+  if(vol!==M.vol){ M.out.gain.setTargetAtTime(vol,now,.3); M.vol=vol; }
+  if(M.nextT<now) M.nextT=now+.05;
+  while(M.nextT<now+.12){
+    const lv=musicWanted(), cd=mode==='race'&&countdown>0;
+    if(lv!==M.level) mSetLevel(lv,M.nextT);
+    if(cd&&!M.cd) mDrum.riser(M.nextT,Math.max(countdown-.1,.5));
+    M.cd=cd; mStep(M.nextT); M.nextT+=sp;
+  }
 }
 
 /* ---------------- RACERS ---------------- */
@@ -4625,6 +4738,8 @@ $('#tagBtn').addEventListener('pointerdown',e=>{ e.preventDefault(); tagSwap(fal
 $('#gBack').onclick=()=>{ mode='events'; show('events'); renderEvent(0,true); };
 $('#gStart').onclick=()=>startGauntlet();
 $('#snd').onclick=()=>{ soundOn=!soundOn; $('#snd').textContent=soundOn?'Sound on':'Sound off'; };
+$('#mus').textContent=musicOn?'Music on':'Music off';
+$('#mus').onclick=()=>{ musicOn=!musicOn; SAVE.musicOff=!musicOn; persist(); $('#mus').textContent=musicOn?'Music on':'Music off'; };
 $('#glow').onclick=()=>{ glowOn=!glowOn; $('#glow').textContent=glowOn?'Glow on':'Glow off'; };
 $('#tap').onclick=()=>{ if(bootReady) enter(); };
 $('#quit').onclick=()=>{ endGhost(); backToArchive(); };

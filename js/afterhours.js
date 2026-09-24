@@ -2058,6 +2058,33 @@ function roadStuds(tr,S,offs,col,every){ const mat=new THREE.MeshBasicMaterial({
   return instAll(S,STUD_GEO,mat,arr); }
 
 /* ---- Event 01: Harbor Line tunnel ---- */
+/* ---- shared street dressing (threejs-geometry: InstancedMesh + setColorAt) ----
+   parkedCars: [{x,z,ry}] -> instanced sedans in varied paint. streetFurniture: sidewalk line -> hydrants, cans, news boxes.
+   sodiumLot: orange lot lights with ground pools. Each returns nothing; everything is added to S in a handful of draw calls. */
+const PARK_COLS=[0x1a1c20,0xc9ced6,0x6a0f14,0x1c2e52,0x3a3d42,0xe8eaee,0x0f3a2a,0x5a4a32,0x8a8f96,0x2a2230];
+function instPlace(S,geo,mat,list,colors){ if(!list.length) return null; const im=new THREE.InstancedMesh(geo,mat,list.length), m4=new THREE.Matrix4(), q=new THREE.Quaternion(), e=new THREE.Euler(), p=new THREE.Vector3(), sc=new THREE.Vector3();
+  list.forEach((o,i)=>{ p.set(o.x,o.y||0,o.z); e.set(0,o.ry||0,0); q.setFromEuler(e); sc.set(o.s||1,o.sy||o.s||1,o.s||1); m4.compose(p,q,sc); im.setMatrixAt(i,m4); if(colors) im.setColorAt(i,new THREE.Color(colors[i])); });
+  if(colors) im.instanceColor.needsUpdate=true; S.add(im); return im; }
+function parkedCars(S,spots,seed){ const R=rng(seed||7), cols=spots.map(()=>PARK_COLS[R()*PARK_COLS.length|0]);
+  const body=new THREE.BoxGeometry(1.8,.62,4.4); body.translate(0,.62,0);
+  const cab=new THREE.CylinderGeometry(.62,.8,.5,4,1); cab.rotateY(Math.PI/4); cab.scale(1.2,1,2.3); cab.translate(0,1.18,-.25);
+  instPlace(S,body,new THREE.MeshStandardMaterial({color:0xffffff,metalness:.55,roughness:.32,envMapIntensity:1.1}),spots,cols);
+  instPlace(S,cab,new THREE.MeshStandardMaterial({color:0x0a0d12,metalness:.8,roughness:.12}),spots);
+  const wl=[]; spots.forEach(o=>{ const c=Math.cos(o.ry||0), sn=Math.sin(o.ry||0); [[-.86,1.4],[.86,1.4],[-.86,-1.4],[.86,-1.4]].forEach(([a,b])=>wl.push({x:o.x+a*c+b*sn,z:o.z-a*sn+b*c,y:.32,ry:o.ry})); });
+  instPlace(S,new THREE.CylinderGeometry(.33,.33,.24,10).rotateZ(Math.PI/2),new THREE.MeshStandardMaterial({color:0x0b0b0c,roughness:.9}),wl);
+  const tl=spots.map(o=>({x:o.x-Math.sin(o.ry||0)*2.21,z:o.z-Math.cos(o.ry||0)*2.21,y:.78,ry:o.ry}));
+  instPlace(S,new THREE.BoxGeometry(1.5,.08,.03),new THREE.MeshBasicMaterial({color:0x5a0a10}),tl); }
+function streetFurniture(S,x0,zA,zB,step,seed){ const R=rng(seed||3), hyd=[], cans=[], news=[];
+  for(let z=zA;z<zB;z+=step){ const r=R(), o={x:x0+(R()-.5)*.6,z:z+(R()-.5)*step*.4,ry:R()*6};
+    if(r<.35) hyd.push(o); else if(r<.75) cans.push(o); else news.push(o); }
+  instPlace(S,new THREE.CylinderGeometry(.14,.18,.75,8).translate(0,.375,0),new THREE.MeshStandardMaterial({color:0xb8201c,roughness:.5,metalness:.2}),hyd);
+  instPlace(S,new THREE.CylinderGeometry(.3,.26,.95,10).translate(0,.475,0),new THREE.MeshStandardMaterial({color:0x1d3a2a,roughness:.7,metalness:.3}),cans);
+  instPlace(S,new THREE.BoxGeometry(.5,1.0,.45).translate(0,.5,0),new THREE.MeshStandardMaterial({color:0x2a4a8a,roughness:.5,metalness:.2}),news); }
+function sodiumLot(S,spots){ instPlace(S,new THREE.CylinderGeometry(.1,.14,8,6).translate(0,4,0),new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.6,roughness:.5}),spots);
+  instPlace(S,new THREE.BoxGeometry(.9,.2,.5),new THREE.MeshBasicMaterial({color:0xffb45a,toneMapped:false}),spots.map(o=>({x:o.x,z:o.z,y:8.05})));
+  instPlace(S,new THREE.PlaneGeometry(18,18).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:poolTex,color:0xb06a28,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false}),spots.map(o=>({x:o.x,z:o.z,y:.05})));
+  const fp=[]; spots.forEach(o=>fp.push(o.x,7.9,o.z)); const fg=new THREE.BufferGeometry(); fg.setAttribute('position',new THREE.Float32BufferAttribute(fp,3));
+  S.add(new THREE.Points(fg,new THREE.PointsMaterial({map:glowTex,color:0xffb45a,size:3,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}))); }
 function buildTunnel(){
   /* Event 01, rebuilt as a real immersed-tube road tunnel. Borrowed from the vetted blender-skills (ideas only, no code):
      product-polish -> a key/fill/rim/bounce rig and no noisy normal maps on glossy surfaces (they read as dotty reflections);
@@ -2241,7 +2268,7 @@ function buildBlvd(){
   const asphaltM=wetRoad(new THREE.MeshStandardMaterial({map:asphaltTex,roughness:.5,metalness:.12}));
   const lotM=wetRoad(new THREE.MeshStandardMaterial({map:null,color:0x9aa0aa,roughness:.7,metalness:.05}));
   const concreteM=new THREE.MeshStandardMaterial({color:0x5b616b,roughness:.9});
-  const curbM=new THREE.MeshStandardMaterial({color:0x6e737c,roughness:.85});
+  const curbM=new THREE.MeshStandardMaterial({color:0x4a4f57,roughness:.92});
   const grassT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#1b2a17'; g.fillRect(0,0,w,h);
     for(let i=0;i<5000;i++){ const v=Math.random(); g.fillStyle=v<.5?'rgba(40,62,30,.7)':v<.8?'rgba(22,36,18,.7)':'rgba(62,78,40,.55)'; g.fillRect(Math.random()*w,Math.random()*h,1,2+Math.random()*2); } }),true);
   grassT.repeat.set(1,1);
@@ -2337,6 +2364,18 @@ function buildBlvd(){
     pv.set(sd*16.5,4.3,z); m4.compose(pv,new THREE.Quaternion().setFromEuler(new THREE.Euler(R_(),R_()*3,0)),new THREE.Vector3(s*1.1,s,s*1.1)); crowns.push(m4.clone()); }); }
   mkInst(new THREE.CylinderGeometry(.16,.22,3,6),new THREE.MeshStandardMaterial({color:0x1d1813,roughness:1}),trunks);
   mkInst(leafyCrown(2.3,7),new THREE.MeshStandardMaterial({color:0x2a4a2c,roughness:.95,vertexColors:true}),crowns);
+
+  // street dressing: parked cars in the lots, sodium lot lights, sidewalk furniture, shrubs on the medians
+  { const spots=[], lamps=[], shrubs=[];
+    [-1,1].forEach(sd=>{ [40,46,52].forEach((x,row)=>{ for(let z=ZMIN+12;z<ZMAX-12;z+=2.9){ if(inBand(z)||R_()>.52) continue; spots.push({x:sd*x,z,ry:(row%2?0:Math.PI)+(R_()-.5)*.08}); } });
+      for(let z=ZMIN+30;z<ZMAX;z+=64){ if(!inBand(z)) lamps.push({x:sd*49,z}); }
+      streetFurniture(S,sd*34.3,ZMIN+10,ZMAX-10,11,sd>0?11:12);
+      for(let z=ZMAX-18;z>ZMIN;z-=7){ if(inBand(z)) continue; shrubs.push({x:sd*(16.5+(R_()-.5)*2.4),z,y:.35,s:.5+R_()*.4,ry:R_()*6}); } });
+    const joints=[], gut=[]; [-1,1].forEach(sd=>{ for(let z=ZMIN+2;z<ZMAX-2;z+=1.8){ if(inBand(z)) continue; joints.push({x:sd*33,z,y:.155}); } segsAll.forEach(([za,zb])=>gut.push({x:sd*31.05,z:(za+zb)/2,y:.02,sy:1,s:1,len:za-zb})); });
+    instPlace(S,new THREE.BoxGeometry(3.9,.012,.05),new THREE.MeshStandardMaterial({color:0x26292e,roughness:1}),joints);
+    gut.forEach(o=>box(.35,.03,o.len,new THREE.MeshStandardMaterial({color:0x121417,roughness:.6}),o.x,.02,o.z));
+    parkedCars(S,spots,41); sodiumLot(S,lamps);
+    instPlace(S,new THREE.IcosahedronGeometry(1,0),new THREE.MeshStandardMaterial({color:0x1f3a22,roughness:1,flatShading:true}),shrubs); }
 
   // signs
   function faceRoad(mesh,sd){ mesh.rotation.y=-sd*Math.PI/2; return mesh; }

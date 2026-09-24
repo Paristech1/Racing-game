@@ -3605,7 +3605,9 @@ const sfx={
 };
 function engine(v,on){
   if(!AC) return; const t=AC.currentTime;
-  const gears=[0,16,29,42,55,68,81,200]; let gi=0; while(v>gears[gi+1]) gi++;
+  // last gear covers the outlaw cars (up to ~360 m/s); the bound keeps gears[gi+1] defined, since a NaN pitch
+  // throws in setTargetAtTime and that exception used to abort the rest of the frame past ~447 mph
+  const gears=[0,16,29,42,55,68,81,200,400]; let gi=0; while(gi<gears.length-2&&v>gears[gi+1]) gi++;
   const fr=clamp((v-gears[gi])/(gears[gi+1]-gears[gi]),0,1);
   const f=52+fr*110+gi*8;
   o0.frequency.setTargetAtTime(f*.48,t,.05);

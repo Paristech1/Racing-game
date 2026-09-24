@@ -57,7 +57,7 @@ CARS.push(
   rival:'Rival note: The Wall can\'t hold you off in this. Push through.',
   note:'quiet until\nit isn\'t.', notePos:{l:'8%',t:'36%'},
   cam:{p:[3.9,.95,5.4],l:[0,.7,.3],roll:-.06,fov:32}},
- {id:'granfour',name:'GRAN FOUR',body:'fastback',paint:0x5b5f65,metal:.35,rough:.55,matte:true,rim:0x16181b,caliper:0xffc21a,wing:false,accent:0xffc21a,world:'ice',
+ {id:'granfour',sculpt:'granfour',name:'GRAN FOUR',body:'fastback',lowPro:true,paint:0x5b5f65,metal:.35,rough:.55,matte:true,rim:0x16181b,caliper:0xffc21a,wing:false,accent:0xffc21a,world:'ice',
   top:89,acc:22,grip:30,nitro:1.0,mass:1.35,
   kick:'Four doors',loc:'Forest Lot',when:'After rain, 05:30',
   caption:'Four doors, four seats, one driver who actually matters.',
@@ -582,7 +582,7 @@ const BODIES={
  p1:{pts:[[-2.24,.34],[-2.3,.66],[-2.2,.82],[-1.6,.9],[-.9,.92],[-.1,.84],[.8,.68],[1.6,.52],[2.14,.36],[2.22,.26]],base:.18,
    cab:[[-1.55,.96],[-1.0,1.16],[-.2,1.22],[.5,1.02],[.98,.7]],cabBase:[-1.55,.94,.98,.68],w:2.0,cw:1.22,wr:.36,wb:1.36,tr:1.0,front:2.22,rear:2.3,headY:.5,tailY:.76,wingY:1.14,wingZ:-1.95},
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
-   cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:1.0,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3},
+   cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:.92,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3},
  kage:{pts:[[-2.42,.3],[-2.5,.56],[-2.28,.74],[-1.65,.84],[-.85,.86],[.35,.8],[1.25,.64],[1.95,.48],[2.28,.36],[2.32,.26]],base:.18,
    cab:[[-.95,.82],[-.35,1.06],[.4,1.1],[.9,.9],[1.18,.68]],cabBase:[-.95,.8,1.18,.66],w:1.94,cw:1.2,wr:.36,wb:1.42,tr:1.02,front:2.32,rear:2.5,headY:.48,tailY:.68,wingY:.98,wingZ:-2.18},
  noctis:{pts:[[-2.12,.34],[-2.2,.68],[-2.02,.86],[-1.3,.94],[-.35,.96],[.55,.92],[1.4,.8],[2.1,.64],[2.5,.48],[2.54,.34]],base:.22,
@@ -1347,7 +1347,54 @@ function sovereignShell(g,def,B,paint,glass){
   K.plate(def,.7,-R-.02); void carbon;
   return T;
 }
-const SHELLS={sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+
+/* ---- Gran Four: four-door sport liftback. Raised front fenders carrying 4-point LED lamps, low bonnet between them,
+   long glasshouse sloping into a liftback with a full-width light bar, strong rear shoulders, pop-up spoiler,
+   matte stealth grey with yellow accents. ---- */
+function granfourShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffd878,.1);
+  paint.clearcoat=0; paint.roughness=.55; paint.envMapIntensity=.55; paint.color.multiplyScalar(.8); // matte wrap: no coat, soft reflections
+  const yel=new THREE.MeshStandardMaterial({color:def.accent||0xffc21a,roughness:.35,metalness:.2});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:64,inset:.15,
+    hwS:[[-R,.9],[-2.0,1.02],[-WB,1.07],[-.8,.98],[0,.96],[.8,.97],[WB,1.0],[F-.3,.98],[F,1.2]],
+    ysK:[[-R,.74],[-WB,.84],[-.5,.74],[.6,.72],[WB,.78],[F-.3,.68],[F,.56]],
+    yfK:[[-R,.92],[-1.8,.98],[-WB,.98],[-.6,.92],[.6,.9],[WB,.92],[2.1,.84],[F,.7]],
+    ycK:[[-R,.9],[-1.9,.95],[-1.4,.95],[.4,.9],[1.2,.8],[2.0,.74],[F-.2,.68],[F,.62]],
+    hwL:[[-R,.86],[-WB,.84],[0,.92],[WB,.84],[F-.3,.88],[F,1.12]],
+    ybK:[[-R,.34],[-2.2,.24],[2.2,.24],[F,.26]]},paint,K);
+  const C={z0:-2.1,z1:1.32,tumble:.14,pow:.55,cwK:[[-2.1,.4],[-1.7,.58],[-.9,.68],[.1,.7],[.8,.66],[1.32,.52]],htK:[[-2.1,.96],[-1.6,1.12],[-.9,1.3],[0,1.37],[.75,1.24],[1.32,.95]],roof:[-1.5,.6],roofA:.92};
+  sculptCanopy(g,C,T,glass,GLOSS_BLACK,K); outlawKit(K,T,C);
+  [1,-1].forEach(sd=>{
+    // 4-point LED lamps on the fender tops, clear cover
+    const x=sd*.64, z=F-.34; K.lens(x,T.top(x,z)+.01,z,.2,.04,.18,.25,sd*.2);
+    [[-.05,-.05],[.05,-.05],[-.05,.05],[.05,.05]].forEach(([a,b])=>K.add(new THREE.BoxGeometry(.06,.012,.022),headM,x+a,T.top(x+a,z+b)+.018,z+b));
+    K.glow(0xcfe6ff,.9,x,T.top(x,z)+.05,z+.2);
+    // big black corner intakes with yellow lips
+    const zf=F+.006; K.add(new THREE.PlaneGeometry(.34,.2),GLOSS_BLACK,sd*.64,.38,zf); K.add(new THREE.BoxGeometry(.34,.02,.02),yel,sd*.64,.27,zf+.01);
+    // flanks: four doors, black window line, fender gill, yellow sill stripe, mirror
+    K.shut(sd,1.26); K.shut(sd,.06); K.shut(sd,-1.18);
+    [.74,-.54].forEach(z2=>{ const s=T.sec(z2); K.add(new THREE.BoxGeometry(.012,.028,.2),GLOSS_BLACK,sd*(s.hs+.01),s.ys-.03,z2); });
+    { const z2=WB-WR-.3, s=T.sec(z2); K.add(new THREE.BoxGeometry(.012,.12,.2),GLOSS_BLACK,sd*(s.hs+.006),s.ys-.1,z2); }
+    K.sill(sd,-WB+WR+.22,WB-WR-.22,.03,.15,GLOSS_BLACK);
+    { const pts=[]; for(let i=0;i<=8;i++){ const z2=lerp(-WB+WR+.3,WB-WR-.3,i/8), c=T.sec(z2); pts.push([sd*(c.hl+.014),c.yb+.13,z2]); } K.tube(pts,.008,yel,16); }
+    K.mirror(sd,1.0,paint);
+    // rear: quad exhaust, oval pairs
+    [.42,.58].forEach(x2=>K.pipe(sd*x2,.38,-R-.05,.05)); });
+  // front: centre intake, yellow splitter lip
+  K.add(new THREE.PlaneGeometry(.64,.14),GLOSS_BLACK,0,.36,F+.006);
+  K.splitter(.9,F-.3,F+.03,.2); K.add(new THREE.BoxGeometry(1.5,.02,.03),yel,0,.21,F+.02);
+  // rear: full-width light bar across the liftback, black diffuser, pop-up ducktail
+  K.tube([[-.88,.88,-R-.01],[-.5,.9,-R-.014],[0,.905,-R-.014],[.5,.9,-R-.014],[.88,.88,-R-.01]],.014,tailM,30);
+  K.glow(0xff2030,1.0,.62,.89,-R-.07); K.glow(0xff2030,1.0,-.62,.89,-R-.07);
+  K.add(new THREE.PlaneGeometry(1.6,.2),GLOSS_BLACK,0,.4,-R-.01).rotation.y=Math.PI;
+  for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(.02,.16,.36),carbon,-.4+i*.2,.3,-R+.14);
+  { const yb=T.top(0,-2.2); const w=K.add(K.airfoil(.26,.03,1.5),paint,0,yb+.1,-2.16); w.rotation.y=Math.PI/2; w.rotation.z=-.08;
+    [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.03,.09,.08),GLOSS_BLACK,sd*.46,yb+.05,-2.2)); }
+  K.plate(def,.62,-R-.02);
+  return T;
+}
+const SHELLS={granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1360,7 +1407,7 @@ const STREET={
  kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh'},
  dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star'},
  sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'spoke'}, // ghost checker, black on black
- granfour:{vinyl:'lightning',vc:'#ffc21a',wheel:'fan'},
+ granfour:{wheel:'fan'},
  bell:{vinyl:'stars',vc:'#d8b04a',wheel:'aero'},
  passyunk:{glow:0x2fd6ff,vinyl:'sponsor',wheel:'dish',camber:.06},
  richmond:{vinyl:'tribal',vc:'#ff5a1f',wheel:'star'},
@@ -1462,7 +1509,7 @@ function wheelStyle(spin,side,style,rimM,def){
       at(new THREE.Mesh(new THREE.TorusGeometry(.12,.012,6,24),rimM),.16).rotation.y=Math.PI/2; break;
     case 'fan': { // turbofan: solid disc with twisted blades
       at(new THREE.Mesh(new THREE.CircleGeometry(.27,28),rimM),.145).rotation.y=side*Math.PI/2;
-      for(let k=0;k<14;k++){ const b=new THREE.Mesh(new THREE.BoxGeometry(.012,.2,.05),rimM); b.position.set(0,Math.cos(k/14*Math.PI*2)*.17,Math.sin(k/14*Math.PI*2)*.17); b.rotation.x=-k/14*Math.PI*2; b.rotateY(side*.6);
+      for(let k=0;k<14;k++){ const b=new THREE.Mesh(new THREE.BoxGeometry(.012,.2,.05),rimM); b.position.set(0,Math.cos(k/14*Math.PI*2)*.17,Math.sin(k/14*Math.PI*2)*.17); b.rotation.x=k/14*Math.PI*2; b.rotateY(side*.5);
         at(b,.16); } break; }
     case 'twin': // forged ten twin-spoke: slim paired spokes running out to the lip
       for(let k=0;k<10;k++) [-.045,.045].forEach(o=>{ const s=new THREE.Mesh(new THREE.BoxGeometry(.016,.2,.022),rimM), a=k/10*Math.PI*2+o;
@@ -1569,17 +1616,6 @@ function buildCar(def,opts){
     box(1.05,.04,.16,amber,0,B.headY-.06,F-.2);
     [1,-1].forEach(sd=>box(.16,.22,.85,paint,sd*(B.w/2+.02),B.base+.32,-1.15));
     paint.clearcoat=1; paint.clearcoatRoughness=.02;
-  }
-  if(cid==='granfour'){ // four-door fastback: 4-point LED lamps, black panoramic roof, pop-up ducktail, yellow lip and skirt accents, quad exhaust
-    const yel=new THREE.MeshStandardMaterial({color:def.accent,roughness:.35,metalness:.2});
-    [1,-1].forEach(sd=>{ const ry=sd*.38; [[-.1,.04],[.1,.04],[-.1,-.035],[.1,-.035]].forEach(([t,y])=>box(.07,.03,.02,headM,sd*hx+t*Math.cos(ry),B.headY+y,F-.09-t*Math.sin(ry),ry));
-      box(.02,.03,B.wb*2-1.1,yel,sd*(B.w/2+.136),B.base+.02,0); box(.014,.13,B.wb*2-.9,trimM,sd*(B.w/2+.146),B.base+.12,0);
-      const mid=(cb[0]+cb[2])/2-.05, top=Math.min(cb[1],cb[3])-.05; box(.008,top-B.base-.14,.014,gapM,sd*(B.w/2+.128),(top+B.base+.14)/2,mid);
-      box(.02,.035,.17,chromeTrimM,sd*(B.w/2+.135),top-.12,mid-.35); });
-    strip(0,B.cw*.82,-1.3,.8,trimM,6,roofY);
-    box(B.w*.8,.03,.06,yel,0,B.base+.02,F+.02);
-    const dz=-2.18, dy=deckY(dz)+.08; box(1.5,.035,.26,paint,0,dy,dz).rotation.x=-.15; [1,-1].forEach(sd=>box(.04,.08,.1,blackM,sd*.5,dy-.05,dz));
-    [.3,-.3].forEach(x=>pipe(x,B.base+.22,-Rr-.02,.05));
   }
   if(cid==='bell'){ // W16 longtail: gold C-sweep on each flank, horseshoe grille, quad-LED headlamps, gold dorsal spine, square quad exhaust
     const gold=new THREE.MeshStandardMaterial({color:def.accent,roughness:.22,metalness:.85});

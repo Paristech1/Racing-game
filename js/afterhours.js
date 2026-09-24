@@ -2806,7 +2806,8 @@ function buildCity(C){
       return [[r[0],r[1],r[2],h[2]],[r[0],r[1],h[3],r[3]],[r[0],h[0],h[2],h[3]],[h[1],r[1],h[2],h[3]]].filter(q=>q[1]-q[0]>.01&&q[3]-q[2]>.01); }); });
     rects.forEach(r=>flat(r[0],r[1],r[2],r[3],-.03,groundM)); };
   ground(-1600,BR.river[0]); ground(BR.river[1],3300);
-  flat(BR.river[0],BR.river[1],C.zMin,1400,-6,new THREE.MeshStandardMaterial({color:0x03060a,metalness:.95,roughness:.08}));
+  const waterN=WETMAPS.normal.clone(); waterN.needsUpdate=true; waterN.repeat.set(60,120); // ripples: the wet-asphalt normal field, tiled small and scrolled (EXTRA below)
+  flat(BR.river[0],BR.river[1],C.zMin,1400,-6,new THREE.MeshStandardMaterial({color:0x04080d,metalness:.9,roughness:.12,normalMap:waterN,normalScale:new THREE.Vector2(.5,.5),envMapIntensity:1.4}));
   const bankM=new THREE.MeshStandardMaterial({color:0x2a2d33,roughness:.95,side:THREE.DoubleSide});
   [BR.river[0],BR.river[1]].forEach(x=>{ const g=new THREE.PlaneGeometry(1400-C.zMin,6); g.rotateY(Math.PI/2); mesh(g,bankM,x,-3,(1400+C.zMin)/2); });
 
@@ -2815,12 +2816,28 @@ function buildCity(C){
     for(let i=0;i<6000;i++){ const v=18+Math.random()*28; g.fillStyle=`rgba(${v},${v+2},${v+6},.65)`; g.fillRect(Math.random()*w,Math.random()*h,1.6,1.6); }
     g.fillStyle='rgba(232,234,238,.85)'; g.fillRect(w*.03,0,4,h); g.fillRect(w*.97-4,0,4,h);
     g.fillStyle='rgba(232,234,238,.75)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.4));
-    g.fillStyle='rgba(0,0,0,.22)'; for(let i=0;i<5;i++) g.fillRect(w*(.18+i*.15),0,12,h); }),true);
+    [.19,.5,.81].forEach(u=>[-.055,.055].forEach(o=>{ const x=w*(u+o), gr=g.createLinearGradient(x-9,0,x+9,0); gr.addColorStop(0,'rgba(6,7,9,0)'); gr.addColorStop(.5,'rgba(6,7,9,.5)'); gr.addColorStop(1,'rgba(6,7,9,0)'); g.fillStyle=gr; g.fillRect(x-9,0,18,h); })); // tyre tracks
+    [[.06,.12,.3,.14],[.56,.6,.26,.1]].forEach(([u,v,du,dv])=>{ g.fillStyle='rgba(36,39,44,.75)'; g.fillRect(w*u,h*v,w*du,h*dv); g.strokeStyle='rgba(8,9,11,.85)'; g.lineWidth=1.5; g.strokeRect(w*u,h*v,w*du,h*dv); }); // patches
+    [[.5,.35],[.19,.82]].forEach(([u,v])=>{ g.fillStyle='#0c0d10'; g.beginPath(); g.arc(w*u,h*v,11,0,7); g.fill(); g.strokeStyle='#3a3e45'; g.lineWidth=2; g.stroke(); g.strokeStyle='#23262b'; g.lineWidth=1; for(let k=-8;k<=8;k+=4){ g.beginPath(); g.moveTo(w*u-8,h*v+k); g.lineTo(w*u+8,h*v+k); g.stroke(); } }); // manhole covers
+    g.fillStyle='rgba(0,0,0,.14)'; for(let i=0;i<5;i++) g.fillRect(w*(.18+i*.15),0,12,h); }),true);
   const roadMat=wetRoad(new THREE.MeshStandardMaterial({map:roadTex,roughness:.45,metalness:.15,side:THREE.DoubleSide}));
   ribbon(tr,S,-W-.3,W+.3,.01,.01,roadMat,24);
   roadStuds(tr,S,[.34,.66].map(u=>-W-.3+(2*W+.6)*u),0x9098a4,9);
-  const walkM=new THREE.MeshStandardMaterial({color:0x3a3d44,roughness:.9,side:THREE.DoubleSide}), curbM=new THREE.MeshStandardMaterial({color:0x6e737c,roughness:.85,side:THREE.DoubleSide});
-  [-1,1].forEach(sd=>{ ribbon(tr,S,sd*(W+.3),sd*(W+4.5),.16,.16,walkM); ribbon(tr,S,sd*(W+.3),sd*(W+.3),0,.16,curbM); });
+  // sidewalks: 1.4 m concrete slabs with joints, a strip of brick pavers at the kerb, weathering; granite kerb
+  const walkT=CT(canvasTex(128,256,(g,w,h)=>{ g.fillStyle='#4a4d54'; g.fillRect(0,0,w,h); const R=rng(71);
+    for(let i=0;i<2600;i++){ const v=60+R()*30|0; g.fillStyle=`rgba(${v},${v+2},${v+6},.45)`; g.fillRect(R()*w,R()*h,1.5,1.5); }
+    g.fillStyle='#3a2a24'; g.fillRect(0,0,w*.16,h); g.fillStyle='#24190f'; for(let y=0;y<h;y+=10){ g.fillRect(0,y,w*.16,1.5); g.fillRect(((y/10)%2)*w*.08,y,1.5,10); }
+    g.fillStyle='#2a2c31'; for(let y=0;y<h;y+=h/4) g.fillRect(w*.16,y,w,2); g.fillRect(w*.58,0,2,h);
+    for(let k=0;k<6;k++){ g.fillStyle=`rgba(20,22,26,${.2+R()*.2})`; g.beginPath(); g.ellipse(w*(.3+R()*.6),R()*h,6+R()*14,4+R()*10,0,0,7); g.fill(); } }),true);
+  const walkM=new THREE.MeshStandardMaterial({map:walkT,roughness:.92,side:THREE.DoubleSide}), curbM=new THREE.MeshStandardMaterial({color:0x5e636b,roughness:.8,metalness:.05,side:THREE.DoubleSide});
+  [-1,1].forEach(sd=>{ ribbon(tr,S,sd*(W+.3),sd*(W+4.5),.16,.16,walkM,5.6); ribbon(tr,S,sd*(W+.3),sd*(W+.3),0,.16,curbM); });
+  // street furniture along both sidewalks, facing the road
+  { const hyd=[], cans=[], news=[], R=rng(1777), step=Math.max(1,Math.round(17/tr.ds));
+    for(let i=0;i<tr.N;i+=step){ const p=tr.pts[i], r=tr.R[i], sd=i%(2*step)?1:-1, off=sd*(W+3.9+R()*.3), o={x:p.x+r.x*off,y:p.y+.16,z:p.z+r.z*off,ry:Math.atan2(r.x,r.z)};
+      if(Math.abs(p.y)>1.5) continue; const k=R(); (k<.3?hyd:k<.75?cans:news).push(o); }
+    instPlace(S,new THREE.CylinderGeometry(.14,.18,.75,8).translate(0,.375,0),new THREE.MeshStandardMaterial({color:0xb8201c,roughness:.5,metalness:.2}),hyd);
+    instPlace(S,new THREE.CylinderGeometry(.3,.26,.95,10).translate(0,.475,0),new THREE.MeshStandardMaterial({color:0x1d3a2a,roughness:.7,metalness:.3}),cans);
+    instPlace(S,new THREE.BoxGeometry(.5,1.0,.45).translate(0,.5,0),new THREE.MeshStandardMaterial({color:0x2a4a8a,roughness:.5,metalness:.2}),news); }
   const addStart=()=>{ frame(0,f,tr); orientQ(f,q,basis,nr); addStartLine(S,f,q,2*W);
     const red=new THREE.MeshBasicMaterial({color:0xff2a3a,toneMapped:false});
     [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(W+1.6)); boxM(.5,8.4,.5,blackM,p.x,4.2,p.z); });
@@ -3071,6 +3088,7 @@ function buildCity(C){
   camAt.forEach(([x,z,dx,dz])=>{ const cx=x+dx*(W+3), cz=z+dz*(W+3); boxM(.22,5.2,.22,poleM,cx,2.6,cz); boxM(1.1,.55,.7,new THREE.MeshStandardMaterial({color:0xd8dbe0,roughness:.5}),cx,5.3,cz);
     const led=glowSprite(0xff3030,.7); led.position.set(cx-dx*.6,5.3,cz-dz*.6); S.add(led); });
   const EXTRA=[]; // per-frame updates for layout-specific pieces
+  EXTRA.push(dt=>{ waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.011; });
   if(C.tunnel) tunnelDress();
   if(C.blvd) blvdDress(C.blvd);
   if(C.decoBridge) decoBridge();

@@ -148,6 +148,41 @@ CARS.push(
   note:'fastest\nthing here.', notePos:{l:'60%',t:'34%'},
   cam:{p:[4.4,1.0,-3.9],l:[0,.5,-.2],roll:.07,fov:31}}
 );
+// four outlaw cars: 500 / 600 / 700 / 800 mph, each unlocked its own way (see stepRacer). Player-only, never rivals.
+CARS.push(
+ {id:'hellbound',name:'HELLBOUND 717',body:'muscle',outlaw:true,paint:0xb5121b,metal:.55,rough:.14,rim:0x0b0b0c,caliper:0xd42020,wing:false,widebody:true,spokes:5,world:'flash',
+  top:224,acc:42,grip:25,nitro:0,mass:1.5,noBoost:true,vcap:224,plate:'HELLBND',
+  kick:'Outlaw 01',loc:'Frankford Ave, under the El',when:'Friday, 00:17',
+  caption:'Two black stripes, one supercharger whine you can hear from Kensington. It will not take help from anyone.',
+  specs:'SUPERCHARGED 7.0L V8 / 2,400 HP / WIDEBODY / 500 MPH',
+  rival:'Rival note: nothing on the grid can hold it on a straight. Nothing on the grid has to, in the turns.',
+  note:'no boost.\njust hell.', notePos:{l:'58%',t:'34%'},
+  cam:{p:[4.4,.9,4.6],l:[0,.6,.3],roll:-.05,fov:32}},
+ {id:'tempesta',name:'TEMPESTA SV',body:'tempesta',outlaw:true,paint:0xc0141c,metal:.6,rough:.12,rim:0x141518,caliper:0xd8b04a,wing:true,accent:0xd8b04a,spokes:10,world:'white',
+  top:103,acc:32,grip:33,nitro:1.3,mass:1.1,sigTop:268,vcap:270,
+  kick:'Outlaw 02',loc:'Delaware Ave, Pier 70',when:'Storm warning, 02:40',
+  caption:'Red over black, a Y of light at every corner. Most nights it drives like any other hypercar. Most nights.',
+  specs:'6.5L V12 + THREE E-MOTORS / 1,100 HP / Y-LIGHT AERO / 600 MPH',
+  rival:'Rival note: watch for the red gem nobody else can touch.',
+  note:'wait for\nthe storm.', notePos:{l:'60%',t:'34%'},
+  cam:{p:[4.5,.95,4.0],l:[0,.45,.3],roll:-.06,fov:31}},
+ {id:'mantis',name:'MANTIS LT',body:'mantis',outlaw:true,paint:0x76d31e,metal:.5,rough:.14,rim:0x0d0e10,caliper:0x76d31e,wing:false,spokes:10,world:'ice',
+  top:99,acc:31,grip:34,nitro:1.2,mass:.95,lastTop:313,vcap:315,
+  kick:'Outlaw 03',loc:'Schuylkill Banks',when:'Dew on the glass, 05:05',
+  caption:'Mantis green, longtail, air-brake up. It seems perfectly happy at the back of the pack. For a while.',
+  specs:'4.0L TWIN-TURBO V8 / 890 HP / LONGTAIL AIR-BRAKE / 700 MPH',
+  rival:'Rival note: never leave it behind you for long.',
+  note:'patient.\nthen not.', notePos:{l:'58%',t:'33%'},
+  cam:{p:[-4.4,.95,3.9],l:[0,.5,.3],roll:.05,fov:31}},
+ {id:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x16295e,metal:.4,rough:.42,matte:true,rim:0x3a3d42,caliper:0xffc21a,wing:false,spokes:10,world:'flash',
+  top:96,acc:27,grip:30,nitro:1.15,mass:1.4,cleanTop:358,vcap:360,
+  kick:'Outlaw 04',loc:'I-76, Blue Route split',when:'Unrestricted, 03:30',
+  caption:'Four doors, matte blue, a grille of vertical chrome. It gets faster the longer you leave it alone.',
+  specs:'4.0L TWIN-TURBO V8 + E-AXLE / 830 HP / FOUR DOORS / 800 MPH',
+  rival:'Rival note: smooth is fast. Smoother is faster. Smoothest is something else.',
+  note:'don\'t touch\nanything.', notePos:{l:'58%',t:'34%'},
+  cam:{p:[4.6,.95,4.4],l:[0,.6,.3],roll:-.05,fov:32}}
+);
 // full spec sheets (slide-up panel)
 const SHEETS={
  kage:{engine:'4.0L flat-plane V8, twin-turbo',power:'1,040 hp',torque:'780 lb-ft',zero:'2.3 s',vmax:'221 mph',weight:'3,120 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
@@ -165,6 +200,10 @@ const SHEETS={
  granfour:{engine:'4.0L twin-turbo V8',power:'690 hp',torque:'680 lb-ft',zero:'3.1 s',vmax:'199 mph',weight:'4,400 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
  wisp:{engine:'Triple e-motors, carbon tub',power:'920 hp',torque:'780 lb-ft',zero:'1.8 s',vmax:'228 mph',weight:'1,980 lb',drive:'All-wheel drive',gearbox:'Single-speed'},
  volcano:{engine:'3.8L twin-turbo V8 + e-motor (IPAS)',power:'1,350 hp',torque:'1,090 lb-ft',zero:'1.5 s',vmax:'290 mph',weight:'2,425 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
+ hellbound:{engine:'7.0L supercharged V8',power:'2,400 hp',torque:'1,900 lb-ft',zero:'2.6 s',vmax:'500 mph',weight:'4,900 lb',drive:'Rear-wheel drive',gearbox:'8-speed automatic'},
+ tempesta:{engine:'6.5L V12 + three e-motors',power:'1,100 hp',torque:'800 lb-ft',zero:'2.3 s',vmax:'600 mph',weight:'3,900 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'},
+ mantis:{engine:'4.0L twin-turbo V8',power:'890 hp',torque:'700 lb-ft',zero:'2.6 s',vmax:'700 mph',weight:'2,950 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
+ autobahn:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'830 hp',torque:'1,030 lb-ft',zero:'2.9 s',vmax:'800 mph',weight:'4,650 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
  stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
@@ -218,6 +257,7 @@ function buildRivalForEvent(rival,eventId,taken){
  let best=null, bestSc=-1e9;
  for(const c of CARS){
   if(taken.includes(c.id)) continue;
+  if(c.outlaw) continue; // the 500-800 mph cars are player-only
   if((c.id==='overload'||c.id==='volcano')&&!RIVAL_BOSS) continue; // the 3,000 hp car only shows up on a rival's grid now and then (rolled once per race)
   const pref=rp.ids&&rp.ids.includes(c.id)?9:0;
   const sc=c.grip*(eb.gripW||1)*(rp.gripW||1)+c.top*(eb.topW||1)*(rp.topW||1)+c.nitro*18*(eb.nitroW||1)*(rp.nitroW||1)+pref+Math.random()*4;
@@ -251,7 +291,7 @@ function scorePickup(r,p,P,s0,L){
  if(p.type==='over'&&(P.nitro==='eager'||P.nitro==='burst')) val+=3;
  if(r.nitro<.35) val+=4;
  if(p.type==='desperate'||p.type==='echoboost') val+=14;
- if(p.type==='wispflux'||p.type==='stratossurge') val+=6;
+ if(p.type==='wispflux'||p.type==='stratossurge'||p.type==='tempest') val+=6;
  if(r.def.id==='wild') val+=2;
  if(r.def.id==='apex'&&lat>3.2) val-=3;
  return val-det*(1.1-P.risk*.35);
@@ -522,6 +562,14 @@ const BODIES={
    cab:[[-.25,.68],[.15,.98],[.65,1.02],[1.02,.84],[1.22,.58]],cabBase:[-.25,.66,1.22,.56],w:2.08,cw:1.14,wr:.36,wb:1.55,tr:1.08,front:2.36,rear:2.78,headY:.4,tailY:.54,wingY:1.14,wingZ:-2.4,swan:true},
  stratos:{pts:[[-2.58,.28],[-2.64,.7],[-2.38,.96],[-1.5,1.02],[-.45,.92],[.55,.72],[1.4,.52],[2.0,.4],[2.38,.32],[2.42,.24]],base:.16,
    cab:[[-.85,.92],[-.25,1.26],[.5,1.3],[1.0,1.02],[1.32,.68]],cabBase:[-.85,.9,1.32,.66],w:2.1,cw:1.22,wr:.37,wb:1.5,tr:1.05,front:2.42,rear:2.64,headY:.46,tailY:.86,wingY:1.52,wingZ:-2.28,swan:true},
+ muscle:{pts:[[-2.4,.42],[-2.46,.84],[-2.36,1.0],[-1.6,1.05],[-.4,1.07],[.6,1.06],[1.5,1.03],[2.2,.97],[2.46,.84],[2.5,.46]],base:.26, // long-hood widebody coupe
+   cab:[[-1.5,1.03],[-.95,1.45],[.0,1.49],[.5,1.3],[1.0,1.03]],cabBase:[-1.5,1.01,1.0,1.01],w:2.02,cw:1.52,wr:.39,wb:1.52,tr:1.04,front:2.5,rear:2.46,headY:.82,tailY:.9,wingY:1.14,wingZ:-2.3},
+ tempesta:{pts:[[-2.44,.3],[-2.5,.66],[-2.36,.88],[-1.6,.97],[-.7,.98],[.2,.86],[1.1,.64],[1.8,.46],[2.3,.32],[2.4,.24]],base:.16, // V12 wedge
+   cab:[[-1.25,.95],[-.7,1.2],[.1,1.24],[.7,1.0],[1.15,.72]],cabBase:[-1.25,.93,1.15,.7],w:2.06,cw:1.24,wr:.37,wb:1.5,tr:1.05,front:2.4,rear:2.5,headY:.48,tailY:.8,wingY:1.36,wingZ:-2.28},
+ mantis:{pts:[[-2.24,.36],[-2.3,.74],[-2.12,.92],[-1.5,.98],[-.7,.98],[.2,.9],[1.0,.72],[1.6,.54],[2.1,.4],[2.2,.28]],base:.2, // longtail mid-engine
+   cab:[[-1.2,.95],[-.7,1.2],[.05,1.26],[.6,1.04],[1.05,.74]],cabBase:[-1.2,.93,1.05,.72],w:1.96,cw:1.26,wr:.36,wb:1.36,tr:1.0,front:2.2,rear:2.3,headY:.5,tailY:.82,wingY:1.12,wingZ:-1.95},
+ autobahn:{pts:[[-2.5,.42],[-2.56,.78],[-2.42,.94],[-1.8,.99],[-.6,1.0],[.5,.98],[1.4,.9],[2.1,.76],[2.48,.6],[2.52,.4]],base:.26, // four-door fastback
+   cab:[[-2.2,.96],[-1.3,1.3],[.2,1.42],[.95,1.18],[1.4,.94]],cabBase:[-2.2,.94,1.4,.93],w:1.98,cw:1.5,wr:.39,wb:1.58,tr:1.02,front:2.52,rear:2.56,headY:.72,tailY:.9,wingY:1.08,wingZ:-2.35},
  bell:{pts:[[-2.66,.34],[-2.72,.62],[-2.52,.84],[-1.7,.96],[-.7,.99],[.3,.92],[1.2,.76],[1.85,.58],[2.26,.42],[2.3,.3]],base:.2,
    cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:1.03,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36}
 };
@@ -799,7 +847,7 @@ function buildCar(def,opts){
   if(cid==='granfour'){ // four-door fastback: 4-point LED lamps, black panoramic roof, pop-up ducktail, yellow lip and skirt accents, quad exhaust
     const yel=new THREE.MeshStandardMaterial({color:def.accent,roughness:.35,metalness:.2});
     [1,-1].forEach(sd=>{ const ry=sd*.38; [[-.1,.04],[.1,.04],[-.1,-.035],[.1,-.035]].forEach(([t,y])=>box(.07,.03,.02,headM,sd*hx+t*Math.cos(ry),B.headY+y,F-.09-t*Math.sin(ry),ry));
-      box(.02,.03,B.wb*2-1.1,yel,sd*(B.w/2+.136),B.base+.02,0); box(.014,.13,B.wb*2-.9,trimM,sd*(B.w/2+.132),B.base+.12,0);
+      box(.02,.03,B.wb*2-1.1,yel,sd*(B.w/2+.136),B.base+.02,0); box(.014,.13,B.wb*2-.9,trimM,sd*(B.w/2+.146),B.base+.12,0);
       const mid=(cb[0]+cb[2])/2-.05, top=Math.min(cb[1],cb[3])-.05; box(.008,top-B.base-.14,.014,gapM,sd*(B.w/2+.128),(top+B.base+.14)/2,mid);
       box(.02,.035,.17,chromeTrimM,sd*(B.w/2+.135),top-.12,mid-.35); });
     strip(0,B.cw*.82,-1.3,.8,trimM,6,roofY);
@@ -882,6 +930,57 @@ function buildCar(def,opts){
     [1,-1].forEach(sd=>{ box(.03,.3,.04,acc,sd*B.w*.47,B.tailY-.06,-Rr-.06); box(.22,.012,.4,carbonM,sd*.34,deckY(1.5)+.008,1.5).rotation.x=-Math.atan2(deckY(1.7)-deckY(1.3),.4); });
     for(let i=0;i<3;i++) box(B.w*.6,.02,.1,carbonM,0,B.base+.16+i*.06,F-.02-i*.04).rotation.x=-.4;
   }
+  if(cid==='hellbound'){ // widebody muscle: twin black stripes with gold edges, shaker scoop, heat extractors, full-width grille with halo quad lamps, ducktail, quad exhaust
+    const gold=new THREE.MeshStandardMaterial({color:0xd8b04a,roughness:.3,metalness:.7}), mesh=new THREE.MeshStandardMaterial({color:0x050506,metalness:.5,roughness:.6});
+    [.19,-.19].forEach(x=>{ strip(x,.26,cb[2]-.05,F-.1,trimM,7,z=>deckY(z)+.01); strip(x,.26,cb[0]+.05,cb[2]-.05,trimM,7,roofY); strip(x,.26,-Rr+.12,cb[0]+.05,trimM,4);
+      [.14,-.14].forEach(o=>strip(x+o,.02,cb[2]-.05,F-.1,gold,7,z=>deckY(z)+.014)); });
+    box(.5,.14,.62,blackM,0,deckY(1.55)+.07,1.55); box(.4,.08,.02,gapM,0,deckY(1.55)+.1,1.87);
+    [1,-1].forEach(sd=>{ for(let i=0;i<5;i++) box(.3,.012,.05,blackM,sd*.62,deckY(1.9+i*.09)+.01,1.9+i*.09); });
+    box(B.w*.88,.3,.06,mesh,0,B.headY,F+.03);
+    [[.62,1],[.4,1],[-.4,0],[-.62,1]].forEach(([x,lit])=>{ const ring=new THREE.Mesh(new THREE.TorusGeometry(.085,.016,8,24),lit?headM:new THREE.MeshBasicMaterial({color:0xff7a1a,toneMapped:false})); ring.position.set(x,B.headY,F+.07); g.add(ring);
+      const c=new THREE.Mesh(new THREE.CircleGeometry(.068,20),lit?lensM:gapM); c.position.set(x,B.headY,F+.065); g.add(c); });
+    box(B.w*.94,.03,.3,blackM,0,B.base,F-.06);
+    box(1.8,.05,.22,paint,0,deckY(-2.3)+.05,-2.3).rotation.x=-.2;
+    [-.58,-.38,.38,.58].forEach(x=>pipe(x,B.base+.2,-Rr-.02,.06));
+  }
+  if(cid==='tempesta'){ // V12 wedge: black top over red, Y-shaped lamps front and rear, hex center exhausts, gold low line, carbon intakes and diffuser
+    const gold=new THREE.MeshStandardMaterial({color:def.accent,roughness:.28,metalness:.8});
+    strip(0,B.w*.82,cb[2]-.05,F-.2,trimM,7); strip(0,B.cw*.82,cb[0]+.1,cb[2]-.1,trimM,7,roofY); strip(0,B.w*.7,-Rr+.3,cb[0]+.05,trimM,5);
+    const Y=(x,y,z,m,s)=>{ box(.03*s,.14*s,.02,m,x,y-.08*s,z); [1,-1].forEach(a=>box(.26*s,.028*s,.02,m,x+a*.1*s,y+.05*s,z).rotation.z=a*.6); };
+    [1,-1].forEach(sd=>{ Y(sd*(hx-.02),B.headY+.02,F-.03,headM,1); Y(sd*B.w*.33,B.tailY-.08,-Rr-.1,tailM,1.1);
+      box(.012,.02,3.1,gold,sd*(B.w/2+.136),B.base+.14,.1);
+      box(.04,.34,.9,carbonM,sd*(B.w/2+.13),B.base+.44,-.7).rotation.x=-.25; });
+    [-.14,.14].forEach(x=>{ const h=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.18,6,1,true),exhM); h.rotation.x=Math.PI/2; h.rotation.y=Math.PI/6; h.position.set(x,B.tailY+.02,-Rr-.06); g.add(h);
+      const hi=new THREE.Mesh(new THREE.CircleGeometry(.08,6),gapM); hi.position.set(x,B.tailY+.02,-Rr+.01); hi.rotation.y=Math.PI; g.add(hi); });
+    for(let i=0;i<7;i++) box(.02,.22,.6,carbonM,-.6+i*.2,B.base+.06,-Rr+.26);
+    box(B.w*.96,.03,.34,carbonM,0,B.base,F-.08);
+  }
+  if(cid==='mantis'){ // longtail: black lower body and teardrop side intakes, black nose band, raised air-brake, deck louvers, high twin exhausts in a black mesh tail
+    [1,-1].forEach(sd=>{ box(.02,.2,F+Rr-.9,trimM,sd*(B.w/2+.146),B.base+.1,(F-Rr)/2);
+      box(.04,.36,.8,trimM,sd*(B.w/2+.12),B.base+.46,-.55).rotation.x=.3; box(.02,.3,.6,gapM,sd*(B.w/2+.145),B.base+.44,-.6).rotation.x=.3;
+      box(.4,.16,.06,gapM,sd*.55,B.base+.2,F+.01);
+      box(.3,.022,.02,headM,sd*hx,B.headY+.05,F-.12,sd*.5); box(.022,.1,.02,headM,sd*(hx+.14),B.headY,F-.18,sd*.5); });
+    box(B.w*.9,.1,.06,trimM,0,B.base+.1,F);
+    const ab=deckY(-2.02)+.16; box(B.w*.92,.035,.34,paint,0,ab,-2.02).rotation.x=-.4; [1,-1].forEach(sd=>box(.04,.16,.08,blackM,sd*.55,ab-.09,-1.96));
+    for(let i=0;i<6;i++){ const z=-1.85+i*.11; box(.9,.012,.05,blackM,0,deckY(z)+.012,z); }
+    box(B.w*.82,.32,.04,trimM,0,B.tailY-.16,-Rr-.05); for(let i=0;i<6;i++) box(B.w*.8,.012,.02,gapM,0,B.tailY-.3+i*.05,-Rr-.075);
+    [-.2,.2].forEach(x=>pipe(x,B.tailY-.08,-Rr-.08,.075));
+    for(let i=0;i<5;i++) box(.02,.2,.5,carbonM,-.5+i*.25,B.base+.05,-Rr+.24);
+  }
+  if(cid==='autobahn'){ // four-door GT: vertical-slat chrome grille with roundel, big lower intakes, chrome beltline, four doors, fender fins, pop-up spoiler, quad trapezoid exhaust
+    box(.92,.38,.06,chromeTrimM,0,B.headY-.1,F-.02); box(.86,.32,.06,gapM,0,B.headY-.1,F+.005);
+    for(let i=0;i<13;i++) box(.018,.3,.06,chromeTrimM,-.39+i*.065,B.headY-.1,F+.02);
+    const rd=new THREE.Mesh(new THREE.TorusGeometry(.09,.014,8,28),chromeTrimM); rd.position.set(0,B.headY-.1,F+.06); g.add(rd);
+    [1,-1].forEach(sd=>{ box(.46,.18,.06,trimM,sd*.6,B.base+.12,F+.02); for(let i=0;i<3;i++) box(.44,.012,.07,chromeTrimM,sd*.6,B.base+.06+i*.06,F+.03);
+      box(.3,.02,.02,headM,sd*hx,B.headY+.045,F-.12,sd*.38); box(.02,.08,.02,headM,sd*(hx-.14),B.headY,F-.08,sd*.38);
+      box(.012,.02,cb[2]-cb[0],chromeTrimM,sd*(B.cw/2+.012),Math.min(cb[1],cb[3])+.04,(cb[0]+cb[2])/2);
+      const mid=(cb[0]+cb[2])/2-.05, top=Math.min(cb[1],cb[3])-.05; box(.008,top-B.base-.14,.014,gapM,sd*(B.w/2+.128),(top+B.base+.14)/2,mid);
+      box(.02,.035,.17,chromeTrimM,sd*(B.w/2+.135),top-.12,mid-.35);
+      box(.02,.04,.3,chromeTrimM,sd*(B.w/2+.136),B.base+.5,B.wb-.6);
+      box(.014,.13,B.wb*2-.9,trimM,sd*(B.w/2+.146),B.base+.12,0);
+      [.4,.62].forEach(x=>{ box(.16,.09,.14,exhM,sd*x,B.base+.2,-Rr-.02); box(.13,.06,.02,gapM,sd*x,B.base+.2,-Rr-.095); }); });
+    const dz=-2.2, dy=deckY(dz)+.08; box(1.5,.035,.26,paint,0,dy,dz).rotation.x=-.15; [1,-1].forEach(sd=>box(.04,.08,.1,blackM,sd*.5,dy-.05,dz));
+  }
   if(cid==='wisp'){ // carbon-tub featherweight on the big hatch body: exposed carbon splitter and skirts, mint light blades, pearl sheen
     const mint=new THREE.MeshBasicMaterial({color:def.accent,toneMapped:false});
     paint.sheen=new THREE.Color(0x3c7784); paint.clearcoat=1; paint.clearcoatRoughness=.02; // pearl: a cool sheen over the white
@@ -915,7 +1014,7 @@ function buildCar(def,opts){
   const plate=plateTex(def.plate||def.name.replace(/[^A-Z0-9]/g,'').slice(0,7));
   const pf=new THREE.Mesh(new THREE.PlaneGeometry(.52,.13),new THREE.MeshStandardMaterial({map:plate,roughness:.5})); pf.position.set(0,B.base+.2,F+.02); g.add(pf);
   const pr=pf.clone(); pr.position.set(0,B.base+.3,-Rr-.06); pr.rotation.y=Math.PI; g.add(pr);
-  if(!['noctis','bell','passyunk','zenkai'].includes(cid)) [1,-1].forEach(sd=>pipe(sd*.45,B.base+.22,-Rr-.02,.055)); // those carry their own center exits
+  if(!['noctis','bell','passyunk','zenkai','hellbound','tempesta','mantis','autobahn'].includes(cid)) [1,-1].forEach(sd=>pipe(sd*.45,B.base+.22,-Rr-.02,.055)); // those carry their own center exits
   for(let i=0;i<5;i++) box(.025,.12,.4,trimM,-.5+i*.25,B.base+.02,-Rr+.12);
   }
   g.add(shadowPlane(B.w+1.05,(B.front+B.rear)*1.24));
@@ -2119,11 +2218,15 @@ const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},lo
   shock:{c:0xff6fd8,css:'#ff6fd8',label:'Shockwave',tag:'SHOCKWAVE'},grip:{c:0x4f7bff,css:'#4f7bff',label:'Grip Tires',tag:'GRIP'},
   wispflux:{c:0x7dffef,css:'#7dffef',label:'Feather Flux',tag:'FEATHER FLUX'},stratossurge:{c:0xff9a3c,css:'#ff9a3c',label:'Strato Surge',tag:'STRATO SURGE'},
   desperate:{c:0xff4466,css:'#ff4466',label:'Desperation',tag:'LAST-CHANCE'},
-  echoboost:{c:0xc77dff,css:'#c77dff',label:'Echo Boost',tag:'ECHO BOOST'}};
-const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux and Strato Surge gems are locked to Wisp 07 and Stratos V. Last-Chance (red) hunts last place; Echo Boost (violet) hunts the last two — for 15s you copy every power-up taken by anyone ahead of you.';
+  echoboost:{c:0xc77dff,css:'#c77dff',label:'Echo Boost',tag:'ECHO BOOST'},
+  tempest:{c:0xff2438,css:'#ff2438',label:'Tempest',tag:'TEMPEST'}};
+const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux, Strato Surge and Tempest gems are locked to Wisp 07, Stratos V and Tempesta SV. Last-Chance (red) hunts last place; Echo Boost (violet) hunts the last two — for 15s you copy every power-up taken by anyone ahead of you.';
 const puGeo=new THREE.OctahedronGeometry(.62,0), puRing=new THREE.TorusGeometry(1.15,.07,6,28);
 function addPickups(ev,list){
   ev.pickups=[]; const f=mkF();
+  const tr=ev.track; if(!list.some(i=>i[2]==='tempest')){ // Tempest gem at the start of the longest straight
+    let run=0, st=0, best=0, bl=0; for(let k=0;k<tr.N*2;k++){ if(Math.abs(tr.K[k%tr.N])<.004){ if(!run) st=k; run++; if(run>bl&&run<=tr.N){ bl=run; best=st; } } else run=0; }
+    list=list.concat([[(best*tr.ds+25)%tr.L,-2.4,'tempest',{car:'tempesta',sig:1}]]); }
   list.forEach(item=>{ const s=item[0],x=item[1],type=item[2],opts=item[3]||{}; frame(s,f,ev.track); const T=PU_TYPES[type];
     const g=new THREE.Group(); g.position.copy(f.p).addScaledVector(f.r,x);
     const gem=new THREE.Mesh(puGeo,new THREE.MeshStandardMaterial({color:T.c,emissive:T.c,emissiveIntensity:opts.sig?2.1:1.5,metalness:.3,roughness:.2})); gem.position.y=1.3; g.add(gem);
@@ -2255,7 +2358,7 @@ function worldFx(dt){
   (EV.chevrons||[]).forEach(c=>{ c.m.material.opacity=c.big?.6+.4*Math.max(0,Math.sin(ghostT*5)):.3+.7*Math.max(0,Math.sin(ghostT*7-c.i*.8)); c.m.position.y=c.y+Math.sin(ghostT*2+c.i)*.12; });
 }
 function checkPickups(r){
-  if(!EV.pickups) return; const L=TR.L, s0=((r.dist%L)+L)%L;
+  if(!EV.pickups||r.def.noBoost) return; const L=TR.L, s0=((r.dist%L)+L)%L;
   r.puCd=r.puCd||{}; // every car can take each pickup once per pass; the gem just blinks when someone does
   EV.pickups.forEach((p,i)=>{ if((r.puCd[i]||-1)>ghostT) return;
     if(p.lastOnly||p.lastTwo) return;
@@ -2276,6 +2379,7 @@ const PU_VARIANTS={
  shock:{front:['Wake','Everyone behind you loses speed.'],pack:['Shockwave','Every car around you loses speed.'],chase:['Lightning','The leaders get struck, wherever they are.']},
  grip:{front:['Grip Tires','45% more grip for 8s.'],pack:['Slicks','More grip and no scrub through corners for 8s.'],chase:['Rails','80% more grip, and walls can\'t slow you for 6s.']},
  wispflux:{front:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.'],pack:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.'],chase:['Feather Flux','Wisp-only: violent boost and grip for 5.5s.']},
+ tempest:{front:['Tempest','Tempesta-only.'],pack:['Tempest','Tempesta-only.'],chase:['Tempest','Tempesta-only.']},
  stratossurge:{front:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],pack:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],chase:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.']},
  desperate:{front:['Last-Chance','Last place only: random rescue.'],pack:['Last-Chance','Last place only: random rescue.'],chase:['Last-Chance','Last place only: random rescue.']},
  echoboost:{front:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],pack:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],chase:['Echo Boost','Last two only: copy boosts from ahead for 15s.']}
@@ -2290,6 +2394,7 @@ function echoBoostFrom(src,type){
     if(!o||o.finished||o.out||(o.fxEcho||0)<=0) continue;
     if(type==='wispflux'&&(o.def.chassisId||o.def.id)!=='wisp') continue;
     if(type==='stratossurge'&&(o.def.chassisId||o.def.id)!=='stratos') continue;
+    if(type==='tempest'&&(o.def.chassisId||o.def.id)!=='tempesta') continue;
     o._puEcho=true; applyPU(o,type); o._puEcho=false;
     if(o.isP){ const lab=PU_TYPES[type]?.label||type; toast(`Echo Boost copied ${lab} from ahead.`); flash(.15); }
   }
@@ -2300,7 +2405,7 @@ function bracketOf(r){ if(mode!=='race'||!racers.length) return 'pack'; const n=
 function nextAhead(r,maxD){ let best=null,bd=maxD; for(const o of racers){ if(o===r||o.finished) continue; const g=o.dist-r.dist; if(g>2&&g<bd){ bd=g; best=o; } } return best; }
 function shieldVs(c,o){ if(!(c.fxShield>0)) return false; return c.shieldMode==='rear'?o.dist<c.dist:true; }
 function applyPU(r,type){
-  if(type==='wispflux'||type==='stratossurge'||type==='desperate'||type==='echoboost') return applySigPU(r,type);
+  if(type==='wispflux'||type==='stratossurge'||type==='tempest'||type==='desperate'||type==='echoboost') return applySigPU(r,type);
   const br=bracketOf(r), cls=carClass(r.def), V=PU_VARIANTS[type][br], jack=Math.random()<.125||koMod('jackpot'), J=jack?1.5:1;
   let twist='';
   r.fxName=r.fxName||{};
@@ -2355,6 +2460,9 @@ function applySigPU(r,type){
   if(type==='wispflux'){
     r.nitro=Math.max(r.nitro,1.12); r.fxWisp=5.5; r.fxNosMul=5.5; r.gripMul=1.9; r.fxGrip=5.5; r.noScrub=true;
     body='Feather-light grip and boost hits like a cannon for 5.5s. Tank refills slowly — spend it here.';
+  } else if(type==='tempest'){
+    r.fxTempest=9; r.nitro=Math.max(r.nitro,1); r.gripMul=1.6; r.fxGrip=9;
+    body='The storm breaks. Hold on.';
   } else if(type==='stratossurge'){
     r.nitro=Math.max(r.nitro,.9); r.overMul=1.28; r.fxOver=7; r.fxLong=7; r.drainMul=.2; r.draftRange=44; r.overAcc=6;
     body='Top speed, long boost, and mega draft for 7s. Built for holding flat.';
@@ -2839,10 +2947,25 @@ function stepRacer(r,dt,inp){
     r._nos=nitro;
   }
   r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*9)):steer;
+  if(d.noBoost) nitro=false;
+  const cap=d.vcap||VCAP;
   const nosVmax=d.nosVmax||1.22, nosV=nitro?nosVmax*(r.fxWisp>0?1.1:1):1;
-  const vmax0=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
-  const vmax=Math.min(VCAP,vmax0);
-  let a=d.acc*Math.max(0,1-r.v/vmax); if(r.v>vmax) a=r.v>VCAP?-60:-10;
+  let vmax0=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
+  // outlaw ceilings: a storm window (own gem), running last, or a long clean streak
+  let surge=0;
+  if(r.fxTempest>0){ vmax0=Math.max(vmax0,d.sigTop); surge=55; }
+  if(d.lastTop&&mode==='race'&&raceT>(r.startDelay||0)+3&&!r.finished){
+    if(racers.every(o=>o===r||o.out||o.dist>r.dist)){ if(!(r.mantisT>0)&&r.isP) toast('MANTIS LT. Unleashed.'); r.mantisT=2.5; }
+    if(r.mantisT>0){ vmax0=Math.max(vmax0,d.lastTop); surge=Math.max(surge,24); } }
+  if(d.cleanTop){
+    if(r.hits!==r._hits||brakeAmt>.3){ if(r.isP&&r.clean>12) toast('AUTOBAHN 63. Clean streak broken.'); r.clean=0; r._hits=r.hits; }
+    else if(mode==="race"&&raceT>(r.startDelay||0)) r.clean=(r.clean||0)+dt;
+    const cp=Math.pow(clamp(((r.clean||0)-4)/40,0,1),1.3);
+    if(cp>0){ vmax0=Math.max(vmax0,lerp(d.top,d.cleanTop,cp)); surge=Math.max(surge,16*cp); }
+    if(cp>=1&&!r.unres&&r.isP){ r.unres=true; toast('AUTOBAHN 63. Unrestricted.'); } if(cp<1) r.unres=false; }
+  const vmax=Math.min(cap,vmax0);
+  let a=d.acc*Math.max(0,1-r.v/vmax); if(r.v>vmax) a=r.v>cap?-60:-10;
+  if(surge&&r.v<vmax) a+=surge*(1-r.v/vmax);
   const nosAcc=(d.nosAccMul||1)*(r.fxNosMul>0?1.35:1)*(r.fxWisp>0?1.12:1);
   if(nitro) a+=14*d.nitro*nosAcc;
   if(r.fxOver>0) a+=5+(r.overAcc||0);
@@ -2851,11 +2974,11 @@ function stepRacer(r,dt,inp){
   if(r.draft>0){ a+=r.draft; r.draft=0; }
   if(brakeAmt>0) a=-40*brakeAmt;
   if(mode==='race'&&raceT<r.startDelay) a=0;
-  r.v=clamp(r.v+a*dt,0,VCAP+2);
+  r.v=clamp(r.v+a*dt,0,cap+2);
   if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(d.nosDrainMul||1)*(r.fxLong>0?(r.drainMul!==undefined?r.drainMul:.35):1));
   else if(r.nitro>1) r.nitro=Math.max(1,r.nitro-.015*dt);
   r.nosOn=nitro;
-  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','fxEcho','towT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
+  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','fxEcho','towT','fxTempest','mantisT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
   const ac=r.v*r.v*k*.5, sa=r.steer*G*Math.min(1,r.v/18);
   r.vx+=(sa+ac-r.vx*3.2)*dt;
   r.x+=r.vx*dt;
@@ -2863,7 +2986,7 @@ function stepRacer(r,dt,inp){
   if(r.fxGrip>0&&r.noScrub) r.slip*=.3;
   const regenMul=d.nitroRegenMul!==undefined?d.nitroRegenMul:1;
   const regen=r.noRegen&&r.fxOver>0?0:(.035+r.slip*.12)*dt*(r.isP?1:1.2)*(r.fxRegen>0?2.5:1)*regenMul*(koMod('nitro')?2:1);
-  r.nitro=Math.min(Math.max(1,r.nitro),r.nitro+regen);
+  r.nitro=d.noBoost?0:Math.min(Math.max(1,r.nitro),r.nitro+regen);
   const lim=W-1.1; r.hitCd-=dt;
   if(Math.abs(r.x)>lim){ const sd=Math.sign(r.x); r.x=sd*lim;
     if(r.hitCd<=0&&Math.abs(r.vx)>3){ if(!shielded){ r.v*=.88; r.hits++; } r.hitCd=.35;
@@ -3355,7 +3478,7 @@ function startRace(){
    const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
    addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012);
   }); }
-  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=0; r.fxName={}; });
+  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.clean=0; r._hits=r.hits; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
   const boss=racers.find(r=>!r.isP&&(r.def.chassisId==='overload'||r.def.chassisId==='volcano'));
   if(boss&&!EV.knockout) setTimeout(()=>{ if(mode==='race') toast(boss.def.chassisId==='volcano'?`${boss.def.tag} brought the VOLCANO P1. The fastest car in the archive is on the grid.`:`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`); },4200);

@@ -7,7 +7,7 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 
 /* ---------------- DATA ---------------- */
 const CARS=[
- {id:'kage',name:'KAGE R',paint:0xc8d2dc,metal:.92,rough:.22,rim:0x1a1c20,caliper:0xffc21a,wing:false,world:'ice',
+ {id:'kage',name:'KAGE R',body:'kage',paint:0xc8d2dc,metal:.92,rough:.22,rim:0x1a1c20,caliper:0xffc21a,wing:true,world:'ice',
   top:90,acc:22,grip:30,nitro:1.0,
   kick:'Specimen 01',loc:'Harbor Line',when:'Tunnel 7, 03:12',
   caption:'Found under a tarp on level B3. The owner never came back for it.',
@@ -15,7 +15,7 @@ const CARS=[
   rival:'Rival note: the white one takes turn four flat. Don\'t follow it in.',
   note:'brakes late.\nway too late.', notePos:{l:'54%',t:'36%'},
   cam:{p:[3.9,0.5,4.7],l:[0,0.62,0.2],roll:.16,fov:34}},
- {id:'noctis',name:'NOCTIS GT',paint:0x040508,metal:.35,rough:.08,rim:0xf4f6fa,chrome:true,caliper:0xd42020,wing:false,world:'flash',
+ {id:'noctis',name:'NOCTIS GT',body:'noctis',paint:0x040508,metal:.55,rough:.08,rim:0xf4f6fa,chrome:true,caliper:0xd42020,wing:false,world:'flash',
   top:87,acc:20,grip:26,nitro:1.25,
   kick:'Street meet',loc:'Pier 9 Lot',when:'Thursday, 02:14',
   caption:'Shot at the Thursday meet. Chrome wheels, no plates, no story.',
@@ -23,7 +23,7 @@ const CARS=[
   rival:'Rival note: heavy through the chicane. Save boost for the exits.',
   note:'slides like\nbutter.', notePos:{l:'8%',t:'38%'},
   cam:{p:[-4.6,1.0,3.1],l:[0,0.5,0.7],roll:-.06,fov:30}},
- {id:'vanta',name:'VANTA LM',paint:0xf2f5f8,metal:.4,rough:.24,rim:0x0e1012,caliper:0x19c2ff,wing:true,swanWing:true,world:'ice',
+ {id:'vanta',name:'VANTA LM',body:'vanta',paint:0xf2f5f8,metal:.45,rough:.22,rim:0x0e1012,caliper:0x19c2ff,wing:true,world:'ice',
   top:86,acc:24,grip:34,nitro:.9,
   kick:'Archive',loc:'North Cut',when:'Last run, 04:40',
   caption:'Built for a circuit that isn\'t there anymore. Now it lives in the tunnels.',
@@ -129,7 +129,7 @@ CARS.push(
   rival:'Rival note: it launches like a railgun. Boost takes forever to come back.',
   note:'feather.\nviolent.', notePos:{l:'62%',t:'35%'},
   cam:{p:[-4.0,.85,3.6],l:[0,.55,.35],roll:-.05,fov:32}},
- {id:'stratos',name:'STRATOS V',body:'hyper',hyper:true,paint:0xff5c12,metal:.7,rough:.14,rim:0x101114,caliper:0xffd23b,wing:true,livery:0xffd23b,accent:0xffd23b,spokes:5,world:'ice',
+ {id:'stratos',name:'STRATOS V',body:'stratos',paint:0xff5c12,metal:.72,rough:.12,rim:0x101114,caliper:0xffd23b,wing:true,livery:0xffd23b,accent:0xffd23b,spokes:5,world:'ice',
   top:102,acc:29,grip:35,nitro:1.42,mass:1.08,nosVmax:1.28,
   kick:'Wind-tunnel',loc:'Delaware Ave Overpass',when:'Pre-dawn, 04:55',
   caption:'Built for sustained flat-out. The wing is not for show.',
@@ -510,7 +510,15 @@ const BODIES={
  p1:{pts:[[-2.24,.34],[-2.3,.66],[-2.2,.82],[-1.6,.9],[-.9,.92],[-.1,.84],[.8,.68],[1.6,.52],[2.14,.36],[2.22,.26]],base:.18,
    cab:[[-1.55,.96],[-1.0,1.16],[-.2,1.22],[.5,1.02],[.98,.7]],cabBase:[-1.55,.94,.98,.68],w:2.0,cw:1.22,wr:.36,wb:1.36,tr:1.0,front:2.22,rear:2.3,headY:.5,tailY:.76,wingY:1.14,wingZ:-1.95},
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
-   cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:1.0,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3}
+   cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:1.0,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3},
+ kage:{pts:[[-2.42,.3],[-2.5,.56],[-2.28,.74],[-1.65,.84],[-.85,.86],[.35,.8],[1.25,.64],[1.95,.48],[2.28,.36],[2.32,.26]],base:.18,
+   cab:[[-.95,.82],[-.35,1.06],[.4,1.1],[.9,.9],[1.18,.68]],cabBase:[-.95,.8,1.18,.66],w:1.94,cw:1.2,wr:.36,wb:1.42,tr:1.02,front:2.32,rear:2.5,headY:.48,tailY:.68,wingY:.98,wingZ:-2.18},
+ noctis:{pts:[[-2.12,.34],[-2.2,.68],[-2.02,.86],[-1.3,.94],[-.35,.96],[.55,.92],[1.4,.8],[2.1,.64],[2.5,.48],[2.54,.34]],base:.22,
+   cab:[[-1.62,.92],[-1.08,1.26],[-.15,1.32],[.4,1.08],[.72,.88]],cabBase:[-1.62,.9,.72,.86],w:1.98,cw:1.4,wr:.38,wb:1.5,tr:1.02,front:2.54,rear:2.2,headY:.6,tailY:.8,wingY:1.16,wingZ:-1.9},
+ vanta:{pts:[[-2.72,.26],[-2.78,.48],[-2.55,.62],[-1.75,.7],[-.75,.72],[.25,.66],[1.2,.5],[1.9,.36],[2.32,.28],[2.36,.22]],base:.14,
+   cab:[[-.25,.68],[.15,.98],[.65,1.02],[1.02,.84],[1.22,.58]],cabBase:[-.25,.66,1.22,.56],w:2.08,cw:1.14,wr:.36,wb:1.55,tr:1.08,front:2.36,rear:2.78,headY:.4,tailY:.54,wingY:1.14,wingZ:-2.4,swan:true},
+ stratos:{pts:[[-2.58,.28],[-2.64,.7],[-2.38,.96],[-1.5,1.02],[-.45,.92],[.55,.72],[1.4,.52],[2.0,.4],[2.38,.32],[2.42,.24]],base:.16,
+   cab:[[-.85,.92],[-.25,1.26],[.5,1.3],[1.0,1.02],[1.32,.68]],cabBase:[-.85,.9,1.32,.66],w:2.1,cw:1.22,wr:.37,wb:1.5,tr:1.05,front:2.42,rear:2.64,headY:.46,tailY:.86,wingY:1.52,wingZ:-2.28,swan:true}
 };
 const bronzeM=()=>new THREE.MeshStandardMaterial({color:0x8a5a2b,metalness:1,roughness:.25});
 /* Fold a group's direct child meshes into one mesh per material (transforms baked in). A detailed car is
@@ -584,17 +592,13 @@ function buildCar(def,opts){
     const fin=box(.04,.36,1.5,paint,0,1.05,-1.55); fin.rotation.x=.22;
     box(B.w*.78,.022,.03,acc,0,B.headY+.06,F-.1);
     [1,-1].forEach(sd=>{ box(.02,.02,B.wb*2-.6,acc,sd*(B.w/2+.14),B.base+.1,0); const it=box(.06,.26,.7,trimM,sd*(B.w/2+.1),B.base+.42,-.85); it.rotation.y=sd*.12; });
-    [1,-1].forEach(sd=>{ const s=glowSprite(def.accent||0x2fe6ff,.7); s.position.set(sd*(B.w/2+.14),B.base+.1,1); g.add(s); });
-    if(def.id==='stratos'){
-      const gold=new THREE.MeshStandardMaterial({color:def.livery,roughness:.28,metalness:.45});
-      box(.62,.07,.14,blackM,0,.98,.72); // hood nostrils
-      [1,-1].forEach(sd=>{ box(.28,.05,.42,gold,sd*(B.w/2+.04),B.base+.18,F-.06).rotation.y=sd*.32; // dive planes
-        box(.05,.32,.22,gold,sd*(B.w/2+.11),B.base+.34,-1.05); // side strakes
-        box(.04,.18,.55,gold,sd*(B.w/2+.15),B.base+.08,.35); }); // rocker blade
-      box(2.18,.05,.58,gold,0,B.wingY+.14,B.wingZ-.04); // upper aero deck
-      box(1.05,.12,.32,blackM,0,B.wingY+.02,B.wingZ+.18); // active wing pedestal
-      const rimGlow=new THREE.MeshStandardMaterial({color:0xffd23b,emissive:0x5a3800,emissiveIntensity:.35,metalness:.9,roughness:.2});
-      [1,-1].forEach(sd=>{ const ring=new THREE.Mesh(new THREE.TorusGeometry(.31,.018,6,24),rimGlow); ring.rotation.y=Math.PI/2; ring.position.set(sd*.16,B.wr,sd*B.wb); g.add(ring); }); }
+    [1,-1].forEach(sd=>{ const s=glowSprite(def.accent||0x2fe6ff,.7); s.position.set(sd*(B.w/2+.14),B.base+.1,1); g.add(s); }); }
+  if(def.id==='stratos'){ // high-tail aero: gold endplates sit on the wing, intakes follow the new deck
+    const gold=new THREE.MeshStandardMaterial({color:def.livery,roughness:.28,metalness:.55});
+    box(.5,.06,.12,blackM,0,B.headY+.16,F-.55);
+    [1,-1].forEach(sd=>{ box(.22,.04,.36,gold,sd*(B.w/2-.02),B.base+.16,F-.22).rotation.y=sd*.28;
+      box(.04,.22,.7,gold,sd*(B.w/2+.08),B.base+.28,-1.15); });
+    [1,-1].forEach(sd=>box(.05,.42,.62,gold,sd*1.12,B.wingY-.08,B.wingZ));
   }
   if(def.p1){ // P1 cues: "smile" intake, boomerang LEDs, roof snorkel, door intakes, C-shaped tail light, mesh rear, center exhausts
     const carbon=new THREE.MeshStandardMaterial({color:0x0c0d10,metalness:.5,roughness:.32});
@@ -615,33 +619,32 @@ function buildCar(def,opts){
   if(def.body==='sedan'||def.body==='suv'||def.body==='truck'){ // upright grille
     const gr=box(1.1,.34,.06,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.9,roughness:.2}),0,B.headY-.12,F-.02);
     for(let i=0;i<5;i++) box(.02,.3,.08,new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:1,roughness:.2}),-.44+i*.22,B.headY-.12,F+.01); void gr; }
-  if(def.id==='kage'){ // Specimen 01: silver tunnel weapon, black roof, amber center stripe, tunnel wing
-    const amber=new THREE.MeshStandardMaterial({color:0xffc21a,roughness:.35,metalness:.35});
-    box(B.w*.14,.045,2.05,amber,0,B.base+.13,.05);
-    box(B.w*.9,.07,.32,blackM,0,B.base+.04,-Rr+.1);
-    for(let i=0;i<5;i++) box(.035,.1,.38,blackM,-.2+i*.1,B.base+.02,-Rr+.22);
-    box(1.15,.05,.2,amber,0,B.base+.18,F-.14);
-    box(B.w*.78,.04,.55,blackM,0,1.06,-1.52); box(.06,.34,.12,blackM,.55,1.02,-1.48); box(.06,.34,.12,blackM,-.55,1.02,-1.48);
-    box(B.w*.68,.035,1.35,blackM,0,1.16,-.15);
-    [1,-1].forEach(sd=>{ box(.2,.26,.95,paint,sd*(B.w/2+.03),B.base+.4,-1.05); });
-    paint.clearcoatRoughness=.01;
+  if(def.id==='kage'){ // chopped silver coupe: amber spine follows the deck, black roof, rear haunches
+    const amber=new THREE.MeshStandardMaterial({color:0xffc21a,roughness:.32,metalness:.4});
+    box(.16,.03,B.front+B.rear-1.1,amber,0,B.base+.22,.1);
+    box(B.cw*.9,.03,Math.abs(B.cabBase[2]-B.cabBase[0])-.15,blackM,0,B.cab[2][1]+.02,(B.cabBase[0]+B.cabBase[2])/2);
+    box(1.05,.04,.16,amber,0,B.headY-.06,F-.2);
+    [1,-1].forEach(sd=>box(.16,.22,.85,paint,sd*(B.w/2+.02),B.base+.32,-1.15));
+    paint.clearcoat=1; paint.clearcoatRoughness=.02;
   }
-  if(def.id==='noctis'){ // black chrome GT: red cabin rail, side gills, triple center exhaust
-    const red=new THREE.MeshStandardMaterial({color:0xc01820,roughness:.35,metalness:.2});
-    box(B.w*.86,.04,.1,red,0,B.tailY-.04,-Rr-.05);
-    [1,-1].forEach(sd=>{ box(.035,.08,1.55,red,sd*(B.w/2+.125),B.base+.38,.05);
-      for(let i=0;i<4;i++) box(.06,.12,.08,chromeTrimM,sd*(B.w/2+.09),B.base+.42+i*.22,F-.42-i*.08).rotation.y=sd*.15; });
-    box(1.35,.12,.08,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.95,roughness:.15}),0,B.headY-.14,F-.02);
-    for(let i=0;i<5;i++) box(.02,.26,.08,chromeTrimM,-.44+i*.22,B.headY-.12,F+.01);
-    [-1,0,1].forEach(sd=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(.048,.052,.18,12,1,true),exhM); t.rotation.x=Math.PI/2; t.position.set(sd*.22,B.base+.2,-Rr-.03); g.add(t); });
-    const cabin=box(B.w*.7,.025,.9,red,0,1.02,-.35); cabin.rotation.x=-.08;
+  if(def.id==='noctis'){ // long-hood GT: chrome grille, red beltline, triple center exhaust
+    const red=new THREE.MeshStandardMaterial({color:0xc01820,roughness:.32,metalness:.25});
+    box(B.w*.9,.035,.08,red,0,B.tailY-.02,-Rr-.04);
+    box(.9,.03,Math.abs(B.cabBase[2]-B.cabBase[0])-.2,red,0,B.cab[2][1]+.015,(B.cabBase[0]+B.cabBase[2])/2);
+    [1,-1].forEach(sd=>{ box(.03,.06,1.4,red,sd*(B.w/2+.12),B.base+.32,0);
+      for(let i=0;i<3;i++) box(.05,.1,.07,chromeTrimM,sd*(B.w/2+.06),B.headY-.05,F-.7-i*.16); });
+    box(1.2,.16,.06,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.95,roughness:.12}),0,B.headY-.16,F-.02);
+    for(let i=0;i<5;i++) box(.018,.14,.07,chromeTrimM,-.4+i*.2,B.headY-.16,F+.02);
+    [-1,0,1].forEach(sd=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.16,12,1,true),exhM); t.rotation.x=Math.PI/2; t.position.set(sd*.2,B.base+.18,-Rr-.02); g.add(t); });
+    paint.clearcoat=1; paint.clearcoatRoughness=.04;
   }
-  if(def.id==='vanta'){ // LM endurance: black roof, NACA ducts, blue arch intakes, roundel
-    box(B.w*.62,.04,.95,blackM,0,1.15,-.45);
-    [1,-1].forEach(sd=>{ const duct=box(.36,.07,.55,paint,sd*(B.w/2+.04),B.base+.52,-.35); duct.rotation.y=sd*.28;
-      box(.05,.22,.3,new THREE.MeshStandardMaterial({color:0x19c2ff,emissive:0x0a2844,emissiveIntensity:.4,roughness:.4}),sd*(B.w/2+.1),B.base+.48,-.62); });
-    const disc=new THREE.Mesh(new THREE.CircleGeometry(.16,24),new THREE.MeshStandardMaterial({color:0x19c2ff,roughness:.4})); disc.position.set(-.55,1.02,.15); disc.rotation.y=Math.PI/2; g.add(disc);
-    const num=new THREE.Mesh(new THREE.CircleGeometry(.11,20),new THREE.MeshBasicMaterial({color:0x0a0c10})); num.position.set(-.55,1.02,.16); num.rotation.y=Math.PI/2; g.add(num);
+  if(def.id==='vanta'){ // longtail LM: black canopy, cyan side ducts, number roundel on the door
+    box(B.cw*.85,.025,1.05,blackM,0,B.cab[2][1]+.02,.45);
+    const cyan=new THREE.MeshStandardMaterial({color:0x19c2ff,emissive:0x0a2844,emissiveIntensity:.45,roughness:.35,metalness:.2});
+    [1,-1].forEach(sd=>box(.04,.16,.55,cyan,sd*(B.w/2+.06),B.base+.32,-.9));
+    const disc=new THREE.Mesh(new THREE.CircleGeometry(.14,24),new THREE.MeshStandardMaterial({color:0x19c2ff,roughness:.4,metalness:.15})); disc.position.set(-(B.w/2+.13),.72,.55); disc.rotation.y=-Math.PI/2; g.add(disc);
+    const num=new THREE.Mesh(new THREE.CircleGeometry(.09,20),new THREE.MeshBasicMaterial({color:0x0a0c10})); num.position.set(-(B.w/2+.14),.72,.55); num.rotation.y=-Math.PI/2; g.add(num);
+    paint.clearcoat=1; paint.clearcoatRoughness=.06;
   }
   if(def.wing){ const wy=B.wingY, wz=B.wingZ;
     if(B.swan||def.swanWing){ [.5,-.5].forEach(x=>{ const p=box(.06,.62,.14,blackM,x,wy-.25,wz+.12); p.rotation.x=.35; }); const w=box(2.1,.06,.55,blackM,0,wy,wz); w.rotation.x=-.12;
@@ -1208,14 +1211,16 @@ const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
   decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}};
 /* Event 10: Mt Airy / Germantown — tree-lined rowhome streets, speed bumps, potholes (≈2.6 km / lap). */
 const MTAIRY_ZS=[-990,-900,-810,-720,-630,-540,-450];
-function mtAiryHills(x,z){ return 2.2*Math.sin((x+520)*.017)*Math.cos((z+820)*.013)+1.1*Math.sin((x+z)*.008); }
+function mtAiryHills(x,z){ return 1.05*Math.sin((x+520)*.011)*Math.cos((z+820)*.009)+.4*Math.sin((x+z)*.005); }
 const MTAIRY_CFG={banner:'EVENT 10 · MT AIRY RUN',start:[-480,-720],
   corners:[[-480,-980,28],[-660,-980,24],[-660,-850,22],[-360,-850,24],[-360,-720,26],[-480,-720,20]],
   yAt:(x,z)=>mtAiryHills(x,z), zMin:-1100, ZS:MTAIRY_ZS, jerseyMaxX:-220,
   nwGrid:{XS:[-760,-670,-580,-490,-400,-310,-220], ZS:MTAIRY_ZS},
   trackX:(x,zc)=>(x===-480&&zc>-980&&zc<-720)||(x===-660&&zc>-980&&zc<-850)||(x===-360&&zc>-850&&zc<-720),
   trackZ:(z,xc)=>(z===-980&&xc>-660&&xc<-480)||(z===-850&&xc>-660&&xc<-360)||(z===-720&&xc>-480&&xc<-360),
-  skip:[[-700,-260,-990,-430]], excl:[],
+  skip:[[-700,-260,-990,-430],[-760,-680,-1060,-990],[-580,-490,-900,-810]], excl:[],
+  namesX:{'-660':'Lincoln Dr','-480':'Germantown Ave','-360':'Greene St'},
+  namesZ:{'-980':'Hortter St','-850':'Phil-Ellena St','-720':'Upsal St'},
   gantries:[[-480,-920,'GERMANTOWN AVE','MT AIRY · CHESTNUT HILL  ↑'],[-660,-910,'LINCOLN DR','WISSAHICKON VALLEY  →'],[-360,-780,'GREENE ST','GERMANTOWN  ↓']],
   roads:[{ew:0,c:-480,dir:1,a:-980,b:-720},{ew:1,c:-980,dir:-1,a:-660,b:-480},{ew:0,c:-660,dir:-1,a:-980,b:-850},{ew:1,c:-850,dir:1,a:-660,b:-360},{ew:0,c:-360,dir:1,a:-850,b:-720},{ew:1,c:-720,dir:-1,a:-480,b:-360}],
   cams:[[-480,-860,1,0],[-660,-870,0,1]],
@@ -1367,7 +1372,12 @@ function buildCity(C){
     faceQuad(FAC.sign,face,c-sw/2,c+sw/2,4.6,6.1,pc+out*2,u0,u0+.25,v1-.25,v1); }
   const styleAt=(x)=>{ const r=R_(); if(x>1700) return r<.7?'brick':'stone'; if(x<250) return r<.5?'glass':(r<.8?'stone':'brick'); if(x<600) return r<.2?'glass':(r<.6?'stone':'brick'); return r<.8?'brick':'stone'; };
   const heightAt=(x)=>{ const r=R_(); if(x>1700) return 8+r*24+(R_()<.08?40:0); if(x<-80) return 40+r*110+(R_()<.2?80:0); if(x<250) return 24+r*70+(R_()<.12?60:0); if(x<600) return 16+r*38; return 10+r*18; };
-  function fillLot(x0,x1,z0,z1,fronts,china){
+  function fillLot(x0,x1,z0,z1,fronts,china,row){
+    if(row){ const h=8+R_()*6; block(R_()<.75?FAC.brick:FAC.stone,x0+1,x1-1,z0+1,z1-1,h);
+      if(R_()<.35&&(fronts.n||fronts.s||fronts.e||fronts.w)){ const face=fronts.s?'s':fronts.n?'n':fronts.e?'e':'w';
+        const pc=face==='s'?z1-1:face==='n'?z0+1:face==='e'?x1-1:x0+1, a0=face==='e'||face==='w'?z0+2:x0+2, a1=face==='e'||face==='w'?z1-2:x1-2;
+        storefront(face,a0,a1,pc,false); }
+      return; }
     const nx=Math.max(1,Math.min(3,Math.round((x1-x0)/30))), nz=(z1-z0)>50?2:1, wx=(x1-x0)/nx, wz=(z1-z0)/nz;
     for(let i=0;i<nx;i++) for(let j=0;j<nz;j++){
       const bx0=x0+i*wx+(i?.8:0), bx1=x0+(i+1)*wx-(i<nx-1?.8:0), bz0=z0+j*wz+(j?.8:0), bz1=z0+(j+1)*wz-(j<nz-1?.8:0), xc=(bx0+bx1)/2;
@@ -1377,7 +1387,7 @@ function buildCity(C){
   const trackX=C.trackX, trackZ=C.trackZ;
   const SKIP=[[-80,70,-160,20],[720,810,-340,20],[720,810,20,110],[-170,-80,-160,-70],[160,250,20,110],[-260,-170,-70,20],[-350,-260,20,110],[-350,-260,-160,-70],[-440,-350,-250,-160]].concat(C.skip);
   const EXCL=[[720,3300,-366,-274]].concat(C.excl);
-  function grid(XS,ZS){
+  function grid(XS,ZS,row){
     for(let i=0;i<XS.length-1;i++) for(let j=0;j<ZS.length-1;j++){
       const xa=XS[i],xb=XS[i+1],za=ZS[j],zb=ZS[j+1];
       if(SKIP.some(s=>xa>=s[0]&&xb<=s[1]&&za>=s[2]&&zb<=s[3])) continue;
@@ -1386,12 +1396,12 @@ function buildCity(C){
       let rects=[[x0,x1,z0,z1]];
       EXCL.forEach(e=>{ rects=rects.flatMap(r=>{ if(r[1]<=e[0]||r[0]>=e[1]||r[3]<=e[2]||r[2]>=e[3]) return [r];
         const o=[]; if(e[2]-r[2]>14) o.push([r[0],r[1],r[2],e[2]]); if(r[3]-e[3]>14) o.push([r[0],r[1],e[3],r[3]]); return o; }); });
-      rects.forEach(r=>fillLot(r[0],r[1],r[2],r[3],{w:tw&&r[0]===x0,e:te&&r[1]===x1,n:tn&&r[2]===z0,s:ts&&r[3]===z1},(tn||ts)&&za<-250&&xc>250&&xc<520));
+      rects.forEach(r=>fillLot(r[0],r[1],r[2],r[3],{w:tw&&r[0]===x0,e:te&&r[1]===x1,n:tn&&r[2]===z0,s:ts&&r[3]===z1},(tn||ts)&&za<-250&&xc>250&&xc<520,row));
     } }
   const ZS=C.ZS;
-  grid([-800,-710,-620,-530,-440,-350,-260,-170,-80,70,160,250,340,430,520,610,720,810,900,990],ZS);
+  grid(C.nwGrid?[-170,-80,70,160,250,340,430,520,610,720,810,900,990]:[-800,-710,-620,-530,-440,-350,-260,-170,-80,70,160,250,340,430,520,610,720,810,900,990],ZS);
   grid([1760,1850,1940,2030,2120,2210,2300,2390,2480,2570],ZS);
-  if(C.nwGrid) grid(C.nwGrid.XS,C.nwGrid.ZS);
+  if(C.nwGrid) grid(C.nwGrid.XS,C.nwGrid.ZS,true);
 
   // ---- landmarks ----
   // City Hall: stone base, corner pavilions, clock tower, cupola and the William Penn statue
@@ -1525,9 +1535,9 @@ function buildCity(C){
   // ---- intersections: crosswalks, signals, street-name blades ----
   const lamp={r:new THREE.MeshBasicMaterial({color:0x1a1a1a,toneMapped:false}),y:new THREE.MeshBasicMaterial({color:0x1a1a1a,toneMapped:false}),g:new THREE.MeshBasicMaterial({color:0x1a1a1a,toneMapped:false})};
   const zX=[], zZ=[], lampGeo=new THREE.CircleGeometry(.15,12);
-  const NAMES_X={70:'13th St',160:'12th St',250:'11th St',340:'10th St',430:'9th St',520:'8th St',610:'7th St',720:'6th St',810:'5th St'};
-  const NAMES_Z={'-800':'Spring Garden St','-700':'Green St','-610':'Buttonwood St','-520':'Callowhill St','-430':'Vine St','-340':'Race St','-250':'Cherry St','-160':'Arch St','-70':'JFK Blvd',
-    '20':'Market St','110':'Chestnut St','200':'Walnut St','290':'Locust St','380':'Spruce St','470':'South St'};
+  const NAMES_X=Object.assign({70:'13th St',160:'12th St',250:'11th St',340:'10th St',430:'9th St',520:'8th St',610:'7th St',720:'6th St',810:'5th St'},C.namesX||{});
+  const NAMES_Z=Object.assign({'-800':'Spring Garden St','-700':'Green St','-610':'Buttonwood St','-520':'Callowhill St','-430':'Vine St','-340':'Race St','-250':'Cherry St','-160':'Arch St','-70':'JFK Blvd',
+    '20':'Market St','110':'Chestnut St','200':'Walnut St','290':'Locust St','380':'Spruce St','470':'South St'},C.namesZ||{});
   function signal(px,pz,dirX,dirZ,name){ // dir = travel direction of the race lane it controls
     boxM(.3,7.2,.3,poleM,px,3.6,pz);
     const tx=px+dirZ*(W+3), tz=pz-dirX*(W+3); // arm reaches back over the road
@@ -1560,28 +1570,35 @@ function buildCity(C){
   const arena=C.arena?arenaDress():null;
 
   function mtairyDress(){
-    const brickM=new THREE.MeshStandardMaterial({color:0x6a4a38,roughness:.92}), stoneM=new THREE.MeshStandardMaterial({color:0x7a7e84,roughness:.88});
-    const porchM=new THREE.MeshStandardMaterial({color:0x4a3428,roughness:.85}), slateM=new THREE.MeshStandardMaterial({color:0x2a2e34,roughness:.8});
-    [[-730,-660,-970,-900,28],[-620,-560,-960,-880,32],[-410,-350,-920,-840,26],[-750,-690,-820,-760,30]].forEach(([x0,x1,z0,z1,h])=>block(FAC.brick,x0,x1,z0,z1,h));
-    block(FAC.stone,-740,-680,-960,-900,26); block(FAC.stone,-690,-650,-960,-900,32);
-    block(FAC.stone,-668,-628,-972,-928,14); // corner church stone base
-    mesh(new THREE.CylinderGeometry(.9,.95,12,10),stoneM,-648,6,-950);
-    const steeple=mesh(new THREE.ConeGeometry(.55,8,8),slateM,-648,16,-950);
-    void steeple;
-    const awning=new THREE.MeshStandardMaterial({color:0x7a1818,roughness:.55});
-    boxM(9,.4,5.5,awning,-702,4.9,-932);
-    const wawa=mesh(new THREE.PlaneGeometry(4.8,1.3),new THREE.MeshBasicMaterial({map:CT(signCanvas('WAWA',{bg:'#d42020',color:'#fff',size:56})),toneMapped:false}),-699,6.4,-933); wawa.rotation.y=Math.PI/2;
-    const treeM=new THREE.MeshStandardMaterial({color:0x1d1813,roughness:1}), leafM=new THREE.MeshStandardMaterial({color:0x183822,roughness:1,flatShading:true});
-    for(let z=-960;z<-730;z+=22){ [-508,-452].forEach(x=>{ boxM(.22,4.2,.22,treeM,x,2.1,z+(R_()-.5)*6); mesh(new THREE.IcosahedronGeometry(1.65,0),leafM,x,5.2,z+(R_()-.5)*6); }); }
-    for(let z=-980;z<-850;z+=28){ [-678,-642].forEach(x=>{ boxM(.2,3.8,.2,treeM,x,1.9,z); mesh(new THREE.IcosahedronGeometry(1.35,0),leafM,x,4.6,z); }); } // Lincoln Dr canopy
-    for(let x=-740;x<-320;x+=90){ for(let z=-960;z<-740;z+=90){ if(R_()>.55) continue;
-      const w=8+R_()*4, d=10+R_()*3, h=3+R_()*2.2; boxM(w,h,d,brickM,x+w/2,h/2,z+d/2);
-      boxM(w*.7,.12,d*.35,porchM,x+w*.15,h+.06,z+d*.1); boxM(w,h*.55,d*.08,slateM,x+w/2,h+h*.28,z+d*.02); } }
-    const junc=mesh(new THREE.PlaneGeometry(7,1.5),new THREE.MeshBasicMaterial({map:CT(signCanvas2('MT AIRY','GERMANTOWN AVE',{bg:'#0a0d12',color:'#cfe9ff'})),toneMapped:false}),-672,7.8,-968); junc.rotation.y=Math.PI;
-    const linc=mesh(new THREE.PlaneGeometry(8,1.4),new THREE.MeshBasicMaterial({map:CT(signCanvas2('LINCOLN DR','WISSAHICKON VALLEY',{bg:'#0a1208',color:'#b8f0c8'})),toneMapped:false}),-648,7.2,-912); linc.rotation.y=Math.PI/2;
-    flat(-520,-340,-870,-830,.03,new THREE.MeshStandardMaterial({color:0x2a2824,roughness:.9})); // patched asphalt on Greene
-    flat(-500,-440,-855,-845,.04,new THREE.MeshStandardMaterial({color:0x35322c,roughness:.95})); // cobble hint
-    [[-480,-780],[-480,-900],[-660,-880],[-360,-760]].forEach(([x,z])=>{ const s=glowSprite(0xffd23b,.35); s.position.set(x,2.4,z); S.add(s); }); // streetlight pools near hazards
+    const stoneM=new THREE.MeshStandardMaterial({color:0xc8c2b4,roughness:.82,emissive:0x3a3428,emissiveIntensity:.35});
+    const slateM=new THREE.MeshStandardMaterial({color:0x2c3138,roughness:.75,metalness:.15});
+    const leafM=new THREE.MeshStandardMaterial({color:0x1a4630,roughness:1}), leafM2=new THREE.MeshStandardMaterial({color:0x245338,roughness:1});
+    const treeM=new THREE.MeshStandardMaterial({color:0x2a221c,roughness:1});
+    block(FAC.stone,-752,-688,-1052,-996,12);
+    const spirePts=[0,0, 4.2,0, 3.4,3, 1.6,14, .45,24, 0,28].reduce((a,v,i,arr)=>{ if(i%2===0) a.push(new THREE.Vector2(v,arr[i+1])); return a; },[]);
+    mesh(new THREE.LatheGeometry(spirePts,16),slateM,-720,12,-1024);
+    const cross=new THREE.MeshStandardMaterial({color:0xe8e2d4,metalness:.4,roughness:.4,emissive:0x6a6048,emissiveIntensity:.4});
+    boxM(.18,2.2,.18,cross,-720,41.2,-1024); boxM(1.1,.16,.16,cross,-720,41.7,-1024);
+    const porch=new THREE.PointLight(0xffc98a,1.4,32,2); porch.position.set(-720,8,-1004); S.add(porch);
+    const awning=new THREE.MeshStandardMaterial({color:0x8e1c1c,roughness:.5});
+    boxM(8,.35,4.2,awning,-708,4.6,-1008);
+    const wawa=mesh(new THREE.PlaneGeometry(4.6,1.2),new THREE.MeshBasicMaterial({map:CT(signCanvas('WAWA',{bg:'#d42020',color:'#fff',size:56})),toneMapped:false}),-512,5.4,-1002); wawa.rotation.y=Math.PI/2;
+    const trunks=[], crowns=[], crown2=[];
+    [[-480,-960,-740],[-660,-960,-870],[-360,-830,-740]].forEach(([x,z0,z1])=>{
+      for(let z=z0;z<z1;z+=18) [-14,14].forEach((ox,i)=>{ const px=x+ox, py=mtAiryHills(px,z);
+        pv.set(px,py+2.1,z); m4.compose(pv,new THREE.Quaternion(),one); trunks.push(m4.clone());
+        pv.set(px,py+5.1,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(1,.85,1)); (i?crown2:crowns).push(m4.clone()); }); });
+    [[-560,-870],[-520,-840],[-535,-860]].forEach(([x,z])=>{ const y=mtAiryHills(x,z);
+      pv.set(x,y+2.2,z); m4.compose(pv,new THREE.Quaternion(),one); trunks.push(m4.clone());
+      pv.set(x,y+5.4,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(1.15,1,1.15)); crowns.push(m4.clone()); });
+    mkInst(new THREE.CylinderGeometry(.16,.22,4.2,6),treeM,trunks);
+    mkInst(new THREE.SphereGeometry(1.55,12,8),leafM,crowns);
+    mkInst(new THREE.SphereGeometry(1.35,12,8),leafM2,crown2);
+    flat(-575,-495,-895,-815,.04,new THREE.MeshStandardMaterial({color:0x163024,roughness:1}));
+    flat(-500,-380,-800,-750,.05,new THREE.MeshStandardMaterial({color:0x3a342c,roughness:.95}));
+    [[-500,-900],[-640,-920],[-390,-780],[-450,-740]].forEach(([x,z])=>{
+      const L=new THREE.PointLight(0xffc98a,.9,24,2); L.position.set(x,7,z); S.add(L);
+      const s=glowSprite(0xffd9a0,2.2); s.position.set(x,6.2,z); S.add(s); });
   }
 
   function phillyDress(){

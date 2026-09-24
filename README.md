@@ -25,6 +25,7 @@ Open http://localhost:8080
 | Steer | ← → or A D | ◀ ▶ pads |
 | Brake | ↓ or S | Brake |
 | Boost | Space or Shift | Boost |
+| Tag your partner (Tag Team) | T | Tag |
 | Turn pages (archive / events) | ← → | Swipe |
 | Spec sheet | I | Specs |
 | Confirm | Enter | Race this car / Race here |
@@ -47,6 +48,24 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - Up Broad St past City Hall and the golden, uplit Art Museum, with Rocky at the foot of the steps, to the Boulevard U-turn.
 
 - **Event 10: Mt Airy Run.** Northwest Philly, 3 laps of a 1.4 km rowhome loop. Up Greene St, across Mt Pleasant Ave, north on the Belgian-block cobbles and trolley rails of Germantown Ave, down Lincoln Dr beside the Wissahickon woods and a schist wall, then back along Upsal St. Speed bumps and potholes on the racing line (live traffic, 7 cars).
+
+- **Event 11: Game Night.** The South Philly Sports Complex with every team in town, 2 laps of 2.9 km. Down Broad St past FDR Park and the subway entrance, then through the Zamboni tunnel under the arena, where there's ice on the road and your grip halves. Pattison Ave runs between the football stadium and the ballpark under a live Jumbotron with the standings, and Packer Ave runs past the tailgate lots.
+  - **Crowd Roar pads** in each team's colors (Birds, Phils, Sixers, Flyers, Union). Each pad covers one lane, so you pick your team. Driving over one gives you a burst of speed and boost, and it's bigger the further back you are.
+  - The ballpark sets off fireworks and swings its neon Liberty Bell every time the lead changes.
+
+- **Event 12: Manayunk Wall.** 3 laps, 2.7 km. Flat out down Main St beside the canal and under the Manayunk Bridge, then straight up The Wall (a 32 m climb), along the Manayunk Ave ridge and down Green Lane. The hills are real on this track:
+  - Climbs slow you down.
+  - The crests throw you in the air. There's no steering or throttle until you land, and a hard landing costs speed.
+  - Air time longer than half a second refills some boost.
+
+- **Event 13: Under the El.** Kensington, 3 laps, 2.8 km, with live traffic.
+  - On Kensington Ave the Market-Frankford El runs overhead, and its steel columns run down the middle of the road. Pick a side: hitting a column costs 40% of your speed. El trains rumble overhead and throw sparks.
+  - On Lehigh Ave the freight gates come down every 40 seconds and a train rolls through to the rail yard. Get through before the arms drop (clipping them costs speed), or wait at the gate for the train to pass. Rivals time the gates too.
+  - Then down Aramingo Ave and back along Allegheny Ave.
+
+- **Event 14: First Light.** Kelly Drive and MLK Drive, 3 laps of the 3.6 km river loop. The race starts at 5:40 AM in the dark, and the sun comes up as it runs out:
+  - The sky goes from blue hour to pink to gold on the last lap. The street lights and the Boathouse Row outlines switch off at sunrise, and the fog lifts off the river while rowing crews head upstream.
+  - The city wakes up with you: no traffic on lap 1, early commuters on lap 2, rush hour on lap 3.
 
 - **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
 
@@ -71,6 +90,23 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   Rivals in the knockout zone get desperate as the lap runs out. The HUD flags the car in danger, and your position pulses red when it's you.
 
 Harbor Line, Roosevelt Blvd and The Long Night are 2 laps; The Bridge Run is 3. Every event has 7 cars, and floating chevrons warn you about hard corners.
+
+## Tag Team
+
+Any regular event can be raced as **Tag Team**: press **Tag team** on the event page, then pick your partner car. The picker marks a good match for your car's class. Four teams of two go on the grid:
+
+| Team | Cars |
+|------|------|
+| AFTERHOURS | you and your partner |
+| CLEAN LINES | Apex and The Closer |
+| BLOCK PARTY | The Wall and Bruiser |
+| LOOSE ENDS | Leech and Wildcard |
+
+- You drive one car and the AI drives the other. Press **T** (or the **Tag** pad) to jump into your partner's car at any time, with a 4-second cooldown between tags.
+- **Hot tag:** tag while your partner is within 30 m, and the car you jump into gets full boost and a slingshot. From further away it's a **cold tag** with no bonus. The HUD shows your partner's gap and whether a hot tag is ready.
+- **Team draft:** teammates pull each other along harder than rivals do, and refill each other's boost. AI teammates line up nose to tail to use it, and your partner lines up with you.
+- **Anchor leg:** when the car you're driving finishes, you're tagged into your partner to bring it home.
+- Points go 10-8-6-5-4-3-2-1 by finishing position, and the best team total wins. The board shows each team's projected points live, and the results page shows the team table.
 
 ## Power-ups
 
@@ -163,6 +199,18 @@ Stacked boosts (nitro, Overdrive, Slingshot and signature pickups) top out at ab
 ## Saved in your browser
 
 Your race history is saved in your browser: runs, wins, best time per event, and hit count (hits wear the paint). The game also saves a **ghost** of your best run on each event, and it races alongside you next time.
+
+## Where the new ideas came from
+
+Events 11–14 and Tag Team came out of a recon of racing-game repos on GitHub, searched in English, Portuguese (BR), Japanese, Chinese and German. Every repo was security-vetted and none of its code was copied. Only ideas were taken:
+- Crowd pads and the ice strip: [turbo-kart-gp](https://github.com/lyndonxn/turbo-kart-gp) (boost strips, low-grip ice).
+- Air time: [apex-horizon](https://github.com/yjj0339/apex-horizon) and [Stunt Rally 3](https://github.com/stuntrally/stuntrally3) (jumps).
+- A sky that changes mid-race: [neon-rush-3d](https://github.com/duguhuangya/neon-rush-3d) and [MikkelRacer](https://github.com/mikkel-thiemann/MikkelRacer).
+- Traffic that builds lap by lap: [car](https://github.com/tuanzi188/car) (hazards that escalate each lap).
+- Tag Team:
+  - team scoring from [SuperTuxKart](https://github.com/supertuxkart/stk-code) (red/blue team worlds);
+  - the baton hand-off from Brazilian relay-race exercises ([corrida-revezamento](https://github.com/Davi-Cesar/corrida-revezamento));
+  - drafting as a shared resource from [jockey-race-game](https://github.com/sny9brian7/jockey-race-game).
 
 ## Project layout
 

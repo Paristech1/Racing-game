@@ -12,7 +12,7 @@ See `.cursor/environment.json`: static site served with `python3 -m http.server 
 
 ## Three.js skills
 
-This repo vendors Three.js agent skills under **`.cursor/skills/`** (from the [threejs-skills](https://github.com/CloudAI-X/threejs-skills) collection; originally documented as `pinkforest/threejs-playground`).
+This repo vendors Three.js agent skills under **`.cursor/skills/`**, symlinked into **`.claude/skills/`** so Claude Code loads the same files (from the [threejs-skills](https://github.com/CloudAI-X/threejs-skills) collection; originally documented as `pinkforest/threejs-playground`).
 
 | Skill | Use when |
 | --- | --- |
@@ -39,4 +39,4 @@ Before changing 3D code, read **`afterhours-threejs`** and the most relevant `th
 
 ## Git
 
-Use branch names `cursor/<description>-b80a`. Open PRs against `main` for production deploy.
+Use branch names `cursor/<description>-b80a` (Cursor) or the `claude/…` branch the session assigns (Claude Code). Open PRs against `main` for production deploy.

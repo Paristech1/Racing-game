@@ -2763,6 +2763,35 @@ function loopPts(ctrl,yf){ const c=new THREE.CatmullRomCurve3(ctrl.map(p=>new TH
    Every team in town has a Crowd Roar pad in its colors; the ballpark fires off the fireworks on a lead change. */
 const SPORTS={birds:{css:'#18b3a6',c:0x18b3a6,chant:'GO BIRDS'},phils:{css:'#e81828',c:0xe81828,chant:'RING THE BELL'},sixers:{css:'#1d6fd6',c:0x1d6fd6,chant:'TRUST THE PROCESS'},
   flyers:{css:'#f74902',c:0xf74902,chant:'LET\'S GO FLYERS'},union:{css:'#d8bf7a',c:0xd8bf7a,chant:'DOOP DOOP DOOP'}};
+// real team palettes for the buildings (SPORTS.*.c stays the bright pad / firework colour)
+const TEAM_PAL={sixers:['#006bb6','#ed174c','#ffffff'],flyers:['#f74902','#0b0b0d','#ffffff'],birds:['#004c54','#a5acaf','#0b0b0d'],phils:['#e81828','#002d72','#ffffff']};
+/* stadium marks: close to each club's look (colours, shapes, lettering style) without copying the actual logos */
+const EMBLEM_CACHE={};
+function teamEmblem(team){ if(EMBLEM_CACHE[team]) return EMBLEM_CACHE[team]; const P=TEAM_PAL[team];
+  return EMBLEM_CACHE[team]=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#05070a'; g.fillRect(0,0,w,h); const cx=w/2, cy=h/2;
+    const star=(x,y,r,c)=>{ g.fillStyle=c; g.beginPath(); for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.45:r; g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); } g.closePath(); g.fill(); };
+    if(team==='sixers'){ // blue ball, red seams, ring of stars, "76"
+      g.fillStyle=P[0]; g.beginPath(); g.arc(cx,cy,104,0,7); g.fill(); g.strokeStyle=P[2]; g.lineWidth=6; g.stroke();
+      for(let i=0;i<13;i++){ const a=i/13*Math.PI*2-Math.PI/2; star(cx+Math.cos(a)*86,cy+Math.sin(a)*86,9,P[2]); }
+      g.fillStyle=P[1]; g.beginPath(); g.arc(cx,cy,62,0,7); g.fill(); g.strokeStyle='#0b0b0d'; g.lineWidth=3; g.beginPath(); g.moveTo(cx-62,cy); g.lineTo(cx+62,cy); g.moveTo(cx,cy-62); g.lineTo(cx,cy+62); g.stroke();
+      g.fillStyle=P[2]; g.font='900 64px "Arial Black",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('76',cx,cy+4); }
+    else if(team==='flyers'){ // orange "P" on its side with speed wings and a dot
+      g.fillStyle=P[1]; g.beginPath(); g.arc(cx,cy,110,0,7); g.fill(); g.strokeStyle=P[0]; g.lineWidth=5; g.stroke();
+      g.fillStyle=P[0]; for(let k=0;k<4;k++){ g.beginPath(); g.moveTo(34+k*6,96+k*22); g.lineTo(150,96+k*22); g.lineTo(150,110+k*22); g.lineTo(46+k*6,110+k*22); g.closePath(); g.fill(); }
+      g.beginPath(); g.moveTo(120,60); g.lineTo(186,60); g.bezierCurveTo(232,60,232,150,186,150); g.lineTo(150,150); g.lineTo(150,200); g.lineTo(120,200); g.closePath(); g.fill();
+      g.fillStyle=P[1]; g.beginPath(); g.arc(172,105,22,0,7); g.fill(); g.fillStyle=P[0]; g.beginPath(); g.arc(172,105,11,0,7); g.fill(); }
+    else if(team==='birds'){ // midnight green disc, silver-white eagle head in profile facing left
+      g.fillStyle=P[0]; g.beginPath(); g.arc(cx,cy,110,0,7); g.fill(); g.strokeStyle=P[1]; g.lineWidth=7; g.stroke();
+      g.fillStyle='#f4f7f6'; g.beginPath(); g.moveTo(46,122); g.bezierCurveTo(70,78,120,56,168,62); g.bezierCurveTo(200,66,214,92,206,120);
+      g.lineTo(226,150); g.bezierCurveTo(200,146,190,176,196,206); g.bezierCurveTo(150,186,118,160,100,148); g.lineTo(46,150); g.bezierCurveTo(60,140,62,130,46,122); g.closePath(); g.fill();
+      g.fillStyle=P[1]; g.beginPath(); g.moveTo(46,122); g.lineTo(96,128); g.lineTo(46,150); g.bezierCurveTo(60,140,62,130,46,122); g.fill(); // beak
+      g.fillStyle=P[0]; g.beginPath(); g.moveTo(104,98); g.lineTo(138,92); g.lineTo(118,108); g.closePath(); g.fill(); // eye
+      g.strokeStyle=P[1]; g.lineWidth=4; for(let k=0;k<3;k++){ g.beginPath(); g.moveTo(150+k*14,112+k*6); g.lineTo(210-k*4,130+k*14); g.stroke(); } }
+    else { // phils: cream field, red script-style P, navy star
+      g.fillStyle='#f6f1e6'; g.beginPath(); g.arc(cx,cy,110,0,7); g.fill(); g.strokeStyle=P[1]; g.lineWidth=6; g.stroke();
+      g.save(); g.translate(cx+6,cy+10); g.transform(1,0,-.28,1,0,0); g.fillStyle=P[0]; g.font='italic 900 190px Georgia,"Times New Roman",serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('P',0,0); g.restore();
+      star(cx+44,cy-30,18,P[1]); }
+  }); }
 function padCanvas(team){ const T=SPORTS[team]; return canvasTex(256,256,(g,w,h)=>{ g.fillStyle='rgba(0,0,0,0)'; g.clearRect(0,0,w,h);
   g.strokeStyle=T.css; g.lineWidth=10; g.shadowColor=T.css; g.shadowBlur=18; g.strokeRect(12,12,w-24,h-24);
   g.fillStyle=T.css; for(let k=0;k<3;k++){ const y=190-k*58; g.beginPath(); g.moveTo(40,y); g.lineTo(128,y-44); g.lineTo(216,y); g.lineTo(216,y-16); g.lineTo(128,y-60); g.lineTo(40,y-16); g.closePath(); g.fill(); } }); }
@@ -2776,12 +2805,30 @@ function buildGameNight(){
   const lotM=new THREE.MeshStandardMaterial({color:0x1b1e24,roughness:.8}), concrete=new THREE.MeshStandardMaterial({color:0x6c7078,roughness:.9,side:THREE.DoubleSide});
   const glowM=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false}), ringM=(c,y,R,g,r)=>{ const t=K.mesh(new THREE.TorusGeometry(R,r||.6,6,72),glowM(c),g.x,y,g.z); t.rotation.x=Math.PI/2; return t; };
   const mast=(x,z,h,c)=>{ K.box(1.2,h,1.2,concrete,x,h/2,z); K.box(7,3.4,1,glowM(0xf4f8ff),x,h,z); K.glow(c||0xeaf4ff,20,x,h,z); };
-  // ---- the arena (Sixers + Flyers), with the ice tunnel under its loading deck on Zinkoff ----
-  const A={x:225,z:200};
-  K.mesh(new THREE.CylinderGeometry(72,74,26,48),new THREE.MeshStandardMaterial({color:0x232a36,roughness:.6,metalness:.3}),A.x,13,A.z);
-  K.mesh(new THREE.SphereGeometry(74,40,10,0,Math.PI*2,0,.42),new THREE.MeshStandardMaterial({color:0x3a4250,roughness:.5,metalness:.4}),A.x,-2,A.z).scale.y=.55;
-  ringM(SPORTS.flyers.c,24.5,74.4,A,.7); ringM(SPORTS.sixers.c,15,74.6,A,.5); ringM(0xed174c,8,74.6,A,.35);
-  K.sign(signCanvas2('THE ARENA','SIXERS · FLYERS · TONIGHT',{bg:'#0b1220',color:'#f74902'}),30,9,A.x-74.5,15,A.z,-Math.PI/2);
+  // ---- helpers: rounded-rectangle footprints extruded upward, facade textures with lit concourses ----
+  const rrShape=(w,d,r)=>{ const sh=new THREE.Shape(), x=w/2, z=d/2; sh.moveTo(-x+r,-z); sh.lineTo(x-r,-z); sh.quadraticCurveTo(x,-z,x,-z+r); sh.lineTo(x,z-r); sh.quadraticCurveTo(x,z,x-r,z);
+    sh.lineTo(-x+r,z); sh.quadraticCurveTo(-x,z,-x,z-r); sh.lineTo(-x,-z+r); sh.quadraticCurveTo(-x,-z,-x+r,-z); return sh; };
+  const upExtrude=(sh,h)=>{ const g=new THREE.ExtrudeGeometry(sh,{depth:h,bevelEnabled:false,curveSegments:10}); g.rotateX(-Math.PI/2); return g; }; // footprint in x/z, rises 0..h
+  const ribbon=(w,d,r,t,y,col)=>{ const o=rrShape(w+t,d+t,r+t/2); o.holes.push(rrShape(w-.2,d-.2,r)); const m=new THREE.Mesh(upExtrude(o,.9),glowM(col)); return m; };
+  const facade=(draw,rx,ry)=>{ const map=CT(canvasTex(256,128,(g,w,h)=>draw(g,w,h,false)),true), em=CT(canvasTex(256,128,(g,w,h)=>draw(g,w,h,true)),true);
+    [map,em].forEach(t=>t.repeat.set(rx,ry)); return {map,em}; };
+  const screen=(x,y,z,w,h,ry,tex)=>{ const m=K.mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}),x,y,z); m.rotation.y=ry; return m; };
+  // ---- the arena (Sixers + Flyers): rounded glass-and-stone box, LED ribbons, corner screens; the ice tunnel under its loading deck on Zinkoff ----
+  const A={x:225,z:200}, AW=128, AD=100, AR=22;
+  const glassF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':'#0d1624'; g.fillRect(0,0,w,h);
+    g.fillStyle=em?'#ffd9a0':'#3a4a60'; g.fillRect(0,h*.22,w,h*.42); if(em){ g.fillStyle='#fff1d6'; for(let i=0;i<14;i++) g.fillRect(Math.random()*w,h*.3,6+Math.random()*10,h*.26); }
+    g.fillStyle=em?'#000':'#1a2230'; for(let x=0;x<w;x+=16) g.fillRect(x,0,3,h); },1/16,1/10);
+  const stoneF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':'#b8a88c'; g.fillRect(0,0,w,h); if(em) return; g.fillStyle='rgba(60,50,40,.35)'; for(let y=0;y<h;y+=16) g.fillRect(0,y,w,2); for(let x=0;x<w;x+=64) g.fillRect(x,0,2,h); },1/24,1/18);
+  const lowBand=K.mesh(upExtrude(rrShape(AW,AD,AR),10),new THREE.MeshStandardMaterial({map:glassF.map,emissive:0xffffff,emissiveMap:glassF.em,emissiveIntensity:.9,roughness:.25,metalness:.5}),A.x,0,A.z);
+  K.mesh(upExtrude(rrShape(AW+3,AD+3,AR+1.5),18),new THREE.MeshStandardMaterial({map:stoneF.map,roughness:.85}),A.x,10,A.z);
+  K.mesh(upExtrude(rrShape(AW+6,AD+6,AR+3),1.4),new THREE.MeshStandardMaterial({color:0x1a1e25,roughness:.7,metalness:.3}),A.x,28,A.z); // flat roof with a lip
+  K.mesh(upExtrude(rrShape(AW-30,AD-30,AR),4),new THREE.MeshStandardMaterial({color:0x252a32,roughness:.8}),A.x,29.4,A.z);             // roof plant
+  [[TEAM_PAL.flyers[0],26.4],[TEAM_PAL.sixers[0],12.4],[TEAM_PAL.sixers[1],11.2]].forEach(([c,y])=>{ const r=ribbon(AW+3,AD+3,AR+1.5,.9,y,new THREE.Color(c)); r.position.set(A.x,y,A.z); S.add(r); });
+  const scrT={sixers:CT(teamEmblem('sixers')),flyers:CT(teamEmblem('flyers'))}, arenaScr=[];
+  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz],i)=>{ const x=A.x+sx*(AW/2-AR*.29+3.6), z=A.z+sz*(AD/2-AR*.29+3.6); // clear of the curved corner (a flat panel's edges sag ~1.2 m into it)
+    arenaScr.push(screen(x,19,z,15,15,Math.atan2(sx,sz),i%2?scrT.flyers:scrT.sixers)); });
+  K.sign(signCanvas2('SOUTH PHILLY ARENA','SIXERS · FLYERS · TONIGHT',{bg:'#0b1220',color:TEAM_PAL.flyers[0]}),40,9,A.x-AW/2-1.6,19,A.z,-Math.PI/2);
+  K.sign(signCanvas2('THE ARENA','HOME OF THE SIXERS & FLYERS',{bg:'#0b1220',color:'#9fc8ff'}),40,9,A.x,19,A.z+AD/2+1.6,0);
   const deckM=new THREE.MeshStandardMaterial({color:0x2a2f38,roughness:.7,metalness:.3});
   K.box(140,1.6,34,deckM,235,7.6,340); K.box(140,.3,1,glowM(0x6fd8ff),235,6.7,324); K.box(140,.3,1,glowM(0x6fd8ff),235,6.7,356);
   for(let x=170;x<=300;x+=26) [324,356].forEach(z=>K.box(1.4,7,1.4,concrete,x,3.5,z));
@@ -2792,24 +2839,65 @@ function buildGameNight(){
   iceTex.repeat.set(1,6);
   const ice=K.flat(175,295,333,347,.03,new THREE.MeshStandardMaterial({map:iceTex,roughness:.04,metalness:.25,transparent:true,opacity:.82,envMapIntensity:2})); ice.material.map.rotation=Math.PI/2;
   K.sign(signCanvas2('ZAMBONI TUNNEL','ICE ON THE ROAD · EASY ON IT',{bg:'#0a1a2a',color:'#bfeaff'}),14,4.4,165,4.6,340,-Math.PI/2);
-  // ---- the football stadium (Birds): open bowl, swooping canopy wings, six light masts ----
-  const L={x:640,z:250};
-  K.mesh(new THREE.CylinderGeometry(80,80,24,56,1,true),new THREE.MeshStandardMaterial({color:0x2a3440,roughness:.7,side:THREE.DoubleSide}),L.x,12,L.z);
-  K.mesh(new THREE.CylinderGeometry(78,44,21,56,1,true),new THREE.MeshStandardMaterial({color:0x0b3a3f,roughness:.8,side:THREE.DoubleSide}),L.x,12.5,L.z);
-  ringM(SPORTS.birds.c,24,80.4,L,.8); ringM(0xc0c8d0,10,80.4,L,.35);
-  const field=K.mesh(new THREE.CircleGeometry(44,40),new THREE.MeshStandardMaterial({color:0x1f7a3a,emissive:0x0c4a1e,emissiveIntensity:1.3,roughness:.9}),L.x,2,L.z); field.rotation.x=-Math.PI/2; field.scale.set(.62,1,1);
-  [-1,1].forEach(sd=>{ const wing=K.mesh(new THREE.CylinderGeometry(96,96,10,32,1,true,sd>0?-.55:Math.PI-.55,1.1),new THREE.MeshStandardMaterial({color:0x9aa6b0,metalness:.6,roughness:.3,side:THREE.DoubleSide,emissive:0x0a3a3c}),L.x,34,L.z); wing.rotation.z=sd*.12; });
-  for(let k=0;k<6;k++){ const a=k/6*Math.PI*2+.26; mast(L.x+Math.cos(a)*74,L.z+Math.sin(a)*74,40); }
-  K.sign(signCanvas2('GO BIRDS','E · A · G · L · E · S',{bg:'#003a40',color:'#dff7f4'}),34,10,L.x,30,L.z-80.6,Math.PI);
-  // ---- the ballpark (Phils): a fan of seats around the diamond, and the neon Liberty Bell that swings ----
-  // home plate at B, the field fans out north (theta around PI in three's cylinder angles), the seats wrap the plate to the south
-  const B={x:620,z:-110}, seatM=new THREE.MeshStandardMaterial({color:0x3a1820,roughness:.8,side:THREE.DoubleSide});
+  // ---- the football stadium (Birds): oval bowl in midnight-green glass, the two swept silver wing canopies over the
+  //      sidelines, end-zone video boards, a striped field with green end zones ----
+  const L={x:640,z:250}, LA=96, LB=74, bowlH=26;
+  const greenF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':TEAM_PAL.birds[0]; g.fillRect(0,0,w,h); g.fillStyle=em?'#0a3a36':'#0f6a70'; g.fillRect(0,h*.15,w,h*.55);
+    if(em){ g.fillStyle='#bff3ea'; for(let i=0;i<10;i++) g.fillRect(Math.random()*w,h*.25,5,h*.3); }
+    g.fillStyle=em?'#000':'#a5acaf'; for(let x=0;x<w;x+=22) g.fillRect(x,0,4,h); },40,1);
+  { const f=new THREE.CylinderGeometry(1,1,bowlH,72,1,true); f.scale(LA,1,LB); K.mesh(f,new THREE.MeshStandardMaterial({map:greenF.map,emissive:0xffffff,emissiveMap:greenF.em,emissiveIntensity:.8,roughness:.35,metalness:.5,side:THREE.DoubleSide}),L.x,bowlH/2,L.z);
+    const seats=new THREE.CylinderGeometry(.97,.6,bowlH-2,72,1,true); seats.scale(LA,1,LB); K.mesh(seats,new THREE.MeshStandardMaterial({color:0x1d4a4e,roughness:.85,side:THREE.DoubleSide}),L.x,bowlH/2+1,L.z);
+    const rim=new THREE.TorusGeometry(1,.012,6,96); rim.rotateX(Math.PI/2); rim.scale(LA+.4,1,LB+.4); [[bowlH,SPORTS.birds.c],[9,0xc8d0d6]].forEach(([y,c])=>K.mesh(rim.clone(),glowM(c),L.x,y,L.z)); }
+  { const fc=canvasTex(512,224,(g,w,h)=>{ for(let i=0;i<12;i++){ g.fillStyle=i%2?'#1e7a38':'#228a40'; g.fillRect(i*w/12,0,w/12+1,h); }
+      g.fillStyle=TEAM_PAL.birds[0]; g.fillRect(0,0,w*.09,h); g.fillRect(w*.91,0,w*.09,h);
+      g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=2; g.strokeRect(2,6,w-4,h-12); for(let i=1;i<10;i++){ const x=w*.09+i*w*.082; g.beginPath(); g.moveTo(x,6); g.lineTo(x,h-6); g.stroke(); }
+      g.fillStyle='#f4f7f6'; g.font='900 30px "Arial Black",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      [[w*.045,-1],[w*.955,1]].forEach(([x,r])=>{ g.save(); g.translate(x,h/2); g.rotate(r*Math.PI/2); g.fillText('BIRDS',0,0); g.restore(); });
+      g.drawImage(teamEmblem('birds'),w/2-44,h/2-44,88,88); });
+    const field=K.mesh(new THREE.PlaneGeometry(112,49),new THREE.MeshStandardMaterial({map:CT(fc),emissive:0xffffff,emissiveMap:CT(fc),emissiveIntensity:.35,roughness:.9}),L.x,1.2,L.z); field.rotation.x=-Math.PI/2; }
+  // the wings: a silver canopy over each sideline that sweeps up at both ends (the Linc's signature silhouette)
+  { const wingM=new THREE.MeshStandardMaterial({color:0xb4bcc4,metalness:.75,roughness:.28,side:THREE.DoubleSide,emissive:0x0c2a2c});
+    [-1,1].forEach(sd=>{ const n=28, pos=[], idx=[], edge=[];
+      for(let i=0;i<=n;i++){ const u=i/n*2-1, x=L.x+u*LA*.92, lift=u*u;
+        pos.push(x,bowlH+2+lift*9,L.z+sd*(LB*.62-lift*6), x,bowlH+7+lift*16,L.z+sd*(LB+6-lift*10)); edge.push(new THREE.Vector3(x,bowlH+2+lift*9,L.z+sd*(LB*.62-lift*6)));
+        if(i<n){ const a=i*2; idx.push(a,a+1,a+2,a+1,a+3,a+2); } }
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g,wingM));
+      S.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge),48,.45,6,false),glowM(SPORTS.birds.c))); // lit leading edge
+      for(let u=-.7;u<=.71;u+=.35){ const x=L.x+u*LA*.92; K.box(1.2,bowlH+8,1.2,wingM,x,(bowlH+8)/2,L.z+sd*(LB+3)); } }); }
+  { const eb=CT(canvasTex(512,224,(g,w,h)=>{ g.fillStyle='#05070a'; g.fillRect(0,0,w,h); g.drawImage(teamEmblem('birds'),14,12,200,200);
+      g.fillStyle='#f4f7f6'; g.font='900 52px "Arial Narrow",Arial,sans-serif'; g.textAlign='left'; g.textBaseline='middle'; g.fillText('GO BIRDS',228,88,270);
+      g.fillStyle='#a5acaf'; g.font='800 28px "Arial Narrow",Arial,sans-serif'; g.fillText('FLY · EAGLES · FLY',236,150); }));
+    [-1,1].forEach(sd=>{ const x=L.x+sd*(LA-8); screen(x,bowlH+10,L.z,30,13,sd>0?-Math.PI/2:Math.PI/2,eb); [-10,10].forEach(o=>K.box(1,bowlH+4,1,concrete,x+sd*.8,(bowlH+4)/2,L.z+o)); }); }
+  for(let k=0;k<6;k++){ const a=k/6*Math.PI*2+.26; mast(L.x+Math.cos(a)*(LA+10),L.z+Math.sin(a)*(LB+10),44); }
+  K.sign(signCanvas2('GO BIRDS','E · A · G · L · E · S',{bg:'#003a40',color:'#dff7f4'}),30,9,L.x,bowlH-9,L.z-LB-1.2,Math.PI); // on the facade, under the wing
+  // ---- the ballpark (Phils): red brick wall with arches, red seats around the plate, the diamond, a navy outfield wall,
+  //      the scoreboard in left-center and the neon Liberty Bell that swings on a lead change ----
+  // home plate at B, the field fans out toward -z (theta around PI in three's cylinder angles; CircleGeometry/RingGeometry
+  // angles live in the xy plane, so the same direction is theta PI/2 there), the seats wrap the plate on the +z side
+  const B={x:620,z:-110}, seatM=new THREE.MeshStandardMaterial({color:0x5e0c16,roughness:.8,side:THREE.DoubleSide});
+  const brickF=facade((g,w,h,em)=>{ g.fillStyle=em?'#000':'#7a2a1e'; g.fillRect(0,0,w,h); if(!em){ g.fillStyle='rgba(30,10,8,.35)'; for(let y=0;y<h;y+=6) g.fillRect(0,y,w,1); }
+      for(let x=18;x<w;x+=64){ g.fillStyle=em?'#ffcf9a':'#2a0c0a'; g.beginPath(); g.moveTo(x,h); g.lineTo(x,h*.45); g.arc(x+14,h*.45,14,Math.PI,0); g.lineTo(x+28,h); g.fill(); } },26,1);
+  K.mesh(new THREE.CylinderGeometry(73,73,22,48,1,true,-.66*Math.PI,1.32*Math.PI),new THREE.MeshStandardMaterial({map:brickF.map,emissive:0xffffff,emissiveMap:brickF.em,emissiveIntensity:.8,roughness:.9,side:THREE.DoubleSide}),B.x,11,B.z);
   K.mesh(new THREE.CylinderGeometry(70,32,20,40,1,true,-.66*Math.PI,1.32*Math.PI),seatM,B.x,10,B.z);
   K.mesh(new THREE.CylinderGeometry(112,104,7,30,1,true,.76*Math.PI,.48*Math.PI),seatM,B.x,3.5,B.z); // outfield bleachers
-  { const rim=new THREE.Mesh(new THREE.TorusGeometry(70,.5,6,60,1.32*Math.PI),glowM(SPORTS.phils.c)); rim.rotation.x=Math.PI/2; rim.rotation.z=.5*Math.PI-.66*Math.PI; rim.position.set(B.x,20,B.z); S.add(rim); }
-  const grass=K.mesh(new THREE.CircleGeometry(100,40,.75*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({color:0x216e36,emissive:0x0f4a20,emissiveIntensity:1.3,roughness:.9}),B.x,.4,B.z); grass.rotation.x=-Math.PI/2;
-  const dirt=K.flat(-14,14,-14,14,.5,new THREE.MeshStandardMaterial({color:0x7a4a2a,emissive:0x2a1406,roughness:1})); dirt.position.set(B.x,.5,B.z-20); dirt.rotation.y=Math.PI/4;
-  [-.6,-.3,.3,.6,.8,1.2].forEach(k=>{ const a=k*Math.PI; mast(B.x+Math.sin(a)*(k>.7?118:80),B.z+Math.cos(a)*(k>.7?118:80),44,0xffe8e8); });
+  { const rim=new THREE.Mesh(new THREE.TorusGeometry(73.2,.5,6,60,1.32*Math.PI),glowM(SPORTS.phils.c)); rim.rotation.x=Math.PI/2; rim.rotation.z=.5*Math.PI-.66*Math.PI; rim.position.set(B.x,22,B.z); S.add(rim); }
+  { const stripes=CT(canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#1f7436'; g.fillRect(0,0,w,h); g.fillStyle='#248440'; g.fillRect(0,0,w/2,h); }),true); stripes.repeat.set(10,10);
+    const grass=K.mesh(new THREE.CircleGeometry(100,40,.25*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({map:stripes,emissive:0x0f4a20,emissiveIntensity:1.1,roughness:.9}),B.x,.4,B.z); grass.rotation.x=-Math.PI/2;
+    const track=K.mesh(new THREE.RingGeometry(95,100,40,1,.25*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({color:0x7a4a2a,emissive:0x2a1406,roughness:1}),B.x,.45,B.z); track.rotation.x=-Math.PI/2; }
+  // infield: dirt diamond, grass square, bases, mound (home at B, second base 38 m out along -z)
+  { const dirtM=new THREE.MeshStandardMaterial({color:0x8a5530,emissive:0x2a1406,roughness:1});
+    const dirt=K.mesh(new THREE.CircleGeometry(36,32,.25*Math.PI,.5*Math.PI),dirtM,B.x,.5,B.z); dirt.rotation.x=-Math.PI/2;
+    const inf=K.flat(-13,13,-13,13,.55,new THREE.MeshStandardMaterial({color:0x248440,emissive:0x0f4a20,roughness:.9})); inf.position.set(B.x,.55,B.z-19.4); inf.rotation.y=Math.PI/4;
+    [[0,0],[19.4,-19.4],[0,-38.8],[-19.4,-19.4]].forEach(([x,z])=>K.box(.8,.12,.8,new THREE.MeshBasicMaterial({color:0xffffff}),B.x+x,.62,B.z+z));
+    const mound=K.mesh(new THREE.CylinderGeometry(2.8,3,.4,16),dirtM,B.x,.62,B.z-18.4); void mound; }
+  K.mesh(new THREE.CylinderGeometry(100.5,100.5,3,40,1,true,.75*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({color:0x14264a,roughness:.8,side:THREE.DoubleSide}),B.x,1.9,B.z); // padded outfield wall
+  [-.6,-.3,.3,.6,.8,1.2].forEach(k=>{ const a=k*Math.PI; mast(B.x+Math.sin(a)*(k>.7?118:82),B.z+Math.cos(a)*(k>.7?118:82),44,0xffe8e8); });
+  { const sa=.84*Math.PI, sx=B.x+124*Math.sin(sa), sz=B.z+124*Math.cos(sa), face=Math.atan2(B.x-sx,B.z-sz);
+    const sb=CT(canvasTex(512,256,(g,w,h)=>{ g.fillStyle='#07090c'; g.fillRect(0,0,w,h); g.drawImage(teamEmblem('phils'),14,20,210,210);
+      g.fillStyle='#f6f1e6'; g.font='italic 900 76px Georgia,"Times New Roman",serif'; g.textAlign='left'; g.textBaseline='middle'; g.fillText('Phils',240,86);
+      g.fillStyle=TEAM_PAL.phils[0]; g.font='800 26px "Arial Narrow",Arial,sans-serif'; g.fillText('RED OCTOBER · RING THE BELL',244,150);
+      g.fillStyle='#ffd23b'; g.font='800 22px "Courier New",monospace'; g.fillText('1 2 3 4 5 6 7 8 9  R H E',244,196); }));
+    const scr=screen(sx,32,sz,34,17,face,sb); void scr; [-12,12].forEach(o=>K.box(1.2,24,1.2,concrete,sx+Math.cos(face)*o,12,sz-Math.sin(face)*o)); }
   const bx=B.x+112*Math.sin(1.12*Math.PI), bz=B.z+112*Math.cos(1.12*Math.PI);
   const bellG=new THREE.Group(); bellG.position.set(bx,40,bz); S.add(bellG);
   K.box(1.6,40,1.6,concrete,bx,20,bz);
@@ -2817,7 +2905,7 @@ function buildGameNight(){
     g.beginPath(); g.moveTo(128,24); g.bezierCurveTo(70,30,74,120,56,176); g.lineTo(34,208); g.lineTo(222,208); g.lineTo(200,176); g.bezierCurveTo(182,120,186,30,128,24); g.stroke();
     g.beginPath(); g.arc(128,222,14,0,7); g.stroke(); g.beginPath(); g.moveTo(150,70); g.lineTo(138,120); g.lineTo(156,150); g.stroke(); })),transparent:true,toneMapped:false,side:THREE.DoubleSide,depthWrite:false}));
   bell.position.y=-10; bellG.add(bell); bellG.rotation.y=Math.PI*.2;
-  K.sign(signCanvas2('THE BALLPARK','RING THE BELL',{bg:'#2a060a',color:'#ffd6d6'}),26,8,B.x,12,B.z+71,0);
+  K.sign(signCanvas2('THE BALLPARK','RING THE BELL',{bg:'#2a060a',color:'#ffd6d6'}),26,8,B.x,14,B.z+74,0);
   // ---- Crowd Roar pads: one lane each, so you pick your team ----
   const pads=[], padT={};
   const pad=(x,z,lane,team)=>{ const s=K.sNear(x,z); K.at(s,lane); const m=new THREE.Mesh(new THREE.PlaneGeometry(4.6,6),new THREE.MeshBasicMaterial({map:padT[team]||(padT[team]=CT(padCanvas(team))),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
@@ -2882,6 +2970,7 @@ function buildGameNight(){
     padT0+=dt; pads.forEach((p,i)=>{ p.m.material.opacity=.55+.45*Math.max(0,Math.sin(padT0*5-i)); });
     puffs.forEach(o=>{ o.t+=dt*.4; const k=o.t%1; o.s.position.set(o.base.x+k*2,o.base.y+k*7,o.base.z); o.s.material.opacity=.35*(1-k); o.s.scale.setScalar(2+k*5); });
     tents.forEach((t,i)=>{ t.material.emissiveIntensity=.3+.15*Math.sin(ghostT*2+i); });
+    const flip=Math.floor(ghostT/4)%2; arenaScr.forEach((m,i)=>{ const want=(i+flip)%2?scrT.flyers:scrT.sixers; if(m.material.map!==want){ m.material.map=want; m.material.needsUpdate=true; } });
   }
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],pads,surf:[{s0:K.sNear(176,340),s1:K.sNear(294,340),grip:.5,name:'ice'}]};
 }

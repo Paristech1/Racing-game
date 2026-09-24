@@ -7,7 +7,7 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 
 /* ---------------- DATA ---------------- */
 const CARS=[
- {id:'kage',name:'KAGE R',body:'kage',paint:0xc8d2dc,metal:.92,rough:.22,rim:0x1a1c20,caliper:0xffc21a,wing:true,world:'ice',
+ {id:'kage',name:'KAGE R',body:'kage',sculpt:'kage',paint:0xc8d2dc,metal:.92,rough:.22,rim:0x1a1c20,caliper:0xffc21a,wing:true,world:'ice',
   top:90,acc:22,grip:30,nitro:1.0,
   kick:'Specimen 01',loc:'Harbor Line',when:'Tunnel 7, 03:12',
   caption:'Found under a tarp on level B3. The owner never came back for it.',
@@ -111,7 +111,7 @@ CARS.push(
   cam:{p:[-4.6,.9,4.0],l:[0,.5,.4],roll:.05,fov:32}}
 );
 CARS.push(
- {id:'overload',name:'OVERLOAD 3K',body:'hyper',hyper:true,paint:0x10131a,metal:.75,rough:.2,rim:0x0b0b0c,caliper:0x2fe6ff,wing:true,livery:0x2fe6ff,accent:0x2fe6ff,spokes:7,world:'ice',
+ {id:'overload',name:'OVERLOAD 3K',body:'hyper',hyper:true,sculpt:'overload',paint:0x10131a,metal:.75,rough:.2,rim:0x0b0b0c,caliper:0x2fe6ff,wing:true,livery:0x2fe6ff,accent:0x2fe6ff,spokes:7,world:'ice',
   top:100,acc:33,grip:33,nitro:1.35,mass:1.25,
   kick:'Prototype',loc:'Navy Yard, Dry Dock 1',when:'Unregistered, 02:59',
   caption:'Three thousand horsepower and no plates. Nobody at the Navy Yard will say who brought it.',
@@ -139,7 +139,7 @@ CARS.push(
   cam:{p:[4.2,1.05,-4.0],l:[0,.5,-.15],roll:.07,fov:31}}
 );
 CARS.push(
- {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,paint:0xffc20e,metal:.55,rough:.12,rim:0x1a1b1e,caliper:0x121314,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
+ {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,sculpt:'p1',paint:0xffc20e,metal:.55,rough:.12,rim:0x1a1b1e,caliper:0x121314,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
   top:112,acc:42,grip:34,nitro:1.52,mass:.46,nosVmax:1.4,nosAccMul:2.2,
   kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
   caption:'Volcano yellow, a teardrop canopy and a snorkel on the roof. The wing stands up at speed and it still pulls.',
@@ -565,93 +565,212 @@ function carbonMat(){ if(CARBON_M) return CARBON_M;
   tex.repeat.set(10,10);
   return CARBON_M=new THREE.MeshPhysicalMaterial({map:tex,color:0xb8bcc4,metalness:.35,roughness:.42,clearcoat:1,clearcoatRoughness:.06,envMapIntensity:1.1});
 }
-function p1Shell(g,def,B,paint,glass){
-  const carbon=carbonMat(), add=(geo,m,x,y,z)=>{ const o=new THREE.Mesh(geo,m); o.position.set(x||0,y||0,z||0); g.add(o); return o; };
-  const tube=(pts,r,m,seg)=>add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2]))),seg||24,r,6,false),m);
-  // fresnel rim on the paint: brightens grazing angles so the shape holds against a dark street
-  paint.onBeforeCompile=sh=>{ sh.uniforms.rimCol={value:new THREE.Color(def.rimGlow||0xffb040)};
-    sh.fragmentShader='uniform vec3 rimCol;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
-      '#include <emissivemap_fragment>\n  float fres=pow(1.0-clamp(abs(dot(normalize(vViewPosition),normal)),0.0,1.0),3.0);\n  totalEmissiveRadiance+=rimCol*fres*0.32;'); };
-  paint.customProgramCacheKey=()=>'p1rim';
-  // ---- body loft ----
-  const Z0=-2.3, Z1=2.22, WB=B.wb, WR=B.wr;
-  const hwS=[[-2.3,.84],[-2.0,.98],[-1.36,1.08],[-.8,1.0],[-.25,.93],[.45,.95],[1.36,1.04],[1.85,.94],[2.22,.72]];
-  const ysK=[[-2.3,.66],[-1.36,.72],[-.5,.64],[.5,.6],[1.36,.64],[1.85,.5],[2.22,.34]];
-  const yfK=[[-2.3,.84],[-1.7,.9],[-1.0,.87],[-.25,.8],[.6,.74],[1.3,.8],[1.75,.64],[2.05,.48],[2.22,.38]];
-  const ycK=[[-2.3,.8],[-1.7,.88],[-1.0,.9],[-.25,.84],[.6,.72],[1.1,.64],[1.6,.55],[2.0,.43],[2.22,.34]];
-  const hwL=[[-2.3,.78],[-1.8,.78],[-1.36,.74],[-.8,.86],[0,.9],[.8,.86],[1.36,.72],[1.9,.72],[2.22,.62]];
-  const ybK=[[-2.3,.32],[-2.05,.2],[-1.8,.18],[1.9,.18],[2.1,.2],[2.22,.26]];
-  const arch=z=>{ let a=0; [WB,-WB].forEach(zw=>{ const dz=z-zw, R=WR+.08; if(Math.abs(dz)<R) a=Math.max(a,WR+Math.sqrt(R*R-dz*dz)+.02); }); return a; };
-  const bodySt=[]; const NS=46;
-  for(let i=0;i<NS;i++){ const z=Z0+(Z1-Z0)*i/(NS-1), yb=kfCR(ybK,z), hs=kfCR(hwS,z), hl=Math.min(kfCR(hwL,z),hs-.08), yc=kfCR(ycK,z);
-    const ay=Math.max(arch(z),yb+.16), ys=Math.max(kfCR(ysK,z),ay+.06), yf=Math.max(kfCR(yfK,z),ys+.1), ht=hs-.15;
-    bodySt.push({z,pts:[[0,yb],[hl*.9,yb],[hl,yb+.05],[hl,ay],[hs*.985,Math.max(ys-.08,ay+.02)],[hs,ys],[hs-.05,ys+.07],[ht,yf],[ht*.5,(yf+yc)/2+.015],[0,yc]]}); }
-  add(loftGeo(bodySt),paint);
-  // ---- teardrop canopy: glass dome, body-colour roof, snorkel ----
-  const cwK=[[-1.55,.2],[-1.25,.52],[-.6,.64],[.1,.63],[.6,.52],[.98,.26]], htK=[[-1.55,.9],[-1.15,1.08],[-.55,1.19],[0,1.18],[.5,1.02],[.98,.74]];
-  const dome=(z0,z1,a0,sc,lift)=>{ const st=[]; for(let i=0;i<22;i++){ const z=z0+(z1-z0)*i/21, cw=kfCR(cwK,z)*sc, top=kfCR(htK,z)*(1+(sc-1)*.5)+lift, base=kfCR(ycK,z)-.03;
-      const pts=[[0,a0>0?base+(top-base)*.55:base],[cw*Math.cos(a0),a0>0?base+(top-base)*Math.sin(a0):base]];
-      for(let k=1;k<=5;k++){ const a=a0+(Math.PI/2-a0)*k/6; pts.push([cw*Math.cos(a)*(1-.06*Math.sin(a)),base+(top-base)*Math.pow(Math.sin(a),.8)]); }
-      pts.push([0,top]); st.push({z,pts}); } return loftGeo(st); };
-  add(dome(-1.55,.98,0,1,0),glass);
-  add(dome(-1.3,.3,.95,1.02,.012),paint); // roof skin over the top of the glass
-  const snork=[]; for(let i=0;i<10;i++){ const z=-.95+.6*i/9, top=kfCR(htK,z)*1.01+.012, h=.025+.075*(i/9); snork.push({z,pts:[[0,top-.02],[.09,top-.02],[.1,top+h*.6],[.06,top+h],[0,top+h+.01]]}); }
-  add(loftGeo(snork),paint);
-  add(new THREE.PlaneGeometry(.15,.07),gapM,0,kfCR(htK,-.35)*1.01+.07,-.345);
-  // ---- light signatures ----
-  [1,-1].forEach(sd=>{
-    const hl=add(new THREE.SphereGeometry(1,16,10),lensM,sd*.6,.515,1.9); hl.scale.set(.25,.07,.2); hl.rotation.x=.32; hl.rotation.y=sd*.3; // headlight pod
-    tube([[sd*.42,.53,2.0],[sd*.6,.565,1.93],[sd*.74,.54,1.84],[sd*.8,.47,1.8]],.017,headM,20); // boomerang LED
-    tube([[sd*.62,.26,2.12],[sd*.72,.34,2.06],[sd*.78,.44,1.98]],.03,carbon,10); // smile corners curl up
-    // C-shaped tail light: top bar into a side drop, wrapped around the open rear
-    tube([[0,.815,-2.315],[sd*.45,.815,-2.315],[sd*.72,.79,-2.305],[sd*.8,.7,-2.3],[sd*.78,.56,-2.3],[sd*.66,.52,-2.3]],.024,tailM,28);
-    const tg=glowSprite(0xff2030,.9); tg.position.set(sd*.78,.66,-2.36); g.add(tg);
-    // side intake: sculpted teardrop scoop ahead of the rear wheel
-    const sh=new THREE.Shape(); sh.moveTo(0,0); sh.bezierCurveTo(.2,-.02,.6,.02,.82,.16); sh.bezierCurveTo(.86,.24,.8,.34,.66,.36); sh.bezierCurveTo(.4,.3,.12,.16,0,0);
-    // rotated +90° about y the shape runs rearward and its extrusion points +x; offset so the outward face sits on each flank
-    const it=add(new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:true,bevelThickness:.01,bevelSize:.01,bevelSegments:2}),carbon,sd>0?.89:-.95,.35,-.16);
-    it.rotation.y=Math.PI/2;
-    // mirrors on stalks, door shut line
-    const ms=add(new THREE.BoxGeometry(.05,.03,.16),carbon,sd*.74,.8,.46); ms.rotation.z=sd*-.35;
-    const mp=add(new THREE.SphereGeometry(1,14,10),paint,sd*.84,.85,.44); mp.scale.set(.1,.058,.085);
-    add(new THREE.PlaneGeometry(.13,.06),lensM,sd*.84,.85,.36).rotation.y=Math.PI;
-    tube([[sd*.925,.26,.56],[sd*.94,.5,.54],[sd*.93,.66,.5],[sd*.8,.76,.42]],.006,gapM,16);
-    // wheel-arch liners so the arches read as openings
-    [WB,-WB].forEach(zw=>{ const l=add(new THREE.CylinderGeometry(WR+.07,WR+.07,.3,16,1,true,.8,Math.PI-1.6),new THREE.MeshBasicMaterial({color:0x040405,side:THREE.DoubleSide}),sd*.88,WR,zw); l.rotation.z=Math.PI/2; });
-  });
-  tube([[-.62,.26,2.12],[-.3,.215,2.18],[0,.205,2.2],[.3,.215,2.18],[.62,.26,2.12]],.045,carbon,24); // the smile
-  add(new THREE.BoxGeometry(1.1,.07,.1),gapM,0,.25,2.12);
-  // splitter: extruded front plan outline
-  { const sp=new THREE.Shape(); sp.moveTo(-.78,1.8); sp.quadraticCurveTo(-.74,2.22,0,2.3); sp.quadraticCurveTo(.74,2.22,.78,1.8); sp.lineTo(-.78,1.8);
-    const m=add(new THREE.ExtrudeGeometry(sp,{depth:.03,bevelEnabled:false}),carbon,0,.16,0); m.rotation.x=Math.PI/2; }
-  // hood ducts and engine-cover louvres
-  [1,-1].forEach(sd=>{ const d=add(new THREE.BoxGeometry(.26,.012,.3),gapM,sd*.28,kfCR(ycK,1.25)+.035,1.25); d.rotation.x=.18; });
-  for(let i=0;i<6;i++){ const z=-1.62-i*.07, y=kfCR(ycK,z)+.008; const l=add(new THREE.BoxGeometry(.72,.012,.035),carbon,0,y,z); l.rotation.x=-.08; }
-  // open mesh rear inside the C, center-exit exhausts, diffuser, rear plate
-  { const rs=new THREE.Shape(); rs.moveTo(-.64,.54); rs.lineTo(.64,.54); rs.quadraticCurveTo(.76,.62,.72,.78); rs.lineTo(-.72,.78); rs.quadraticCurveTo(-.76,.62,-.64,.54);
-    add(new THREE.ShapeGeometry(rs),gapM,0,0,-2.308).rotation.y=Math.PI;
-    for(let i=0;i<5;i++) add(new THREE.BoxGeometry(1.36,.01,.02),carbon,0,.58+i*.045,-2.312); }
-  [1,-1].forEach(sd=>{ const t=add(new THREE.CylinderGeometry(.075,.085,.22,18,1,true),exhM,sd*.11,.66,-2.33); t.rotation.x=Math.PI/2;
-    add(new THREE.CircleGeometry(.07,18),gapM,sd*.11,.66,-2.25).rotation.y=Math.PI; });
-  for(let i=0;i<7;i++) add(new THREE.BoxGeometry(.02,.16,.5),carbon,-.6+i*.2,.24,-2.08);
-  add(new THREE.BoxGeometry(1.5,.03,.5),carbon,0,.17,-2.08);
-  { const pr=add(new THREE.PlaneGeometry(.42,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'P1'),roughness:.5}),0,.44,-2.29); pr.rotation.y=Math.PI; pr.rotation.x=-.2; }
-  // active rear wing: a real airfoil section on carbon struts, with end plates
-  { const af=new THREE.Shape(); af.moveTo(0,0); af.bezierCurveTo(.02,.05,.14,.07,.3,.055); af.bezierCurveTo(.44,.04,.54,.015,.58,0); af.bezierCurveTo(.5,-.006,.3,-.012,.14,-.012); af.bezierCurveTo(.05,-.012,0,-.008,0,0);
-    const wg=new THREE.ExtrudeGeometry(af,{depth:1.84,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:2,curveSegments:10}); wg.translate(0,0,-.92);
-    const w=add(wg,carbon,0,1.1,-1.72); w.rotation.y=Math.PI/2; w.rotation.z=.1;
-    [1,-1].forEach(sd=>{ const ep=add(new THREE.BoxGeometry(.012,.2,.62),carbon,sd*.93,1.1,-2.0); ep.rotation.x=-.1;
-      const st=add(new THREE.BoxGeometry(.04,.3,.1),carbon,sd*.32,.97,-1.98); st.rotation.x=.28; }); }
-  // glow sprites for the lamps
-  [[0xcfe6ff,1.0,.6,.53,1.98],[0xcfe6ff,1.0,-.6,.53,1.98],[0xff2030,.8,0,.82,-2.36]].forEach(a=>{ const s=glowSprite(a[0],a[1]); s.position.set(a[2],a[3],a[4]); g.add(s); });
+/* ---- shared kit for the sculpted cars (Kage R, Overload 3K, Volcano P1) ---- */
+const LENS_M=new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:0,roughness:.02,clearcoat:1,clearcoatRoughness:.02,transparent:true,opacity:.26,depthWrite:false,envMapIntensity:2});
+const GLOSS_BLACK=new THREE.MeshPhysicalMaterial({color:0x07080a,metalness:.3,roughness:.12,clearcoat:1,clearcoatRoughness:.03});
+function rimPaint(paint,col,k){ // fresnel rim (threejs-shaders: onBeforeCompile) so the silhouette reads against a dark street
+  paint.onBeforeCompile=sh=>{ sh.uniforms.rimCol={value:new THREE.Color(col)}; sh.uniforms.rimK={value:k||.32};
+    sh.fragmentShader='uniform vec3 rimCol;\nuniform float rimK;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n  float fres=pow(1.0-clamp(abs(dot(normalize(vViewPosition),normal)),0.0,1.0),3.0);\n  totalEmissiveRadiance+=rimCol*fres*rimK;'); };
+  paint.customProgramCacheKey=()=>'sculptRim';
 }
+function carKit(g){
+  const K={carbon:carbonMat()};
+  K.add=(geo,m,x,y,z)=>{ const o=new THREE.Mesh(geo,m); o.position.set(x||0,y||0,z||0); g.add(o); return o; };
+  K.tube=(pts,r,m,seg,rs)=>K.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2]))),seg||24,r,rs||6,false),m);
+  K.lens=(x,y,z,sx,sy,sz,rx,ry)=>{ const l=K.add(new THREE.SphereGeometry(1,18,10),LENS_M,x,y,z); l.scale.set(sx,sy,sz); l.rotation.set(rx||0,ry||0,0); return l; };
+  K.glow=(c,s,x,y,z)=>{ const o=glowSprite(c,s); o.position.set(x,y,z); g.add(o); return o; };
+  K.airfoil=(chord,thick,span,m)=>{ const af=new THREE.Shape(), c=chord, t=thick; af.moveTo(0,0); af.bezierCurveTo(.03*c,.9*t,.25*c,1.2*t,.52*c,t); af.bezierCurveTo(.76*c,.7*t,.93*c,.25*t,c,0);
+    af.bezierCurveTo(.86*c,-.1*t,.5*c,-.22*t,.24*c,-.22*t); af.bezierCurveTo(.08*c,-.2*t,0,-.14*t,0,0);
+    const geo=new THREE.ExtrudeGeometry(af,{depth:span,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:2,curveSegments:10}); geo.translate(0,0,-span/2); return geo; };
+  K.scoop=(len,h,m)=>{ const sh=new THREE.Shape(); sh.moveTo(0,0); sh.bezierCurveTo(.25*len,-.06*h,.72*len,.05*h,len,.45*h); sh.bezierCurveTo(1.04*len,.75*h,.9*len,h,.78*len,h);
+    sh.bezierCurveTo(.48*len,.85*h,.15*len,.45*h,0,0); return new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:true,bevelThickness:.01,bevelSize:.01,bevelSegments:2}); };
+  return K;
+}
+/* lofted body: half cross-sections swept along the car (threejs-geometry: custom BufferGeometry + computeVertexNormals) */
+function sculptBody(g,S,paint,K){
+  const arch=z=>{ let a=0; [S.WB,-S.WB].forEach(zw=>{ const dz=z-zw, R=S.WR+.06; if(Math.abs(dz)<R) a=Math.max(a,S.WR+Math.sqrt(R*R-dz*dz)*.92+.01); }); return a; };
+  const st=[], NS=S.NS||48;
+  for(let i=0;i<NS;i++){ const z=S.Z0+(S.Z1-S.Z0)*i/(NS-1), tn=clamp((z-(S.Z1-.42))/.42,0,1), taper=1-.32*tn*tn; // close the nose smoothly
+    const yb=kfCR(S.ybK,z)+.07*tn*tn, hs=kfCR(S.hwS,z)*taper, hl=Math.min(kfCR(S.hwL,z)*taper,hs-.08), yc=kfCR(S.ycK,z);
+    const ay=Math.max(arch(z),yb+.16), ys=Math.max(kfCR(S.ysK,z),ay+.05), yf=lerp(Math.max(kfCR(S.yfK,z),ys+.06),Math.max(yc+.03,ys+.04),tn), ht=hs-(S.inset||.15);
+    st.push({z,pts:[[0,yb],[hl*.9,yb],[hl,yb+.05],[hl,ay],[hs*.985,Math.max(ys-.08,ay+.02)],[hs,ys],[hs-.05,ys+.07],[ht,yf],[ht*.5,(yf+yc)/2+.015],[0,yc]]}); }
+  K.add(loftGeo(st),paint);
+  // floor pan so the car sits on something, and dark arch liners so the arches read as openings
+  K.add(new THREE.BoxGeometry(1.5,.05,(S.Z1-S.Z0)-.7),GLOSS_BLACK,0,.15,(S.Z0+S.Z1)/2);
+  const liner=new THREE.MeshBasicMaterial({color:0x040405,side:THREE.DoubleSide});
+  [1,-1].forEach(sd=>[S.WB,-S.WB].forEach(zw=>{ const l=K.add(new THREE.CylinderGeometry(S.WR+.07,S.WR+.07,.3,16,1,true,.8,Math.PI-1.6),liner,sd*.88,S.WR,zw); l.rotation.z=Math.PI/2; }));
+  const T={yc:z=>kfCR(S.ycK,z), yf:z=>kfCR(S.yfK,z), hs:z=>kfCR(S.hwS,z), ys:z=>kfCR(S.ysK,z)};
+  // flank point at height y for station z (for placing lines on the body side)
+  T.side=(z)=>kfCR(S.hwS,z)+.004;
+  return T;
+}
+/* teardrop / bubble canopy with an optional roof skin and black window trim */
+function sculptCanopy(g,C,T,glass,roofM,K){
+  const dome=(z0,z1,a0,sc,lift)=>{ const st=[]; for(let i=0;i<22;i++){ const z=z0+(z1-z0)*i/21, cw=kfCR(C.cwK,z)*sc, top=kfCR(C.htK,z)*(1+(sc-1)*.5)+lift, base=T.yc(z)-.03;
+      const pts=[[0,a0>0?base+(top-base)*.55:base],[cw*Math.cos(a0),a0>0?base+(top-base)*Math.sin(a0):base]];
+      for(let k=1;k<=5;k++){ const a=a0+(Math.PI/2-a0)*k/6; pts.push([cw*Math.cos(a)*(1-(C.tumble||.06)*Math.sin(a)),base+(top-base)*Math.pow(Math.sin(a),C.pow||.8)]); }
+      pts.push([0,top]); st.push({z,pts}); } return loftGeo(st); };
+  K.add(dome(C.z0,C.z1,0,1,0),glass);
+  if(C.roof) K.add(dome(C.roof[0],C.roof[1],C.roofA||.95,1.02,.012),roofM);
+  // window trim (DLO) along the base of the glass on both sides
+  [1,-1].forEach(sd=>{ const pts=[]; for(let i=0;i<=12;i++){ const z=C.z0+.12+(C.z1-C.z0-.24)*i/12; pts.push([sd*kfCR(C.cwK,z)*.985,T.yc(z)-.005,z]); } K.tube(pts,.016,GLOSS_BLACK,30); });
+  return z=>kfCR(C.htK,z);
+}
+
+/* ---- Volcano P1 ---- */
+function p1Shell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,def.rimGlow||0xffb040,.32);
+  const WB=B.wb, WR=B.wr;
+  const T=sculptBody(g,{Z0:-2.3,Z1:2.22,WB,WR,NS:46,
+    hwS:[[-2.3,.84],[-2.0,.98],[-1.36,1.08],[-.8,1.0],[-.25,.93],[.45,.95],[1.36,1.04],[1.85,.94],[2.22,.72]],
+    ysK:[[-2.3,.66],[-1.36,.72],[-.5,.64],[.5,.6],[1.36,.64],[1.85,.5],[2.22,.34]],
+    yfK:[[-2.3,.84],[-1.7,.9],[-1.0,.87],[-.25,.8],[.6,.74],[1.3,.8],[1.75,.64],[2.05,.48],[2.22,.38]],
+    ycK:[[-2.3,.8],[-1.7,.88],[-1.0,.9],[-.25,.84],[.6,.72],[1.1,.64],[1.6,.55],[2.0,.43],[2.22,.34]],
+    hwL:[[-2.3,.78],[-1.8,.78],[-1.36,.74],[-.8,.86],[0,.9],[.8,.86],[1.36,.72],[1.9,.72],[2.22,.62]],
+    ybK:[[-2.3,.32],[-2.05,.2],[-1.8,.18],[1.9,.18],[2.1,.2],[2.22,.26]]},paint,K);
+  const top=sculptCanopy(g,{z0:-1.55,z1:.98,cwK:[[-1.55,.2],[-1.25,.52],[-.6,.64],[.1,.63],[.6,.52],[.98,.26]],htK:[[-1.55,.9],[-1.15,1.08],[-.55,1.19],[0,1.18],[.5,1.02],[.98,.74]],roof:[-1.3,.3]},T,glass,paint,K);
+  const snork=[]; for(let i=0;i<10;i++){ const z=-.95+.6*i/9, t=top(z)*1.01+.012, h=.025+.075*(i/9); snork.push({z,pts:[[0,t-.02],[.09,t-.02],[.1,t+h*.6],[.06,t+h],[0,t+h+.01]]}); }
+  K.add(loftGeo(snork),paint); K.add(new THREE.PlaneGeometry(.15,.07),gapM,0,top(-.35)*1.01+.07,-.345);
+  [1,-1].forEach(sd=>{
+    const hp=K.add(new THREE.SphereGeometry(1,16,10),lensM,sd*.6,.515,1.9); hp.scale.set(.25,.07,.2); hp.rotation.x=.32; hp.rotation.y=sd*.3; // headlight bowl
+    K.tube([[sd*.42,.53,2.0],[sd*.6,.565,1.93],[sd*.74,.54,1.84],[sd*.8,.47,1.8]],.017,headM,20); // boomerang LED
+    K.lens(sd*.6,.53,1.9,.26,.075,.21,.32,sd*.3); // clear lens over the lamp
+    K.tube([[sd*.62,.26,2.12],[sd*.72,.34,2.06],[sd*.78,.44,1.98]],.03,carbon,10);
+    K.tube([[0,.815,-2.315],[sd*.45,.815,-2.315],[sd*.72,.79,-2.305],[sd*.8,.7,-2.3],[sd*.78,.56,-2.3],[sd*.66,.52,-2.3]],.024,tailM,28);
+    K.glow(0xff2030,.9,sd*.78,.66,-2.36);
+    const it=K.add(K.scoop(.84,.36),carbon,sd>0?.89:-.95,.35,-.16); it.rotation.y=Math.PI/2;
+    const ms=K.add(new THREE.BoxGeometry(.05,.03,.16),carbon,sd*.74,.8,.46); ms.rotation.z=sd*-.35;
+    const mp=K.add(new THREE.SphereGeometry(1,14,10),carbon,sd*.84,.85,.44); mp.scale.set(.1,.058,.085);
+    K.add(new THREE.PlaneGeometry(.13,.06),lensM,sd*.84,.85,.36).rotation.y=Math.PI;
+    K.tube([[sd*.925,.26,.56],[sd*.94,.5,.54],[sd*.93,.66,.5],[sd*.8,.76,.42]],.006,gapM,16); // dihedral door shut line
+    K.tube([[sd*.3,T.yc(1.62)+.012,1.62],[sd*.55,T.yf(1.5)+.004,1.5],[sd*.7,T.yf(1.1)+.004,1.1]],.005,gapM,12); // front clam shut line
+  });
+  K.tube([[-.62,.26,2.12],[-.3,.215,2.18],[0,.205,2.2],[.3,.215,2.18],[.62,.26,2.12]],.045,carbon,24);
+  K.add(new THREE.BoxGeometry(1.1,.07,.1),gapM,0,.25,2.12);
+  { const sp=new THREE.Shape(); sp.moveTo(-.78,1.8); sp.quadraticCurveTo(-.74,2.22,0,2.3); sp.quadraticCurveTo(.74,2.22,.78,1.8); sp.lineTo(-.78,1.8);
+    const m=K.add(new THREE.ExtrudeGeometry(sp,{depth:.03,bevelEnabled:false}),carbon,0,.16,0); m.rotation.x=Math.PI/2; }
+  [1,-1].forEach(sd=>{ const d=K.add(new THREE.BoxGeometry(.26,.012,.3),gapM,sd*.28,T.yc(1.25)+.035,1.25); d.rotation.x=.18; });
+  for(let i=0;i<6;i++){ const z=-1.62-i*.07; const l=K.add(new THREE.BoxGeometry(.72,.012,.035),carbon,0,T.yc(z)+.008,z); l.rotation.x=-.08; }
+  { const rs=new THREE.Shape(); rs.moveTo(-.64,.54); rs.lineTo(.64,.54); rs.quadraticCurveTo(.76,.62,.72,.78); rs.lineTo(-.72,.78); rs.quadraticCurveTo(-.76,.62,-.64,.54);
+    K.add(new THREE.ShapeGeometry(rs),gapM,0,0,-2.308).rotation.y=Math.PI;
+    for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(1.36,.01,.02),carbon,0,.58+i*.045,-2.312); }
+  [1,-1].forEach(sd=>{ const t=K.add(new THREE.CylinderGeometry(.075,.085,.22,18,1,true),exhM,sd*.11,.66,-2.33); t.rotation.x=Math.PI/2;
+    K.add(new THREE.CircleGeometry(.07,18),gapM,sd*.11,.66,-2.25).rotation.y=Math.PI; });
+  for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.16,.5),carbon,-.6+i*.2,.24,-2.08);
+  K.add(new THREE.BoxGeometry(1.5,.03,.5),carbon,0,.17,-2.08);
+  { const pr=K.add(new THREE.PlaneGeometry(.42,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'P1'),roughness:.5}),0,.44,-2.29); pr.rotation.y=Math.PI; pr.rotation.x=-.2; }
+  { const w=K.add(K.airfoil(.58,.06,1.84),carbon,0,1.1,-1.72); w.rotation.y=Math.PI/2; w.rotation.z=.1;
+    [1,-1].forEach(sd=>{ const ep=K.add(new THREE.BoxGeometry(.012,.2,.62),carbon,sd*.93,1.1,-2.0); ep.rotation.x=-.1;
+      const st=K.add(new THREE.BoxGeometry(.04,.3,.1),carbon,sd*.32,.97,-1.98); st.rotation.x=.28; }); }
+  [[0xcfe6ff,1.0,.6,.53,1.98],[0xcfe6ff,1.0,-.6,.53,1.98],[0xff2030,.8,0,.82,-2.36]].forEach(a=>K.glow(a[0],a[1],a[2],a[3],a[4]));
+}
+
+/* ---- Kage R: a chopped silver wedge, cab forward, black roof, amber spine ---- */
+function kageShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x9fd3ff,.28);
+  const amber=new THREE.MeshStandardMaterial({color:0xffc21a,emissive:0x6a4200,emissiveIntensity:.6,roughness:.3,metalness:.4});
+  const WB=B.wb, WR=B.wr;
+  const T=sculptBody(g,{Z0:-2.5,Z1:2.32,WB,WR,NS:48,inset:.1,
+    hwS:[[-2.5,.88],[-2.1,.99],[-1.42,1.05],[-.7,.97],[0,.94],[.8,.95],[1.42,.98],[1.9,.93],[2.32,.84]],
+    ysK:[[-2.5,.6],[-1.42,.64],[0,.58],[1.42,.52],[2.1,.44],[2.32,.34]],
+    yfK:[[-2.5,.72],[-1.6,.79],[-.9,.8],[0,.77],[1.0,.74],[1.5,.68],[1.95,.52],[2.32,.37]],
+    ycK:[[-2.5,.71],[-1.6,.79],[-.9,.81],[0,.76],[1.0,.72],[1.5,.66],[1.95,.5],[2.32,.36]],
+    hwL:[[-2.5,.82],[-1.42,.76],[-.7,.88],[0,.9],[.7,.88],[1.42,.76],[2.32,.8]],
+    ybK:[[-2.5,.26],[-2.2,.17],[2.1,.16],[2.32,.22]]},paint,K);
+  paint.roughness=.16;
+  const top=sculptCanopy(g,{z0:-1.05,z1:1.24,tumble:.16,pow:.62,cwK:[[-1.05,.36],[-.8,.68],[-.1,.76],[.6,.72],[1.0,.56],[1.24,.28]],htK:[[-1.05,.84],[-.7,1.02],[-.1,1.08],[.5,1.02],[.95,.84],[1.24,.66]],roof:[-.85,.55],roofA:.9},T,glass,GLOSS_BLACK,K);
+  // amber spine: runs nose to tail over the black roof
+  { const pts=[]; for(let i=0;i<=40;i++){ const z=2.28-4.72*i/40; let y=T.yc(z)+.012; if(z>-.85&&z<.55) y=Math.max(y,top(z)*1.01+.02); pts.push([0,y,z]); } K.tube(pts,.028,amber,90,5); }
+  [1,-1].forEach(sd=>{
+    // slit LED headlights with a clear cover, set into the wedge nose
+    K.add(new THREE.BoxGeometry(.5,.05,.14),lensM,sd*.58,.44,2.12).rotation.y=sd*.2;
+    K.tube([[sd*.34,.455,2.2],[sd*.58,.46,2.14],[sd*.8,.45,2.02]],.014,headM,16);
+    K.lens(sd*.58,.45,2.13,.3,.04,.1,0,sd*.2);
+    K.glow(0xcfe6ff,.9,sd*.6,.46,2.24);
+    // NACA side scoops on the haunches, mirrors, door shut line
+    const it=K.add(K.scoop(.9,.3),GLOSS_BLACK,sd>0?.93:-.99,.4,-.5); it.rotation.y=Math.PI/2;
+    const ms=K.add(new THREE.BoxGeometry(.05,.03,.14),GLOSS_BLACK,sd*.72,.78,.72); ms.rotation.z=sd*-.3;
+    const mp=K.add(new THREE.SphereGeometry(1,14,10),paint,sd*.82,.82,.7); mp.scale.set(.1,.055,.08);
+    K.tube([[sd*.945,.24,.9],[sd*.96,.5,.88],[sd*.95,.64,.84],[sd*.66,.8,.7]],.006,gapM,14);
+    K.tube([[sd*.97,.24,-.25],[sd*.985,.52,-.24]],.006,gapM,6);
+    // twin exhausts in the rear valance
+    const t=K.add(new THREE.CylinderGeometry(.065,.072,.2,18,1,true),exhM,sd*.36,.3,-2.52); t.rotation.x=Math.PI/2;
+    K.add(new THREE.CircleGeometry(.06,18),gapM,sd*.36,.3,-2.44).rotation.y=Math.PI;
+  });
+  // full-width tail bar over a louvred black rear panel
+  K.add(new THREE.BoxGeometry(1.64,.26,.03),GLOSS_BLACK,0,.55,-2.505);
+  for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(1.56,.012,.02),carbon,0,.46+i*.045,-2.525);
+  K.tube([[-.84,.66,-2.47],[-.4,.68,-2.515],[0,.68,-2.52],[.4,.68,-2.515],[.84,.66,-2.47]],.022,tailM,24);
+  K.glow(0xff2030,1.1,.62,.67,-2.56); K.glow(0xff2030,1.1,-.62,.67,-2.56);
+  // engine-deck louvres behind the cab, bonnet vents, splitter, diffuser
+  for(let i=0;i<8;i++){ const z=-1.2-i*.12; K.add(new THREE.BoxGeometry(.9,.014,.05),GLOSS_BLACK,0,T.yc(z)+.01,z).rotation.x=-.1; }
+  [1,-1].forEach(sd=>{ const v=K.add(new THREE.BoxGeometry(.24,.012,.34),gapM,sd*.32,T.yc(1.35)+.02,1.35); v.rotation.x=.12; });
+  { const sp=new THREE.Shape(); sp.moveTo(-.86,1.9); sp.quadraticCurveTo(-.84,2.34,0,2.4); sp.quadraticCurveTo(.84,2.34,.86,1.9); sp.lineTo(-.86,1.9);
+    const m=K.add(new THREE.ExtrudeGeometry(sp,{depth:.03,bevelEnabled:false}),carbon,0,.15,0); m.rotation.x=Math.PI/2; }
+  for(let i=0;i<6;i++) K.add(new THREE.BoxGeometry(.02,.14,.46),carbon,-.5+i*.2,.22,-2.28);
+  { const pr=K.add(new THREE.PlaneGeometry(.42,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'KAGE R'),roughness:.5}),0,.4,-2.53); pr.rotation.y=Math.PI; }
+  // ducktail wing on short struts
+  { const w=K.add(K.airfoil(.42,.05,1.7),paint,0,.98,-2.0); w.rotation.y=Math.PI/2; w.rotation.z=.08;
+    [1,-1].forEach(sd=>{ K.add(new THREE.BoxGeometry(.04,.2,.14),GLOSS_BLACK,sd*.55,.86,-2.14); K.add(new THREE.BoxGeometry(.012,.14,.44),GLOSS_BLACK,sd*.86,.98,-2.2); }); }
+}
+
+/* ---- Overload 3K: quad-motor EV hypercar, pontoon fenders, bubble canopy, dorsal fin, cyan light blades ---- */
+function overloadShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon, cy=def.accent||0x2fe6ff; rimPaint(paint,cy,.16);
+  const blade=new THREE.MeshBasicMaterial({color:cy,toneMapped:false});
+  const bubble=new THREE.MeshPhysicalMaterial({color:0x061a22,metalness:.2,roughness:.02,clearcoat:1,clearcoatRoughness:.02,reflectivity:1,envMapIntensity:2});
+  const WB=B.wb, WR=B.wr;
+  const T=sculptBody(g,{Z0:-2.56,Z1:2.46,WB,WR,NS:52,
+    hwS:[[-2.56,.9],[-2.2,1.04],[-1.5,1.1],[-.8,.98],[0,.9],[.8,.96],[1.5,1.09],[2.0,.99],[2.46,.72]],
+    ysK:[[-2.56,.6],[-1.5,.7],[0,.56],[1.5,.66],[2.1,.46],[2.46,.3]],
+    yfK:[[-2.56,.78],[-1.5,.88],[-.6,.72],[.4,.66],[1.5,.88],[2.1,.62],[2.46,.36]],
+    ycK:[[-2.56,.7],[-1.8,.82],[-1.0,.84],[0,.72],[.8,.64],[1.5,.62],[2.1,.47],[2.46,.3]],
+    hwL:[[-2.56,.84],[-1.5,.76],[-.8,.84],[0,.82],[.8,.84],[1.5,.74],[2.46,.66]],
+    ybK:[[-2.56,.28],[-2.3,.16],[2.2,.15],[2.46,.2]]},paint,K);
+  const top=sculptCanopy(g,{z0:-1.5,z1:1.22,pow:.65,tumble:.02,cwK:[[-1.5,.18],[-1.1,.44],[-.4,.5],[.3,.48],[.9,.34],[1.22,.14]],htK:[[-1.5,.86],[-1.1,1.06],[-.4,1.18],[.3,1.14],[.9,.92],[1.22,.6]]},T,bubble,null,K);
+  // dorsal fin from the canopy to the tail
+  { const fs=new THREE.Shape(); fs.moveTo(0,0); fs.lineTo(1.3,0); fs.quadraticCurveTo(.5,.1,0,.42); fs.lineTo(0,0);
+    const f=K.add(new THREE.ExtrudeGeometry(fs,{depth:.03,bevelEnabled:true,bevelThickness:.008,bevelSize:.008,bevelSegments:2}),carbon,-.015,T.yc(-2.3)+.02,-2.35); f.rotation.y=-Math.PI/2; }
+  K.tube([[0,T.yc(-2.3)+.44,-2.34],[0,T.yc(-1.9)+.26,-1.9],[0,top(-1.4)+.02,-1.42]],.012,blade,16); // fin light edge
+  // cyan light blade across the nose, rocker lines, full-width C tail
+  K.tube([[-.9,.44,2.16],[-.5,.4,2.36],[0,.37,2.44],[.5,.4,2.36],[.9,.44,2.16]],.018,blade,30);
+  [1,-1].forEach(sd=>{
+    K.tube([[sd*.7,.47,2.18],[sd*.86,.52,2.0],[sd*.94,.58,1.82]],.02,headM,12); // headlight streak up the pontoon
+    K.lens(sd*.83,.52,2.02,.18,.05,.2,.3,sd*.35);
+    K.glow(0xcfe6ff,1.0,sd*.82,.52,2.08);
+    K.tube([[sd*.86,.2,1.0],[sd*.9,.2,0],[sd*.88,.2,-1.0]],.014,blade,12); // rocker blades
+    const it=K.add(K.scoop(1.1,.42),GLOSS_BLACK,sd>0?.86:-.92,.3,-.3); it.rotation.y=Math.PI/2;
+    const mp=K.add(new THREE.BoxGeometry(.2,.05,.12),carbon,sd*.62,top(.7)-.15,.7); mp.rotation.z=sd*.2; // camera pods instead of mirrors
+    K.add(new THREE.PlaneGeometry(.05,.03),blade,sd*.72,top(.7)-.15,.635).rotation.y=Math.PI;
+    K.tube([[sd*.3,.86,-2.555],[sd*.75,.8,-2.54],[sd*.88,.62,-2.5],[sd*.8,.42,-2.52]],.02,tailM,20);
+  });
+  K.tube([[-.3,.86,-2.555],[.3,.86,-2.555]],.02,tailM,6);
+  K.glow(0xff2030,1.2,0,.84,-2.6);
+  // open rear with a glowing diffuser
+  K.add(new THREE.BoxGeometry(1.5,.3,.03),GLOSS_BLACK,0,.6,-2.54);
+  for(let i=0;i<9;i++) K.add(new THREE.BoxGeometry(.02,.24,.7),carbon,-.8+i*.2,.24,-2.25);
+  K.add(new THREE.BoxGeometry(1.7,.03,.7),carbon,0,.14,-2.25);
+  K.add(new THREE.BoxGeometry(1.5,.02,.02),blade,0,.37,-2.58);
+  // splitter and front bumper intakes
+  { const sp=new THREE.Shape(); sp.moveTo(-.95,2.0); sp.quadraticCurveTo(-.9,2.5,0,2.58); sp.quadraticCurveTo(.9,2.5,.95,2.0); sp.lineTo(-.95,2.0);
+    const m=K.add(new THREE.ExtrudeGeometry(sp,{depth:.03,bevelEnabled:false}),carbon,0,.14,0); m.rotation.x=Math.PI/2; }
+  [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.5,.12,.06),gapM,sd*.42,.24,2.36));
+  // swan-neck wing: struts rise from the deck and hook over onto the top of the airfoil
+  { const w=K.add(K.airfoil(.6,.07,2.0),carbon,0,1.42,-2.0); w.rotation.y=Math.PI/2; w.rotation.z=.12;
+    [1,-1].forEach(sd=>{ K.tube([[sd*.45,T.yc(-2.05)-.02,-2.05],[sd*.45,1.25,-2.08],[sd*.45,1.52,-2.02],[sd*.45,1.5,-1.86]],.035,carbon,18);
+      K.add(new THREE.BoxGeometry(.014,.34,.72),carbon,sd*1.01,1.4,-2.02);
+      K.add(new THREE.BoxGeometry(.016,.02,.66),blade,sd*1.02,1.57,-2.02); }); }
+  { const pr=K.add(new THREE.PlaneGeometry(.42,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'3000HP'),roughness:.5}),0,.5,-2.56); pr.rotation.y=Math.PI; }
+}
+const SHELLS={p1:p1Shell,kage:kageShell,overload:overloadShell};
 function buildCar(def,opts){
   opts=opts||{}; const B=BODIES[def.body||'wedge'];
   const g=new THREE.Group();
   const paint=new THREE.MeshPhysicalMaterial({color:def.paint,metalness:def.metal,roughness:def.rough,clearcoat:def.matte?0:1,clearcoatRoughness:.03,envMapIntensity:1.25});
   if(!def.matte){ paint.normalMap=CARTEX.flake; paint.normalScale=new THREE.Vector2(.12+def.metal*.18,.12+def.metal*.18); } // metallic flake under a smooth clear coat
   const glass=new THREE.MeshPhysicalMaterial({color:0x0a0e14,metalness:.15,roughness:.02,clearcoat:1,clearcoatRoughness:.02,reflectivity:1,envMapIntensity:1.7});
-  if(def.p1) p1Shell(g,def,B,paint,glass);
+  if(SHELLS[def.sculpt]){ paint.normalMap=null; paint.clearcoatRoughness=.015; SHELLS[def.sculpt](g,def,B,paint,glass); } // sculpted bodies: smooth clear coat (the flake map stretches over lofted UVs)
   else {
   const bodyGeo=profileGeo(B.pts,[[B.pts[0][0]+.1,B.base],[B.pts[B.pts.length-1][0]-.1,B.base],[B.pts[0][0]+.1,B.base]],B.w,.14);
   const cut=opts.cut&&def.cutaway, cutZ=-.75;

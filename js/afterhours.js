@@ -2729,7 +2729,7 @@ const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
     [2480,-120,'SPORTS COMPLEX','SOUTH PHILLY  ↓'],[1900,450,'I-95 SOUTH','DELAWARE EXPRESSWAY'],[-80,260,'BROAD STREET','CITY HALL · LOVE PARK'],[-80,-440,'ART MUSEUM','ROCKY STEPS  ←'],[-80,-1250,'PHILLY CLASSIC','FULL GRID · ALL CARS']],
   roads:[{ew:1,c:-700,dir:1,a:-20,b:720},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:720,dir:1,a:-700,b:-300},{ew:0,c:2480,dir:1,a:-300,b:450}],
   cams:[[-20,-1150,1,0],[420,-700,0,1],[-80,150,-1,0],[2480,-200,1,0]],
-  decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}};
+  decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}, fireworks:[[-50,92,-520],[330,95,-760],[1380,90,-120],[1900,92,420],[-80,98,120],[2480,92,40]]};
 function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
   const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); S.add(m); return m; };
   const bumpTex=CT(canvasTex(128,32,(g,w,h)=>{ g.fillStyle='#3a3835'; g.fillRect(0,0,w,h); g.fillStyle='#ffd23b'; for(let i=0;i<6;i++) g.fillRect(i*22+4,10,12,12); }),true);
@@ -3163,6 +3163,21 @@ function buildCity(C){
   if(C.tunnel) tunnelDress();
   if(C.blvd) blvdDress(C.blvd);
   if(C.decoBridge) decoBridge();
+  if(C.fireworks){ // fireworks: pooled bursts of additive points that expand, drop under gravity and fade
+    const NB=6, NP=110, pos=new Float32Array(NB*NP*3), col=new Float32Array(NB*NP*3), vel=new Float32Array(NB*NP*3), R=rng(1776), PAL=[[1,.3,.3],[1,.85,.3],[.4,.8,1],[.8,.4,1],[.4,1,.55],[1,1,1]];
+    const bursts=[]; for(let b=0;b<NB;b++) bursts.push({t:-R()*5,col:PAL[0]});
+    const fg=new THREE.BufferGeometry(); fg.setAttribute('position',new THREE.BufferAttribute(pos,3)); fg.setAttribute('color',new THREE.BufferAttribute(col,3));
+    const fw=new THREE.Points(fg,new THREE.PointsMaterial({map:glowTex,size:26,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})); fw.frustumCulled=false; S.add(fw);
+    const flashS=glowSprite(0xffffff,260); flashS.material.fog=false; flashS.material.opacity=0; S.add(flashS);
+    EXTRA.push(dt=>{ let fl=0;
+      bursts.forEach((b,bi)=>{ b.t+=dt; if(b.t<0) return;
+        if(b.t>4.2||!b.o){ const site=C.fireworks[R()*C.fireworks.length|0]; b.o=[site[0]+(R()-.5)*120,site[1]+R()*50,site[2]+(R()-.5)*120]; b.col=PAL[R()*PAL.length|0]; b.t=0;
+          for(let j=0;j<NP;j++){ const i=bi*NP+j, th=R()*Math.PI*2, ph=Math.acos(2*R()-1), sp=34+R()*10; vel.set([Math.sin(ph)*Math.cos(th)*sp,Math.cos(ph)*sp,Math.sin(ph)*Math.sin(th)*sp],i*3); pos.set(b.o,i*3); } }
+        const k=Math.max(0,1-b.t/4.2), a=b.t<.12?1.6:k*k; if(b.t<.2){ fl=Math.max(fl,1-b.t/.2); flashS.position.set(b.o[0],b.o[1],b.o[2]); flashS.material.color.setRGB(b.col[0],b.col[1],b.col[2]); }
+        for(let j=0;j<NP;j++){ const i=(bi*NP+j)*3, tw=(j%7===0&&b.t>1.5)?(Math.sin(b.t*40+j)>0?1:.2):1;
+          vel[i]*=1-dt*.9; vel[i+1]=vel[i+1]*(1-dt*.9)-9.8*dt*.6; vel[i+2]*=1-dt*.9; pos[i]+=vel[i]*dt; pos[i+1]+=vel[i+1]*dt; pos[i+2]+=vel[i+2]*dt;
+          col[i]=b.col[0]*a*tw; col[i+1]=b.col[1]*a*tw; col[i+2]=b.col[2]*a*tw; } });
+      flashS.material.opacity=fl*.35; fg.attributes.position.needsUpdate=true; fg.attributes.color.needsUpdate=true; }); }
   if(C.express){ // a lit PATCO train running the bridge tracks beside the race, and a moon glade on the Delaware
     const tf=mkF(), tq=new THREE.Quaternion(), winT=CT(canvasTex(256,64,(g,w,h)=>{ g.fillStyle='#b8bec6'; g.fillRect(0,0,w,h); g.fillStyle='#8a1c2a'; g.fillRect(0,h*.72,w,6);
       for(let x=8;x<w-8;x+=22){ g.fillStyle='#ffe9c2'; g.fillRect(x,14,16,22); } g.fillStyle='#1a1c20'; g.fillRect(w*.47,10,14,h-16); }));

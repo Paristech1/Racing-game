@@ -3282,6 +3282,27 @@ function buildCity(C){
       [-1,1].forEach(sd=>{ pv.copy(f.p).addScaledVector(f.r,sd*(W-1)); const h=f.p.y-1.3; pv.y=h/2; m4.compose(pv,q,new THREE.Vector3(1,h,1)); piers.push(m4.clone()); }); }
     mkInst(new THREE.BoxGeometry(1.4,1,1.4),curbM,piers);
     const glow=glowSprite(0xffcf8a,12); glow.position.set(720,18,470); S.add(glow);
+    // lit billboards on poles beside the elevated run, at driver eye level
+    const ADS=[['NIGHTSHIFT ENERGY','#ff2fb4','#0a0612'],['TORQ TIRES','#ffd23b','#111'],['PHL 24/7','#2fe6ff','#061018'],['KAIZEN AUTO','#f4f7ff','#8a1c2a'],['GRIP OR DIE','#7dff9a','#07120a'],['AFTERHOURS FM 104.7','#ff9a3c','#140a04']];
+    let ai=0; for(let s=60;s<tr.L;s+=95){ frame(s,f,tr); if(f.p.y<6) continue; orientQ(f,q,basis,nr); const sd=ai%2?1:-1, [txt,fg,bg]=ADS[ai++%ADS.length];
+      const b=f.p.clone().addScaledVector(f.r,sd*(W+9)); boxM(.6,f.p.y+4,.6,poleM,b.x,(f.p.y+4)/2,b.z);
+      const bd=new THREE.Mesh(new THREE.PlaneGeometry(12,4),new THREE.MeshBasicMaterial({map:CT(signCanvas(txt,{w:512,h:170,bg,color:fg,size:62})),toneMapped:false,side:THREE.DoubleSide}));
+      bd.position.set(b.x,f.p.y+6,b.z); bd.quaternion.copy(q); bd.rotateY(Math.PI+sd*.5); S.add(bd); const gl=glowSprite(new THREE.Color(fg).getHex(),14); gl.position.copy(bd.position); S.add(gl); }
+    // news helicopter tracking the race: body, spinning rotor, strobes, a searchlight on the road near the player
+    const heli=new THREE.Group(), hb=new THREE.MeshStandardMaterial({color:0x1a2230,metalness:.6,roughness:.35});
+    const body=new THREE.Mesh(new THREE.SphereGeometry(1.4,14,10),hb); body.scale.set(1,.9,1.8); heli.add(body);
+    const boom=new THREE.Mesh(new THREE.CylinderGeometry(.18,.3,5,8),hb); boom.rotation.x=Math.PI/2; boom.position.z=-3.6; heli.add(boom);
+    const rotor=new THREE.Mesh(new THREE.BoxGeometry(11,.06,.4),blackM); rotor.position.y=1.5; heli.add(rotor); const rotor2=rotor.clone(); rotor2.rotation.y=Math.PI/2; rotor.add(rotor2); rotor2.position.set(0,0,0);
+    const skid=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,3.4),blackM); [-.9,.9].forEach(x=>{ const k=skid.clone(); k.position.set(x,-1.4,0); heli.add(k); });
+    const strobeR=glowSprite(0xff2020,2.2), strobeW=glowSprite(0xffffff,2.6); strobeR.position.set(0,-1.2,-.2); strobeW.position.set(0,.3,-6); heli.add(strobeR); heli.add(strobeW);
+    const beamM=addMat({map:coneTex,color:0xeaf2ff,opacity:.14,side:THREE.DoubleSide}), beam=new THREE.Mesh(LAMPCONE_GEO,beamM); beam.scale.set(1.1,1.8,1.1); beam.position.y=-8; beam.rotation.x=-.5; heli.add(beam);
+    const spot=new THREE.Mesh(new THREE.PlaneGeometry(14,14).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:poolTex,color:0xdfe9ff,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false})); S.add(spot);
+    heli.position.set(200,48,0); S.add(heli); let ht=0; const tgt=new THREE.Vector3(), hdir=new THREE.Vector3();
+    EXTRA.push(dt=>{ ht+=dt; rotor.rotation.y+=dt*28; strobeR.material.opacity=(ht%1)<.12?1:.1; strobeW.material.opacity=((ht+.5)%1.3)<.08?1:.05;
+      const fp=player&&player.m?player.m.group.position:null; if(!fp) return;
+      player.m.group.getWorldDirection(hdir); tgt.copy(fp).addScaledVector(hdir,38); tgt.x+=Math.sin(ht*.4)*10; tgt.y=fp.y+16+Math.sin(ht*.7)*2; heli.position.lerp(tgt,1-Math.exp(-dt*1.2));
+      heli.lookAt(fp.x,heli.position.y,fp.z); heli.rotateY(Math.PI); heli.rotateX(-.12);
+      spot.position.set(lerp(heli.position.x,fp.x,.8),fp.y+.08,lerp(heli.position.z,fp.z,.8)); });
   }
 
   // Harbor Line tunnel: open cuts with retaining walls, then a roofed tube with strip lights, portals at both ends

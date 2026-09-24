@@ -1063,28 +1063,30 @@ function autobahnShell(g,def,B,paint,glass){
 const SHELLS={p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
-   wheel: spoke | dish | mesh | fan | split | star | aero.  glow: underglow colour.  camber: static wheel tilt (stance). */
+   wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
+   glow: underglow colour. Only the street-meet tuners run it (Noctis, Passyunk, Zenkai); on a hypercar, a classic or a
+   work truck it reads as a costume. */
 const STREET={
- kage:{vinyl:'slash',vc:'#101114',wheel:'split',glow:0xffb020,camber:.04},
- noctis:{vinyl:'script',vc:'#c9ced6',text:'Noctis',wheel:'dish',glow:0x9b4dff},
- vanta:{vinyl:'circuit',vc:'#19c2ff',wheel:'aero',glow:0x19c2ff},
- kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh',glow:0xffc84a},
- dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star',glow:0xff7a1a},
- sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'dish',glow:0xff2030}, // ghost checker, black on black
- granfour:{vinyl:'lightning',vc:'#ffc21a',wheel:'fan',glow:0xffd23b},
- bell:{vinyl:'stars',vc:'#d8b04a',wheel:'aero',glow:0x4d7bff},
- passyunk:{vinyl:'sponsor',wheel:'dish',glow:0xeaf4ff,camber:.06},
- richmond:{vinyl:'tribal',vc:'#ff5a1f',wheel:'star',glow:0xff8a1a},
- zenkai:{wheel:'mesh',glow:0xff2bd6,camber:.08}, // already wears its 37 roundels and windshield banner
- split:{vinyl:'flames',wheel:'spoke',glow:0xff3020},
- overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan',glow:0x2fe6ff},
- wisp:{vinyl:'stripes',vc:'#7dffef',wheel:'aero',glow:0x7dffef},
- stratos:{wheel:'split',glow:0xff9a3c},
- volcano:{wheel:'spoke',glow:0xffc20e},
- hellbound:{wheel:'dish',glow:0xff2a10,camber:.03},
- tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split',glow:0xff2438},
- mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh',glow:0x76d31e},
- autobahn:{vinyl:'pinstripe',vc:'#c9ced6',wheel:'spoke',glow:0x4d7bff}
+ kage:{vinyl:'slash',vc:'#101114',wheel:'split',camber:.04},
+ noctis:{glow:0x9b4dff,vinyl:'script',vc:'#c9ced6',text:'Noctis',wheel:'dish'},
+ vanta:{vinyl:'circuit',vc:'#19c2ff',wheel:'aero'},
+ kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh'},
+ dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star'},
+ sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'dish'}, // ghost checker, black on black
+ granfour:{vinyl:'lightning',vc:'#ffc21a',wheel:'fan'},
+ bell:{vinyl:'stars',vc:'#d8b04a',wheel:'aero'},
+ passyunk:{glow:0x2fd6ff,vinyl:'sponsor',wheel:'dish',camber:.06},
+ richmond:{vinyl:'tribal',vc:'#ff5a1f',wheel:'star'},
+ zenkai:{glow:0xff2bd6,wheel:'mesh',camber:.08}, // already wears its 37 roundels and windshield banner
+ split:{vinyl:'flames',wheel:'spoke'},
+ overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan'},
+ wisp:{vinyl:'stripes',vc:'#7dffef',wheel:'aero'},
+ stratos:{wheel:'split'},
+ volcano:{wheel:'spoke'},
+ hellbound:{wheel:'dish',camber:.03},
+ tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
+ mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
+ autobahn:{vinyl:'pinstripe',vc:'#c9ced6',wheel:'spoke'}
 };
 const VINYLS={
  flames:{dir:1,draw(g,w,h){ const gr=g.createLinearGradient(0,0,w*.8,0); gr.addColorStop(0,'#fff27a'); gr.addColorStop(.35,'#ffb020'); gr.addColorStop(.7,'#ff3a1a'); gr.addColorStop(1,'rgba(200,20,10,0)');
@@ -1122,17 +1124,34 @@ const VINYL_CACHE={};
 function vinylMat(key,st,frontLeft){ const k=key+'|'+frontLeft; if(VINYL_CACHE[k]) return VINYL_CACHE[k];
   const V=VINYLS[st.vinyl], tex=CT(canvasTex(512,128,(g,w,h)=>{ if(V.dir&&!frontLeft){ g.translate(w,0); g.scale(-1,1); } V.draw(g,w,h,st.vc||'#fff',st.text||''); }));
   return VINYL_CACHE[k]=new THREE.MeshStandardMaterial({map:tex,transparent:true,alphaTest:.05,roughness:.32,metalness:.1,polygonOffset:true,polygonOffsetFactor:-2,depthWrite:false}); }
-let UNDERGLOW_TEX=null;
-function underglowTex(){ return UNDERGLOW_TEX||(UNDERGLOW_TEX=CT(canvasTex(128,256,(g,w,h)=>{ const gr=g.createRadialGradient(w/2,h/2,4,w/2,h/2,h*.5); gr.addColorStop(0,'rgba(255,255,255,.95)'); gr.addColorStop(.45,'rgba(255,255,255,.55)'); gr.addColorStop(1,'rgba(255,255,255,0)');
-  g.fillStyle=gr; g.fillRect(0,0,w,h); }))); }
+/* underglow as a real LED kit reads at night: strips hidden under the sills throw a soft pool that hugs the car's
+   footprint, brightest right under the sill line and dying out within a metre past the body; the middle stays
+   dark (the car is in the way), so the contact shadow still grounds it. Baked into a texture per body shape rather
+   than real lights (threejs-lighting: limit light count, bake where you can), tone-mapped so it never blows the bloom. */
+const UG_TEX={}, UG_MAT={}, UG_STRIP={};
+function underglowTex(B){ const W=B.w+2.6, L=B.front+B.rear+1.6, k=B.w.toFixed(2)+'|'+L.toFixed(2); if(UG_TEX[k]) return UG_TEX[k];
+  const hx=B.w/2-.14, hz=(B.front+B.rear)/2-.45, cw=64, ch=160;
+  return UG_TEX[k]=CT(canvasTex(cw,ch,(g,w,h)=>{ const im=g.createImageData(w,h);
+    for(let j=0;j<h;j++) for(let i=0;i<w;i++){ const x=((i+.5)/w-.5)*W, z=((j+.5)/h-.5)*L, ax=Math.abs(x), az=Math.abs(z);
+      const dx=ax-hx, dz=az-hz, out=Math.hypot(Math.max(dx,0),Math.max(dz,0));        // distance past the sill line
+      const sill=Math.exp(-dx*dx/(2*.42*.42));                                              // strips run along the sides
+      const ends=clamp((hz+.55-az)/.9,0,1);                                               // and stop short of the bumpers
+      const a=clamp((.16+.84*sill)*(.35+.65*ends)*Math.exp(-out/.62),0,1);
+      im.data.set([255,255,255,Math.round(255*a*a*(3-2*a))],(j*w+i)*4); }
+    g.putImageData(im,0,0); })); }
+function underglowMats(c,tex){ const k=c.getHexString()+'|'+tex.uuid; if(!UG_MAT[k]){
+    UG_MAT[k]=new THREE.MeshBasicMaterial({map:tex,color:c.clone().multiplyScalar(.8),transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3});
+    UG_STRIP[k]=new THREE.MeshBasicMaterial({color:c,toneMapped:false}); } // the strip itself is the one authored emissive bit
+  return [UG_MAT[k],UG_STRIP[k]]; }
 // add the street pieces to a built car group. flank(sd,z) -> side-surface points (bottom to top) where a decal sits at station z
 function streetStyle(g,def,B,cid,flank){
   const st=STREET[cid]; if(!st) return;
-  if(st.glow){ const c=new THREE.Color(st.glow);
-    const pad=new THREE.Mesh(new THREE.PlaneGeometry(B.w+1.2,(B.front+B.rear)*1.05),new THREE.MeshBasicMaterial({map:underglowTex(),color:c,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
-    pad.rotation.x=-Math.PI/2; pad.position.set(0,.03,(B.front-B.rear)/2); pad.renderOrder=2; g.add(pad);
-    const neon=new THREE.MeshBasicMaterial({color:c,toneMapped:false});
-    [1,-1].forEach(sd=>{ const n=new THREE.Mesh(new THREE.BoxGeometry(.03,.02,B.wb*2-B.wr*2-.4),neon); n.position.set(sd*(B.w/2-.1),.1,0); g.add(n); }); }
+  if(st.glow){ const c=new THREE.Color(st.glow), [poolM,stripM]=underglowMats(c,underglowTex(B));
+    const pool=new THREE.Mesh(new THREE.PlaneGeometry(B.w+2.6,B.front+B.rear+1.6),poolM);
+    pool.rotation.x=-Math.PI/2; pool.position.set(0,.028,(B.front-B.rear)/2); pool.renderOrder=2; g.add(pool);
+    // the LED strips: tucked under the sills between the wheels, seen only from low angles and as a thin edge line
+    const len=Math.max(.6,B.wb*2-B.wr*2-.5);
+    [1,-1].forEach(sd=>{ const n=new THREE.Mesh(new THREE.BoxGeometry(.035,.018,len),stripM); n.position.set(sd*(B.w/2-.16),Math.max(.09,B.base-.05),0); g.add(n); }); }
   if(st.vinyl&&VINYLS[st.vinyl]){ const z0=-B.wb+B.wr+.16, z1=B.wb-B.wr-.16, n=14;
     [1,-1].forEach(sd=>{ const pos=[],uv=[],idx=[];
       for(let i=0;i<=n;i++){ const z=z0+(z1-z0)*i/n, pts=flank(sd,z), u=sd>0?1-i/n:i/n; // right flank: nose at canvas left

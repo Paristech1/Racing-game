@@ -129,7 +129,7 @@ CARS.push(
   rival:'Rival note: it launches like a railgun. Boost takes forever to come back.',
   note:'feather.\nviolent.', notePos:{l:'62%',t:'35%'},
   cam:{p:[-4.0,.85,3.6],l:[0,.55,.35],roll:-.05,fov:32}},
- {id:'stratos',name:'STRATOS V',body:'stratos',paint:0xff5c12,metal:.72,rough:.12,rim:0x101114,caliper:0xffd23b,wing:true,livery:0xffd23b,accent:0xffd23b,spokes:5,world:'ice',
+ {id:'stratos',sculpt:'stratos',name:'STRATOS V',body:'stratos',lowPro:true,paint:0xff5c12,metal:.72,rough:.12,rim:0x101114,caliper:0xffd23b,wing:true,livery:0xffd23b,accent:0xffd23b,spokes:5,world:'ice',
   top:102,acc:29,grip:35,nitro:1.42,mass:1.08,nosVmax:1.28,
   kick:'Wind-tunnel',loc:'Delaware Ave Overpass',when:'Pre-dawn, 04:55',
   caption:'Built for sustained flat-out. The wing is not for show.',
@@ -590,7 +590,7 @@ const BODIES={
  vanta:{pts:[[-2.72,.26],[-2.78,.48],[-2.55,.62],[-1.75,.7],[-.75,.72],[.25,.66],[1.2,.5],[1.9,.36],[2.32,.28],[2.36,.22]],base:.14,
    cab:[[-.25,.68],[.15,.98],[.65,1.02],[1.02,.84],[1.22,.58]],cabBase:[-.25,.66,1.22,.56],w:2.08,cw:1.14,wr:.36,wb:1.55,tr:.94,front:2.36,rear:2.78,headY:.4,tailY:.54,wingY:1.14,wingZ:-2.4,swan:true},
  stratos:{pts:[[-2.58,.28],[-2.64,.7],[-2.38,.96],[-1.5,1.02],[-.45,.92],[.55,.72],[1.4,.52],[2.0,.4],[2.38,.32],[2.42,.24]],base:.16,
-   cab:[[-.85,.92],[-.25,1.26],[.5,1.3],[1.0,1.02],[1.32,.68]],cabBase:[-.85,.9,1.32,.66],w:2.1,cw:1.22,wr:.37,wb:1.5,tr:1.05,front:2.42,rear:2.64,headY:.46,tailY:.86,wingY:1.52,wingZ:-2.28,swan:true},
+   cab:[[-.85,.92],[-.25,1.26],[.5,1.3],[1.0,1.02],[1.32,.68]],cabBase:[-.85,.9,1.32,.66],w:2.1,cw:1.22,wr:.37,wb:1.5,tr:.96,front:2.42,rear:2.64,headY:.46,tailY:.86,wingY:1.52,wingZ:-2.28,swan:true},
  muscle:{pts:[[-2.4,.42],[-2.46,.84],[-2.36,1.0],[-1.6,1.05],[-.4,1.07],[.6,1.06],[1.5,1.03],[2.2,.97],[2.46,.84],[2.5,.46]],base:.26, // long-hood widebody coupe
    cab:[[-1.5,1.03],[-.95,1.45],[.0,1.49],[.5,1.3],[1.0,1.03]],cabBase:[-1.5,1.01,1.0,1.01],w:2.02,cw:1.52,wr:.39,wb:1.52,tr:1.04,front:2.5,rear:2.46,headY:.8,tailY:.84,wingY:1.14,wingZ:-2.3},
  tempesta:{pts:[[-2.44,.3],[-2.5,.66],[-2.36,.88],[-1.6,.97],[-.7,.98],[.2,.86],[1.1,.64],[1.8,.46],[2.3,.32],[2.4,.24]],base:.16, // V12 wedge
@@ -1635,7 +1635,50 @@ function splitShell(g,def,B,paint,glass){
   K.plate(def,.52,-R-.02); void carbon;
   return T;
 }
-const SHELLS={split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+
+/* ---- Stratos V: wind-tunnel wedge. Sharp low nose rising to a high tail, wraparound visor canopy, deep side
+   channels, yellow livery blade down each flank, carbon aero, active swan-neck wing with gold endplates. ---- */
+function stratosShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffb070,.2);
+  paint.clearcoat=1; paint.clearcoatRoughness=.015;
+  const gold=new THREE.MeshStandardMaterial({color:def.livery||0xffd23b,roughness:.26,metalness:.6});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:68,inset:.13,
+    hwS:[[-R,.96],[-2.1,1.08],[-WB,1.12],[-.7,1.0],[0,.96],[.7,.98],[WB,1.06],[1.9,.96],[F,.78]],
+    ysK:[[-R,.78],[-WB,.84],[-.6,.66],[.4,.56],[WB,.6],[1.9,.46],[F,.3]],
+    yfK:[[-R,1.02],[-2.0,1.04],[-WB,1.02],[-.7,.9],[.3,.74],[WB,.66],[1.9,.5],[F,.34]],
+    ycK:[[-R,1.0],[-2.0,1.03],[-1.4,1.0],[-.7,.9],[.2,.72],[1.0,.6],[1.7,.46],[F,.3]],
+    hwL:[[-R,.9],[-WB,.84],[0,.86],[WB,.82],[F,.72]],
+    ybK:[[-R,.3],[-2.3,.17],[2.0,.16],[F,.2]]},paint,K);
+  const C={z0:-.9,z1:1.3,tumble:.06,pow:.72,cwK:[[-.9,.3],[-.55,.56],[0,.64],[.6,.6],[1.0,.46],[1.3,.2]],htK:[[-.9,1.0],[-.5,1.2],[0,1.3],[.55,1.22],[1.0,.96],[1.3,.7]],roof:[-.6,.35],roofA:.9};
+  sculptCanopy(g,C,T,glass,GLOSS_BLACK,K); outlawKit(K,T,C);
+  [1,-1].forEach(sd=>{
+    // yellow livery blade sweeping up the flank from the front wheel to the tail
+    const pts=[]; for(let i=0;i<=16;i++){ const z=lerp(1.1,-2.5,i/16), c=T.sec(z), y=lerp(c.yb+.12,c.ys-.04,i/16); pts.push([sd*(lerp(c.hl,c.hs,clamp((y-c.ay)/(c.ys-c.ay),0,1))+.016),y,z]); } K.tube(pts,.03,gold,40,6);
+    // deep side channel into a carbon intake ahead of the rear wheel
+    const ci=T.sec(-.7), it=K.add(K.scoop(1.0,.4),carbon,sd>0?ci.hl+.02:-(ci.hl+.08),ci.yb+.12,-.72); it.rotation.y=Math.PI/2;
+    // slit headlamps with a hooked LED, clear cover, gold canards
+    K.tube([K.P(sd*.38,F-.12),K.P(sd*.64,F-.24),K.P(sd*.84,F-.44)],.014,headM,12); K.tube([K.P(sd*.84,F-.44),K.P(sd*.78,F-.52)],.012,headM,4);
+    K.lens(sd*.62,T.top(sd*.62,F-.28)+.008,F-.28,.22,.028,.16,.28,sd*.35); K.glow(0xcfe6ff,.9,sd*.6,T.top(sd*.6,F-.22)+.04,F);
+    K.add(new THREE.BoxGeometry(.22,.012,.12),gold,sd*.84,.3,F-.2).rotation.z=sd*.3;
+    K.shut(sd,1.05); K.mirror(sd,.8,paint); K.sill(sd,-WB+WR+.2,WB-WR-.2,.02,.14,carbon);
+    // tail: thin light blade at the top of the high tail, open mesh below
+    K.tube([[sd*.2,.98,-R-.014],[sd*.6,.97,-R-.014],[sd*.9,.92,-R+.02]],.014,tailM,10); K.glow(0xff2030,.9,sd*.62,.97,-R-.07); });
+  // bonnet NACA ducts and black nose splitter
+  [1,-1].forEach(sd=>K.top(sd*.12,sd*.34,1.2,1.7,gapM,.006,6));
+  K.splitter(1.0,F-.35,F+.03,.13);
+  K.add(new THREE.PlaneGeometry(1.7,.46),gapM,0,.6,-R-.008).rotation.y=Math.PI;
+  for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(1.66,.01,.02),carbon,0,.42+i*.06,-R-.015);
+  [-.14,.14].forEach(x=>K.pipe(x,.62,-R-.05,.07));
+  for(let i=0;i<8;i++) K.add(new THREE.BoxGeometry(.02,.22,.6),carbon,-.7+i*.2,.22,-R+.26);
+  K.add(new THREE.BoxGeometry(1.8,.03,.6),carbon,0,.12,-R+.26);
+  { const w=K.add(K.airfoil(.56,.07,2.1),carbon,0,1.52,-2.26); w.rotation.y=Math.PI/2; w.rotation.z=.14;
+    [1,-1].forEach(sd=>{ K.tube([[sd*.42,T.top(sd*.42,-2.3)-.01,-2.3],[sd*.42,1.35,-2.32],[sd*.42,1.6,-2.26],[sd*.42,1.58,-2.12]],.032,carbon,16);
+      K.add(new THREE.BoxGeometry(.016,.3,.62),carbon,sd*1.06,1.46,-2.28); K.add(new THREE.BoxGeometry(.02,.03,.6),gold,sd*1.07,1.62,-2.28); }); }
+  K.plate(def,.36,-R-.02);
+  return T;
+}
+const SHELLS={stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1842,13 +1885,6 @@ function buildCar(def,opts){
     box(B.w*.78,.022,.03,acc,0,B.headY+.06,F-.1);
     [1,-1].forEach(sd=>{ box(.02,.02,B.wb*2-.6,acc,sd*(B.w/2+.14),B.base+.1,0); const it=box(.06,.26,.7,trimM,sd*(B.w/2+.1),B.base+.42,-.85); it.rotation.y=sd*.12; });
     [1,-1].forEach(sd=>{ const s=glowSprite(def.accent||0x2fe6ff,.7); s.position.set(sd*(B.w/2+.14),B.base+.1,1); g.add(s); }); }
-  if(cid==='stratos'){ // high-tail aero: gold endplates sit on the wing, intakes follow the new deck
-    const gold=new THREE.MeshStandardMaterial({color:def.livery,roughness:.28,metalness:.55});
-    box(.5,.06,.12,blackM,0,B.headY+.16,F-.55);
-    [1,-1].forEach(sd=>{ box(.22,.04,.36,gold,sd*(B.w/2-.02),B.base+.16,F-.22).rotation.y=sd*.28;
-      box(.04,.22,.7,gold,sd*(B.w/2+.08),B.base+.28,-1.15); });
-    [1,-1].forEach(sd=>box(.05,.42,.62,gold,sd*1.12,B.wingY-.08,B.wingZ));
-  }
   if(def.lightbar){ box(1.5,.08,.16,headM,0,2.06,.28); [-.55,0,.55].forEach(x=>{ const s=glowSprite(0xeaf4ff,.9); s.position.set(x,2.07,.4); g.add(s); }); }
   if(cid==='kage'){ // chopped silver coupe: amber spine follows the deck, black roof, rear haunches
     const amber=new THREE.MeshStandardMaterial({color:0xffc21a,roughness:.32,metalness:.4});

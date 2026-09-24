@@ -2688,7 +2688,7 @@ const DOCKSIDE_CFG={banner:'EVENT 05 · DOCKSIDE DASH',start:[160,-340],
   yAt:()=>0, zMin:-520, ZS:ZS_BASE.slice(0,8), jerseyMaxX:520, noTraffic:true, dockside:true,
   trackX:(x,zc)=>(x===-80&&zc>-340&&zc<-160)||(x===340&&zc>-340&&zc<-160)||((x===160||x===250)&&zc>-250&&zc<-160),
   trackZ:(z,xc)=>(z===-340&&xc>-80&&xc<340)||(z===-160&&((xc>-80&&xc<160)||(xc>250&&xc<340)))||(z===-250&&xc>160&&xc<250),
-  skip:[[70,340,-340,-250]], excl:[],
+  skip:[[70,340,-340,-250],[-260,520,-800,-340]], excl:[],
   gantries:[[250,-340,'DOCKSIDE DASH','CONTAINER YARD  →'],[-80,-250,'WATERFRONT','FULL THROTTLE']],
   roads:[{ew:1,c:-340,dir:1,a:-80,b:340},{ew:1,c:-160,dir:-1,a:-80,b:160},{ew:0,c:-80,dir:-1,a:-340,b:-160},{ew:0,c:340,dir:1,a:-340,b:-160}],
   cams:[[40,-160,0,1]]};
@@ -3244,6 +3244,32 @@ function buildCity(C){
       boxM(w,h,d,stackM,x,h/2,z); boxM(w*.92,h*.9,d*.95,boxC,x,h/2,z); });
     flat(90,320,-322,-268,.05,new THREE.MeshBasicMaterial({map:poolTex,color:0x3a5a78,transparent:true,opacity:.45,blending:THREE.AdditiveBlending,depthWrite:false}));
     const sg=mesh(new THREE.PlaneGeometry(8,1.6),new THREE.MeshBasicMaterial({map:CT(signCanvas2('PORT RICHMOND','CONTAINER YARD',{bg:'#0a0d12',color:'#e6f2ff'})),toneMapped:false}),200,6,-326); sg.rotation.y=Math.PI;
+    // ---- the port south of the loop: container stacks, a quay with two ship-to-shore cranes, a docked ship, sodium masts ----
+    const R=rng(505), LINES=[0x1f5a8a,0xb8391e,0x2f7a3a,0xd8a41c,0x5a5f66,0x8a1c2a,0xe6e8ea,0x1a2a4a,0xcf6a1c,0x0f6a6a];
+    const corrT=CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#d8d8d8'; g.fillRect(0,0,w,h); for(let x=0;x<w;x+=5){ g.fillStyle='#9a9a9a'; g.fillRect(x,0,2,h); g.fillStyle='#f0f0f0'; g.fillRect(x+2,0,1,h); }
+      g.fillStyle='#6a6a6a'; g.fillRect(0,0,w,4); g.fillRect(0,h-4,w,4); g.fillStyle='#fff'; g.font='900 16px Arial,sans-serif'; g.fillText(['MAERSKA','OCEANIC','HAPAG','CMC','EVERLINE'][R()*5|0],10,38); }));
+    const cM=new THREE.MeshStandardMaterial({map:corrT,roughness:.6,metalness:.35}), c40=new THREE.BoxGeometry(12.2,2.6,2.44).translate(0,1.3,0), c20=new THREE.BoxGeometry(6.1,2.6,2.44).translate(0,1.3,0);
+    const L40=[], L20=[], k40=[], k20=[];
+    for(let z=-372;z>-440;z-=3.1){ if(z<-400&&z>-406) continue; for(let x=-60;x<330;x+=13.2){ if(R()<.15) continue; const hN=1+(R()*4|0), big=R()<.7;
+        for(let lv=0;lv<hN;lv++){ const c=LINES[R()*LINES.length|0]; if(big){ L40.push({x,y:lv*2.62,z}); k40.push(c); } else { [-3.1,3.1].forEach(o=>{ L20.push({x:x+o,y:lv*2.62,z}); k20.push(LINES[R()*LINES.length|0]); }); } } } }
+    instPlace(S,c40,cM,L40,k40); instPlace(S,c20,cM,L20,k20);
+    flat(-260,520,-462,-449,.02,new THREE.MeshStandardMaterial({color:0x3a3d42,roughness:.9}));                                         // quay apron
+    boxM(780,4,1.2,new THREE.MeshStandardMaterial({color:0x2a2c30,roughness:.9}),130,-1.9,-462.6);                                          // quay wall
+    flat(-400,700,-800,-463,-2.4,new THREE.MeshStandardMaterial({color:0x04080d,metalness:.9,roughness:.12,normalMap:waterN,normalScale:new THREE.Vector2(.5,.5),envMapIntensity:1.4}));
+    const craneR=new THREE.MeshStandardMaterial({color:0xb8201c,roughness:.5,metalness:.5}), craneW=new THREE.MeshStandardMaterial({color:0xe6e8ea,roughness:.5,metalness:.4}), beacons=[];
+    [40,210].forEach(cx=>{ [-9,9].forEach(dx=>[-445,-460].forEach(z=>boxM(1.4,38,1.4,craneR,cx+dx,19,z)));
+      [-445,-460].forEach(z=>boxM(20,1.6,1.6,craneR,cx,24,z)); boxM(20,2,17,craneW,cx,38.5,-452.5); boxM(3.4,2.2,70,craneW,cx,40.2,-492); boxM(3.4,1.4,22,craneW,cx,40,-432);
+      boxM(5,4,5,craneW,cx,43,-450); const cab=boxM(3,2,3,new THREE.MeshStandardMaterial({color:0x1a2230,emissive:0x2a4a66}),cx,37.6,-470); void cab;
+      [[cx,44.5,-450],[cx,41.6,-527],[cx,41.4,-421]].forEach(b=>beacons.push(b)); });
+    const hull=new THREE.MeshStandardMaterial({color:0x14181e,roughness:.7,metalness:.4});
+    boxM(190,11,28,hull,140,1.5,-492); boxM(190,1.2,28.4,new THREE.MeshStandardMaterial({color:0x6a1a1a,roughness:.8}),140,-3.5,-492);
+    const sup=boxM(14,16,22,craneW,40,15,-492); void sup; boxM(14.2,.6,22.2,new THREE.MeshBasicMaterial({color:0xffe2a8,toneMapped:false}),40,12,-492);
+    const S40=[], sk=[]; for(let x=60;x<225;x+=12.6) for(let z=-503;z<-481;z+=2.5){ const hN=2+(R()*4|0); for(let lv=0;lv<hN;lv++){ S40.push({x,y:7+lv*2.62,z}); sk.push(LINES[R()*LINES.length|0]); } }
+    instPlace(S,c40,cM,S40,sk);
+    const bp=[]; beacons.forEach(b=>bp.push(...b)); const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(bp,3));
+    const bM=new THREE.PointsMaterial({map:glowTex,color:0xff2a2a,size:6,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}); S.add(new THREE.Points(bg,bM));
+    let bt=0; EXTRA.push(dt=>{ bt+=dt; bM.opacity=(bt%1.4)<.5?1:.15; });
+    sodiumLot(S,[[-40,-395],[70,-420],[180,-395],[290,-420]].map(([x,z])=>({x,z})));
   }
   function skylineDress(){
     const rail=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:.8,roughness:.25,side:THREE.DoubleSide}), up=p=>p.y>1.2;

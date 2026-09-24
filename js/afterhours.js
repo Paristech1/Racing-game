@@ -93,7 +93,7 @@ CARS.push(
   cam:{p:[4.6,1.6,6.4],l:[0,1.0,.3],roll:-.07,fov:34}}
 );
 CARS.push(
- {id:'zenkai',name:'ZENKAI 37',body:'coupe',paint:0xc0121c,metal:.6,rough:.14,rim:0x111214,caliper:0xd42020,wing:true,widebody:true,spokes:3,world:'white',
+ {id:'zenkai',sculpt:'zenkai',name:'ZENKAI 37',body:'coupe',lowPro:true,paint:0xc0121c,metal:.6,rough:.14,rim:0x111214,caliper:0xd42020,wing:true,widebody:true,spokes:3,world:'white',
   top:90,acc:24,grip:32,nitro:1.15,mass:1.1,
   kick:'Loading dock',loc:'Bay 17',when:'Saturday, 06:10',
   caption:'Widebody, bolted wing, six-spoke wheels. Shot against the loading doors at first light.',
@@ -574,7 +574,7 @@ const BODIES={
  truck:{pts:[[-2.62,.66],[-2.68,1.06],[-2.6,1.2],[-1.6,1.22],[-.6,1.22],[.2,1.24],[1.1,1.3],[1.9,1.24],[2.5,1.06],[2.64,.78]],base:.56,
    cab:[[-.62,1.22],[-.5,1.96],[.62,2.0],[1.14,1.62],[1.56,1.3]],cabBase:[-.62,1.2,1.56,1.28],w:2.04,cw:1.8,wr:.5,wb:1.72,tr:.96,front:2.64,rear:2.68,headY:1.06,tailY:1.02,wingY:2.1,wingZ:-2.2},
  coupe:{pts:[[-2.12,.4],[-2.18,.74],[-2.08,.96],[-1.6,1.02],[-.8,1.04],[.2,.98],[1.1,.86],[1.75,.72],[2.12,.54],[2.16,.38]],base:.24,
-   cab:[[-1.75,.98],[-1.1,1.24],[-.2,1.32],[.45,1.12],[.9,.9]],cabBase:[-1.75,.96,.9,.88],w:1.9,cw:1.36,wr:.36,wb:1.3,tr:1.0,front:2.16,rear:2.18,headY:.7,tailY:.88,wingY:1.36,wingZ:-1.95},
+   cab:[[-1.75,.98],[-1.1,1.24],[-.2,1.32],[.45,1.12],[.9,.9]],cabBase:[-1.75,.96,.9,.88],w:1.9,cw:1.36,wr:.36,wb:1.3,tr:.96,front:2.16,rear:2.18,headY:.7,tailY:.88,wingY:1.36,wingZ:-1.95},
  classic:{pts:[[-2.2,.42],[-2.3,.7],[-2.2,.86],[-1.6,.94],[-.9,.98],[-.2,.9],[.6,.86],[1.4,.8],[2.0,.66],[2.3,.5],[2.36,.4]],base:.22,
    cab:[[-1.95,.92],[-1.2,1.3],[-.55,1.34],[-.1,1.14],[.25,.9]],cabBase:[-1.95,.9,.25,.86],w:1.82,cw:1.3,wr:.36,wb:1.28,tr:.96,front:2.36,rear:2.3,headY:.64,tailY:.78,wingY:1.1,wingZ:-2.1},
  hyper:{pts:[[-2.5,.34],[-2.56,.64],[-2.42,.8],[-1.6,.9],[-.6,.94],[.4,.86],[1.3,.66],[1.95,.5],[2.4,.38],[2.46,.3]],base:.2,
@@ -1540,7 +1540,57 @@ function richmondShell(g,def,B,paint,glass){
   K.pipe(.6,.52,-R-.08,.06); K.plate(def,.9,-R-.02); void carbon;
   return T;
 }
-const SHELLS={richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
+
+/* ---- Zenkai 37: JDM widebody coupe. Long nose, cab set back, short fastback deck, bolt-on riveted over-fenders,
+   carbon bonnet with vents, "37" door roundels, windshield banner, vortex generators, big GT wing, quad round tails,
+   titanium centre exit. ---- */
+function zenkaiShell(g,def,B,paint,glass){
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xff7070,.16);
+  paint.clearcoat=1; paint.clearcoatRoughness=.02;
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:60,inset:.15,
+    hwS:[[-R,.9],[-WB,1.02],[-.5,.94],[0,.92],[.5,.93],[WB,1.0],[F,.84]],
+    ysK:[[-R,.72],[-WB,.78],[0,.7],[WB,.74],[1.8,.64],[F,.48]],
+    yfK:[[-R,.92],[-1.6,.96],[-WB,.96],[-.4,.9],[.4,.86],[WB,.84],[1.8,.72],[F,.56]],
+    ycK:[[-R,.9],[-1.6,.95],[-1.2,.95],[-.4,.9],[.4,.84],[WB,.78],[1.8,.68],[F,.54]],
+    hwL:[[-R,.86],[-WB,.82],[0,.88],[WB,.82],[F,.78]],
+    ybK:[[-R,.3],[-1.9,.2],[1.9,.2],[F,.24]]},paint,K);
+  const C={z0:-1.62,z1:.82,tumble:.14,pow:.6,cwK:[[-1.62,.36],[-1.3,.56],[-.7,.64],[0,.64],[.5,.56],[.82,.4]],htK:[[-1.62,.96],[-1.2,1.14],[-.6,1.3],[-.1,1.32],[.45,1.16],[.82,.9]],roof:[-1.35,.35],roofA:.92};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  // bolt-on over-fenders with rivets
+  [1,-1].forEach(sd=>[WB,-WB].forEach(zw=>{ const pts=[]; for(let i=0;i<=14;i++){ const a=Math.PI*(.08+.84*i/14), z=zw-Math.cos(a)*(WR+.2), c=T.sec(z); pts.push([sd*(c.hs+.06),WR+Math.sin(a)*(WR+.14),z]); } K.tube(pts,.07,paint,24,8);
+    for(let k=1;k<14;k+=2){ const p=pts[k]; K.add(new THREE.SphereGeometry(.014,6,4),chromeTrimM,p[0]+sd*.06,p[1],p[2]); } }));
+  // carbon bonnet with vents, carbon lip, tow strap
+  K.top(-.62,.62,.9,F-.12,carbon,.006,20);
+  [.3,-.3].forEach(x=>{ for(let i=0;i<5;i++){ const z=1.3+i*.07; K.add(new THREE.BoxGeometry(.3,.01,.03),gapM,x,T.top(x,z)+.012,z); } });
+  K.splitter(.86,F-.3,F-.04,.16);
+  K.add(new THREE.BoxGeometry(.06,.1,.04),new THREE.MeshStandardMaterial({color:0xffc21a,roughness:.5}),.5,.26,F-.02);
+  // front: wide black mouth, slim lamps with a single LED line
+  K.add(new THREE.PlaneGeometry(1.1,.2),GLOSS_BLACK,0,.34,F+.006);
+  [1,-1].forEach(sd=>{ K.tube([K.P(sd*.4,F-.14),K.P(sd*.62,F-.22),K.P(sd*.8,F-.36)],.014,headM,10); K.lens(sd*.6,T.top(sd*.6,F-.24)+.008,F-.24,.2,.03,.14,.3,sd*.3); K.glow(0xcfe6ff,.9,sd*.6,T.top(sd*.6,F-.2)+.04,F);
+    // "37" roundels on the doors
+    const s=T.sec(.1), n=K.add(new THREE.PlaneGeometry(.42,.42),new THREE.MeshStandardMaterial({map:CT(canvasTex(128,128,(c,w,h)=>{ c.fillStyle='#f4f5f7'; c.beginPath(); c.arc(w/2,h/2,w/2-2,0,7); c.fill(); c.fillStyle='#111214'; c.font='800 70px "Arial Narrow",Arial,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('37',w/2,h/2+4); })),transparent:true,roughness:.4,polygonOffset:true,polygonOffsetFactor:-2}),sd*(s.hs+.012),s.ys-.1,.1); n.rotation.y=sd*Math.PI/2;
+    K.shut(sd,.7); K.mirror(sd,.6,paint); K.sill(sd,-WB+WR+.26,WB-WR-.26,.02,.16,carbon);
+    // quad round tail lamps
+    [.44,.7].forEach(x=>{ K.add(new THREE.TorusGeometry(.075,.02,8,24),tailM,sd*x,.74,-R-.02); K.add(new THREE.CircleGeometry(.055,20),gapM,sd*x,.74,-R-.012).rotation.y=Math.PI; });
+    K.glow(0xff2030,.8,sd*.57,.74,-R-.07); });
+  // windshield banner
+  { const bz=.62, y0=canopyY(C,T,0,bz)+.012, y1=canopyY(C,T,0,bz-.12)+.012;
+    const ban=K.add(new THREE.PlaneGeometry(1.0,.14),new THREE.MeshBasicMaterial({map:CT(canvasTex(512,64,(c,w,h)=>{ c.fillStyle='#08090b'; c.fillRect(0,0,w,h); c.fillStyle='#f4f5f7'; c.font='800 44px "Arial Narrow",Arial,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('ZENKAI',w/2,h/2+2); }))}),0,(y0+y1)/2,bz-.06);
+    ban.rotation.x=-Math.PI/2+Math.atan2(y0-y1,.12); }
+  // vortex generators on the roof's trailing edge
+  for(let i=0;i<7;i++){ const x=-.42+i*.14; K.add(new THREE.BoxGeometry(.012,.05,.1),carbon,x,canopyY(C,T,x,-1.3)+.04,-1.3); }
+  // rear: black panel, diffuser, titanium centre exit, big GT wing on swan necks
+  K.add(new THREE.PlaneGeometry(1.5,.2),GLOSS_BLACK,0,.44,-R-.01).rotation.y=Math.PI;
+  for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.2,.5),carbon,-.6+i*.2,.24,-R+.22);
+  { const ti=new THREE.MeshStandardMaterial({color:0x6a7fb8,metalness:1,roughness:.22}), ex=K.add(new THREE.CylinderGeometry(.1,.11,.22,18,1,true),ti,0,.36,-R-.06); ex.rotation.x=Math.PI/2; K.add(new THREE.CircleGeometry(.09,18),gapM,0,.36,-R+.01).rotation.y=Math.PI; }
+  { const w=K.add(K.airfoil(.5,.06,2.0),carbon,0,1.32,-1.9); w.rotation.y=Math.PI/2; w.rotation.z=.12;
+    [1,-1].forEach(sd=>{ K.tube([[sd*.4,T.top(sd*.4,-1.98)-.01,-1.98],[sd*.4,1.2,-2.0],[sd*.4,1.38,-1.94],[sd*.4,1.36,-1.8]],.03,carbon,14);
+      K.add(new THREE.BoxGeometry(.014,.34,.66),carbon,sd*1.01,1.3,-1.92); }); }
+  K.plate(def,.58,-R-.02);
+  return T;
+}
+const SHELLS={zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1762,19 +1812,6 @@ function buildCar(def,opts){
     box(1.05,.04,.16,amber,0,B.headY-.06,F-.2);
     [1,-1].forEach(sd=>box(.16,.22,.85,paint,sd*(B.w/2+.02),B.base+.32,-1.15));
     paint.clearcoat=1; paint.clearcoatRoughness=.02;
-  }
-  if(cid==='zenkai'){ // JDM widebody: carbon hood and lip, riveted flares, "37" door roundels, windshield banner, vortex generators, quad round tails, titanium center exit
-    const numM=decal(128,128,(c,w,h)=>{ c.fillStyle='#f4f5f7'; c.beginPath(); c.arc(w/2,h/2,w/2-2,0,7); c.fill(); c.fillStyle='#111214'; c.font='800 70px "Arial Narrow",Arial,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('37',w/2,h/2+4); });
-    [1,-1].forEach(sd=>{ const n=new THREE.Mesh(new THREE.PlaneGeometry(.46,.46),numM); n.position.set(sd*(B.w/2+.143),B.base+.4,.22); n.rotation.y=sd*Math.PI/2; g.add(n);
-      [1,-1].forEach(sz=>{ for(let k=0;k<6;k++) box(.02,.03,.03,chromeTrimM,sd*(B.w/2+.225),B.wr+.42,sz*B.wb-.55+k*.22); }); });
-    const ban=new THREE.Mesh(new THREE.PlaneGeometry(B.cw*.9,.13),decal(512,64,(c,w,h)=>{ c.fillStyle='#08090b'; c.fillRect(0,0,w,h); c.fillStyle='#f4f5f7'; c.font='800 44px "Arial Narrow",Arial,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('ZENKAI',w/2,h/2+2); }));
-    ban.position.set(0,roofY(.5)+.012,.505); ban.rotation.x=-(Math.PI/2-Math.atan2(roofY(.45)-roofY(.9),.45)); g.add(ban);
-    strip(0,.9,cb[2]+.1,F-.35,carbonM,6); box(B.w*.94,.03,.3,carbonM,0,B.base,F-.08);
-    for(let i=0;i<7;i++) box(.02,.05,.1,carbonM,-.45+i*.15,roofY(-1.45)+.025,-1.45);
-    box(.06,.14,.04,new THREE.MeshStandardMaterial({color:0xffc21a,roughness:.5}),.5,B.base+.1,F+.02); // tow strap
-    [-.62,-.36,.36,.62].forEach(x=>{ const r=new THREE.Mesh(new THREE.TorusGeometry(.075,.022,8,20),tailM); r.position.set(x,B.tailY-.04,-Rr-.07); g.add(r); });
-    const ti=new THREE.MeshStandardMaterial({color:0x6a7fb8,metalness:1,roughness:.22}), ex=new THREE.Mesh(new THREE.CylinderGeometry(.1,.11,.2,18,1,true),ti); ex.rotation.x=Math.PI/2; ex.position.set(0,B.base+.2,-Rr-.04); g.add(ex);
-    const exi=new THREE.Mesh(new THREE.CircleGeometry(.09,18),gapM); exi.position.set(0,B.base+.2,-Rr+.03); exi.rotation.y=Math.PI; g.add(exi);
   }
   if(cid==='split'){ // '63 restomod: stinger hood bulge, chrome grille teeth, crossed-flags nose badge, red coke-bottle pinstripe, quad round tails, fuel cap
     const red=new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.3,metalness:.3});

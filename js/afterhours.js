@@ -2672,7 +2672,7 @@ const GRAND_CFG={banner:'EVENT 04',start:[-20,-1150],
   gantries:[[860,-300,'BEN FRANKLIN BRIDGE','NEW JERSEY  ↑'],[-20,-1000,'ROOSEVELT BLVD','US 1 SOUTH · CENTER CITY'],[-80,-1100,'ROOSEVELT BLVD','NORTHEAST PHILA  ↑'],[2030,200,'HARBOR LINE TUNNEL','PHILADELPHIA  ← 1 MI']],
   roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
   cams:[[-20,-1050,1,0],[380,-800,0,1],[400,470,0,-1]],
-  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-835}};
+  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-835}, steam:22};
 const GAUNTLET_CFG={banner:'THE GAUNTLET',start:[40,20],
   corners:[[430,20,30],[430,-340,30],[-80,-340,30],[-80,20,30]],
   yAt:()=>0, zMin:-1600, ZS:ZS_BASE, jerseyMaxX:3000, noTraffic:true, arena:true,
@@ -3145,6 +3145,19 @@ function buildCity(C){
     const led=glowSprite(0xff3030,.7); led.position.set(cx-dx*.6,5.3,cz-dz*.6); S.add(led); });
   const EXTRA=[]; // per-frame updates for layout-specific pieces
   EXTRA.push(dt=>{ waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.011; });
+  if(C.steam){ // manhole steam: plumes of soft additive points rising out of vents in the road, lit by the street lights
+    const PL=C.steam, NP=26, pos=new Float32Array(PL*NP*3), col=new Float32Array(PL*NP*3), life=new Float32Array(PL*NP), src=[], R=rng(2031);
+    for(let k=0;k<PL;k++){ const sK=tr.L*(k+.5)/PL+(R()-.5)*40; frame(sK,f,tr); if(f.p.y<-.3||f.p.y>2){ src.push(null); continue; } const x=(R()<.5?-1:1)*(W-1.4-R()*2);
+      src.push([f.p.x+f.r.x*x,f.p.y,f.p.z+f.r.z*x]); const lid=mesh(new THREE.CircleGeometry(.55,16).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x121417,metalness:.7,roughness:.4}),src[k][0],f.p.y+.02,src[k][2]); void lid; }
+    for(let i=0;i<PL*NP;i++) life[i]=R();
+    const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(pos,3)); sg.setAttribute('color',new THREE.BufferAttribute(col,3));
+    const pts=new THREE.Points(sg,new THREE.PointsMaterial({map:glowTex,size:5.6,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); pts.frustumCulled=false; S.add(pts);
+    EXTRA.push(dt=>{ for(let k=0;k<PL;k++){ const c=src[k]; for(let j=0;j<NP;j++){ const i=k*NP+j;
+        if(!c){ pos[i*3+1]=-999; continue; }
+        life[i]+=dt*.28; if(life[i]>1) life[i]-=1; const t=life[i], sway=Math.sin(t*6+j)*.5*t;
+        pos[i*3]=c[0]+sway+(j%3-1)*.2*t*3; pos[i*3+1]=c[1]+.2+t*5.5; pos[i*3+2]=c[2]+Math.cos(t*5+j)*.4*t;
+        const a=Math.sin(Math.PI*t)*.34; col[i*3]=a*.85; col[i*3+1]=a*.9; col[i*3+2]=a; } }
+      sg.attributes.position.needsUpdate=true; sg.attributes.color.needsUpdate=true; }); }
   if(C.tunnel) tunnelDress();
   if(C.blvd) blvdDress(C.blvd);
   if(C.decoBridge) decoBridge();

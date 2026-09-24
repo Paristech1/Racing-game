@@ -4198,7 +4198,8 @@ function buildFirstLight(){
   const tg=new THREE.PlaneGeometry(1400,2800,56,112); tg.rotateX(-Math.PI/2); tg.translate(0,0,-150); const tp=tg.attributes.position;
   for(let i=0;i<tp.count;i++){ const d=rDist(tp.getX(i),tp.getZ(i)); tp.setY(i,d<52?-3.2:d<66?lerp(-3.2,-.05,(d-52)/14):-.05); }
   tg.computeVertexNormals(); const groundM=new THREE.MeshStandardMaterial({color:0x121812,roughness:1}); K.mesh(tg,groundM,0,0,0);
-  const waterM=new THREE.MeshStandardMaterial({color:0x04070c,metalness:.9,roughness:.1,envMapIntensity:1.2}); K.flat(-700,700,-1600,1300,-1.5,waterM);
+  const waterN=WETMAPS.normal.clone(); waterN.needsUpdate=true; waterN.repeat.set(70,145); // river ripples: the wet-asphalt normal field, tiled small and scrolled downstream
+  const waterM=new THREE.MeshStandardMaterial({color:0x04070c,metalness:.9,roughness:.1,normalMap:waterN,normalScale:new THREE.Vector2(.45,.45),envMapIntensity:1.2}); K.flat(-700,700,-1600,1300,-1.5,waterM);
   const bridge=p=>p.y>.4;
   K.road({skip:bridge,walk:0x3c4046});
   const truss=new THREE.MeshStandardMaterial({color:0x3a5a7a,metalness:.6,roughness:.45,side:THREE.DoubleSide}), para=new THREE.MeshStandardMaterial({color:0x8a8478,roughness:.9,side:THREE.DoubleSide});
@@ -4249,6 +4250,10 @@ function buildFirstLight(){
   // ---- river fog and rowing crews ----
   const fogM=new THREE.MeshBasicMaterial({map:smokeTex,color:0xc8d4e8,transparent:true,opacity:.35,depthWrite:false});
   const fogs=[]; for(let i=0;i<34;i++){ const p=rc[4+((i*4)%150)], m=K.mesh(new THREE.PlaneGeometry(150,36),fogM,p.x+(K.R()-.5)*40,-.6+K.R()*1.4,p.z); m.rotation.x=-Math.PI/2; m.rotation.z=K.R()*3; fogs.push(m); }
+  // sun glitter: two sets of additive sparks on the river that shimmer against each other once the sun is up
+  const glints=[0,1].map(k=>{ const gp=[], R=rng(40+k); for(let i=0;i<1400;i++){ const p=rc[4+Math.floor(R()*150)]; gp.push(p.x+(R()-.5)*90,-1.4,p.z+(R()-.5)*20); }
+    const gg=new THREE.BufferGeometry(); gg.setAttribute('position',new THREE.Float32BufferAttribute(gp,3));
+    const pts=new THREE.Points(gg,new THREE.PointsMaterial({map:glowTex,color:0xffc890,size:2.4,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending})); S.add(pts); return pts.material; });
   const shellM=new THREE.MeshStandardMaterial({color:0xe8e4d8,roughness:.4}), oarM=new THREE.MeshStandardMaterial({color:0xf4f4f4,roughness:.5});
   const crews=[0,1,2,3].map(i=>{ const g=new THREE.Group(); g.add(new THREE.Mesh(new THREE.BoxGeometry(.6,.35,14),shellM)); const oars=[];
     for(let k=0;k<4;k++) [-1,1].forEach(sd=>{ const piv=new THREE.Group(); piv.position.set(sd*.3,.2,-4.5+k*3); const o=new THREE.Mesh(new THREE.BoxGeometry(3.6,.06,.12),oarM); o.position.x=sd*1.8; piv.add(o); g.add(piv); oars.push({piv,sd}); });
@@ -4267,7 +4272,8 @@ function buildFirstLight(){
     S.userData.bloom.threshold=.74+pS*.14; S.userData.bloom.strength=.85-pS*.3;
     lit.lampM.color.setScalar(.1+.9*D.lamp); lit.poolM.opacity=.5*D.lamp; lit.flareM.opacity=D.lamp; if(lit.cones) lit.cones.visible=D.lamp>.4; if(lit.streaks) lit.streaks.visible=D.lamp>.4;
     outlineM.color.setRGB(1,.95,.82).multiplyScalar(.15+.85*D.lamp); groundM.color.setHex(0x121812).lerp(new THREE.Color(0x3a4a2a),pS*.8); leafM.color.setHex(0x1a3020).lerp(new THREE.Color(0x3a5a2a),pS);
-    waterM.color.setHex(0x04070c).lerp(D.hor,.25*pS); fogM.opacity=.35*(1-pS*.95);
+    waterM.color.setHex(0x04070c).lerp(D.hor,.25*pS); fogM.opacity=.35*(1-pS*.95); waterN.offset.x+=dt*.003; waterN.offset.y-=dt*.01;
+    glints.forEach((m,k)=>{ m.opacity=clamp(D.sun-.2,0,1)*(.55+.45*Math.sin(ghostT*7+k*Math.PI)); m.color.copy(D.hor).lerp(tmpC.setHex(0xfff0d0),.5); });
     crews.forEach(c=>{ c.u=(c.u+c.v*dt)%1; const k=c.u*(rc.length-2), i=Math.floor(k), a=rc[i], b=rc[i+1]; c.g.position.set(lerp(a.x,b.x,k-i)+(c.ph%2?14:-14),-1.3,lerp(a.z,b.z,k-i)); c.g.rotation.y=Math.atan2(b.x-a.x,b.z-a.z);
       const st=Math.sin(ghostT*3.2+c.ph); c.oars.forEach(o=>{ o.piv.rotation.y=o.sd*st*.5; o.piv.rotation.z=o.sd*(st>0?.05:-.12); }); });
     const lap=racing?clamp(Math.floor(Math.max(0,player.dist)/tr.L),0,2):0, want=[0,3,7][lap];

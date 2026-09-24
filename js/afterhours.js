@@ -143,9 +143,9 @@ CARS.push(
   top:112,acc:42,grip:34,nitro:1.52,mass:.46,nosVmax:1.4,nosAccMul:2.2,
   kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
   caption:'Volcano yellow, a teardrop canopy and a snorkel on the roof. The wing stands up at speed and it still pulls.',
-  specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.5S / LIGHTEST · FASTEST LAUNCH IN THE ARCHIVE',
+  specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.5S / THE FASTEST HYBRID IN THE ARCHIVE',
   rival:'Rival note: only the Zephyr is faster in a straight line. Beat this one in the corners or not at all.',
-  note:'fastest\nthing here.', notePos:{l:'60%',t:'34%'},
+  note:'fastest\nhybrid here.', notePos:{l:'60%',t:'34%'},
   cam:{p:[4.4,1.0,-3.9],l:[0,.5,-.2],roll:.07,fov:31}}
 );
 CARS.push(
@@ -156,7 +156,7 @@ CARS.push(
   specs:'TWIN E-MOTOR / 1,640 HP / 1,180 LB / 0–60 IN 1.1S / 960 MPH',
   rival:'Rival note: it is gone before the lights change. Do not bother chasing the boost light.',
   note:'light.\nthen gone.', notePos:{l:'60%',t:'34%'},
-  cam:{p:[4.2,.85,-3.6],l:[0,.42,-.15],roll:.06,fov:30}}
+  cam:{p:[4.6,.95,-4.0],l:[0,.42,-.2],roll:.06,fov:31}}
 );
 // four outlaw cars: 500 / 600 / 700 / 800 mph, each unlocked its own way (see stepRacer). Player-only, never rivals.
 CARS.push(
@@ -1733,8 +1733,9 @@ function wispShell(g,def,B,paint,glass){
 /* ---- Zephyr 960: narrow featherweight dart. Green upper body, teal lower cladding and light blades,
    lofted the same way as the other sculpted cars (cross-sections, tubes, airfoil, fresnel rim). ---- */
 function zephyrShell(g,def,B,paint,glass){
-  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x14e0c8,.34);
-  paint.color.set(def.paint||0x14943c); paint.metalness=.58; paint.roughness=.16; paint.clearcoat=1; paint.clearcoatRoughness=.02; paint.sheen=new THREE.Color(0x0a6e62);
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x14e0c8,.2);
+  // deep metallic green under the clear coat (threejs-materials: car paint = metalness + clearcoat, no sheen, which is for cloth and washes the green to mint)
+  paint.color.set(def.paint||0x14943c); paint.metalness=.72; paint.roughness=.3; paint.clearcoat=1; paint.clearcoatRoughness=.02;
   const teal=new THREE.MeshPhysicalMaterial({color:0x0e8f86,metalness:.62,roughness:.18,clearcoat:1,clearcoatRoughness:.04,envMapIntensity:1.15});
   const blade=new THREE.MeshBasicMaterial({color:def.accent||0x14e0c8,toneMapped:false});
   const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
@@ -1760,15 +1761,15 @@ function zephyrShell(g,def,B,paint,glass){
     const it=K.add(K.scoop(.7,.28),carbon,sd>0?.72:-.78,.28,-.2); it.rotation.y=Math.PI/2;
     K.mirror(sd,.55,carbon);
   });
-  K.top(-.08,.08,-.4,F-.2,blade,.01,18);
+  K.top(-.08,.08,.9,F-.2,blade,.01,18);
   K.tube([K.P(-.55,F-.28,.01),K.P(0,F-.04,.01),K.P(.55,F-.28,.01)],.012,blade,24);
   K.splitter(.72,F-.28,F+.02,.14);
   K.add(new THREE.PlaneGeometry(.9,.08),GLOSS_BLACK,0,.28,F+.004);
   for(let i=0;i<6;i++) K.add(new THREE.BoxGeometry(.016,.16,.42),carbon,-.42+i*.17,.18,-R+.2);
   K.add(new THREE.BoxGeometry(1.15,.02,.5),teal,0,.14,-R+.18);
   { const w=K.add(K.airfoil(.42,.05,1.55),carbon,0,1.02,-2.05); w.rotation.y=Math.PI/2; w.rotation.z=.1;
-    [1,-1].forEach(sd=>{ K.tube([[sd*.32,T.yc(-1.7)+.02,-1.85],[sd*.32,.95,-1.95],[sd*.32,1.08,-1.9],[sd*.32,1.04,-1.72]],.024,carbon,14);
-      K.add(new THREE.BoxGeometry(.01,.22,.48),teal,sd*.78,.98,-1.9); }); }
+    [1,-1].forEach(sd=>{ K.tube([[sd*.32,T.yc(-2.34)+.01,-2.34],[sd*.32,.92,-2.36],[sd*.32,1.12,-2.3],[sd*.32,1.08,-2.14]],.024,carbon,14); // swan neck: up behind the wing, over onto its top
+      K.add(new THREE.BoxGeometry(.012,.24,.5),teal,sd*.785,1.04,-2.26); }); } // endplates centred on the chord (-2.05 to -2.47)
   K.plate(def,.4,-R-.02);
   return T;
 }
@@ -5675,7 +5676,7 @@ function startRace(){
   }); }
   personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.clean=0; r._hits=r.hits; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
-  const boss=racers.find(r=>!r.isP&&(r.def.chassisId==='overload'||r.def.chassisId==='volcano'));
+  const boss=racers.find(r=>!r.isP&&['overload','volcano','zephyr'].includes(r.def.chassisId));
   if(boss&&!EV.knockout) setTimeout(()=>{ if(mode!=='race') return; const id=boss.def.chassisId;
     toast(id==='zephyr'?`${boss.def.tag} brought the ZEPHYR 960. Nine hundred and sixty on the grid.`:(id==='volcano'?`${boss.def.tag} brought the VOLCANO P1.`:`${boss.def.tag} brought the OVERLOAD 3K. Three thousand horsepower on the grid.`)); },4200);
   if(EV.knockout||TAG){ ghostData=null; endGhost(); } else { loadGhost(); spawnGhost(); } ghostRec=[]; ghostAcc=0; camFlashes=0;

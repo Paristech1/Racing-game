@@ -1275,8 +1275,8 @@ function signCanvas(text,opts){ opts=opts||{}; const w=opts.w||512, h=opts.h||96
 /* ---- Event 02: Roosevelt Blvd, Tyson Av to Cottman Av ---- */
 function rng(seed){ let s=seed>>>0; return ()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
 /* a leafy crown: three merged blobs, noisy radius, darker underside via vertex colours */
-function leafyCrown(r,seed){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25,.2,.7],[-.45,.3,-.25,.72],[.1,.55,-.4,.6]], pos=[], col=[], idx=[];
-  const nrm=[]; parts.forEach(([ox,oy,oz,k])=>{ const g=new THREE.IcosahedronGeometry(r*k,2), p=g.attributes.position, base=pos.length/3;
+function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25,.2,.7],[-.45,.3,-.25,.72],[.1,.55,-.4,.6]], pos=[], col=[], idx=[];
+  const nrm=[]; parts.forEach(([ox,oy,oz,k])=>{ const g=new THREE.IcosahedronGeometry(r*k,det===undefined?2:det), p=g.attributes.position, base=pos.length/3;
     for(let i=0;i<p.count;i++){ const x=p.getX(i),y=p.getY(i),z=p.getZ(i), n=1+.14*Math.sin(x*3.1+z*2.3)*Math.cos(y*2.7), X=x*n+ox*r, Y=y*n*.82+oy*r, Z=z*n+oz*r; pos.push(X,Y,Z);
       const l=Math.hypot(x,y,z)||1; nrm.push(x/l,y/l,z/l); // radial normals: smooth shading across the non-indexed faces
       const sh=clamp(.55+.45*(Y/(r*1.3)),.35,1)*(.85+R()*.3); col.push(.55*sh,.8*sh,.5*sh); }
@@ -1710,32 +1710,6 @@ const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
   roads:[{ew:1,c:-700,dir:1,a:-20,b:720},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:720,dir:1,a:-700,b:-300},{ew:0,c:2480,dir:1,a:-300,b:450}],
   cams:[[-20,-1150,1,0],[420,-700,0,1],[-80,150,-1,0],[2480,-200,1,0]],
   decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}};
-/* Event 10: Mt Airy / Germantown (≈1.44 km / lap). A clean loop on the rowhome grid: up Greene St, across Mt Pleasant,
-   north on the Belgian-block cobbles and trolley rails of Germantown Ave, over Hortter St, down Lincoln Dr past the
-   Wissahickon woods and back along Upsal St. Speed bumps and potholes on every street. */
-const MTAIRY_ZS=[-990,-900,-810,-720,-630,-540,-450];
-function mtAiryHills(){ return 0; } // flat: the rowhomes, sidewalks and trees all sit at street level with the road
-const MTAIRY_CFG={banner:'EVENT 10 · MT AIRY RUN',start:[-400,-600],
-  corners:[[-400,-810,24],[-490,-810,24],[-490,-990,26],[-670,-990,26],[-670,-540,28],[-400,-540,28]],
-  yAt:()=>0, zMin:-1100, ZS:MTAIRY_ZS, jerseyMaxX:-220,
-  nwGrid:{XS:[-760,-670,-580,-490,-400,-310,-220], ZS:MTAIRY_ZS},
-  trackX:(x,zc)=>(x===-400&&zc>-810&&zc<-540)||(x===-490&&zc>-990&&zc<-810)||(x===-670&&zc>-990&&zc<-540),
-  trackZ:(z,xc)=>(z===-810&&xc>-490&&xc<-400)||(z===-990&&xc>-670&&xc<-490)||(z===-540&&xc>-670&&xc<-400),
-  skip:[[-760,-670,-990,-540],[-760,-680,-1060,-990],[-580,-490,-720,-630]], excl:[],
-  namesX:{'-670':'Lincoln Dr','-490':'Germantown Ave','-400':'Greene St'},
-  namesZ:{'-990':'Hortter St','-810':'Mt Pleasant Ave','-540':'Upsal St'},
-  gantries:[[-400,-700,'GREENE ST','MT PLEASANT  ↑'],[-490,-900,'GERMANTOWN AVE','CHESTNUT HILL  ↑'],[-670,-800,'LINCOLN DR','WISSAHICKON VALLEY  ↓'],[-560,-540,'UPSAL ST','GERMANTOWN  →']],
-  roads:[{ew:0,c:-400,dir:-1,a:-810,b:-540},{ew:0,c:-490,dir:-1,a:-990,b:-810},{ew:0,c:-670,dir:1,a:-990,b:-540},{ew:1,c:-540,dir:1,a:-670,b:-400}],
-  cams:[[-400,-680,1,0],[-670,-760,-1,0]],
-  mtairy:true,
-  hazards:[
-    [-400,-640,0,'bump'],[-400,-700,-3.2,'pothole'],[-400,-760,0,'bump'],
-    [-445,-810,3,'pothole'],
-    [-490,-860,0,'bump'],[-490,-910,3.2,'pothole'],[-490,-950,0,'bump'],
-    [-580,-990,-3,'pothole'],
-    [-670,-940,0,'bump'],[-670,-860,3.2,'pothole'],[-670,-760,0,'bump'],[-670,-650,-3,'pothole'],
-    [-600,-540,0,'bump'],[-520,-540,3,'pothole'],[-450,-540,0,'bump']
-  ]};
 function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
   const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); S.add(m); return m; };
   const bumpTex=CT(canvasTex(128,32,(g,w,h)=>{ g.fillStyle='#3a3835'; g.fillRect(0,0,w,h); g.fillStyle='#ffd23b'; for(let i=0;i<6;i++) g.fillRect(i*22+4,10,12,12); }),true);
@@ -1839,7 +1813,6 @@ function buildMidnight(){ return buildCity(MIDNIGHT_CFG); }
 function buildBridge(){ return buildCity(BRIDGE_CFG); }
 function buildGrand(){ return buildCity(GRAND_CFG); }
 function buildPhiladelphia(){ return buildCity(PHILLY_CFG); }
-function buildMtAiry(){ return buildCity(MTAIRY_CFG); }
 function buildCity(C){
   const V=(x,z)=>new THREE.Vector2(x,z);
   const path=filletPath(V(C.start[0],C.start[1]),C.corners.map(([x,z,r])=>[V(x,z),r]),1);
@@ -2132,57 +2105,7 @@ function buildCity(C){
   if(C.dockside) docksideDress();
   if(C.skyline) skylineDress();
   if(C.philly) phillyDress();
-  if(C.mtairy) mtairyDress();
   const arena=C.arena?arenaDress():null;
-
-  function mtairyDress(){
-    const stoneM=new THREE.MeshStandardMaterial({color:0xc8c2b4,roughness:.82,emissive:0x3a3428,emissiveIntensity:.35});
-    const slateM=new THREE.MeshStandardMaterial({color:0x2c3138,roughness:.75,metalness:.15});
-    const leafM=new THREE.MeshStandardMaterial({color:0x1a4630,roughness:1}), leafM2=new THREE.MeshStandardMaterial({color:0x245338,roughness:1});
-    const treeM=new THREE.MeshStandardMaterial({color:0x2a221c,roughness:1});
-    block(FAC.stone,-752,-688,-1052,-996,12);
-    const spirePts=[0,0, 4.2,0, 3.4,3, 1.6,14, .45,24, 0,28].reduce((a,v,i,arr)=>{ if(i%2===0) a.push(new THREE.Vector2(v,arr[i+1])); return a; },[]);
-    mesh(new THREE.LatheGeometry(spirePts,16),slateM,-720,12,-1024);
-    const cross=new THREE.MeshStandardMaterial({color:0xe8e2d4,metalness:.4,roughness:.4,emissive:0x6a6048,emissiveIntensity:.4});
-    boxM(.18,2.2,.18,cross,-720,41.2,-1024); boxM(1.1,.16,.16,cross,-720,41.7,-1024);
-    const porch=new THREE.PointLight(0xffc98a,1.4,32,2); porch.position.set(-720,8,-1004); S.add(porch);
-    const awning=new THREE.MeshStandardMaterial({color:0x8e1c1c,roughness:.5});
-    boxM(8,.35,4.2,awning,-708,4.6,-1008);
-    const wawa=mesh(new THREE.PlaneGeometry(4.6,1.2),new THREE.MeshBasicMaterial({map:CT(signCanvas('WAWA',{bg:'#d42020',color:'#fff',size:56})),toneMapped:false}),-512,5.4,-1002); wawa.rotation.y=Math.PI/2;
-    const trunks=[], crowns=[], crown2=[], tree=(x,z,sc,alt)=>{ pv.set(x,2.1*sc,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(sc,sc,sc)); trunks.push(m4.clone());
-      pv.set(x,5.1*sc,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(sc,.85*sc,sc)); (alt?crown2:crowns).push(m4.clone()); };
-    // street trees along the sidewalks of every leg
-    const CN=MTAIRY_CFG.corners, clearOfCorners=(x,z)=>CN.every(([cx,cz])=>Math.hypot(x-cx,z-cz)>34);
-    const street=(x,z,i)=>{ if(clearOfCorners(x,z)) tree(x,z,.9,i); }; // on the sidewalk, between the lamp posts
-    [[-400,-800,-550],[-490,-980,-820],[-670,-980,-550]].forEach(([x,z0,z1])=>{ for(let z=z0+8;z<z1;z+=16) [-9.6,9.6].forEach((ox,i)=>street(x+ox,z,i)); });
-    [[-540,-660,-410],[-990,-660,-500],[-810,-480,-410]].forEach(([z,x0,x1])=>{ for(let x=x0+8;x<x1;x+=16) [-9.6,9.6].forEach((oz,i)=>street(x,z+oz,i)); });
-    // the Wissahickon woods west of Lincoln Dr: dense, taller, uneven
-    const RW=rng(1911); for(let i=0;i<150;i++){ const x=-758+RW()*70, z=-986+RW()*440; if(x>-688) continue; tree(x,z,1.2+RW()*.8,RW()<.5); }
-    mkInst(new THREE.CylinderGeometry(.16,.22,4.2,6),treeM,trunks);
-    mkInst(leafyCrown(1.55,11),new THREE.MeshStandardMaterial({color:0x2a4a2c,roughness:.95,vertexColors:true}),crowns);
-    mkInst(leafyCrown(1.35,23),new THREE.MeshStandardMaterial({color:0x34562e,roughness:.95,vertexColors:true}),crown2);
-    flat(-760,-686,-990,-540,.03,new THREE.MeshStandardMaterial({color:0x10261a,roughness:1})); // forest floor
-    // Wissahickon schist wall along Lincoln Dr
-    const schist=new THREE.MeshStandardMaterial({map:CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#4a4a46'; g.fillRect(0,0,w,h);
-      for(let y=0;y<h;y+=10) for(let x=-(y%20);x<w;x+=22){ const v=58+((x*7+y*13)%40); g.fillStyle=`rgb(${v},${v-2},${v-8})`; g.fillRect(x+1,y+1,20,8); } }),true),roughness:.95});
-    schist.map.repeat.set(40,1); boxM(1,1.3,420,schist,-670-W-5.4,.65,-765);
-    // pocket park inside the loop
-    flat(-578,-492,-718,-632,.04,new THREE.MeshStandardMaterial({color:0x163024,roughness:1}));
-    // Germantown Ave: Belgian-block cobbles and SEPTA trolley rails
-    const onGtn=p=>Math.abs(p.x+490)<3&&p.z<-835&&p.z>-965;
-    const cobT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#2a2826'; g.fillRect(0,0,w,h);
-      for(let y=0;y<h;y+=8) for(let x=-(y/8%2)*6;x<w;x+=12){ const v=58+((x*31+y*17)%34); g.fillStyle=`rgb(${v},${v-3},${v-7})`; g.fillRect(x+1,y+1,10,6); } }),true);
-    cobT.repeat.set(3,1);
-    ribbonF(tr,S,wetRoad(new THREE.MeshStandardMaterial({map:cobT,roughness:.55,metalness:.1})),(k,p)=>onGtn(p)?[-W,.02,W,.02]:null,4);
-    const railM=new THREE.MeshStandardMaterial({color:0xb8bec6,metalness:1,roughness:.2});
-    [-4.2,-2.8,2.8,4.2].forEach(o=>ribbonF(tr,S,railM,(k,p)=>onGtn(p)?[o-.05,.045,o+.05,.045]:null));
-    const trolley=new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.6,roughness:.4});
-    for(let z=-960;z<-835;z+=30) [-1,1].forEach(sd=>boxM(.2,7,.2,trolley,-490+sd*(W+2.6),3.5,z)); // catenary poles
-    ribbonF(tr,S,trolley,(k,p)=>onGtn(p)?[-3.5,6.4,-3.46,6.44]:null); ribbonF(tr,S,trolley,(k,p)=>onGtn(p)?[3.46,6.4,3.5,6.44]:null); // overhead wire
-    [[-420,-640],[-500,-900],[-640,-960],[-660,-620],[-460,-560]].forEach(([x,z])=>{
-      const L=new THREE.PointLight(0xffc98a,.9,24,2); L.position.set(x,7,z); S.add(L);
-      const s=glowSprite(0xffd9a0,2.2); s.position.set(x,6.2,z); S.add(s); });
-  }
 
   function phillyDress(){
     const gold=new THREE.MeshStandardMaterial({color:0xd8b27a,emissive:0x8a5a24,emissiveIntensity:.9,roughness:.65}); // the museum's uplit sandstone
@@ -2663,6 +2586,173 @@ function buildManayunk(){
   return {scene:S,track:tr,traffic:[],update:null,sNear:K.sNear,cams:[],slopeG:1.5,airtime:true};
 }
 
+/* ---- Event 10: Mt Airy Run, Northwest Philly (≈2.6 km / lap) ----
+   Built on the shared scene kit, the way the threejs-skills pack recommends for a big static night scene:
+   one lofted road ribbon, instanced houses/trees/props, merged facades, canvas textures for cobbles, schist and
+   shopfronts, and no real-time point lights (lamps, porches and fireflies are baked glow sprites and light pools).
+   Up the cobbles and trolley rails of Germantown Ave past the shops, left along W Mt Airy Ave under the stone
+   twins and street trees, down the S-bends of Lincoln Drive through the Wissahickon gorge and under the Walnut
+   Lane Bridge, then back up Johnson St to the Avenue. */
+const MA_CTRL=[[8,-150],[20,-300],[40,-600],[-60,-680],[-300,-700],[-450,-690],[-560,-620],[-600,-480],[-680,-360],[-620,-240],[-700,-120],[-640,20],[-520,90],[-300,110],[-120,90],[-20,40],[0,-20]];
+const MA_KEYS=[[8,-150,3],[20,-300,6],[40,-600,13],[-60,-680,14],[-300,-700,13],[-450,-690,12],[-560,-620,8],[-600,-480,3],[-680,-360,-1],[-620,-240,-4],[-700,-120,-6],[-640,20,-7],[-520,90,-5],[-300,110,-2.5],[-120,90,-.5],[-20,40,0],[0,-20,1]];
+function buildMtAiry(){
+  const K=sceneKit({bg:0x080c16,fog:0x121826,fogD:.0034,hemi:.55,sky:0x8a9cc0,ground:0x0a0c0a,seed:1911,bloom:{strength:.85,threshold:.7}}), S=K.S;
+  // road heights from the keys (linear between keys, then smoothed)
+  const pts=loopPts(MA_CTRL), n=pts.length, near=(x,z)=>{ let bi=0,bd=1e18; pts.forEach((p,i)=>{ const d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bi=i; } }); return bi; };
+  const keys=MA_KEYS.map(([x,z,y])=>[near(x,z),y]).sort((a,b)=>a[0]-b[0]), raw=new Float32Array(n);
+  for(let i=0;i<n;i++){ let j=keys.findIndex(k=>k[0]>i); const a=j<=0?keys[keys.length-1]:keys[j-1], b=j<0?keys[0]:keys[j];
+    let span=b[0]-a[0]; if(span<=0) span+=n; let u=i-a[0]; if(u<0) u+=n; raw[i]=lerp(a[1],b[1],u/span); }
+  pts.forEach((p,i)=>{ let s=0; for(let j=-20;j<=20;j++) s+=raw[(i+j+n)%n]; p.y=s/41; });
+  const tr=K.track(pts,6,6), W=tr.W, L=tr.L, f=K.f, pv=K.pv, m4=K.m4, one=K.one, q0=new THREE.Quaternion();
+  // legs by distance along the lap
+  const sA=K.sNear(-40,-676), sB=K.sNear(-540,-640), sC=K.sNear(-620,40);
+  const leg=s=>{ s=((s%L)+L)%L; return s<sA?'gtn':s<sB?'ave':s<sC?'lincoln':'johnson'; };
+  const legK=k=>leg(k*tr.ds), inLin=(p,k)=>legK(k)==='lincoln';
+  const sub=pts.filter((p,i)=>i%8===0);
+  const nearRoad=(x,z)=>{ let bd=1e18,bi=0; for(let i=0;i<sub.length;i++){ const p=sub[i], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bi=i; } } return {d:Math.sqrt(bd),p:sub[bi],s:bi*8*tr.ds}; };
+
+  // ---- terrain: follows the road, falls away into the Wissahickon on the creek side of Lincoln Drive ----
+  const tg=new THREE.PlaneGeometry(1500,1300,90,78); tg.rotateX(-Math.PI/2); tg.translate(-330,0,-300);
+  const tp=tg.attributes.position, tcol=[];
+  for(let i=0;i<tp.count;i++){ const x=tp.getX(i), z=tp.getZ(i); let ws=0, ys=0;
+    for(const p of sub){ const d=Math.hypot(p.x-x,p.z-z); if(d>380) continue; const w=1/Math.pow(d+4,3); ws+=w; ys+=w*p.y; }
+    const nr=nearRoad(x,z); let y=(ws?ys/ws:0)-.6;
+    if(leg(nr.s)==='lincoln'){ frame(nr.s,f,tr); const side=(x-nr.p.x)*f.r.x+(z-nr.p.z)*f.r.z; // +r is the creek side
+      if(side>W+2) y-=Math.min(9,(side-W-2)*.45)*(side<70?1:Math.max(0,1-(side-70)/60)); else if(side<-(W+2)) y+=Math.min(10,(-side-W-2)*.3); }
+    else if(nr.d>W+6) y+=Math.min(3,(nr.d-W-6)*.03);
+    tp.setY(i,y); const g=.06+.04*Math.sin(x*.05)*Math.cos(z*.04); tcol.push(g*.8,g*1.25,g*.75); }
+  tg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tg.computeVertexNormals();
+  K.mesh(tg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),0,0,0);
+
+  // ---- road: yellow double centre line, sidewalks except along Lincoln Drive ----
+  const grassT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#1b2a17'; g.fillRect(0,0,w,h);
+    for(let i=0;i<5000;i++){ const v=Math.random(); g.fillStyle=v<.5?'rgba(40,62,30,.7)':v<.8?'rgba(22,36,18,.7)':'rgba(62,78,40,.55)'; g.fillRect(Math.random()*w,Math.random()*h,1,2+Math.random()*2); } }),true);
+  K.road({tex:{center:'rgba(255,205,60,.85)'},walk:0x5a554c,curb:0x7a7e84,skip:inLin});
+  // Germantown Ave: Belgian-block cobbles and SEPTA trolley rails over the asphalt
+  const cobT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#262422'; g.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=8) for(let x=-((y/8)%2)*6;x<w;x+=12){ const v=58+((x*31+y*17)%34); g.fillStyle=`rgb(${v},${v-3},${v-7})`; g.fillRect(x+1,y+1,10,6); } }),true);
+  const cobM=wetRoad(new THREE.MeshStandardMaterial({map:cobT,roughness:.5,metalness:.1,side:THREE.DoubleSide}));
+  const inGtn=k=>legK(k)==='gtn'&&k*tr.ds>25&&k*tr.ds<sA-25;
+  ribbonF(tr,S,cobM,(k,p)=>inGtn(k)?[-W,p.y+.02,W,p.y+.02]:null,3);
+  const railM=new THREE.MeshStandardMaterial({color:0xc4cad2,metalness:1,roughness:.18});
+  [-3.72,-2.28,2.28,3.72].forEach(o=>ribbonF(tr,S,railM,(k,p)=>inGtn(k)?[o-.05,p.y+.045,o+.05,p.y+.045]:null));
+  // lawns in front of the houses on the residential streets
+  const lawnM=new THREE.MeshStandardMaterial({map:grassT,color:0x8aa080,roughness:1,side:THREE.DoubleSide});
+  const resK=k=>{ const l=legK(k); return l==='ave'||l==='johnson'; };
+  [-1,1].forEach(sd=>ribbonF(tr,S,lawnM,(k,p)=>resK(k)?[sd*(W+4.5),p.y+.14,sd*(W+11),p.y+.1]:null,6));
+
+  // ---- Lincoln Drive: schist retaining wall on the hill, post-and-rail fence and the creek on the other side ----
+  const schistT=CT(canvasTex(256,128,(g,w,h)=>{ g.fillStyle='#3e3e3a'; g.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=9) for(let x=-((y*7)%22);x<w;x+=18+((x*y)%9)){ const v=50+((x*13+y*7)%46); g.fillStyle=`rgb(${v},${v-1},${v-6})`; g.fillRect(x+1,y+1,16+((x+y)%6),7); }
+    g.fillStyle='rgba(20,40,20,.35)'; for(let i=0;i<60;i++) g.fillRect(Math.random()*w,Math.random()*h,6,3); }),true);
+  const schistM=new THREE.MeshStandardMaterial({map:schistT,roughness:.95,side:THREE.DoubleSide});
+  ribbonF(tr,S,schistM,(k,p)=>inLin(p,k)?[-(W+.4),p.y-.2,-(W+.4),p.y+3.2]:null,6);
+  ribbonF(tr,S,schistM,(k,p)=>inLin(p,k)?[-(W+.4),p.y+3.2,-(W+1.4),p.y+3.4]:null,6);
+  const shoulderM=new THREE.MeshStandardMaterial({color:0x151a12,roughness:1,side:THREE.DoubleSide});
+  ribbonF(tr,S,shoulderM,(k,p)=>inLin(p,k)?[W+.3,p.y+.01,W+14,p.y-6]:null,8);
+  const woodM=new THREE.MeshStandardMaterial({color:0x4a3a2a,roughness:.9});
+  ribbonF(tr,S,woodM,(k,p)=>inLin(p,k)?[W+1.1,p.y+.75,W+1.1,p.y+.95]:null,4);
+  ribbonF(tr,S,woodM,(k,p)=>inLin(p,k)?[W+1.1,p.y+.35,W+1.1,p.y+.5]:null,4);
+  const posts=[]; for(let s=sB+4;s<sC-4;s+=3){ K.at(s,W+1.1,.55); m4.compose(pv,K.q,one); posts.push(m4.clone()); }
+  K.inst(new THREE.BoxGeometry(.18,1.1,.18),woodM,posts);
+  const creekM=new THREE.MeshStandardMaterial({color:0x06101a,metalness:.9,roughness:.06,emissive:0x0a1826,emissiveIntensity:.5,side:THREE.DoubleSide});
+  ribbonF(tr,S,creekM,(k,p)=>inLin(p,k)?[W+13,p.y-5.4,W+25,p.y-5.4]:null,10);
+
+  // ---- Germantown Ave: three-storey stone and brick shops tight to the sidewalk, lit shop windows, blade signs ----
+  K.frontage(20,sA-30,-1,{set:5,h:[8,13],dep:[12,16],len:[7,12],space:.15,styles:['stone','brick','brick']});
+  K.frontage(20,sA-30,1,{set:5,h:[8,13],dep:[12,16],len:[7,12],space:.15,styles:['stone','brick','stone']});
+  const shopT=(em)=>CT(canvasTex(128,512,(g,w,h)=>{ g.fillStyle=em?'#000':'#16171a'; g.fillRect(0,0,w,h);
+    const cols=['#ffe7c2','#dfeaff','#ffd9a0','#fff1d6'];
+    for(let y=6,i=0;y<h-30;y+=64,i++){ const c=cols[i%4];
+      if(em){ const gr=g.createLinearGradient(10,0,110,0); gr.addColorStop(0,'#5a4a38'); gr.addColorStop(1,c); g.fillStyle=gr; g.fillRect(10,y,100,50);
+        g.fillStyle='rgba(0,0,0,.5)'; for(let k=0;k<3;k++) g.fillRect(24+k*26,y+4,4,42); }
+      else { g.fillStyle='#0c1016'; g.fillRect(10,y,100,50); g.fillStyle='rgba(255,255,255,.07)'; g.fillRect(96,y,14,50); }
+      g.fillStyle=em?'#000':'#2c2f36'; g.fillRect(10,y+24,100,3); g.fillRect(110,y,10,50); } }),true);
+  const shopM=new THREE.MeshStandardMaterial({map:shopT(false),emissive:0xffffff,emissiveMap:shopT(true),emissiveIntensity:.8,roughness:.4,metalness:.1,side:THREE.DoubleSide});
+  [-1,1].forEach(sd=>ribbonF(tr,S,shopM,(k,p)=>inGtn(k)?[sd*(W+4.55),p.y+.35,sd*(W+4.55),p.y+3.8]:null,20));
+  const SHOPS=['CAFE','BOOKS','HARDWARE','PIZZA','TAVERN','BAKERY','VINTAGE','RECORDS','DELI','THEATRE','FLOWERS','BIKES','TACOS','WINE BAR'], SC=['#ffcf6a','#ff6fd8','#6fe3ff','#ff3b3b','#7dff9a','#f4f7ff'];
+  for(let s=40,i=0;s<sA-40;s+=46,i++){ const sd=i%2?1:-1; K.at(s,sd*(W+3.6),4.6); const t=K.f.t;
+    K.sign(signCanvas(SHOPS[i%SHOPS.length],{bg:'#07080a',color:SC[i%SC.length],size:54,glow:14}),2.6,.7,pv.x,pv.y,pv.z,Math.atan2(t.x,t.z));
+    K.glow(new THREE.Color(SC[i%SC.length]).getHex(),2.4,pv.x,pv.y,pv.z); }
+  // trolley catenary: poles and two contact wires
+  const catM=new THREE.MeshStandardMaterial({color:0x22262c,metalness:.6,roughness:.4}), cpoles=[];
+  for(let s=30;s<sA-20;s+=32) [-1,1].forEach(sd=>{ K.at(s,sd*(W+3.9),3.6); m4.compose(pv,K.q,one); cpoles.push(m4.clone()); });
+  K.inst(new THREE.CylinderGeometry(.11,.14,7.2,6),catM,cpoles);
+  [-3,3].forEach(o=>ribbonF(tr,S,catM,(k,p)=>inGtn(k)?[o-.02,p.y+6.4,o+.02,p.y+6.44]:null));
+
+  // ---- the stone twins: W Mt Airy Ave and Johnson St. Schist fronts, gable roofs, porches with a lamp on ----
+  const slateM=new THREE.MeshStandardMaterial({color:0x2a2f36,roughness:.7,metalness:.15}), trimM2=new THREE.MeshStandardMaterial({color:0xd8d2c4,roughness:.7});
+  const roofGeo=(()=>{ const sh=new THREE.Shape(); sh.moveTo(-.5,0); sh.lineTo(.5,0); sh.lineTo(0,.5); sh.lineTo(-.5,0); const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false}); g.translate(0,0,-.5); return g; })();
+  const roofs=[], porchRoofs=[], porchPosts=[], chimneys=[], lamps=[];
+  const houses=(s0,s1,sd)=>{ for(let s=s0;s<s1;s+=15.5){ if(K.R()<.08) continue;
+      K.at(s,sd*(W+16.5),0); const c=pv.clone(), t=K.f.t, yaw=Math.atan2(t.x,t.z), y0=K.f.p.y-.4, w=13, d=11, h=7.5+K.R()*1.5;
+      K.obox(K.R()<.75?'stone':'brick',c.x,c.z,yaw,d,w,h,y0);
+      const qy=new THREE.Quaternion().setFromAxisAngle(THREE.Object3D.DefaultUp,yaw);
+      pv.set(c.x,y0+h,c.z); m4.compose(pv,qy,new THREE.Vector3(d+.8,6,w+.4)); roofs.push(m4.clone()); // ridge runs along the street
+      K.at(s,sd*(W+9.6),0); const pc=pv.clone(); pv.set(pc.x,y0+3.2,pc.z); m4.compose(pv,qy,new THREE.Vector3(3,.18,w-1)); porchRoofs.push(m4.clone());
+      [-1,0,1].forEach(o=>{ const px=pc.clone().addScaledVector(K.f.t,o*(w/2-1)).addScaledVector(K.f.r,sd*-1.3); pv.set(px.x,y0+1.6,px.z); m4.compose(pv,qy,one); porchPosts.push(m4.clone()); });
+      const ch=c.clone().addScaledVector(K.f.t,(K.R()-.5)*w*.6); pv.set(ch.x,y0+h+3.4,ch.z); m4.compose(pv,qy,one); chimneys.push(m4.clone());
+      if(K.R()<.8){ const lp=pc.clone().addScaledVector(K.f.r,sd*1.2); lamps.push([lp.x,y0+2.7,lp.z]); } } };
+  [-1,1].forEach(sd=>{ houses(sA+50,sB-45,sd); houses(sC+45,L-70,sd); });
+  K.inst(roofGeo,slateM,roofs); K.inst(new THREE.BoxGeometry(1,1,1),slateM,porchRoofs);
+  K.inst(new THREE.CylinderGeometry(.12,.12,3.2,6),trimM2,porchPosts); K.inst(new THREE.BoxGeometry(1,2.4,1),new THREE.MeshStandardMaterial({color:0x5a4a3e,roughness:.95}),chimneys);
+  { const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.Float32BufferAttribute(lamps.flat(),3));
+    S.add(new THREE.Points(lg,new THREE.PointsMaterial({map:glowTex,color:0xffc98a,size:3.4,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}))); }
+
+  // ---- St Michael's spire at the corner of the Avenue and Mt Airy Ave ----
+  { const spirePts=[0,0,4.6,0,3.8,3,1.7,15,.5,26,0,30].reduce((a,v,i,arr)=>{ if(i%2===0) a.push(new THREE.Vector2(v,arr[i+1])); return a; },[]);
+    const y0=pts[near(-60,-680)].y; K.obox('stone',-20,-742,0,26,40,16,y0-.5);
+    K.mesh(new THREE.LatheGeometry(spirePts,16),slateM,-20,y0+15.5,-756);
+    const cross=new THREE.MeshStandardMaterial({color:0xe8e2d4,metalness:.4,roughness:.4,emissive:0x6a6048,emissiveIntensity:.5});
+    K.box(.2,2.4,.2,cross,-20,y0+46.7,-756); K.box(1.2,.18,.18,cross,-20,y0+47.2,-756); K.glow(0xffe2b0,9,-20,y0+30,-756); }
+
+  // ---- the Walnut Lane Bridge: a concrete arch high over Lincoln Drive and the creek ----
+  { const sb=K.sNear(-640,-180); K.at(sb,0,0); const c=pv.clone(), r=K.f.r.clone(), t=K.f.t.clone(), yaw=Math.atan2(r.x,r.z);
+    const conc=new THREE.MeshStandardMaterial({color:0x6e6a62,roughness:.92,emissive:0x0c0b09}), R0=54, cy=c.y-16;
+    const arch=K.mesh(new THREE.TorusGeometry(R0,1.6,8,40,Math.PI),conc,c.x,cy,c.z); arch.rotation.y=yaw-Math.PI/2;
+    const deckY=cy+R0+4; const deck=K.box(4.2,1.6,130,conc,c.x,deckY,c.z); deck.rotation.y=yaw;
+    for(let o=-48;o<=48;o+=8){ const hy=cy+Math.sqrt(Math.max(0,R0*R0-o*o)); const col=K.box(1.2,deckY-hy,1.2,conc,c.x+r.x*o,(hy+deckY)/2,c.z+r.z*o); void col; }
+    [-1,1].forEach(sd=>{ K.box(.3,1.2,130,conc,c.x+t.x*sd*2,deckY+1.3,c.z+t.z*sd*2).rotation.y=yaw; });
+    for(let o=-60;o<=60;o+=15){ K.glow(0xffd9a0,3.5,c.x+r.x*o+t.x*2.2,deckY+2.4,c.z+r.z*o+t.z*2.2); }
+    K.sign(signCanvas2('WALNUT LANE BRIDGE','WISSAHICKON VALLEY PARK',{bg:'#0f3a24',color:'#e8f2e4'}),9,2.6,c.x-t.x*2.2,deckY-1.8,c.z-t.z*2.2,Math.atan2(-t.x,-t.z)); }
+
+  // ---- trees: street trees over the sidewalks, and the Wissahickon woods ----
+  const trunks=[], crowns=[], crowns2=[];
+  const tree=(x,y,z,sc,alt)=>{ pv.set(x,y+2.1*sc,z); m4.compose(pv,q0,new THREE.Vector3(sc,sc,sc)); trunks.push(m4.clone());
+    pv.set(x,y+5.4*sc,z); m4.compose(pv,new THREE.Quaternion().setFromAxisAngle(THREE.Object3D.DefaultUp,K.R()*6.3),new THREE.Vector3(sc,.9*sc,sc)); (alt?crowns2:crowns).push(m4.clone()); };
+  for(let s=10;s<L;s+=14){ const l=leg(s); if(l==='lincoln'||(l==='gtn'&&s>25&&s<sA-25)) continue; [-1,1].forEach((sd,i)=>{ K.at(s+(i?7:0),sd*(W+5.2),0); tree(pv.x,K.f.p.y,pv.z,1.25+K.R()*.35,i); }); }
+  for(let i=0;i<2400&&crowns.length+crowns2.length<900;i++){ const gorge=i%3===0, x=gorge?-860+K.R()*380:-1000+K.R()*1250, z=gorge?-700+K.R()*780:-930+K.R()*1100, nr=nearRoad(x,z); const l=leg(nr.s);
+    if(nr.d<(l==='lincoln'?W+7:W+26)) continue; if(l==='gtn'&&nr.d<60) continue;
+    let y=0;
+    const gx=Math.round((x+330+750)/1500*90), gz=Math.round((z+300+650)/1300*78); const vi=clamp(gz,0,78)*91+clamp(gx,0,90); y=tp.getY(vi);
+    tree(x,y-.4,z,1.1+K.R()*1.1,K.R()<.5); }
+  K.inst(new THREE.CylinderGeometry(.18,.26,4.2,6),new THREE.MeshStandardMaterial({color:0x221b15,roughness:1}),trunks);
+  K.inst(leafyCrown(1.9,11,1),new THREE.MeshStandardMaterial({color:0x2a4a2c,roughness:.95,vertexColors:true}),crowns);
+  K.inst(leafyCrown(1.7,23,1),new THREE.MeshStandardMaterial({color:0x34562e,roughness:.95,vertexColors:true}),crowns2);
+
+  // ---- light: warm street lamps in town, a sparse line of them down the gorge, fireflies in the woods ----
+  K.lights({every:34,color:0xffd2a0,pool:0xb08a58,pole:0x1f2226,skip:(p,s)=>leg(s)==='lincoln'});
+  K.lights({every:64,color:0xffd2a0,pool:0x9a7a50,pole:0x1f2226,sides:[-1],skip:(p,s)=>leg(s)!=='lincoln'});
+  const ffPos=[]; for(let i=0;i<260;i++){ const s=sB+K.R()*(sC-sB); K.at(s,(K.R()<.5?-1:1)*(W+4+K.R()*30),.6+K.R()*3); ffPos.push(pv.x,pv.y,pv.z); }
+  const ffG=new THREE.BufferGeometry(); ffG.setAttribute('position',new THREE.Float32BufferAttribute(ffPos,3));
+  const ffM=new THREE.PointsMaterial({map:glowTex,color:0xd8ff7a,size:.9,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}); S.add(new THREE.Points(ffG,ffM));
+
+  K.start('EVENT 10 · MT AIRY RUN');
+  K.gantry(90,'GERMANTOWN AVE','MT AIRY · CHESTNUT HILL  ↑',{bg:'#0f5a32'});
+  K.gantry(sA+80,'W MT AIRY AVE','LINCOLN DR  →',{bg:'#0f5a32'});
+  K.gantry(sB+60,'LINCOLN DRIVE','WISSAHICKON · S-CURVES',{bg:'#2a1c06',color:'#ffd9a0'});
+  K.gantry(sC+70,'JOHNSON ST','GERMANTOWN AVE  →',{bg:'#0f5a32'});
+  K.flush();
+  // speed bumps on the residential streets, potholes on the Avenue and the Drive (positions are distances along the lap)
+  const hz=[[.1,0,'pothole'],[.16,3,'pothole'],[.22,-3,'pothole']].map(([u,x,t])=>[u*sA,x,t])
+    .concat([[.25,0,'bump'],[.5,0,'bump'],[.75,-3,'pothole']].map(([u,x,t])=>[sA+u*(sB-sA),x,t]))
+    .concat([[.2,3,'pothole'],[.45,-3,'pothole'],[.7,3,'pothole']].map(([u,x,t])=>[sB+u*(sC-sB),x,t]))
+    .concat([[.3,0,'bump'],[.55,-3,'pothole'],[.75,0,'bump']].map(([u,x,t])=>[sC+u*(L-sC),x,t]));
+  const roadHazards=installRoadHazards(tr,S,s=>s,hz.map(([s,x,t])=>[s,0,x,t]),mkF(),new THREE.Quaternion(),new THREE.Matrix4(),new THREE.Vector3(),W);
+  let T=0; const update=dt=>{ T+=dt; ffM.opacity=.45+.35*Math.sin(T*2.3)*Math.sin(T*.7+1); };
+  return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],roadHazards,slopeG:1.1,legS:{sA,sB,sC}};
+}
+
 /* ---- Event 13: Under the El, Kensington ----
    Kensington Ave runs under the Market-Frankford El, with the steel columns down the middle of the road: pick a
    side and stay out of the posts. El trains rumble overhead. Then Lehigh Ave over the freight line (the gates
@@ -2908,9 +2998,9 @@ const EVENTS=[
    caption:'Three laps through the landmarks: down Roosevelt Blvd, along Kelly Drive past the lights of Boathouse Row, over the Ben Franklin Bridge, past the South Philly stadium, back across the Delaware on the I-95 viaduct, then up Broad Street past City Hall and the Rocky Steps. Every car in the archive starts on the same grid.',
    specs:'8.8 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
    note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'},
-  {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 10',loc:'Northwest Philly',when:'Germantown Ave to Lincoln Dr',
-   caption:'Three laps through Mt Airy and Germantown: up Greene St between the rowhomes, onto the Belgian-block cobbles and trolley rails of Germantown Ave, down Lincoln Dr beside the Wissahickon woods, then back along Upsal St. The city never repaved it: speed bumps and potholes punish anyone still on the gas.',
-   specs:'1.4 KM LOOP / 3 LAPS / 7 CARS / LIVE TRAFFIC / SPEED BUMPS & POTHOLES',
+  {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 10',loc:'Northwest Philly',when:'Germantown Ave, Mt Airy Ave, Lincoln Dr',
+   caption:'Three laps of Northwest Philly: up the cobbles and trolley rails of Germantown Ave past the lit shops, along W Mt Airy Ave under the stone twins and street trees, then down the S-bends of Lincoln Drive through the Wissahickon gorge, under the Walnut Lane Bridge, and back up Johnson St. Speed bumps and potholes punish anyone still on the gas.',
+   specs:'2.7 KM LOOP / 3 LAPS / 7 CARS / COBBLES & TROLLEY RAILS / GORGE S-BENDS / BUMPS & POTHOLES',
    note:'bumps.\npotholes.\nreal life.',load:'Mt Airy Run. Germantown and Lincoln Dr. Mind the asphalt.'},
   {id:'gamenight',build:buildGameNight,open:true,laps:2,name:'Game Night',kick:'Event 11',loc:'South Philly',when:'The Sports Complex, every team in town',
    caption:'Two laps of the Sports Complex with every team in town. Down Broad St, through the Zamboni tunnel under the arena (ice on the road), then Pattison Ave under a live Jumbotron. Every team has Crowd Roar pads in its colors, and a lead change sets off the fireworks.',
@@ -3037,10 +3127,10 @@ EVENTS[8].setup=()=>{ const at=EVENTS[8].sNear;
     [at(2000,450),3.4,'shock'],[at(1400,450),0,'long'],[at(800,450),-3.4,'refill'],[at(250,450),3.4,'over'],[at(-80,300),-3.4,'grip'],[at(-80,-100),3.4,'over'],[at(-80,-800),0,'shock'],[at(-80,-1200),-3.4,'sling'],
     [at(-20,-1150),0,'desperate',{last:1}],[at(-20,-980),3.4,'echoboost',{lastTwo:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1700,-300),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 EVENTS[9].setup=()=>{ const at=EVENTS[9].sNear;
-  addPickups(EVENTS[9],[[at(-400,-620),-3.4,'refill'],[at(-400,-730),3.4,'grip'],[at(-490,-880),0,'shield'],[at(-490,-930),-3.4,'sling'],
-    [at(-590,-990),3.4,'over'],[at(-670,-900),0,'refill'],[at(-670,-700),-3.4,'long'],[at(-670,-610),3.4,'shock'],[at(-560,-540),0,'sling'],
-    [at(-400,-680),0,'desperate',{last:1}],[at(-670,-820),3.4,'echoboost',{lastTwo:1}],[at(-490,-860),3.4,'wispflux',{car:'wisp',sig:1}],
-    [at(-480,-540),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
+  addPickups(EVENTS[9],[[at(20,-300),-3.2,'refill'],[at(34,-480),3.2,'grip'],[at(-300,-700),0,'shield'],[at(-450,-690),-3.2,'sling'],
+    [at(-600,-480),0,'over'],[at(-620,-240),3.2,'refill'],[at(-700,-120),-3.2,'long'],[at(-520,90),0,'shock'],[at(-300,110),3.2,'sling'],[at(-120,90),-3.2,'over'],
+    [at(8,-150),0,'desperate',{last:1}],[at(-640,20),0,'echoboost',{lastTwo:1}],[at(28,-420),-3.2,'wispflux',{car:'wisp',sig:1}],
+    [at(-380,-698),3.2,'stratossurge',{car:'stratos',sig:1}]]); }
 const evById=id=>EVENTS.find(e=>e.id===id);
 evById('gamenight').setup=()=>{ const E=evById('gamenight'), at=E.sNear;
   addPickups(E,[[at(0,-150),-3.4,'refill'],[at(0,150),0,'sling'],[at(200,340),-3.4,'grip'],[at(380,340),3.4,'shield'],[at(450,200),0,'over'],[at(520,90),-3.4,'long'],

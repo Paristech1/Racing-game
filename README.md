@@ -154,4 +154,6 @@ Your race history is saved in your browser: runs, wins, best time per event, and
 index.html           screens and HUD markup
 css/afterhours.css   magazine and HUD styling
 js/afterhours.js     game: cars, tracks, AI, physics, audio, UI
+.cursor/skills/      Three.js agent skills (see AGENTS.md)
+AGENTS.md            instructions for coding agents on this repo
 ```

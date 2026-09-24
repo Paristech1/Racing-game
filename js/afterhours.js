@@ -413,13 +413,16 @@ const WETMAPS=(()=>{ const N=256, hgt=new Float32Array(N*N), rnd=rng(77);
   for(let y=0;y<N;y++) for(let x=0;x<N;x++) hgt[y*N+x]=o1(x,y)*.55+o2(x,y)*.3+o3(x,y)*.1+o4(x,y)*.05;
   const rough=canvasTex(N,N,(g)=>{ const im=g.createImageData(N,N);
     for(let i=0;i<N*N;i++){ const h=hgt[i], puddle=clamp((.42-h)/.08,0,1), v=Math.round(255*lerp(.62+(hgt[(i*7)%(N*N)]-.5)*.2,.06,puddle)); im.data.set([v,v,v,255],i*4); } g.putImageData(im,0,0); });
+  // dry asphalt: the same grain without the puddles, so a dry night doesn't show mirror patches
+  const dry=canvasTex(N,N,(g)=>{ const im=g.createImageData(N,N);
+    for(let i=0;i<N*N;i++){ const v=Math.round(255*(.66+(hgt[(i*7)%(N*N)]-.5)*.22+(hgt[i]-.5)*.12)); im.data.set([v,v,v,255],i*4); } g.putImageData(im,0,0); });
   const nrm=canvasTex(N,N,(g)=>{ const im=g.createImageData(N,N), H=(x,y)=>hgt[((y+N)%N)*N+((x+N)%N)];
     for(let y=0;y<N;y++) for(let x=0;x<N;x++){ const dx=(H(x+1,y)-H(x-1,y))*9+(Math.random()-.5)*.35, dy=(H(x,y+1)-H(x,y-1))*9+(Math.random()-.5)*.35, l=Math.hypot(dx,dy,1);
       im.data.set([Math.round((-dx/l*.5+.5)*255),Math.round((-dy/l*.5+.5)*255),Math.round((1/l*.5+.5)*255),255],(y*N+x)*4); } g.putImageData(im,0,0); });
   const t=c=>{ const x=new THREE.CanvasTexture(c); x.wrapS=x.wrapT=THREE.RepeatWrapping; x.anisotropy=4; return x; };
-  return {rough:t(rough),normal:t(nrm)};
+  return {rough:t(rough),dry:t(dry),normal:t(nrm)};
 })();
-function wetRoad(m){ m.roughnessMap=WETMAPS.rough; m.normalMap=WETMAPS.normal; m.normalScale=new THREE.Vector2(.35,.35); m.userData.baseRough=m.roughness; LOOK.roadMats.push(m); return m; }
+function wetRoad(m){ m.roughnessMap=LOOK.wet?WETMAPS.rough:WETMAPS.dry; m.normalMap=WETMAPS.normal; m.normalScale=new THREE.Vector2(.35,.35); m.userData.baseRough=m.roughness; LOOK.roadMats.push(m); return m; }
 const gradTex=(w,h,draw)=>{ const t=new THREE.CanvasTexture(canvasTex(w,h,draw)); return t; };
 // long reflection streaks on wet asphalt under every light
 const streakTex=gradTex(64,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'rgba(255,255,255,0)'); gr.addColorStop(.35,'rgba(255,255,255,.55)'); gr.addColorStop(.5,'rgba(255,255,255,1)'); gr.addColorStop(.65,'rgba(255,255,255,.55)'); gr.addColorStop(1,'rgba(255,255,255,0)');
@@ -444,7 +447,7 @@ function lampStreaks(S,mats,tunnel){ return instAll(S,STREAK_GEO,tunnel?TSTREAK_
 function lampCones(S,headMats){ const v=new THREE.Vector3(), q=new THREE.Quaternion(), sc=new THREE.Vector3(), one=new THREE.Vector3(1,1,1);
   return instAll(S,LAMPCONE_GEO,LAMPCONE_MAT,headMats.map(m=>{ m.decompose(v,q,sc); v.y-=4.4; return new THREE.Matrix4().compose(v,new THREE.Quaternion(),one); })); }
 function setWeather(wet){ LOOK.wet=wet;
-  LOOK.roadMats.forEach(m=>{ m.roughness=(m.userData.baseRough||.45)*(wet?.5:1.15); m.envMapIntensity=wet?1.6:1; m.normalScale.set(wet?.18:.35,wet?.18:.35); });
+  LOOK.roadMats.forEach(m=>{ m.roughnessMap=wet?WETMAPS.rough:WETMAPS.dry; m.roughness=(m.userData.baseRough||.45)*(wet?.5:1.15); m.envMapIntensity=wet?1.6:1; m.normalScale.set(wet?.18:.35,wet?.18:.35); });
   STREAK_MAT.opacity=wet?.5:.14; TAIL_MAT.opacity=wet?.45:.14; LAMPCONE_MAT.opacity=wet?.065:.035; CONE_MAT.opacity=wet?.05:.03;
   if(SKY_MAT) SKY_MAT.color.setScalar(wet?.62:1); }
 // headlight throw, volumetric beams, exhaust flames and a wet tail-light reflection on every car
@@ -466,15 +469,22 @@ function makeTrail(){ const N=22, V=N*2*2, pos=new Float32Array(V*3), col=new Fl
   for(let l=0;l<2;l++) for(let i=0;i<N-1;i++){ const a=(l*N+i)*2; idx.push(a,a+1,a+2,a+1,a+3,a+2); }
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('color',new THREE.BufferAttribute(col,3)); g.setIndex(idx);
   const mesh=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));
-  mesh.frustumCulled=false; return {mesh,pos,col,N,hist:[[],[]]}; }
+  mesh.frustumCulled=false; return {mesh,pos,col,N,hist:[[],[]],end:[null,null]}; }
 const trV=new THREE.Vector3(), trD=new THREE.Vector3(), trS=new THREE.Vector3();
 function updateTrail(r){ const T=r.trail; if(!T) return; const B=BODIES[r.def.body||'wedge'], N=T.N;
   const glow=STAGE.trail[r.stage||0];
+  // the history is sampled by distance, so at speed 22 samples used to span 100+ m and a weaving car drew long
+  // diagonal lines across the road: cap the trail by length and fade it by distance, not by sample index
+  const maxL=clamp(8+r.v*.12,8,26);
   [-1,1].forEach((sd,l)=>{ const h=T.hist[l]; r.m.group.localToWorld(trV.set(sd*.62,B.tailY,-B.rear-.05));
+    if(h.length&&h[0].distanceToSquared(trV)>900) h.length=0; // respawned or teleported: start over
     if(!h.length||h[0].distanceToSquared(trV)>.5) { h.unshift(trV.clone()); if(h.length>N) h.pop(); } else h[0].copy(trV);
-    for(let i=0;i<N;i++){ const p=h[Math.min(i,h.length-1)]||trV, pn=h[Math.min(i+1,h.length-1)]||p, pp=h[Math.max(i-1,0)]||p;
-      trD.subVectors(pp,pn); trD.y=0; if(trD.lengthSq()<1e-6) trD.set(0,0,1); trD.normalize(); trS.crossVectors(trD,UP).multiplyScalar(.07*(1-i/N)+.02);
-      const k=((l*N+i)*2)*3, f=glow*Math.pow(1-i/N,1.4);
+    let cum=0;
+    for(let i=0;i<N;i++){ if(i>0&&i<h.length) cum+=h[i].distanceTo(h[i-1]); const u=Math.min(1,cum/maxL);
+      const p=u<1?(h[Math.min(i,h.length-1)]||trV):(T.end[l]||trV), pn=h[Math.min(i+1,h.length-1)]||p, pp=h[Math.max(i-1,0)]||p;
+      if(u<1) T.end[l]=p; // everything past the cap folds onto the last point in range
+      trD.subVectors(pp,pn); trD.y=0; if(trD.lengthSq()<1e-6) trD.set(0,0,1); trD.normalize(); trS.crossVectors(trD,UP).multiplyScalar(.07*(1-u)+.02);
+      const k=((l*N+i)*2)*3, f=glow*Math.pow(1-u,1.4);
       T.pos[k]=p.x+trS.x; T.pos[k+1]=p.y; T.pos[k+2]=p.z+trS.z; T.pos[k+3]=p.x-trS.x; T.pos[k+4]=p.y; T.pos[k+5]=p.z-trS.z;
       T.col[k]=T.col[k+3]=f; T.col[k+1]=T.col[k+4]=f*.08; T.col[k+2]=T.col[k+5]=f*.12; } });
   T.mesh.geometry.attributes.position.needsUpdate=true; T.mesh.geometry.attributes.color.needsUpdate=true; }
@@ -1536,7 +1546,7 @@ function buildTunnel(){
     g.fillStyle='rgba(235,240,248,.7)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45));
     g.fillStyle='rgba(0,0,0,.25)'; for(let i=0;i<6;i++) g.fillRect(w*(.2+i*.12),0,10,h);
   }),true);
-  ribbon(tr,S,-W-.3,W+.3,.01,.01,wetRoad(new THREE.MeshStandardMaterial({map:roadTex,roughness:.3,metalness:.15,side:THREE.DoubleSide})),24);
+  ribbon(tr,S,-W-.3,W+.3,.01,.01,wetRoad(new THREE.MeshStandardMaterial({map:roadTex,roughness:.55,metalness:.15,side:THREE.DoubleSide})),24); // glossier than this and the bright walls turn the bump map into blotches
   const barrierM=new THREE.MeshStandardMaterial({color:0x14181e,roughness:.4,metalness:.5,side:THREE.DoubleSide});
   const wallM=new THREE.MeshStandardMaterial({color:0xb2bfd0,roughness:.95,emissive:0x2a3444,side:THREE.DoubleSide});
   const stripeM=new THREE.MeshBasicMaterial({color:0xe6f2ff,toneMapped:false,side:THREE.DoubleSide});

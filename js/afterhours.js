@@ -1343,20 +1343,33 @@ function ribbonF(tr,S,mat,fn,vScale){
   const m=new THREE.Mesh(g,mat); S.add(m); return m;
 }
 // night facades: 512 px = 32 m, 8 floors x 8 bays, lit windows in a matching emissive map
+/* building facades: one 512px tile = 32 m, so 16 bays of 2 m and 10 floors of 3.2 m. Colour map carries masonry,
+   sills, mullions and blinds; the emissive map lights about a third of the rooms with warm or cool interiors that fade
+   toward the ceiling (threejs-textures: CanvasTexture colour + emissive pair, RepeatWrapping). */
 function facadeTex(style){
-  const P={glass:{bg:'#0d1520',win:'#18263a',lit:['#dfe9ff','#cfe0ff','#fff1d6'],p:.34},
-           brick:{bg:'#3b2520',win:'#1a1412',lit:['#ffd79a','#ffc57a','#ffe6bf'],p:.32},
-           stone:{bg:'#4a453d',win:'#191816',lit:['#ffe2b0','#fff1d6','#cfe0ff'],p:.3},
-           hall:{bg:'#7a6b55',win:'#2a2218',lit:['#ffd89a','#ffe2b0','#ffcf85'],p:.8}}[style];
-  const lit=[]; for(let i=0;i<64;i++) lit.push(Math.random()<P.p);
-  const draw=(g,em)=>{ g.fillStyle=em?'#000':P.bg; g.fillRect(0,0,512,512);
-    for(let fl=0;fl<8;fl++) for(let b=0;b<8;b++){ const x=b*64, y=fl*64, on=lit[fl*8+b];
-      if(em){ if(!on) continue; g.fillStyle=P.lit[(fl*3+b)%3]; } else g.fillStyle=style==='glass'&&on?'#26384e':P.win;
-      if(style==='glass') g.fillRect(x+3,y+6,58,52);
-      else if(style==='hall'){ g.fillRect(x+20,y+22,24,34); g.beginPath(); g.arc(x+32,y+22,12,Math.PI,0); g.fill(); }
-      else g.fillRect(x+18,y+14,28,38); }
-    if(!em&&style!=='glass'){ g.fillStyle='rgba(0,0,0,.35)'; for(let fl=0;fl<8;fl++) g.fillRect(0,fl*64+60,512,4); } };
-  const t=(em)=>CT(canvasTex(512,512,g=>draw(g,em)),true);
+  const P={glass:{bg:'#0e1622',win:'#1c2a3e',lit:['#dfe9ff','#cfe0ff','#fff1d6'],p:.3,bays:16,fl:10},
+           brick:{bg:'#43291f',win:'#161110',lit:['#ffd79a','#ffc57a','#ffe6bf'],p:.3,bays:12,fl:10},
+           stone:{bg:'#554e44',win:'#171614',lit:['#ffe2b0','#fff1d6','#cfe0ff'],p:.28,bays:12,fl:10},
+           hall:{bg:'#7a6b55',win:'#2a2218',lit:['#ffd89a','#ffe2b0','#ffcf85'],p:.8,bays:8,fl:8}}[style];
+  const W=512, bw=W/P.bays, fh=W/P.fl, R=rng(style.length*97+13), cells=[];
+  for(let fl=0;fl<P.fl;fl++) for(let b=0;b<P.bays;b++){ const on=R()<P.p*(fl%3===0?.7:1); cells.push({on,col:P.lit[(R()*3)|0],blind:R()*.6,bright:.55+R()*.45}); }
+  const draw=(g,em)=>{ g.fillStyle=em?'#000':P.bg; g.fillRect(0,0,W,W);
+    if(!em&&style!=='glass'){ for(let i=0;i<2200;i++){ const v=R()*.12; g.fillStyle=`rgba(0,0,0,${v})`; g.fillRect(R()*W,R()*W,3,1.5); } } // masonry grain
+    for(let fl=0;fl<P.fl;fl++) for(let b=0;b<P.bays;b++){ const c=cells[fl*P.bays+b], x=b*bw, y=fl*fh;
+      const wx=style==='glass'?x+1.5:x+bw*.22, ww=style==='glass'?bw-3:bw*.56, wy=style==='glass'?y+3:y+fh*.2, wh=style==='glass'?fh-6:fh*.6;
+      if(em){ if(!c.on) continue;
+        const gr=g.createLinearGradient(0,wy,0,wy+wh); gr.addColorStop(0,c.col); gr.addColorStop(1,'rgba(0,0,0,0)');
+        g.globalAlpha=c.bright; g.fillStyle=c.col; g.fillRect(wx,wy+wh*c.blind,ww,wh*(1-c.blind)); // lit room below a half-drawn blind
+        g.globalAlpha=c.bright*.35; g.fillStyle=gr; g.fillRect(wx,wy,ww,wh*c.blind); g.globalAlpha=1; }
+      else { g.fillStyle=c.on?(style==='glass'?'#2a3c54':'#231c16'):P.win; g.fillRect(wx,wy,ww,wh);
+        g.fillStyle='rgba(255,255,255,.05)'; g.fillRect(wx,wy,ww,wh*.18); // sky reflection at the top of the pane
+        if(c.on){ g.fillStyle='rgba(0,0,0,.35)'; g.fillRect(wx,wy,ww,wh*c.blind); }
+        if(style==='hall'){ g.fillStyle=P.bg; g.beginPath(); g.moveTo(wx,wy); g.lineTo(wx,wy+ww*.5); g.arc(wx+ww/2,wy+ww*.5,ww/2,Math.PI,0); g.lineTo(wx+ww,wy); g.fill(); }
+        g.fillStyle=style==='glass'?'#0a0f16':'rgba(0,0,0,.55)'; g.fillRect(wx+ww/2-.8,wy,1.6,wh); // mullion
+        if(style!=='glass'){ g.fillStyle='rgba(255,255,255,.1)'; g.fillRect(wx-2,wy+wh,ww+4,2.5); } } } // sill
+    if(!em){ g.fillStyle=style==='glass'?'rgba(120,150,190,.12)':'rgba(0,0,0,.3)'; for(let fl=0;fl<P.fl;fl++) g.fillRect(0,fl*fh+fh-3,W,3); } // floor bands
+  };
+  const t=(em)=>CT(canvasTex(W,W,g=>draw(g,em)),true);
   return {map:t(false),emis:t(true)};
 }
 function signCanvas2(l1,l2,o){ o=o||{}; return canvasTex(512,160,(g,w,h)=>{ g.fillStyle=o.bg||'#0f5a32'; g.fillRect(0,0,w,h);
@@ -1580,13 +1593,19 @@ function buildCity(C){
   addStart();
 
   // ---- city blocks, merged into a few draw calls ----
-  const FAC={}; ['glass','brick','stone','hall'].forEach(k=>{ const t=facadeTex(k); FAC[k]={mat:new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:k==='hall'?1.1:.95,roughness:k==='glass'?.35:.85,metalness:k==='glass'?.5:.05}),pos:[],nor:[],uv:[]}; });
+  const FAC={}; ['glass','brick','stone','hall'].forEach(k=>{ const t=facadeTex(k); FAC[k]={mat:new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:k==='hall'?1.0:.85,roughness:k==='glass'?.35:.85,metalness:k==='glass'?.5:.05}),pos:[],nor:[],uv:[]}; });
   const skyMat=FAC.glass.mat.clone(); skyMat.fog=false; FAC.sky={mat:skyMat,pos:[],nor:[],uv:[]};
   FAC.roof={mat:new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:1}),pos:[],nor:[],uv:[]};
-  const storeTex=(em)=>CT(canvasTex(256,64,(g)=>{ g.fillStyle=em?'#000':'#15161a'; g.fillRect(0,0,256,64);
-    [[10,108],[138,108]].forEach(([x,w],i)=>{ g.fillStyle=em?(i?'#fff1d6':'#dfe9ff'):'#0d1117'; g.fillRect(x,20,w,40); });
-    if(!em){ g.fillStyle='#2b2d33'; g.fillRect(0,0,256,10); } }),true);
-  FAC.store={mat:new THREE.MeshStandardMaterial({map:storeTex(false),emissive:0xffffff,emissiveMap:storeTex(true),emissiveIntensity:1.1,roughness:.6}),pos:[],nor:[],uv:[]};
+  const storeTex=(em)=>CT(canvasTex(512,128,(g)=>{ g.fillStyle=em?'#000':'#17181c'; g.fillRect(0,0,512,128);
+    [[12,210,'#ffe7c2'],[290,210,'#dfeaff']].forEach(([x,w,c],i)=>{ const y=30, h=88;
+      if(em){ const gr=g.createLinearGradient(0,y,0,y+h); gr.addColorStop(0,c); gr.addColorStop(1,'#6a5a48'); g.fillStyle=gr; g.fillRect(x,y,w,h);
+        g.fillStyle='rgba(0,0,0,.55)'; for(let k=0;k<3;k++) g.fillRect(x+8,y+30+k*18,w-16,4); // shelves in silhouette
+        for(let k=0;k<5;k++) g.fillRect(x+14+k*38,y+62,14,26); }
+      else { g.fillStyle='#0c1016'; g.fillRect(x,y,w,h); g.fillStyle='rgba(255,255,255,.06)'; g.fillRect(x,y,w,12); }
+      g.fillStyle=em?'#000':'#2b2e35'; for(let k=1;k<4;k++) g.fillRect(x+k*w/4-1.5,y,3,h); g.fillRect(x,y+h-3,w,3); });
+    if(em){ g.fillStyle='#ffd9a0'; g.fillRect(232,40,46,78); } else { g.fillStyle='#1c2028'; g.fillRect(230,36,50,92); g.fillStyle='#3a3f48'; g.fillRect(268,80,6,3); } // door
+    if(!em){ g.fillStyle='#2b2d33'; g.fillRect(0,0,512,22); g.fillStyle='#4a4e57'; g.fillRect(0,22,512,3); } }),true); // signband + ledge
+  FAC.store={mat:new THREE.MeshStandardMaterial({map:storeTex(false),emissive:0xffffff,emissiveMap:storeTex(true),emissiveIntensity:.8,roughness:.5,metalness:.1}),pos:[],nor:[],uv:[]};
   const SHOPS=['CHEESESTEAKS','HOAGIES','WATER ICE','SOFT PRETZELS','PIZZA','PHARMACY','SNEAKERS','PHONE REPAIR','DINER','HOTEL','TAVERN','RECORDS','DUMPLINGS','NOODLES','TEA HOUSE','BAKERY'];
   const SCOL=['#ff3b3b','#ffd23b','#6fe3ff','#ff6fd8','#f4f7ff','#7dff9a'];
   const atlas=CT(canvasTex(1024,256,(g)=>{ g.fillStyle='#07080a'; g.fillRect(0,0,1024,256); g.textAlign='center'; g.textBaseline='middle'; g.font='800 34px "Arial Narrow",Arial,sans-serif';
@@ -1598,12 +1617,15 @@ function buildCity(C){
     else if(face==='e'){ A=[pc,y0,a1];B=[pc,y0,a0];C=[pc,y1,a0];D=[pc,y1,a1];n=[1,0,0]; }
     else { A=[pc,y0,a0];B=[pc,y0,a1];C=[pc,y1,a1];D=[pc,y1,a0];n=[-1,0,0]; }
     b.pos.push(...A,...B,...C,...A,...C,...D); for(let i=0;i<6;i++) b.nor.push(...n); b.uv.push(u0,v0,u1,v0,u1,v1,u0,v0,u1,v1,u0,v1); }
-  const beacons=[];
+  const beacons=[], roofAC=[], roofTank=[];
   function block(b,x0,x1,z0,z1,h,y0){ y0=y0||0; const y1=y0+h, T=32, uo=(R_()*8|0)/8, va=y0/T, vb=y1/T;
     faceQuad(b,'s',x0,x1,y0,y1,z1,uo,uo+(x1-x0)/T,va,vb); faceQuad(b,'n',x0,x1,y0,y1,z0,uo,uo+(x1-x0)/T,va,vb);
     faceQuad(b,'e',z0,z1,y0,y1,x1,uo,uo+(z1-z0)/T,va,vb); faceQuad(b,'w',z0,z1,y0,y1,x0,uo,uo+(z1-z0)/T,va,vb);
     const r=FAC.roof; r.pos.push(x0,y1,z1,x1,y1,z1,x1,y1,z0,x0,y1,z1,x1,y1,z0,x0,y1,z0); for(let i=0;i<6;i++) r.nor.push(0,1,0); r.uv.push(0,0,1,0,1,1,0,0,1,1,0,1);
-    if(h>80) beacons.push((x0+x1)/2,y1+1.5,(z0+z1)/2); }
+    if(h>80) beacons.push((x0+x1)/2,y1+1.5,(z0+z1)/2);
+    if(b!==FAC.store&&b!==FAC.sky&&x1-x0>10&&z1-z0>10){ const n=1+(R_()*3|0); // rooftop plant: AC units, and water tanks on the mid-rise masonry
+      for(let k=0;k<n;k++) roofAC.push([x0+3+R_()*(x1-x0-6),y1,z0+3+R_()*(z1-z0-6),1.6+R_()*2.2]);
+      if(h<60&&b!==FAC.glass&&R_()<.35) roofTank.push([x0+4+R_()*(x1-x0-8),y1,z0+4+R_()*(z1-z0-8)]); } }
   function storefront(face,a0,a1,pc,china){ const out={s:.06,n:-.06,e:.06,w:-.06}[face], len=a1-a0; if(len<6) return;
     faceQuad(FAC.store,face,a0,a1,0,4.2,pc+out,0,len/16,0,1);
     const i=china?12+(R_()*4|0):(R_()*12|0), u0=(i%4)/4, v1=1-(i>>2)/4, sw=Math.min(8,len-2), c=(a0+a1)/2;
@@ -1767,6 +1789,11 @@ function buildCity(C){
   lampStreaks(S,lampSt); lampCones(S,heads);
   const fl=new THREE.BufferGeometry(); fl.setAttribute('position',new THREE.Float32BufferAttribute(flare,3));
   S.add(new THREE.Points(fl,new THREE.PointsMaterial({map:glowTex,color:0xdfe9ff,size:3,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})));
+  { const acM=new THREE.MeshStandardMaterial({color:0x5a5f68,roughness:.7,metalness:.4}), woodM=new THREE.MeshStandardMaterial({color:0x3a2c20,roughness:.95}), legM=new THREE.MeshStandardMaterial({color:0x22252a,roughness:.8,metalness:.5});
+    mkInst(new THREE.BoxGeometry(1,1,1),acM,roofAC.map(([x,y,z,sz])=>{ pv.set(x,y+sz*.35,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(sz,sz*.7,sz*1.3)); return m4.clone(); }));
+    mkInst(new THREE.CylinderGeometry(2.1,2.1,4.2,14),woodM,roofTank.map(([x,y,z])=>{ pv.set(x,y+5.4,z); m4.compose(pv,new THREE.Quaternion(),one); return m4.clone(); }));
+    mkInst(new THREE.ConeGeometry(2.3,1.3,14),legM,roofTank.map(([x,y,z])=>{ pv.set(x,y+8.15,z); m4.compose(pv,new THREE.Quaternion(),one); return m4.clone(); }));
+    mkInst(new THREE.CylinderGeometry(.12,.12,3.3,5),legM,roofTank.flatMap(([x,y,z])=>[[1,1],[1,-1],[-1,1],[-1,-1]].map(([a,c])=>{ pv.set(x+a*1.4,y+1.65,z+c*1.4); m4.compose(pv,new THREE.Quaternion(),one); return m4.clone(); }))); }
   const bcg=new THREE.BufferGeometry(); bcg.setAttribute('position',new THREE.Float32BufferAttribute(beacons,3));
   const beaconM=new THREE.PointsMaterial({map:glowTex,color:0xff2a2a,size:6,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}); S.add(new THREE.Points(bcg,beaconM));
 

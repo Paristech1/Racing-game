@@ -139,7 +139,7 @@ CARS.push(
   cam:{p:[4.2,1.05,-4.0],l:[0,.5,-.15],roll:.07,fov:31}}
 );
 CARS.push(
- {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,sculpt:'p1',paint:0xffc20e,metal:.55,rough:.12,rim:0x1a1b1e,caliper:0x121314,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
+ {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,sculpt:'p1',lowPro:true,paint:0xffc20e,metal:.55,rough:.12,rim:0x1a1b1e,caliper:0x121314,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
   top:112,acc:42,grip:34,nitro:1.52,mass:.46,nosVmax:1.4,nosAccMul:2.2,
   kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
   caption:'Volcano yellow, a teardrop canopy and a snorkel on the roof. The wing stands up at speed and it still pulls.',
@@ -684,9 +684,10 @@ function carKit(g){
 }
 /* lofted body: half cross-sections swept along the car (threejs-geometry: custom BufferGeometry + computeVertexNormals) */
 function sculptBody(g,S,paint,K){
-  const arch=z=>{ let a=0; [S.WB,-S.WB].forEach(zw=>{ const dz=z-zw, R=S.WR+.06; if(Math.abs(dz)<R) a=Math.max(a,S.WR+Math.sqrt(R*R-dz*dz)*.92+.01); }); return a; };
-  const sec=z=>{ const tn=clamp((z-(S.Z1-.42))/.42,0,1), taper=1-.32*tn*tn; // one cross-section; the nose closes smoothly
-    const yb=kfCR(S.ybK,z)+.07*tn*tn, hs=kfCR(S.hwS,z)*taper, hl=Math.min(kfCR(S.hwL,z)*taper,hs-.08), yc=kfCR(S.ycK,z);
+  // wheel clearance: a long, low swell over each wheel (not a tight circular hump), so shoulders and bonnets run straight
+  const arch=z=>{ let a=0; [S.WB,-S.WB].forEach(zw=>{ const dz=z-zw, R=S.WR+.06, L=R*2.1; if(Math.abs(dz)<L){ const t=dz/L; a=Math.max(a,S.WR+R*.92*(1-t*t)*(1-.35*t*t)+.01); } }); return a; };
+  const sec=z=>{ const tn=clamp((z-(S.Z1-.26))/.26,0,1), taper=1-.14*tn*tn; // one cross-section; the nose closes smoothly
+    const yb=kfCR(S.ybK,z)+.03*tn*tn, hs=kfCR(S.hwS,z)*taper, hl=Math.min(kfCR(S.hwL,z)*taper,hs-.08), yc=kfCR(S.ycK,z);
     const ay=Math.max(arch(z),yb+.16), ys=Math.max(kfCR(S.ysK,z),ay+.05), yf=lerp(Math.max(kfCR(S.yfK,z),ys+.06),Math.max(yc+.03,ys+.04),tn), ht=hs-(S.inset||.15);
     return {yb,hs,hl,yc,ay,ys,yf,ht}; };
   const st=[], NS=S.NS||48;
@@ -723,19 +724,19 @@ function p1Shell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,def.rimGlow||0xffb040,.32);
   const WB=B.wb, WR=B.wr;
   const T=sculptBody(g,{Z0:-2.3,Z1:2.22,WB,WR,NS:46,
-    hwS:[[-2.3,.84],[-2.0,.98],[-1.36,1.08],[-.8,1.0],[-.25,.93],[.45,.95],[1.36,1.04],[1.85,.94],[2.22,.72]],
-    ysK:[[-2.3,.66],[-1.36,.72],[-.5,.64],[.5,.6],[1.36,.64],[1.85,.5],[2.22,.34]],
-    yfK:[[-2.3,.84],[-1.7,.9],[-1.0,.87],[-.25,.8],[.6,.74],[1.3,.8],[1.75,.64],[2.05,.48],[2.22,.38]],
-    ycK:[[-2.3,.8],[-1.7,.88],[-1.0,.9],[-.25,.84],[.6,.72],[1.1,.64],[1.6,.55],[2.0,.43],[2.22,.34]],
+    hwS:[[-2.3,.9],[-2.0,.99],[-1.36,1.03],[-.8,.96],[-.25,.9],[.45,.92],[1.36,.98],[1.85,.95],[2.22,.86]],
+    ysK:[[-2.3,.74],[-1.36,.76],[-.5,.62],[.5,.58],[1.36,.6],[1.85,.52],[2.22,.42]],
+    yfK:[[-2.3,.92],[-1.7,.98],[-1.0,.94],[-.25,.84],[.6,.76],[1.3,.7],[1.75,.62],[2.05,.55],[2.22,.5]],
+    ycK:[[-2.3,.9],[-1.7,.95],[-1.0,.92],[-.25,.84],[.6,.72],[1.1,.64],[1.6,.56],[2.0,.5],[2.22,.46]],
     hwL:[[-2.3,.78],[-1.8,.78],[-1.36,.74],[-.8,.86],[0,.9],[.8,.86],[1.36,.72],[1.9,.72],[2.22,.62]],
     ybK:[[-2.3,.32],[-2.05,.2],[-1.8,.18],[1.9,.18],[2.1,.2],[2.22,.26]]},paint,K);
   const top=sculptCanopy(g,{z0:-1.55,z1:.98,cwK:[[-1.55,.2],[-1.25,.52],[-.6,.64],[.1,.63],[.6,.52],[.98,.26]],htK:[[-1.55,.9],[-1.15,1.08],[-.55,1.19],[0,1.18],[.5,1.02],[.98,.74]],roof:[-1.3,.3]},T,glass,paint,K);
   const snork=[]; for(let i=0;i<10;i++){ const z=-.95+.6*i/9, t=top(z)*1.01+.012, h=.025+.075*(i/9); snork.push({z,pts:[[0,t-.02],[.09,t-.02],[.1,t+h*.6],[.06,t+h],[0,t+h+.01]]}); }
   K.add(loftGeo(snork),paint); K.add(new THREE.PlaneGeometry(.15,.07),gapM,0,top(-.35)*1.01+.07,-.345);
+  const hy=T.top(.6,1.9)-.5; // lamps ride on the bonnet surface
   [1,-1].forEach(sd=>{
-    const hp=K.add(new THREE.SphereGeometry(1,16,10),lensM,sd*.6,.515,1.9); hp.scale.set(.25,.07,.2); hp.rotation.x=.32; hp.rotation.y=sd*.3; // headlight bowl
-    K.tube([[sd*.42,.53,2.0],[sd*.6,.565,1.93],[sd*.74,.54,1.84],[sd*.8,.47,1.8]],.017,headM,20); // boomerang LED
-    K.lens(sd*.6,.53,1.9,.26,.075,.21,.32,sd*.3); // clear lens over the lamp
+    K.tube([[sd*.4,.52+hy,2.02],[sd*.6,.555+hy,1.95],[sd*.75,.53+hy,1.86],[sd*.82,.45+hy,1.8]],.034,GLOSS_BLACK,20); // recess
+    K.tube([[sd*.42,.545+hy,2.01],[sd*.6,.58+hy,1.945],[sd*.74,.555+hy,1.855],[sd*.8,.48+hy,1.81]],.014,headM,20); // boomerang LED
     K.tube([[sd*.62,.26,2.12],[sd*.72,.34,2.06],[sd*.78,.44,1.98]],.03,carbon,10);
     K.tube([[0,.815,-2.315],[sd*.45,.815,-2.315],[sd*.72,.79,-2.305],[sd*.8,.7,-2.3],[sd*.78,.56,-2.3],[sd*.66,.52,-2.3]],.024,tailM,28);
     K.glow(0xff2030,.9,sd*.78,.66,-2.36);
@@ -748,8 +749,8 @@ function p1Shell(g,def,B,paint,glass){
   });
   K.tube([[-.62,.26,2.12],[-.3,.215,2.18],[0,.205,2.2],[.3,.215,2.18],[.62,.26,2.12]],.045,carbon,24);
   K.add(new THREE.BoxGeometry(1.1,.07,.1),gapM,0,.25,2.12);
-  { const sp=new THREE.Shape(); sp.moveTo(-.78,1.8); sp.quadraticCurveTo(-.74,2.22,0,2.3); sp.quadraticCurveTo(.74,2.22,.78,1.8); sp.lineTo(-.78,1.8);
-    const m=K.add(new THREE.ExtrudeGeometry(sp,{depth:.03,bevelEnabled:false}),carbon,0,.16,0); m.rotation.x=Math.PI/2; }
+  { const sp=new THREE.Shape(); sp.moveTo(-.8,1.86); sp.quadraticCurveTo(-.76,2.2,0,2.25); sp.quadraticCurveTo(.76,2.2,.8,1.86); sp.lineTo(-.8,1.86);
+    const m=K.add(new THREE.ExtrudeGeometry(sp,{depth:.03,bevelEnabled:false}),carbon,0,.2,0); m.rotation.x=Math.PI/2; }
   [1,-1].forEach(sd=>{ const d=K.add(new THREE.BoxGeometry(.26,.012,.3),gapM,sd*.28,T.yc(1.25)+.035,1.25); d.rotation.x=.18; });
   for(let i=0;i<6;i++){ const z=-1.62-i*.07; const l=K.add(new THREE.BoxGeometry(.72,.012,.035),carbon,0,T.yc(z)+.008,z); l.rotation.x=-.08; }
   { const rs=new THREE.Shape(); rs.moveTo(-.64,.54); rs.lineTo(.64,.54); rs.quadraticCurveTo(.76,.62,.72,.78); rs.lineTo(-.72,.78); rs.quadraticCurveTo(-.76,.62,-.64,.54);
@@ -760,9 +761,9 @@ function p1Shell(g,def,B,paint,glass){
   for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.16,.5),carbon,-.6+i*.2,.24,-2.08);
   K.add(new THREE.BoxGeometry(1.5,.03,.5),carbon,0,.17,-2.08);
   { const pr=K.add(new THREE.PlaneGeometry(.42,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'P1'),roughness:.5}),0,.44,-2.29); pr.rotation.y=Math.PI; pr.rotation.x=-.2; }
-  { const w=K.add(K.airfoil(.58,.06,1.84),carbon,0,1.1,-1.72); w.rotation.y=Math.PI/2; w.rotation.z=.1;
-    [1,-1].forEach(sd=>{ const ep=K.add(new THREE.BoxGeometry(.012,.2,.62),carbon,sd*.93,1.1,-2.0); ep.rotation.x=-.1;
-      const st=K.add(new THREE.BoxGeometry(.04,.3,.1),carbon,sd*.32,.97,-1.98); st.rotation.x=.28; }); }
+  { const wy=T.top(0,-2.1)+.13; const w=K.add(K.airfoil(.5,.05,1.78),paint,0,wy,-1.86); w.rotation.y=Math.PI/2; w.rotation.z=.06;
+    [1,-1].forEach(sd=>{ K.add(new THREE.BoxGeometry(.03,.12,.34),carbon,sd*.5,wy-.07,-2.12);
+      K.add(new THREE.BoxGeometry(.012,.16,.5),carbon,sd*.9,wy-.02,-2.1); }); }
   [[0xcfe6ff,1.0,.6,.53,1.98],[0xcfe6ff,1.0,-.6,.53,1.98],[0xff2030,.8,0,.82,-2.36]].forEach(a=>K.glow(a[0],a[1],a[2],a[3],a[4]));
   return T;
 }
@@ -1649,48 +1650,55 @@ function splitShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Stratos V: wind-tunnel wedge. Sharp low nose rising to a high tail, wraparound visor canopy, deep side
-   channels, yellow livery blade down each flank, carbon aero, active swan-neck wing with gold endplates. ---- */
+/* ---- Stratos V: clean mid-engine hypercar. Long flat low bonnet, crisp straight shoulder, mid-set canopy, flat high
+   deck into a Kamm tail with a full-width light bar, straight side intake, tidy swan-neck wing. ---- */
 function stratosShell(g,def,B,paint,glass){
-  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffb070,.2);
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffb070,.14);
   paint.clearcoat=1; paint.clearcoatRoughness=.015;
   const gold=new THREE.MeshStandardMaterial({color:def.livery||0xffd23b,roughness:.26,metalness:.6});
   const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
-  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:68,inset:.13,
-    hwS:[[-R,.96],[-2.1,1.08],[-WB,1.12],[-.7,1.0],[0,.96],[.7,.98],[WB,1.06],[1.9,.96],[F,.78]],
-    ysK:[[-R,.78],[-WB,.84],[-.6,.66],[.4,.56],[WB,.6],[1.9,.46],[F,.3]],
-    yfK:[[-R,1.02],[-2.0,1.04],[-WB,1.02],[-.7,.9],[.3,.74],[WB,.66],[1.9,.5],[F,.34]],
-    ycK:[[-R,1.0],[-2.0,1.03],[-1.4,1.0],[-.7,.9],[.2,.72],[1.0,.6],[1.7,.46],[F,.3]],
-    hwL:[[-R,.9],[-WB,.84],[0,.86],[WB,.82],[F,.72]],
-    ybK:[[-R,.3],[-2.3,.17],[2.0,.16],[F,.2]]},paint,K);
-  const C={z0:-.9,z1:1.3,tumble:.06,pow:.72,cwK:[[-.9,.3],[-.55,.56],[0,.64],[.6,.6],[1.0,.46],[1.3,.2]],htK:[[-.9,1.0],[-.5,1.2],[0,1.3],[.55,1.22],[1.0,.96],[1.3,.7]],roof:[-.6,.35],roofA:.9};
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:72,inset:.12,
+    hwS:[[-R,.92],[-2.2,1.0],[-WB,1.04],[-.8,.98],[0,.95],[.8,.96],[WB,1.0],[2.0,.98],[F,.92]],
+    ysK:[[-R,.76],[-WB,.78],[-.6,.68],[.4,.63],[WB,.62],[2.0,.57],[F,.48]],
+    yfK:[[-R,.96],[-2.0,.98],[-WB,.96],[-.6,.9],[.4,.8],[WB,.75],[2.0,.66],[F,.56]],
+    ycK:[[-R,.94],[-2.0,.96],[-1.2,.94],[-.6,.88],[.4,.78],[1.0,.7],[1.8,.61],[F,.54]],
+    hwL:[[-R,.88],[-WB,.84],[0,.9],[WB,.84],[F,.86]],
+    ybK:[[-R,.28],[-2.3,.18],[2.1,.18],[F,.24]]},paint,K);
+  const C={z0:-1.0,z1:1.1,tumble:.08,pow:.68,cwK:[[-1.0,.3],[-.6,.56],[0,.64],[.6,.6],[.95,.44],[1.1,.24]],htK:[[-1.0,.98],[-.55,1.17],[0,1.23],[.55,1.14],[.95,.93],[1.1,.8]],roof:[-.7,.4],roofA:.9};
   sculptCanopy(g,C,T,glass,GLOSS_BLACK,K); outlawKit(K,T,C);
+  // engine deck: black louvred panel behind the cabin
+  K.top(-.46,.46,-2.3,-1.06,GLOSS_BLACK,.005,16);
+  for(let i=0;i<8;i++){ const z=-1.16-i*.13; K.add(new THREE.BoxGeometry(.8,.012,.05),carbon,0,T.top(0,z)+.012,z).rotation.x=-.08; }
+  // bonnet: two narrow black vents
+  [1,-1].forEach(sd=>K.top(sd*.14,sd*.32,1.45,1.95,GLOSS_BLACK,.006,6));
   [1,-1].forEach(sd=>{
-    // yellow livery blade sweeping up the flank from the front wheel to the tail
-    const pts=[]; for(let i=0;i<=16;i++){ const z=lerp(1.1,-2.5,i/16), c=T.sec(z), y=lerp(c.yb+.12,c.ys-.04,i/16); pts.push([sd*(lerp(c.hl,c.hs,clamp((y-c.ay)/(c.ys-c.ay),0,1))+.016),y,z]); } K.tube(pts,.03,gold,40,6);
-    // deep side channel into a carbon intake ahead of the rear wheel
-    const ci=T.sec(-.7), it=K.add(K.scoop(1.0,.4),carbon,sd>0?ci.hl+.02:-(ci.hl+.08),ci.yb+.12,-.72); it.rotation.y=Math.PI/2;
-    // slit headlamps with a hooked LED, clear cover, gold canards
-    K.tube([K.P(sd*.38,F-.12),K.P(sd*.64,F-.24),K.P(sd*.84,F-.44)],.014,headM,12); K.tube([K.P(sd*.84,F-.44),K.P(sd*.78,F-.52)],.012,headM,4);
-    K.lens(sd*.62,T.top(sd*.62,F-.28)+.008,F-.28,.22,.028,.16,.28,sd*.35); K.glow(0xcfe6ff,.9,sd*.6,T.top(sd*.6,F-.22)+.04,F);
-    K.add(new THREE.BoxGeometry(.22,.012,.12),gold,sd*.84,.3,F-.2).rotation.z=sd*.3;
-    K.shut(sd,1.05); K.mirror(sd,.8,paint); K.sill(sd,-WB+WR+.2,WB-WR-.2,.02,.14,carbon);
-    // tail: thin light blade at the top of the high tail, open mesh below
-    K.tube([[sd*.2,.98,-R-.014],[sd*.6,.97,-R-.014],[sd*.9,.92,-R+.02]],.014,tailM,10); K.glow(0xff2030,.9,sd*.62,.97,-R-.07); });
-  // bonnet NACA ducts and black nose splitter
-  [1,-1].forEach(sd=>K.top(sd*.12,sd*.34,1.2,1.7,gapM,.006,6));
-  K.splitter(1.0,F-.35,F+.03,.13);
-  K.add(new THREE.PlaneGeometry(1.7,.46),gapM,0,.6,-R-.008).rotation.y=Math.PI;
+    // slim LED headlamps: a straight bar and a short return, under a flush clear cover
+    K.tube([K.P(sd*.46,F-.12),K.P(sd*.8,F-.3)],.014,headM,8); K.tube([K.P(sd*.8,F-.3),K.P(sd*.86,F-.46)],.012,headM,4);
+    K.add(bandGeo((u,z)=>{ const x=sd*lerp(.44,.88,u); return [x,T.top(x,z)+.006]; },F-.5,F-.08,8,6,sd<0),lensM);
+    K.glow(0xcfe6ff,.9,sd*.62,T.top(sd*.62,F-.2)+.04,F);
+    // straight side: thin gold pinstripe on the shoulder, black side intake ahead of the rear wheel, black sill
+    const pts=[]; for(let i=0;i<=14;i++){ const z=lerp(-2.4,2.2,i/14), c=T.sec(z); pts.push([sd*(c.hs+.006),c.ys-.03,z]); } K.tube(pts,.007,gold,40);
+    const ci=T.sec(-.62), it=K.add(K.scoop(.8,.28),GLOSS_BLACK,sd>0?ci.hl+.02:-(ci.hl+.08),ci.yb+.16,-.66); it.rotation.y=Math.PI/2;
+    K.sill(sd,-WB+WR+.2,WB-WR-.2,.02,.13,carbon); K.shut(sd,1.0); K.mirror(sd,.78,paint);
+    // tail: full-width light bar wrapping the corners
+    K.tube([[sd*.02,.9,-R-.012],[sd*.6,.9,-R-.012],[sd*.9,.86,-R+.05]],.014,tailM,12); K.glow(0xff2030,.9,sd*.6,.9,-R-.07); });
+  // front: wide black lower intake and splitter
+  K.add(new THREE.PlaneGeometry(1.3,.16),GLOSS_BLACK,0,.34,F+.006);
+  K.splitter(.9,F-.3,F-.02,.18);
+  // rear: black mesh panel, twin centre exhausts, diffuser
+  K.add(new THREE.PlaneGeometry(1.7,.44),gapM,0,.6,-R-.008).rotation.y=Math.PI;
   for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(1.66,.01,.02),carbon,0,.42+i*.06,-R-.015);
   [-.14,.14].forEach(x=>K.pipe(x,.62,-R-.05,.07));
-  for(let i=0;i<8;i++) K.add(new THREE.BoxGeometry(.02,.22,.6),carbon,-.7+i*.2,.22,-R+.26);
-  K.add(new THREE.BoxGeometry(1.8,.03,.6),carbon,0,.12,-R+.26);
-  { const w=K.add(K.airfoil(.56,.07,2.1),carbon,0,1.52,-2.26); w.rotation.y=Math.PI/2; w.rotation.z=.14;
-    [1,-1].forEach(sd=>{ K.tube([[sd*.42,T.top(sd*.42,-2.3)-.01,-2.3],[sd*.42,1.35,-2.32],[sd*.42,1.6,-2.26],[sd*.42,1.58,-2.12]],.032,carbon,16);
-      K.add(new THREE.BoxGeometry(.016,.3,.62),carbon,sd*1.06,1.46,-2.28); K.add(new THREE.BoxGeometry(.02,.03,.6),gold,sd*1.07,1.62,-2.28); }); }
+  for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.2,.5),carbon,-.6+i*.2,.22,-R+.22);
+  K.add(new THREE.BoxGeometry(1.6,.03,.5),carbon,0,.13,-R+.22);
+  // swan-neck wing just above the deck line, carbon endplates edged in gold
+  { const wy=T.top(0,-2.3)+.34; const w=K.add(K.airfoil(.5,.05,1.9),carbon,0,wy,-2.08); w.rotation.y=Math.PI/2; w.rotation.z=.08;
+    [1,-1].forEach(sd=>{ K.tube([[sd*.42,T.top(sd*.42,-2.4)-.01,-2.4],[sd*.42,wy-.08,-2.42],[sd*.42,wy+.07,-2.36],[sd*.42,wy+.06,-2.24]],.026,carbon,14);
+      K.add(new THREE.BoxGeometry(.012,.2,.54),carbon,sd*.96,wy-.02,-2.33); K.add(new THREE.BoxGeometry(.016,.016,.5),gold,sd*.97,wy+.08,-2.33); }); }
   K.plate(def,.36,-R-.02);
   return T;
 }
+
 
 /* ---- Wisp 07: big carbon-tub EV hatch (kept as the tall hatch the owner likes). Pearl white over a carbon lower tub,
    floating roof over a black glasshouse, mint light blades front and rear, closed EV nose, big swan-neck wing. ---- */

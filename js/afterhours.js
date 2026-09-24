@@ -2078,13 +2078,24 @@ function buildTunnel(){
   const dataTex=(c,rx,ry)=>{ const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; }; // linear: bump/roughness
   const colTex=(c,rx,ry)=>{ const t=CT(c,true); t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; };                                        // sRGB: albedo/emissive
   // ---- road: fresh asphalt, lane lines, no bump (product-polish: noisy normals on a glossy surface = dotty glints) ----
+  // painted asphalt: aggregate, polished tyre tracks in each lane, oil drips down the lane centres, patches, cracks,
+  // expansion joints. The roughness map shares the UVs, so the tracks read glossy and mirror the strip lights.
+  const RU=[.19,.5,.81], rr=rng(1101);
   const roadTex=CT(canvasTex(256,512,(g,w,h)=>{
-    g.fillStyle='#1b1e23'; g.fillRect(0,0,w,h);
-    for(let i=0;i<5000;i++){ const v=22+Math.random()*26; g.fillStyle=`rgba(${v},${v+2},${v+6},.5)`; g.fillRect(Math.random()*w,Math.random()*h,1.4,1.4); }
+    g.fillStyle='#1c1f24'; g.fillRect(0,0,w,h);
+    for(let i=0;i<9000;i++){ const v=20+rr()*34; g.fillStyle=`rgba(${v},${v+2},${v+6},.55)`; g.fillRect(rr()*w,rr()*h,1.3,1.3); }
+    RU.forEach(u=>{ [-.055,.055].forEach(o=>{ const x=w*(u+o); const gr=g.createLinearGradient(x-9,0,x+9,0); gr.addColorStop(0,'rgba(8,9,11,0)'); gr.addColorStop(.5,'rgba(8,9,11,.55)'); gr.addColorStop(1,'rgba(8,9,11,0)'); g.fillStyle=gr; g.fillRect(x-9,0,18,h); });
+      for(let k=0;k<26;k++){ g.fillStyle=`rgba(4,5,6,${.25+rr()*.35})`; g.beginPath(); g.ellipse(w*u+(rr()-.5)*6,rr()*h,2+rr()*3,4+rr()*8,0,0,7); g.fill(); } }); // oil drips
+    [[.04,.1,.28,.16],[.55,.52,.3,.1],[.2,.8,.2,.12]].forEach(([u,v,du,dv])=>{ g.fillStyle='rgba(38,41,46,.7)'; g.fillRect(w*u,h*v,w*du,h*dv); g.strokeStyle='rgba(10,11,13,.8)'; g.lineWidth=1.5; g.strokeRect(w*u,h*v,w*du,h*dv); }); // patch repairs
+    g.strokeStyle='rgba(6,7,8,.7)'; g.lineWidth=1; for(let k=0;k<7;k++){ let x=rr()*w, y=rr()*h; g.beginPath(); g.moveTo(x,y); for(let j=0;j<6;j++){ x+=(rr()-.5)*14; y+=6+rr()*10; g.lineTo(x,y); } g.stroke(); } // cracks
+    g.fillStyle='rgba(8,9,11,.85)'; g.fillRect(0,h*.5-1,w,3);                                                                   // expansion joint
     g.fillStyle='rgba(235,240,248,.88)'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h);
-    g.fillStyle='rgba(235,240,248,.72)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45));
-    g.fillStyle='rgba(0,0,0,.18)'; for(let i=0;i<6;i++) g.fillRect(w*(.2+i*.12),0,10,h); }),true);
-  ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughnessMap:WETMAPS.dry,roughness:.62,metalness:.1,envMapIntensity:.8,side:THREE.DoubleSide}),24);
+    g.fillStyle='rgba(235,240,248,.72)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45)); }),true);
+  const roadRough=dataTex(canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#b4b4b4'; g.fillRect(0,0,w,h);
+    for(let i=0;i<6000;i++){ const v=150+rr()*70|0; g.fillStyle=`rgb(${v},${v},${v})`; g.fillRect(rr()*w,rr()*h,1.3,1.3); }
+    RU.forEach(u=>[-.055,.055].forEach(o=>{ const x=w*(u+o); const gr=g.createLinearGradient(x-10,0,x+10,0); gr.addColorStop(0,'rgba(40,40,40,0)'); gr.addColorStop(.5,'rgba(40,40,40,.85)'); gr.addColorStop(1,'rgba(40,40,40,0)'); g.fillStyle=gr; g.fillRect(x-10,0,20,h); }));
+    g.fillStyle='#e0e0e0'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h); [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45)); }));
+  ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughnessMap:roadRough,roughness:.9,metalness:.12,envMapIntensity:1.15,side:THREE.DoubleSide}),24);
   // ---- walls: glazed white tile to 3.6 m with a harbor-blue band; painted concrete panels above; ribbed dark soffit ----
   // ribbon UVs: u runs up the wall (yA->yB), v along the tube every vScale metres
   const tileC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c4c9cf'; g.fillRect(0,0,w,h); const n=16, t=w/n;
@@ -2128,6 +2139,17 @@ function buildTunnel(){
   const fans=[], fanRings=[]; for(let s=60;s<tr.L-40;s+=150) [-2.2,2.2].forEach(x=>{ place(fans,s,x,H-1.1); place(fanRings,s-1.7,x,H-1.1); place(fanRings,s+1.7,x,H-1.1); });
   inst(new THREE.CylinderGeometry(.62,.62,3.2,16).rotateX(Math.PI/2),darkMetal,fans);                        // jet fans, in pairs
   inst(new THREE.TorusGeometry(.64,.07,6,20),new THREE.MeshStandardMaterial({color:0x8a939e,metalness:.8,roughness:.3}),fanRings);
+  // reflective road studs on the lane lines and edge lines, drain grates in both gutters, soot above the jet fans
+  { const studs=[], amber=[], drains=[], soot=[], lane=u=>-W-.3+u*(2*W+.6);
+    for(let s=0;s<tr.L;s+=12){ [.34,.66].forEach(u=>place(studs,s,lane(u),.03)); [.035,.965].forEach(u=>place(amber,s+6,lane(u)+(u<.5?.14:-.14),.03)); }
+    for(let s=15;s<tr.L;s+=30) [-(W-.05),W+.05].forEach(x=>place(drains,s,x,.018));
+    for(let s=60;s<tr.L-40;s+=150) [-1,1].forEach(sd=>place(soot,s,sd*(sd>0?WR-.04:WL-.04),H-2.2));
+    inst(new THREE.BoxGeometry(.14,.035,.1),new THREE.MeshBasicMaterial({color:0xeaf4ff,toneMapped:false}),studs);
+    inst(new THREE.BoxGeometry(.14,.035,.1),new THREE.MeshBasicMaterial({color:0xffb020,toneMapped:false}),amber);
+    const grateT=CT(canvasTex(64,32,(g,w,h)=>{ g.fillStyle='#0b0c0e'; g.fillRect(0,0,w,h); g.fillStyle='#3a3f46'; for(let x=2;x<w;x+=6) g.fillRect(x,2,3,h-4); g.strokeStyle='#4a5058'; g.lineWidth=2; g.strokeRect(1,1,w-2,h-2); }));
+    inst(new THREE.PlaneGeometry(.5,1.1).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({map:grateT,metalness:.6,roughness:.5}),drains);
+    const sootT=CT(canvasTex(64,128,(g,w,h)=>{ const gr=g.createRadialGradient(w/2,h*.35,2,w/2,h*.45,h*.6); gr.addColorStop(0,'rgba(6,7,8,.7)'); gr.addColorStop(1,'rgba(6,7,8,0)'); g.fillStyle=gr; g.fillRect(0,0,w,h); }));
+    inst(new THREE.PlaneGeometry(6,3.2).rotateY(Math.PI/2),new THREE.MeshBasicMaterial({map:sootT,transparent:true,depthWrite:false,side:THREE.DoubleSide}),soot); }
   const hangers=[]; for(let s=60;s<tr.L-40;s+=150) [-2.2,2.2].forEach(x=>place(hangers,s,x,H-.4)); inst(new THREE.BoxGeometry(.12,.7,.12),darkMetal,hangers);
   // lane-control signals over each lane: green arrows (the left lane shows a yellow merge arrow near the bends)
   const arrowT=(c,diag)=>CT(canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#050607'; g.fillRect(0,0,w,h); g.strokeStyle=c; g.lineWidth=7; g.lineCap='round';

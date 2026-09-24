@@ -3612,7 +3612,11 @@ function buildGameNight(){
   const lit=K.lights({every:30,color:0xf2f6ff,pool:0x8fa2c8});
   const lotM=new THREE.MeshStandardMaterial({color:0x1b1e24,roughness:.8}), concrete=new THREE.MeshStandardMaterial({color:0x6c7078,roughness:.9,side:THREE.DoubleSide});
   const glowM=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false}), ringM=(c,y,R,g,r)=>{ const t=K.mesh(new THREE.TorusGeometry(R,r||.6,6,72),glowM(c),g.x,y,g.z); t.rotation.x=Math.PI/2; return t; };
-  const mast=(x,z,h,c)=>{ K.box(1.2,h,1.2,concrete,x,h/2,z); K.box(7,3.4,1,glowM(0xf4f8ff),x,h,z); K.glow(c||0xeaf4ff,20,x,h,z); };
+  const shaftM=addMat({map:coneTex,color:0xeaf2ff,opacity:.07,side:THREE.DoubleSide}), UPV=new THREE.Vector3(0,1,0);
+  const mast=(x,z,h,c,tx,tz)=>{ K.box(1.2,h,1.2,concrete,x,h/2,z); K.box(7,3.4,1,glowM(0xf4f8ff),x,h,z); K.glow(c||0xeaf4ff,20,x,h,z);
+    if(tx===undefined) return; // volumetric shaft from the light bank down onto the field (threejs-lighting: fake it, no real spot)
+    const d=new THREE.Vector3(tx-x,-h+2,tz-z), len=d.length(); d.normalize();
+    const cone=new THREE.Mesh(new THREE.CylinderGeometry(len*.2,1.6,len,20,1,true),shaftM); cone.quaternion.setFromUnitVectors(UPV,d); cone.position.set(x+d.x*len/2,h+d.y*len/2,z+d.z*len/2); S.add(cone); };
   // ---- helpers: rounded-rectangle footprints extruded upward, facade textures with lit concourses ----
   const rrShape=(w,d,r)=>{ const sh=new THREE.Shape(), x=w/2, z=d/2; sh.moveTo(-x+r,-z); sh.lineTo(x-r,-z); sh.quadraticCurveTo(x,-z,x,-z+r); sh.lineTo(x,z-r); sh.quadraticCurveTo(x,z,x-r,z);
     sh.lineTo(-x+r,z); sh.quadraticCurveTo(-x,z,-x,z-r); sh.lineTo(-x,-z+r); sh.quadraticCurveTo(-x,-z,-x+r,-z); return sh; };
@@ -3676,7 +3680,8 @@ function buildGameNight(){
       g.fillStyle='#f4f7f6'; g.font='900 52px "Arial Narrow",Arial,sans-serif'; g.textAlign='left'; g.textBaseline='middle'; g.fillText('GO BIRDS',228,88,270);
       g.fillStyle='#a5acaf'; g.font='800 28px "Arial Narrow",Arial,sans-serif'; g.fillText('FLY · EAGLES · FLY',236,150); }));
     [-1,1].forEach(sd=>{ const x=L.x+sd*(LA-8); screen(x,bowlH+10,L.z,30,13,sd>0?-Math.PI/2:Math.PI/2,eb); [-10,10].forEach(o=>K.box(1,bowlH+4,1,concrete,x+sd*.8,(bowlH+4)/2,L.z+o)); }); }
-  for(let k=0;k<6;k++){ const a=k/6*Math.PI*2+.26; mast(L.x+Math.cos(a)*(LA+10),L.z+Math.sin(a)*(LB+10),44); }
+  for(let k=0;k<6;k++){ const a=k/6*Math.PI*2+.26; mast(L.x+Math.cos(a)*(LA+10),L.z+Math.sin(a)*(LB+10),44,0xeaf4ff,L.x+Math.cos(a)*30,L.z+Math.sin(a)*20); }
+  { const gl=glowSprite(0xdfe9ff,320); gl.material.fog=false; gl.material.opacity=.35; gl.position.set(L.x,60,L.z); S.add(gl); }
   K.sign(signCanvas2('GO BIRDS','E · A · G · L · E · S',{bg:'#003a40',color:'#dff7f4'}),30,9,L.x,bowlH-9,L.z-LB-1.2,Math.PI); // on the facade, under the wing
   // ---- the ballpark (Phils): red brick wall with arches, red seats around the plate, the diamond, a navy outfield wall,
   //      the scoreboard in left-center and the neon Liberty Bell that swings on a lead change ----
@@ -3699,7 +3704,8 @@ function buildGameNight(){
     [[0,0],[19.4,-19.4],[0,-38.8],[-19.4,-19.4]].forEach(([x,z])=>K.box(.8,.12,.8,new THREE.MeshBasicMaterial({color:0xffffff}),B.x+x,.62,B.z+z));
     const mound=K.mesh(new THREE.CylinderGeometry(2.8,3,.4,16),dirtM,B.x,.62,B.z-18.4); void mound; }
   K.mesh(new THREE.CylinderGeometry(100.5,100.5,3,40,1,true,.75*Math.PI,.5*Math.PI),new THREE.MeshStandardMaterial({color:0x14264a,roughness:.8,side:THREE.DoubleSide}),B.x,1.9,B.z); // padded outfield wall
-  [-.6,-.3,.3,.6,.8,1.2].forEach(k=>{ const a=k*Math.PI; mast(B.x+Math.sin(a)*(k>.7?118:82),B.z+Math.cos(a)*(k>.7?118:82),44,0xffe8e8); });
+  [-.6,-.3,.3,.6,.8,1.2].forEach(k=>{ const a=k*Math.PI; mast(B.x+Math.sin(a)*(k>.7?118:82),B.z+Math.cos(a)*(k>.7?118:82),44,0xffe8e8,B.x,B.z-45); });
+  { const gl=glowSprite(0xffe8e0,300); gl.material.fog=false; gl.material.opacity=.3; gl.position.set(B.x,55,B.z-45); S.add(gl); }
   { const sa=.84*Math.PI, sx=B.x+124*Math.sin(sa), sz=B.z+124*Math.cos(sa), face=Math.atan2(B.x-sx,B.z-sz);
     const sb=CT(canvasTex(512,256,(g,w,h)=>{ g.fillStyle='#07090c'; g.fillRect(0,0,w,h); g.drawImage(teamEmblem('phils'),14,20,210,210);
       g.fillStyle='#f6f1e6'; g.font='italic 900 76px Georgia,"Times New Roman",serif'; g.textAlign='left'; g.textBaseline='middle'; g.fillText('Phils',240,86);

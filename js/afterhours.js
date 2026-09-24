@@ -376,6 +376,13 @@ function makeEnv(kind){
       for(let i=0;i<16;i++) g.fillRect(i*64+8,70+(i%3)*28,40,7);
       g.fillRect(0,150,w,4); g.fillRect(0,196,w,3);
       g.globalAlpha=.6; g.fillRect(300,20,420,30); g.globalAlpha=1;
+    } else if(kind==='tunnel'){ // inside a lit road tube: dark vault, two rows of LED strips overhead, tiled walls glowing low, green exits
+      const gr=g.createLinearGradient(0,0,0,h);
+      gr.addColorStop(0,'#05070a');gr.addColorStop(.3,'#0c1118');gr.addColorStop(.46,'#3a4450');gr.addColorStop(.5,'#8e9aa8');gr.addColorStop(.56,'#2a3038');gr.addColorStop(1,'#07080a');
+      g.fillStyle=gr;g.fillRect(0,0,w,h);
+      g.fillStyle='#ffffff'; for(let i=0;i<32;i++){ g.fillRect(i*32+4,h*.16,20,6); g.fillRect(i*32+12,h*.24,16,5); } // ceiling strips, streaking past
+      g.fillStyle='rgba(230,240,255,.55)'; g.fillRect(0,h*.47,w,5);                                           // wall-wash line
+      for(let i=0;i<8;i++){ g.fillStyle=i%2?'#3dff8a':'#ff8a2a'; g.fillRect(i*128+40,h*.5,10,6); }        // exit signs and SOS boxes
     } else if(kind==='street'){
       const gr=g.createLinearGradient(0,0,0,h);
       gr.addColorStop(0,'#04060a');gr.addColorStop(.42,'#101828');gr.addColorStop(.5,'#3a4050');gr.addColorStop(.56,'#161b24');gr.addColorStop(1,'#050608');
@@ -396,7 +403,7 @@ function makeEnv(kind){
   const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping; t.encoding=THREE.sRGBEncoding;
   const rt=pmrem.fromEquirectangular(t); t.dispose(); return rt.texture;
 }
-const ENV={ice:makeEnv('ice'),flash:makeEnv('flash'),street:makeEnv('street')};
+const ENV={ice:makeEnv('ice'),flash:makeEnv('flash'),street:makeEnv('street'),tunnel:makeEnv('tunnel')};
 
 const glowTex=new THREE.CanvasTexture(canvasTex(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.5)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}));
 const poolTex=new THREE.CanvasTexture(canvasTex(128,128,(g)=>{const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(255,255,255,.9)');r.addColorStop(.45,'rgba(255,255,255,.35)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,128,128);}));
@@ -1549,46 +1556,107 @@ function roadStuds(tr,S,offs,col,every){ const mat=new THREE.MeshBasicMaterial({
 
 /* ---- Event 01: Harbor Line tunnel ---- */
 function buildTunnel(){
+  /* Event 01, rebuilt as a real immersed-tube road tunnel. Borrowed from the vetted blender-skills (ideas only, no code):
+     product-polish -> a key/fill/rim/bounce rig and no noisy normal maps on glossy surfaces (they read as dotty reflections);
+     polyhaven-studio-setup -> light and reflect from an environment map (ENV.tunnel, baked from the tube's own strips);
+     polyhaven-texture-apply -> full PBR sets on the big surfaces (glazed tile, painted concrete, ribbed soffit).
+     Adapted to r128 with the threejs-lighting/materials/textures skills: canvas PBR maps, data maps left linear, instancing. */
   const ctrl=[[0,0,0],[0,0,-260],[60,6,-420],[220,10,-470],[380,6,-400],[430,0,-240],[360,-4,-80],[420,0,80],[380,6,240],[220,10,300],[60,4,260],[-40,0,140]].map(p=>new THREE.Vector3(p[0],p[1],p[2]));
   const curve=new THREE.CatmullRomCurve3(ctrl,true,'centripetal');
   const tr=makeTrack(curve.getSpacedPoints(1600).slice(0,1600),8,7.5);
-  const W=tr.W,H=tr.H;
+  const W=tr.W,H=tr.H, WR=W+1.4, WL=W+.3; // walls: the service walkway on the +r side pushes that wall out
   const S=new THREE.Scene();
-  S.fog=new THREE.FogExp2(0x8a9cb4,0.0072); S.background=new THREE.Color(0x8a9cb4); S.environment=ENV.ice;
-  S.userData.bloom={strength:.45,radius:.4,threshold:.9};
-  S.add(new THREE.HemisphereLight(0xd6e4ff,0x0a0d12,.9));
-  const dl=new THREE.DirectionalLight(0xe8f0ff,.6); dl.position.set(0,1,.3); S.add(dl);
+  S.fog=new THREE.FogExp2(0x1a2029,.0052); S.background=new THREE.Color(0x0b0e13); S.environment=ENV.tunnel;
+  S.userData.bloom={strength:.62,radius:.45,threshold:.86};
+  // four-point rig: soft cool key from the strips overhead, faint fill, a rim from behind the cars, warm bounce off the road
+  S.add(new THREE.HemisphereLight(0xcfdcf0,0x2a2218,.62));
+  const key=new THREE.DirectionalLight(0xe8f0ff,.55); key.position.set(0,1,.15); S.add(key);
+  const rim=new THREE.DirectionalLight(0x9fc4ff,.35); rim.position.set(0,.4,-1); S.add(rim);
+  const dataTex=(c,rx,ry)=>{ const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; }; // linear: bump/roughness
+  const colTex=(c,rx,ry)=>{ const t=CT(c,true); t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; };                                        // sRGB: albedo/emissive
+  // ---- road: fresh asphalt, lane lines, no bump (product-polish: noisy normals on a glossy surface = dotty glints) ----
   const roadTex=CT(canvasTex(256,512,(g,w,h)=>{
-    g.fillStyle='#1a1d22'; g.fillRect(0,0,w,h);
-    for(let i=0;i<5000;i++){ const v=20+Math.random()*30; g.fillStyle=`rgba(${v},${v+3},${v+8},.6)`; g.fillRect(Math.random()*w,Math.random()*h,1.5,1.5); }
-    g.fillStyle='rgba(235,240,248,.85)'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h);
-    g.fillStyle='rgba(235,240,248,.7)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45));
-    g.fillStyle='rgba(0,0,0,.25)'; for(let i=0;i<6;i++) g.fillRect(w*(.2+i*.12),0,10,h);
-  }),true);
-  ribbon(tr,S,-W-.3,W+.3,.01,.01,wetRoad(new THREE.MeshStandardMaterial({map:roadTex,roughness:.55,metalness:.15,side:THREE.DoubleSide})),24); // glossier than this and the bright walls turn the bump map into blotches
-  const barrierM=new THREE.MeshStandardMaterial({color:0x14181e,roughness:.4,metalness:.5,side:THREE.DoubleSide});
-  const wallM=new THREE.MeshStandardMaterial({color:0xb2bfd0,roughness:.95,emissive:0x2a3444,side:THREE.DoubleSide});
-  const stripeM=new THREE.MeshBasicMaterial({color:0xe6f2ff,toneMapped:false,side:THREE.DoubleSide});
-  [-1,1].forEach(sd=>{ const o=sd*(W+.3), oi=sd*(W+.25);
-    ribbon(tr,S,o,o,0,1.1,barrierM); ribbon(tr,S,o,o,1.1,H,wallM); ribbon(tr,S,oi,oi,1.18,1.3,stripeM); });
-  ribbon(tr,S,-W-.3,W+.3,H,H,new THREE.MeshBasicMaterial({color:0x030406,side:THREE.DoubleSide}));
+    g.fillStyle='#1b1e23'; g.fillRect(0,0,w,h);
+    for(let i=0;i<5000;i++){ const v=22+Math.random()*26; g.fillStyle=`rgba(${v},${v+2},${v+6},.5)`; g.fillRect(Math.random()*w,Math.random()*h,1.4,1.4); }
+    g.fillStyle='rgba(235,240,248,.88)'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h);
+    g.fillStyle='rgba(235,240,248,.72)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45));
+    g.fillStyle='rgba(0,0,0,.18)'; for(let i=0;i<6;i++) g.fillRect(w*(.2+i*.12),0,10,h); }),true);
+  ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughnessMap:WETMAPS.dry,roughness:.62,metalness:.1,envMapIntensity:.8,side:THREE.DoubleSide}),24);
+  // ---- walls: glazed white tile to 3.6 m with a harbor-blue band; painted concrete panels above; ribbed dark soffit ----
+  // ribbon UVs: u runs up the wall (yA->yB), v along the tube every vScale metres
+  const tileC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c4c9cf'; g.fillRect(0,0,w,h); const n=16, t=w/n;
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const v=196+((i*37+j*53)%9); g.fillStyle=`rgb(${v},${v+3},${v+7})`; g.fillRect(i*t+1,j*t+1,t-2,t-2); }
+    g.fillStyle='#1f5f8e'; g.fillRect(w*.24,0,t*1.2,h); g.fillStyle='#2a7ab0'; g.fillRect(w*.24+t*1.4,0,t*.35,h);                       // blue band, up the u axis
+    g.fillStyle='rgba(80,70,60,.18)'; g.fillRect(0,0,t*1.4,h); });                                                                          // road grime at the foot
+  const tileB=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#fff'; g.fillRect(0,0,w,h); g.fillStyle='#000'; const t=w/16; for(let i=0;i<=16;i++){ g.fillRect(i*t-1,0,2,h); g.fillRect(0,i*t-1,w,2); } });
+  const tileM=new THREE.MeshStandardMaterial({map:colTex(tileC),bumpMap:dataTex(tileB),bumpScale:.018,roughness:.36,metalness:0,envMapIntensity:.85,side:THREE.DoubleSide});
+  const panelC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#4a525c'; g.fillRect(0,0,w,h);
+    for(let i=0;i<900;i++){ const v=64+Math.random()*22; g.fillStyle=`rgba(${v},${v+6},${v+12},.35)`; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
+    g.fillStyle='#2a3038'; g.fillRect(0,0,w,3); g.fillRect(0,h/2-1,w,3);                                                                   // panel joints along the tube
+    g.fillStyle='rgba(20,22,26,.35)'; for(let k=0;k<5;k++) g.fillRect(Math.random()*w*.2,Math.random()*h,w*.18,8); });
+  const panelM=new THREE.MeshStandardMaterial({map:colTex(panelC),roughness:.85,metalness:.05,side:THREE.DoubleSide});
+  const soffitC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#15181d'; g.fillRect(0,0,w,h); g.fillStyle='#0b0d10'; for(let j=0;j<h;j+=32) g.fillRect(0,j,w,10);
+    g.fillStyle='#262b33'; g.fillRect(w*.28,0,6,h); g.fillRect(w*.72-6,0,6,h); });                                                           // rib joints across, cable runs along
+  const barrierM=new THREE.MeshStandardMaterial({color:0x2a2f36,roughness:.55,metalness:.3,side:THREE.DoubleSide});
+  const curbTopM=new THREE.MeshStandardMaterial({color:0x6b7078,roughness:.9,side:THREE.DoubleSide});
+  const railM=new THREE.MeshStandardMaterial({color:0xc9ced6,metalness:.85,roughness:.3,side:THREE.DoubleSide});
+  const glowLine=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false,side:THREE.DoubleSide});
+  [-1,1].forEach(sd=>{ const o=sd*(sd>0?WR:WL);
+    ribbon(tr,S,o,o,0,.35,barrierM);                  // kerb / plinth
+    ribbon(tr,S,o,o,.35,3.6,tileM,3.3);               // glazed tile
+    ribbon(tr,S,o,o,3.6,H,panelM,12);                 // painted panels
+    ribbon(tr,S,sd*(o*sd-.02),sd*(o*sd-.02),3.58,3.66,glowLine(0x9fd0ff)); // wall-wash line at the tile cap
+    ribbon(tr,S,sd*(o*sd-.35),sd*(o*sd-.02),H-1.05,H-1.05,barrierM);      // cable tray
+  });
+  // the service walkway: raised kerb, walking surface, a handrail on the wall
+  ribbon(tr,S,W+.3,W+.3,0,.3,curbTopM); ribbon(tr,S,W+.3,WR,.3,.3,curbTopM);
+  ribbon(tr,S,WR-.08,WR-.08,1.02,1.08,railM);
+  { const g=new THREE.MeshStandardMaterial({map:colTex(soffitC,1,1),roughness:.9,side:THREE.DoubleSide}); g.map.repeat.set(1,1); ribbon(tr,S,-WL,WR,H,H,g,8); }
   const f=mkF(), m4=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(1,1,1), p=new THREE.Vector3(), basis=new THREE.Matrix4(), nr=new THREE.Vector3();
+  // orientQ maps local +x to -r, so a wall plane on the -r wall faces +r with rotateY(-PI/2), and vice versa
+  const place=(arr,s,x,y,scale)=>{ frame(s,f,tr); orientQ(f,q,basis,nr); p.copy(f.p).addScaledVector(f.r,x); p.y+=y; m4.compose(p,q,scale||sc); arr.push(m4.clone()); };
+  const inst=(geo,mat,arr)=>{ if(!arr.length) return null; const im=new THREE.InstancedMesh(geo,mat,arr.length); arr.forEach((m,i)=>im.setMatrixAt(i,m)); S.add(im); return im; };
+  // ---- continuous LED strips (the key light), with their streaks on the road ----
   const lightM=new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false});
-  const nStrip=Math.floor(tr.L/13), strips=new THREE.InstancedMesh(new THREE.BoxGeometry(.4,.08,8),lightM,nStrip*2);
-  let c=0; for(let i=0;i<nStrip;i++){ frame(i*13,f,tr); orientQ(f,q,basis,nr);
-    [-3.4,3.4].forEach(x=>{ p.copy(f.p).addScaledVector(f.r,x); p.y+=H-.08; m4.compose(p,q,sc); strips.setMatrixAt(c++,m4); }); }
-  S.add(strips);
-  { const st=[]; for(let i=0;i<nStrip;i++){ frame(i*13,f,tr); orientQ(f,q,basis,nr); [-3.4,3.4].forEach(x=>{ p.copy(f.p).addScaledVector(f.r,x); p.y+=.04; m4.compose(p,q,sc); st.push(m4.clone()); }); } lampStreaks(S,st,true); }
-  const nSl=Math.floor(tr.L/34), slits=new THREE.InstancedMesh(new THREE.BoxGeometry(.08,3.6,.7),lightM,nSl*2);
-  c=0; for(let i=0;i<nSl;i++){ frame(i*34+6,f,tr); orientQ(f,q,basis,nr);
-    [-(W+.2),W+.2].forEach(x=>{ p.copy(f.p).addScaledVector(f.r,x); p.y+=3.4; m4.compose(p,q,sc); slits.setMatrixAt(c++,m4); }); }
-  S.add(slits);
+  const strips=[], st=[]; for(let s=0;s<tr.L;s+=13) [-3.4,3.4].forEach(x=>{ place(strips,s,x,H-.08); place(st,s,x,.04); });
+  inst(new THREE.BoxGeometry(.4,.08,8),lightM,strips); lampStreaks(S,st,true);
+  // ---- tunnel furniture ----
+  const darkMetal=new THREE.MeshStandardMaterial({color:0x3a4048,metalness:.7,roughness:.4});
+  const fans=[], fanRings=[]; for(let s=60;s<tr.L-40;s+=150) [-2.2,2.2].forEach(x=>{ place(fans,s,x,H-1.1); place(fanRings,s-1.7,x,H-1.1); place(fanRings,s+1.7,x,H-1.1); });
+  inst(new THREE.CylinderGeometry(.62,.62,3.2,16).rotateX(Math.PI/2),darkMetal,fans);                        // jet fans, in pairs
+  inst(new THREE.TorusGeometry(.64,.07,6,20),new THREE.MeshStandardMaterial({color:0x8a939e,metalness:.8,roughness:.3}),fanRings);
+  const hangers=[]; for(let s=60;s<tr.L-40;s+=150) [-2.2,2.2].forEach(x=>place(hangers,s,x,H-.4)); inst(new THREE.BoxGeometry(.12,.7,.12),darkMetal,hangers);
+  // lane-control signals over each lane: green arrows (the left lane shows a yellow merge arrow near the bends)
+  const arrowT=(c,diag)=>CT(canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#050607'; g.fillRect(0,0,w,h); g.strokeStyle=c; g.lineWidth=7; g.lineCap='round';
+    g.beginPath(); if(diag){ g.moveTo(18,16); g.lineTo(46,46); g.moveTo(46,26); g.lineTo(46,46); g.lineTo(26,46); } else { g.moveTo(32,12); g.lineTo(32,50); g.moveTo(18,36); g.lineTo(32,50); g.lineTo(46,36); } g.stroke(); }));
+  const sigBox=[], sigG=[], sigY=[], sigBeam=[];
+  for(let s=110;s<tr.L-60;s+=230){ place(sigBeam,s,(WR-WL)/2,H-.9,new THREE.Vector3(1,1,1)); [-5.5,0,5.5].forEach((x,i)=>{ place(sigBox,s,x,H-1.55); place(i===0&&(Math.round(s/230)%2)?sigY:sigG,s-.18,x,H-1.55); }); }
+  inst(new THREE.BoxGeometry(2*W+1.2,.25,.3),darkMetal,sigBeam); inst(new THREE.BoxGeometry(1,1,.3),darkMetal,sigBox);
+  const sigGeo=new THREE.PlaneGeometry(.86,.86).rotateY(Math.PI); // faces oncoming traffic
+  inst(sigGeo,new THREE.MeshBasicMaterial({map:arrowT('#35ff7a'),toneMapped:false}),sigG); inst(sigGeo,new THREE.MeshBasicMaterial({map:arrowT('#ffc21a',true),toneMapped:false}),sigY);
+  // emergency exits on the left wall (green running-man boxes, door frames); SOS cabinets on the walkway side
+  const exitT=CT(canvasTex(128,48,(g,w,h)=>{ g.fillStyle='#0a8a3a'; g.fillRect(0,0,w,h); g.fillStyle='#eafff0'; g.font='900 26px "Arial Narrow",Arial,sans-serif'; g.textBaseline='middle'; g.fillText('EXIT',44,25);
+    g.lineWidth=4; g.strokeStyle='#eafff0'; g.lineCap='round'; g.beginPath(); g.arc(20,11,4,0,7); g.moveTo(20,16); g.lineTo(16,28); g.lineTo(24,40); g.moveTo(16,28); g.lineTo(8,38); g.moveTo(19,20); g.lineTo(28,24); g.moveTo(19,20); g.lineTo(10,22); g.stroke(); }));
+  const sosT=CT(canvasTex(64,96,(g,w,h)=>{ g.fillStyle='#ff7a14'; g.fillRect(0,0,w,h); g.fillStyle='#1a0c02'; g.font='900 22px Arial,sans-serif'; g.textAlign='center'; g.fillText('SOS',w/2,30); g.fillRect(14,44,36,40); g.fillStyle='#ffd2a0'; g.fillRect(20,50,24,8); }));
+  const doors=[], exitsS=[], sos=[];
+  for(let s=90;s<tr.L-40;s+=180){ place(doors,s,-(WL-.05),1.25); place(exitsS,s,-(WL-.06),2.85); }
+  for(let s=45;s<tr.L-20;s+=120) place(sos,s,WR-.06,1.3);
+  inst(new THREE.PlaneGeometry(1.9,2.8).rotateY(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x22262c,roughness:.6,metalness:.5}),doors.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(.03,.1,0)))); // frame, just behind the door (local +x is toward this wall)
+  inst(new THREE.PlaneGeometry(1.5,2.5).rotateY(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x173326,roughness:.5,metalness:.4,emissive:0x04140a}),doors);
+  inst(new THREE.PlaneGeometry(1.3,.5).rotateY(-Math.PI/2),new THREE.MeshBasicMaterial({map:exitT,toneMapped:false}),exitsS);
+  inst(new THREE.PlaneGeometry(.64,.96).rotateY(Math.PI/2),new THREE.MeshBasicMaterial({map:sosT,toneMapped:false}),sos);
+  // distance markers every 100 m on the tile (upper right)
+  const dm=[]; for(let s=100;s<tr.L;s+=100) dm.push(s);
+  dm.forEach(s=>{ frame(s,f,tr); orientQ(f,q,basis,nr); const m=new THREE.Mesh(new THREE.PlaneGeometry(.9,.5),new THREE.MeshBasicMaterial({map:CT(signCanvas(String(s),{w:128,h:64,bg:'#101418',color:'#dfe8f2',size:40}))}));
+    m.position.copy(f.p).addScaledVector(f.r,WR-.07); m.position.y+=2.6; m.quaternion.copy(q); m.rotateY(Math.PI/2); S.add(m); });
+  // ---- start gantry and grid ----
   frame(0,f,tr); orientQ(f,q,basis,nr);
   const gan=new THREE.Mesh(new THREE.BoxGeometry(2*W,.35,.35),new THREE.MeshBasicMaterial({color:0xff2a3a,toneMapped:false}));
   gan.position.copy(f.p); gan.position.y+=H-.6; gan.quaternion.copy(q); S.add(gan);
   addStartLine(S,f,q,2*W);
-  return {scene:S,track:tr,traffic:[],cams:[],update:null};
+  return {scene:S,track:tr,traffic:[],cams:[],update:null,introCrane:true};
 }
+
 function addStartLine(S,f,q,w){
   const chk=new THREE.CanvasTexture(canvasTex(128,16,(g)=>{for(let x=0;x<16;x++)for(let y=0;y<2;y++){g.fillStyle=(x+y)%2?'#e8ecf2':'#111';g.fillRect(x*8,y*8,8,8);}}));
   const line=new THREE.Mesh(new THREE.PlaneGeometry(w,1.4),new THREE.MeshBasicMaterial({map:chk,transparent:true,opacity:.8}));
@@ -5079,6 +5147,18 @@ function chaseCam(dt,r,inp){
   const h=78+26*(1-Math.exp(-r.v/75))+boost*8; // widens with speed, then levels off instead of fish-eyeing past 300 mph
   cam.fov=lerp(cam.fov,clamp(hfovToV(h),52,98),1-Math.exp(-dt*4)); cam.updateProjectionMatrix();
 }
+/* countdown reveal for boards that ask for it (EV.introCrane): the crane shot from the blender-skills set, adapted to a
+   road tube. Starts low in front of the car looking back at it, then rises and swings round into the chase position
+   by the time the lights go green, easing out so the hand-off to chaseCam is seamless. */
+const craneOff=new THREE.Vector3(), craneLook=new THREE.Vector3();
+function craneIntro(r){ const k=clamp(1-(countdown-.6)/3,0,1), e=k*k*(3-2*k); if(e>=1) return;
+  frame(r.dist,F); const pos=r.m.group.position, side=r.x>0?-1:1;
+  // orbit, don't cut: angle, radius and height ease separately so the camera swings round the car instead of through it
+  craneOff.subVectors(cam.position,pos); const endA=Math.atan2(craneOff.dot(F.r),craneOff.dot(F.t)), endR=Math.hypot(craneOff.dot(F.r),craneOff.dot(F.t)), endY=craneOff.y;
+  let startA=Math.atan2(side*3.2,9); if(Math.abs(endA-startA)>Math.PI) startA+=startA<endA?Math.PI*2:-Math.PI*2;
+  const ang=lerp(startA,endA,e), rad=Math.max(5.2,lerp(9.6,endR,e)), y=lerp(.45,endY,e*e);                  // low -> high: the crane move
+  cam.position.copy(pos).addScaledVector(F.t,Math.cos(ang)*rad).addScaledVector(F.r,Math.sin(ang)*rad); cam.position.y=pos.y+y;
+  craneLook.copy(pos); craneLook.y+=.8; tmpV.copy(craneLook).lerp(camLook,e); cam.lookAt(tmpV); }
 let shot=0;
 function cineCam(dt,r){
   frame(r.dist,F); const pos=r.m.group.position;
@@ -5173,6 +5253,7 @@ function loop(now){
         else ghostCar.group.visible=false; }
       const focus=EV.knockout&&player.out?(koLeader()||player):player;
       updateFx(sdt,focus); chaseCam(dt,focus,player.out?null:inp);
+      if(countdown>0&&EV.introCrane&&focus===player) craneIntro(player);
       if(EV.knockout&&KO&&KO.bannerT>0){ KO.bannerT-=dt; if(KO.bannerT<=0) $('#hRound').className='round'; }
       const place=standings().indexOf(player)+1, nOn=EV.knockout?koActive().length:racers.length;
       $('#hPos').innerHTML=`${place}<small>/${nOn}</small>`;

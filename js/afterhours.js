@@ -3338,6 +3338,19 @@ function buildCity(C){
       const beam=boxM(2*W+5,.5,.5,blackM,f.p.x,12.5,f.p.z); beam.quaternion.copy(q);
       const sc=new THREE.Mesh(new THREE.PlaneGeometry(11,4.1),new THREE.MeshBasicMaterial({map:tex,toneMapped:false})); sc.position.set(f.p.x,10,f.p.z); sc.quaternion.copy(q); sc.rotateY(Math.PI); S.add(sc); };
     screen(260,20); screen(300,-340);
+    // crowd behind the barriers on both sidewalks, phone flashes twinkling in it, four searchlights sweeping the sky
+    { const R=rng(4242), ppl=[], heads=[], cols=[], step=Math.max(1,Math.round(1.1/tr.ds)), CL=[0x1a1c22,0x2a2f3a,0x6a1c1c,0x1c3a5e,0xd8d8d8,0x3a3d42,0xc9a23a,0x2a4a2a,0xff2fb4,0x2fe6ff];
+      for(let i=0;i<tr.N;i+=step) [-1,1].forEach(sd=>{ if(R()>.72) return; const p=tr.pts[i], r=tr.R[i], off=sd*(W+1.3+R()*2.6), h=.85+R()*.25;
+        const o={x:p.x+r.x*off,y:p.y+.16,z:p.z+r.z*off,ry:R()*6,s:1,sy:h}; ppl.push(o); heads.push({x:o.x,y:o.y+1.62*h,z:o.z}); cols.push(CL[R()*CL.length|0]); });
+      instPlace(S,new THREE.CylinderGeometry(.2,.17,1.5,6).translate(0,.75,0),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85}),ppl,cols);
+      instPlace(S,new THREE.SphereGeometry(.13,8,6),new THREE.MeshStandardMaterial({color:0x6a4a3a,roughness:.8}),heads);
+      const NF=160, fp=new Float32Array(NF*3), fc=new Float32Array(NF*3), fsrc=[]; for(let i=0;i<NF;i++){ const h=heads[R()*heads.length|0]; fsrc.push(h); fp.set([h.x,h.y+.35,h.z],i*3); }
+      const fg=new THREE.BufferGeometry(); fg.setAttribute('position',new THREE.BufferAttribute(fp,3)); fg.setAttribute('color',new THREE.BufferAttribute(fc,3));
+      const fl=new THREE.Points(fg,new THREE.PointsMaterial({map:glowTex,size:2.2,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); fl.frustumCulled=false; S.add(fl);
+      const searchM=addMat({map:coneTex,color:0xdfe9ff,opacity:.1,side:THREE.DoubleSide}), piv=[];
+      [[462,52],[462,-372],[-112,-372],[-112,52]].forEach(([x,z],k)=>{ const g=new THREE.Group(); g.position.set(x,2,z); const c=new THREE.Mesh(LAMPCONE_GEO,searchM); c.rotation.x=Math.PI; c.scale.set(1.2,9,1.2); c.position.y=38; g.add(c); S.add(g); piv.push({g,ph:k*1.7}); });
+      let t=0; EXTRA.push(dt=>{ t+=dt; for(let i=0;i<NF;i++){ const on=R()<.012?1:fc[i*3]*.82; fc[i*3]=fc[i*3+1]=fc[i*3+2]=on; } fg.attributes.color.needsUpdate=true;
+        piv.forEach(o=>{ o.g.rotation.z=Math.sin(t*.35+o.ph)*.5; o.g.rotation.x=Math.cos(t*.27+o.ph)*.4; }); }); }
     return {canvas:cv,tex};
   }
 

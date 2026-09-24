@@ -2712,7 +2712,7 @@ const MIDNIGHT_CFG={banner:'EVENT 07 · MIDNIGHT EXPRESS',start:[-20,-1950],
   gantries:[[860,-300,'MIDNIGHT EXPRESS','CAMDEN STRAIGHT  ↑'],[-20,-1000,'ROOSEVELT BLVD','US 1 SOUTH'],[2480,200,'HARBOR LINE TUNNEL','PHILADELPHIA  ←'],[-80,-1600,'ROOSEVELT BLVD','NORTHEAST PHILA  ↑']],
   roads:[{ew:1,c:-800,dir:1,a:-20,b:720},{ew:1,c:470,dir:-1,a:-80,b:820},{ew:0,c:-80,dir:-1,a:-800,b:470},{ew:0,c:720,dir:1,a:-800,b:-300}],
   cams:[[-20,-1050,1,0],[400,-800,0,1],[400,470,0,-1]],
-  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-2268,z1:-835}};
+  tunnel:true, decoBridge:true, blvd:{xw:-80,xe:-20,z0:-2268,z1:-835}, express:true};
 /* Event 08: Philly landmark tour (≈8.8 km / lap). Roosevelt Blvd south, Kelly Drive past Boathouse Row, 6th St,
    the Ben Franklin Bridge, down past the stadium, back across the Delaware on the I-95 viaduct, then up Broad St past
    City Hall and the Art Museum steps to the Boulevard U-turn. */
@@ -3161,6 +3161,18 @@ function buildCity(C){
   if(C.tunnel) tunnelDress();
   if(C.blvd) blvdDress(C.blvd);
   if(C.decoBridge) decoBridge();
+  if(C.express){ // a lit PATCO train running the bridge tracks beside the race, and a moon glade on the Delaware
+    const tf=mkF(), tq=new THREE.Quaternion(), winT=CT(canvasTex(256,64,(g,w,h)=>{ g.fillStyle='#b8bec6'; g.fillRect(0,0,w,h); g.fillStyle='#8a1c2a'; g.fillRect(0,h*.72,w,6);
+      for(let x=8;x<w-8;x+=22){ g.fillStyle='#ffe9c2'; g.fillRect(x,14,16,22); } g.fillStyle='#1a1c20'; g.fillRect(w*.47,10,14,h-16); }));
+    const carM=[new THREE.MeshStandardMaterial({color:0xb8bec6,metalness:.7,roughness:.35}),new THREE.MeshStandardMaterial({color:0xb8bec6,metalness:.7,roughness:.35}),new THREE.MeshStandardMaterial({color:0x5a5f66,metalness:.6,roughness:.5}),new THREE.MeshStandardMaterial({color:0x2a2c30}),
+      new THREE.MeshStandardMaterial({map:winT,emissive:0xffffff,emissiveMap:winT,emissiveIntensity:.55,metalness:.4,roughness:.4}),new THREE.MeshStandardMaterial({map:winT,emissive:0xffffff,emissiveMap:winT,emissiveIntensity:.55,metalness:.4,roughness:.4})];
+    const cars=[]; for(let i=0;i<4;i++){ const c=new THREE.Mesh(new THREE.BoxGeometry(16,3.4,3.1),[carM[0],carM[1],carM[2],carM[3],carM[4],carM[5]]); c.geometry.rotateY(Math.PI/2); S.add(c); cars.push(c); }
+    const head=glowSprite(0xfff1d6,5); S.add(head);
+    let bA=-1,bB=-1; for(let sK=0;sK<tr.L;sK+=5){ frame(sK,tf,tr); if(tf.p.y>6&&tf.p.z<-250){ if(bA<0) bA=sK; bB=sK; } } const span=Math.max(1,bB-bA+80); // the bridge's elevated stretch
+    let ts=0; EXTRA.push(dt=>{ ts=(ts+dt*24)%span; cars.forEach((c,i)=>{ const sK=bA-40+ts-i*16.6; frame(sK,tf,tr); const on=tf.p.y>6&&tf.p.z<-250; c.visible=on; if(!on) return;
+        orientQ(tf,tq,basis,nr); c.position.copy(tf.p).addScaledVector(tf.r,-16.15); c.position.y+=2.0; c.quaternion.copy(tq); if(i===0){ head.visible=on; head.position.copy(c.position).addScaledVector(tf.t,8.3); } }); if(!cars[0].visible) head.visible=false; });
+    const glade=new THREE.Mesh(new THREE.PlaneGeometry(90,1400).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:CT(canvasTex(32,256,(g,w,h)=>{ const R=rng(9); g.fillStyle='#000'; g.fillRect(0,0,w,h); for(let i=0;i<500;i++){ const y=R()*h, a=.2+.8*(y/h); g.fillStyle=`rgba(220,230,255,${a*R()})`; g.fillRect(w/2+(R()-.5)*w*(1-y/h*.6),y,2+R()*6,1); } })),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+    glade.position.set((BR.river[0]+BR.river[1])/2+120,-5.9,-900); glade.rotation.y=-.5; S.add(glade); }
   if(C.dockside) docksideDress();
   if(C.skyline) skylineDress();
   if(C.philly) phillyDress();

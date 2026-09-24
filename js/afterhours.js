@@ -3996,6 +3996,16 @@ function buildMtAiry(){
   const ffPos=[]; for(let i=0;i<260;i++){ const s=sB+K.R()*(sC-sB); K.at(s,(K.R()<.5?-1:1)*(W+4+K.R()*30),.6+K.R()*3); ffPos.push(pv.x,pv.y,pv.z); }
   const ffG=new THREE.BufferGeometry(); ffG.setAttribute('position',new THREE.Float32BufferAttribute(ffPos,3));
   const ffM=new THREE.PointsMaterial({map:glowTex,color:0xd8ff7a,size:.9,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}); S.add(new THREE.Points(ffG,ffM));
+  // gorge mist: soft layered sheets hanging low over the creek side of Lincoln Drive, drifting slowly
+  const mistT=CT(canvasTex(256,128,(g,w,h)=>{ const R=rng(88); for(let i=0;i<40;i++){ const x=R()*w, y=h*.35+R()*h*.4, r=20+R()*50, gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,'rgba(200,215,235,.22)'); gr.addColorStop(1,'rgba(200,215,235,0)'); g.fillStyle=gr; g.fillRect(x-r,y-r,2*r,2*r); } }));
+  const mistM=new THREE.MeshBasicMaterial({map:mistT,transparent:true,depthWrite:false,opacity:.75,side:THREE.DoubleSide}), mists=[];
+  for(let s=sB+20;s<sC-20;s+=38){ [1,1.6].forEach((k,j)=>{ K.at(s+j*19,(W+10)*k,1.2+j*1.4); const m=new THREE.Mesh(new THREE.PlaneGeometry(60,9),mistM); m.position.copy(pv); m.rotation.y=Math.atan2(K.f.t.x,K.f.t.z)+Math.PI/2; S.add(m); mists.push({m,x:pv.x,ph:K.R()*6}); }); }
+  // falling leaves around the player: an autumn swirl recentred on the car, warm colours, normal blending so they read against light
+  const NL=220, lp=new Float32Array(NL*3), lv=new Float32Array(NL*3), lc=new Float32Array(NL*3), LC=[[.62,.26,.08],[.78,.44,.1],[.52,.12,.06],[.7,.58,.16],[.36,.2,.08]];
+  for(let i=0;i<NL;i++){ lp.set([(K.R()-.5)*70,K.R()*14,(K.R()-.5)*70],i*3); lv.set([(K.R()-.5)*1.2,-.6-K.R()*.8,(K.R()-.5)*1.2],i*3); lc.set(LC[K.R()*LC.length|0],i*3); }
+  const leafT=CT(canvasTex(32,32,(g,w,h)=>{ g.fillStyle='#fff'; g.beginPath(); g.ellipse(16,16,13,7,.6,0,7); g.fill(); }));
+  const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.BufferAttribute(lp,3)); lg.setAttribute('color',new THREE.BufferAttribute(lc,3));
+  const leaves=new THREE.Points(lg,new THREE.PointsMaterial({map:leafT,size:.32,vertexColors:true,transparent:true,alphaTest:.3})); leaves.frustumCulled=false; S.add(leaves);
 
   K.start('EVENT 10 · MT AIRY RUN');
   K.gantry(90,'GERMANTOWN AVE','MT AIRY · CHESTNUT HILL  ↑',{bg:'#0f5a32'});
@@ -4009,7 +4019,12 @@ function buildMtAiry(){
     .concat([[.2,3,'pothole'],[.45,-3,'pothole'],[.7,3,'pothole']].map(([u,x,t])=>[sB+u*(sC-sB),x,t]))
     .concat([[.3,0,'bump'],[.55,-3,'pothole'],[.75,0,'bump']].map(([u,x,t])=>[sC+u*(L-sC),x,t]));
   const roadHazards=installRoadHazards(tr,S,s=>s,hz.map(([s,x,t])=>[s,0,x,t]),mkF(),new THREE.Quaternion(),new THREE.Matrix4(),new THREE.Vector3(),W);
-  let T=0; const update=dt=>{ T+=dt; ffM.opacity=.45+.35*Math.sin(T*2.3)*Math.sin(T*.7+1); };
+  let T=0; const update=dt=>{ T+=dt; ffM.opacity=.45+.35*Math.sin(T*2.3)*Math.sin(T*.7+1);
+    mists.forEach(o=>{ o.m.position.x=o.x+Math.sin(T*.08+o.ph)*6; });
+    const c=player&&player.m?player.m.group.position:null; if(!c) return; leaves.position.copy(c);
+    for(let i=0;i<NL;i++){ const k=i*3; lp[k]+=(lv[k]+Math.sin(T*1.7+i)*.6)*dt; lp[k+1]+=lv[k+1]*dt; lp[k+2]+=(lv[k+2]+Math.cos(T*1.3+i)*.6)*dt;
+      if(lp[k+1]<0) lp[k+1]+=14; if(lp[k]>35) lp[k]-=70; if(lp[k]<-35) lp[k]+=70; if(lp[k+2]>35) lp[k+2]-=70; if(lp[k+2]<-35) lp[k+2]+=70; }
+    lg.attributes.position.needsUpdate=true; };
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],roadHazards,slopeG:1.1,legS:{sA,sB,sC}};
 }
 

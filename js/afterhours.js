@@ -150,7 +150,7 @@ CARS.push(
 );
 CARS.push(
  {id:'zephyr',sculpt:'zephyr',name:'ZEPHYR 960',body:'zephyr',lowPro:true,paint:0x14943c,metal:.58,rough:.14,rim:0x101416,caliper:0x14e0c8,wing:true,accent:0x14e0c8,livery:0x14e0c8,spokes:5,world:'ice',plate:'960 MPH',
-  top:429,acc:88,grip:31,nitro:1.45,mass:.22,nitroRegenMul:.08,nosVmax:1,nosAccMul:2.6,vcap:429,
+  top:429,acc:88,accCurve:1.35,grip:31,nitro:1.45,mass:.22,nitroRegenMul:.08,nosVmax:1,nosAccMul:2.6,vcap:429,
   kick:'Featherweight',loc:'Navy Yard, Slip 4',when:'Unregistered, 01:11',
   caption:'Green over teal, weighed like a bicycle and geared for nine hundred and sixty. The boost comes back when it feels like it.',
   specs:'TWIN E-MOTOR / 1,640 HP / 1,180 LB / 0–60 IN 1.1S / 960 MPH',
@@ -1740,12 +1740,13 @@ function zephyrShell(g,def,B,paint,glass){
   const blade=new THREE.MeshBasicMaterial({color:def.accent||0x14e0c8,toneMapped:false});
   const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
   const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:56,inset:.12,
-    hwS:[[-R,.72],[-WB-.05,.86],[-.6,.78],[.15,.74],[WB,.84],[1.9,.78],[F,.58]],
-    ysK:[[-R,.52],[-WB,.58],[0,.5],[WB,.54],[1.7,.42],[F,.28]],
-    yfK:[[-R,.64],[-WB,.66],[-.4,.6],[.5,.54],[WB,.5],[1.7,.38],[F,.24]],
-    ycK:[[-R,.6],[-1.5,.64],[-.6,.62],[.2,.54],[1.0,.42],[1.7,.32],[F,.22]],
-    hwL:[[-R,.66],[-WB,.62],[0,.68],[WB,.62],[1.6,.58],[F,.5]],
-    ybK:[[-R,.2],[-2.1,.12],[1.9,.12],[F,.16]]},paint,K);
+    // one-piece wedge nose: the hood crowns up into the fenders and the fender line runs smoothly down to a wide, rounded nose
+    hwS:[[-R,.72],[-WB-.05,.86],[-.6,.78],[.15,.74],[WB,.86],[1.95,.84],[F,.74]],
+    ysK:[[-R,.52],[-WB,.58],[0,.5],[.9,.56],[WB,.74],[1.95,.64],[F,.4]],
+    yfK:[[-R,.64],[-WB,.66],[-.4,.6],[.5,.56],[.9,.6],[WB,.78],[1.95,.68],[F,.42]],
+    ycK:[[-R,.6],[-1.5,.64],[-.6,.62],[.2,.54],[.95,.5],[WB,.58],[1.95,.5],[F,.3]],
+    hwL:[[-R,.66],[-WB,.62],[0,.68],[WB,.64],[1.95,.66],[F,.62]],
+    ybK:[[-R,.2],[-2.1,.12],[1.9,.12],[F,.14]]},paint,K);
   const C={z0:-1.15,z1:.95,tumble:.1,pow:.55,cwK:[[-1.15,.22],[-.7,.48],[-.1,.52],[.45,.46],[.95,.22]],htK:[[-1.15,.64],[-.75,.96],[-.15,1.04],[.4,.9],[.95,.58]],roof:[-.85,.25],roofA:1.05};
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
   [1,-1].forEach(sd=>{
@@ -1753,18 +1754,18 @@ function zephyrShell(g,def,B,paint,glass){
     const pts=[]; for(let i=0;i<=12;i++){ const z=lerp(-WB+WR+.15,WB-WR-.15,i/12), c=T.sec(z); pts.push([sd*(c.hl+.014),c.yb+.2,z]); }
     K.tube(pts,.01,blade,22); K.glow(def.accent||0x14e0c8,.55,sd*(T.sec(0).hl+.02),T.sec(0).yb+.2,0);
     K.shut(sd,.55); K.shut(sd,-.35);
-    K.tube([K.P(sd*.22,F-.06),K.P(sd*.42,F-.16),K.P(sd*.55,F-.32)],.012,blade,10);
-    K.lens(sd*.42,T.top(sd*.42,F-.14)+.02,F-.08,.16,.04,.14,.28,sd*.25);
-    K.glow(0xd8fff6,.7,sd*.4,T.top(sd*.4,F-.12)+.03,F);
+    K.lens(sd*.46,T.top(sd*.46,F-.3)+.012,F-.3,.2,.022,.11,.42,sd*.28); // slim headlamp slit set into the fender slope
+    K.glow(0xd8fff6,.7,sd*.46,T.top(sd*.46,F-.3)+.03,F-.2);
     K.tube([[sd*.2,.52,-R-.01],[sd*.48,.5,-R-.01],[sd*.58,.42,-R+.04]],.012,tailM,8);
     K.glow(0xff2030,.7,sd*.42,.48,-R-.06);
     const it=K.add(K.scoop(.7,.28),carbon,sd>0?.72:-.78,.28,-.2); it.rotation.y=Math.PI/2;
     K.mirror(sd,.55,carbon);
   });
-  K.top(-.08,.08,.9,F-.2,blade,.01,18);
-  K.tube([K.P(-.55,F-.28,.01),K.P(0,F-.04,.01),K.P(.55,F-.28,.01)],.012,blade,24);
+  K.top(-.03,.03,.9,F-.12,blade,.008,18); // thin centre blade down the hood to the nose
+  { const c=T.sec(F), lb=[]; for(let i=0;i<=12;i++){ const x=lerp(-.84,.84,i/12)*c.hl; lb.push([x,c.yb+.16,F+.03-.04*x*x]); } K.tube(lb,.013,blade,24); // full-width light bar across the nose face
+    K.glow(def.accent||0x14e0c8,.5,0,c.yb+.16,F+.05); }
   K.splitter(.72,F-.28,F+.02,.14);
-  K.add(new THREE.PlaneGeometry(.9,.08),GLOSS_BLACK,0,.28,F+.004);
+  K.add(new THREE.PlaneGeometry(.62,.06),GLOSS_BLACK,0,.22,F+.004);
   for(let i=0;i<6;i++) K.add(new THREE.BoxGeometry(.016,.16,.42),carbon,-.42+i*.17,.18,-R+.2);
   K.add(new THREE.BoxGeometry(1.15,.02,.5),teal,0,.14,-R+.18);
   { const w=K.add(K.airfoil(.42,.05,1.55),carbon,0,1.02,-2.05); w.rotation.y=Math.PI/2; w.rotation.z=.1;
@@ -5137,7 +5138,7 @@ function stepRacer(r,dt,inp){
     if(cp>0){ vmax0=Math.max(vmax0,lerp(d.top,d.cleanTop,cp)); surge=Math.max(surge,16*cp); }
     if(cp>=1&&!r.unres&&r.isP){ r.unres=true; toast('AUTOBAHN 63. Unrestricted.'); } if(cp<1) r.unres=false; }
   const vmax=Math.min(cap,vmax0);
-  let a=d.acc*Math.max(0,1-r.v/vmax); if(r.v>vmax) a=r.v>cap?-60:-10;
+  let a=d.acc*Math.pow(Math.max(0,1-r.v/vmax),d.accCurve||1); if(r.v>vmax) a=r.v>cap?-60:-10;
   if(surge&&r.v<vmax) a+=surge*(1-r.v/vmax);
   const nosAcc=(d.nosAccMul||1)*(r.fxNosMul>0?1.35:1)*(r.fxWisp>0?1.12:1);
   if(nitro) a+=14*d.nitro*nosAcc;

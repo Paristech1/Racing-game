@@ -1200,13 +1200,15 @@ function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
     if(type==='bump'){
       const strip=new THREE.Mesh(new THREE.BoxGeometry(W*1.15,.12,.62),bumpM);
       strip.position.copy(f.p).addScaledVector(f.r,lane); strip.position.y+=.06; strip.quaternion.copy(q); S.add(strip);
-      const warn=mesh(new THREE.PlaneGeometry(1.1,.55),new THREE.MeshBasicMaterial({map:CT(signCanvas('BUMP',{bg:'#ffd23b',color:'#101114',size:52})),toneMapped:false}),f.p.x,f.p.y+2.2,f.p.z);
+      const warn=new THREE.Mesh(new THREE.PlaneGeometry(1.1,.55),new THREE.MeshBasicMaterial({map:CT(signCanvas('BUMP',{bg:'#ffd23b',color:'#101114',size:52})),toneMapped:false}));
+      warn.position.set(f.p.x,f.p.y+2.2,f.p.z); S.add(warn);
       warn.quaternion.copy(q); warn.rotateX(-Math.PI/2); warn.translateY(.4);
     } else {
       const hole=new THREE.Mesh(new THREE.CylinderGeometry(.75,.85,.1,14),holeM);
       hole.position.copy(f.p).addScaledVector(f.r,lane); hole.position.y+=.03; S.add(hole);
       const rim=new THREE.Mesh(new THREE.TorusGeometry(.82,.08,8,20),rimM); rim.rotation.x=Math.PI/2; rim.position.copy(hole.position); rim.position.y+=.02; S.add(rim);
-      const crack=mesh(new THREE.CircleGeometry(1.05,16),new THREE.MeshBasicMaterial({color:0x121316,transparent:true,opacity:.85}),hole.position.x,hole.position.y+.04,hole.position.z); crack.rotation.x=-Math.PI/2;
+      const crack=new THREE.Mesh(new THREE.CircleGeometry(1.05,16),new THREE.MeshBasicMaterial({color:0x121316,transparent:true,opacity:.85}));
+      crack.position.set(hole.position.x,hole.position.y+.04,hole.position.z); crack.rotation.x=-Math.PI/2; S.add(crack);
     } });
   return out;
 }

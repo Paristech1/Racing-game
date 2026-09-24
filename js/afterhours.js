@@ -1189,6 +1189,7 @@ const MTAIRY_CFG={banner:'EVENT 10 · MT AIRY RUN',start:[-480,-720],
     [-430,-720,0,'bump'],[-480,-735,-3,'pothole']
   ]};
 function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
+  const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); S.add(m); return m; };
   const bumpTex=CT(canvasTex(128,32,(g,w,h)=>{ g.fillStyle='#3a3835'; g.fillRect(0,0,w,h); g.fillStyle='#ffd23b'; for(let i=0;i<6;i++) g.fillRect(i*22+4,10,12,12); }),true);
   const bumpM=new THREE.MeshStandardMaterial({map:bumpTex,roughness:.88,metalness:.05});
   const holeM=new THREE.MeshStandardMaterial({color:0x070708,roughness:1,metalness:0});
@@ -1200,13 +1201,13 @@ function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
     if(type==='bump'){
       const strip=new THREE.Mesh(new THREE.BoxGeometry(W*1.15,.12,.62),bumpM);
       strip.position.copy(f.p).addScaledVector(f.r,lane); strip.position.y+=.06; strip.quaternion.copy(q); S.add(strip);
-      const warn=mesh(new THREE.PlaneGeometry(1.1,.55),new THREE.MeshBasicMaterial({map:CT(signCanvas('BUMP',{bg:'#ffd23b',color:'#101114',size:52})),toneMapped:false}),f.p.x,f.p.y+2.2,f.p.z);
-      warn.quaternion.copy(q); warn.rotateX(-Math.PI/2); warn.translateY(.4);
+      const warn=add(new THREE.PlaneGeometry(1.1,.55),new THREE.MeshBasicMaterial({map:CT(signCanvas('BUMP',{bg:'#ffd23b',color:'#101114',size:52})),toneMapped:false}),f.p.x,f.p.y+2.2,f.p.z);
+      warn.quaternion.copy(q); warn.rotateX(-Math.PI/2); warn.position.y+=.4;
     } else {
       const hole=new THREE.Mesh(new THREE.CylinderGeometry(.75,.85,.1,14),holeM);
       hole.position.copy(f.p).addScaledVector(f.r,lane); hole.position.y+=.03; S.add(hole);
       const rim=new THREE.Mesh(new THREE.TorusGeometry(.82,.08,8,20),rimM); rim.rotation.x=Math.PI/2; rim.position.copy(hole.position); rim.position.y+=.02; S.add(rim);
-      const crack=mesh(new THREE.CircleGeometry(1.05,16),new THREE.MeshBasicMaterial({color:0x121316,transparent:true,opacity:.85}),hole.position.x,hole.position.y+.04,hole.position.z); crack.rotation.x=-Math.PI/2;
+      const crack=add(new THREE.CircleGeometry(1.05,16),new THREE.MeshBasicMaterial({color:0x121316,transparent:true,opacity:.85}),hole.position.x,hole.position.y+.04,hole.position.z); crack.rotation.x=-Math.PI/2;
     } });
   return out;
 }
@@ -2886,6 +2887,14 @@ function closeSheet(){ sheetOpen=false; $('#sheet').classList.remove('open'); $(
 function turn(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderPage(dir); if(sheetOpen) renderSheet(dir); }
 function openEvents(){ initAudio(); closeSheet(); sel=page; sfx.shutter(); flash(1); mode='events'; show('events'); renderEvent(0,true); }
 function eventPageHtml(){ return `${EVI+1} <em>/ ${EVENTS.length}</em>`; }
+function renderEventRoster(){
+  const el=$('#eRoster'); if(!el) return;
+  el.innerHTML=EVENTS.map((e,i)=>{
+    const tag=e.kick==='Tournament'?'Gauntlet':e.kick.replace('Event ','Ev ');
+    return `<button type="button" class="epick${i===EVI?' on':''}" data-i="${i}"><b>${esc(tag)}</b> ${esc(e.name)}</button>`;
+  }).join('');
+  el.querySelectorAll('.epick').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(i===EVI) return; EVI=i; sfx.page(); renderEvent(0,true); });
+}
 function renderEvent(dir,force){
   if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); }
   const e=EV;
@@ -2898,6 +2907,7 @@ function renderEvent(dir,force){
   $('#eGhost').textContent+=' On the grid: Apex, The Wall, Leech, Bruiser, The Closer, Wildcard. '+PU_DESC;
   if(e.knockout){ bindKoTrack(koMapI); $('#eGhost').textContent='Pick a map on the next screen. Short loops use lap checkpoints; long courses knock out at sectors so you are not running 110 km. Round rules: '+KO_MODS.filter(m=>m.id!=='clean').map(m=>m.name).join(', ')+', and a Final Duel for the last two.'; }
   $('#ePg').innerHTML=eventPageHtml();
+  renderEventRoster();
   if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3']],dir);
   modeT=0; shot=-1;
 }

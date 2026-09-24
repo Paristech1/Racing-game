@@ -1021,6 +1021,14 @@ function signCanvas(text,opts){ opts=opts||{}; const w=opts.w||512, h=opts.h||96
     if(opts.border){ g.shadowBlur=0; g.strokeStyle=opts.color||'#fff'; g.lineWidth=4; g.strokeRect(6,6,w-12,h-12); } }); }
 /* ---- Event 02: Roosevelt Blvd, Tyson Av to Cottman Av ---- */
 function rng(seed){ let s=seed>>>0; return ()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
+/* a leafy crown: three merged blobs, noisy radius, darker underside via vertex colours */
+function leafyCrown(r,seed){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25,.2,.7],[-.45,.3,-.25,.72],[.1,.55,-.4,.6]], pos=[], col=[], idx=[];
+  const nrm=[]; parts.forEach(([ox,oy,oz,k])=>{ const g=new THREE.IcosahedronGeometry(r*k,2), p=g.attributes.position, base=pos.length/3;
+    for(let i=0;i<p.count;i++){ const x=p.getX(i),y=p.getY(i),z=p.getZ(i), n=1+.14*Math.sin(x*3.1+z*2.3)*Math.cos(y*2.7), X=x*n+ox*r, Y=y*n*.82+oy*r, Z=z*n+oz*r; pos.push(X,Y,Z);
+      const l=Math.hypot(x,y,z)||1; nrm.push(x/l,y/l,z/l); // radial normals: smooth shading across the non-indexed faces
+      const sh=clamp(.55+.45*(Y/(r*1.3)),.35,1)*(.85+R()*.3); col.push(.55*sh,.8*sh,.5*sh); }
+    const ix=g.index?g.index.array:[...Array(p.count).keys()]; for(let i=0;i<ix.length;i++) idx.push(base+ix[i]); g.dispose(); });
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3)); g.setIndex(idx); return g; }
 function buildBlvd(){
   const R0=25, zS=800, zN=-800, z0=-40;
   const e1=z0-zN, arc=Math.PI*R0, wS=zS-zN, e2=zS-z0, total=e1+arc+wS+arc+e2, n=Math.round(total);
@@ -1036,7 +1044,7 @@ function buildBlvd(){
   const S=new THREE.Scene();
   S.userData.bloom={strength:.95,radius:.5,threshold:.72};
   S.background=CT(canvasTex(8,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#03050a'); gr.addColorStop(.55,'#0b1322'); gr.addColorStop(.8,'#1c2232'); gr.addColorStop(1,'#2a2830'); g.fillStyle=gr; g.fillRect(0,0,w,h); }));
-  S.fog=new THREE.FogExp2(0x121a28,0.0052); S.environment=ENV.street; addDome(S);
+  S.fog=new THREE.FogExp2(0x1a1c26,0.0036); S.environment=ENV.street; addDome(S);
   S.add(new THREE.HemisphereLight(0x8fa6cc,0x0b0d12,.6));
   const moon=new THREE.DirectionalLight(0xbcd0ff,.35); moon.position.set(-1,2,1); S.add(moon);
 
@@ -1055,11 +1063,16 @@ function buildBlvd(){
     g.strokeStyle='rgba(5,5,6,.6)'; g.lineWidth=1.4; for(let i=0;i<12;i++){ g.beginPath(); let x=Math.random()*w,y=Math.random()*h; g.moveTo(x,y); for(let k=0;k<6;k++){ x+=(Math.random()-.5)*50; y+=Math.random()*40; g.lineTo(x,y); } g.stroke(); }
   }),true);
   const asphaltM=wetRoad(new THREE.MeshStandardMaterial({map:asphaltTex,roughness:.5,metalness:.12}));
-  const lotM=new THREE.MeshStandardMaterial({map:asphaltTex,color:0x9aa0aa,roughness:.8,metalness:.05});
+  const lotM=wetRoad(new THREE.MeshStandardMaterial({map:null,color:0x9aa0aa,roughness:.7,metalness:.05}));
   const concreteM=new THREE.MeshStandardMaterial({color:0x5b616b,roughness:.9});
   const curbM=new THREE.MeshStandardMaterial({color:0x6e737c,roughness:.85});
-  const grassM=new THREE.MeshStandardMaterial({color:0x121c16,roughness:1});
-  const groundM=new THREE.MeshStandardMaterial({color:0x0b0d11,roughness:1});
+  const grassT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#1b2a17'; g.fillRect(0,0,w,h);
+    for(let i=0;i<5000;i++){ const v=Math.random(); g.fillStyle=v<.5?'rgba(40,62,30,.7)':v<.8?'rgba(22,36,18,.7)':'rgba(62,78,40,.55)'; g.fillRect(Math.random()*w,Math.random()*h,1,2+Math.random()*2); } }),true);
+  grassT.repeat.set(1,1);
+  const grassM=new THREE.MeshStandardMaterial({map:grassT,color:0x9aa890,roughness:1});
+  const groundM=new THREE.MeshStandardMaterial({map:grassT,color:0x383e3a,roughness:1});
+  const stallT=CT(canvasTex(256,256,(g,w,h)=>{ g.drawImage(asphaltTex.image,0,0,w,h); g.fillStyle='rgba(225,228,232,.75)';
+    for(let y=0;y<h;y+=32) g.fillRect(0,y,52,3); for(let y=0;y<h;y+=32) g.fillRect(w-52,y,52,3); g.fillStyle='rgba(255,210,60,.6)'; g.fillRect(w/2-2,0,4,h); }),true);
 
   function quad(x0,x1,z0,z1,y,mat,sc){ sc=sc||8; const a=Math.min(x0,x1),b=Math.max(x0,x1),c=Math.min(z0,z1),d=Math.max(z0,z1);
     const g=new THREE.BufferGeometry();
@@ -1079,7 +1092,7 @@ function buildBlvd(){
   function box(w,h,d,mat,x,y,z){ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat); m.position.set(x,y,z); S.add(m); return m; }
 
   // ground: local lanes + side medians + sidewalks base, express trough, cross streets, lots
-  [-1,1].forEach(sd=>{ quad(sd*14,sd*35,ZMIN,ZMAX,0,asphaltM); quad(sd*35,sd*112,ZMIN,ZMAX,.004,lotM); quad(sd*112,sd*700,-1500,1500,-.02,groundM); });
+  lotM.map=stallT; [-1,1].forEach(sd=>{ quad(sd*14,sd*35,ZMIN,ZMAX,0,asphaltM); quad(sd*35,sd*112,ZMIN,ZMAX,.004,lotM,16); quad(sd*112,sd*700,-1500,1500,-.02,groundM,6); });
   profQuad(-14,14,ZMIN,ZMAX,exY,asphaltM);
   quad(-260,260,BAND_T[0],BAND_T[1],.012,asphaltM);
   quad(-260,260,BAND_H[0],BAND_H[1],.012,asphaltM);
@@ -1112,6 +1125,10 @@ function buildBlvd(){
     for(let x=-34.5;x<=34.5;x+=1.15){ pv.set(x,.035,ze+inward*1.9); m4.compose(pv,new THREE.Quaternion(),one); zebra.push(m4.clone()); } });
   const markGeo=new THREE.BoxGeometry(.15,.02,3);
   const mkInst=(geo,mat,arr)=>{ const im=new THREE.InstancedMesh(geo,mat,arr.length); arr.forEach((m,i)=>im.setMatrixAt(i,m)); S.add(im); return im; };
+  { const railM=new THREE.MeshStandardMaterial({color:0xaeb4bc,metalness:.85,roughness:.3}), postM=new THREE.MeshStandardMaterial({color:0x6a7078,metalness:.6,roughness:.5});
+    const posts=[]; segsAll.forEach(([za,zb])=>{ [-1,1].forEach(sd=>{ box(.08,.3,za-zb-2,railM,sd*35.4,.62,(za+zb)/2);
+      for(let z=za-2;z>zb+2;z-=4){ pv.set(sd*35.5,.35,z); m4.compose(pv,new THREE.Quaternion(),one); posts.push(m4.clone()); } }); });
+    mkInst(new THREE.BoxGeometry(.12,.7,.12),postM,posts); }
   mkInst(markGeo,new THREE.MeshBasicMaterial({color:0xc9ced6}),whites);
   mkInst(markGeo,new THREE.MeshBasicMaterial({color:0xc9a23a}),yellows);
   mkInst(new THREE.BoxGeometry(.55,.02,3),new THREE.MeshBasicMaterial({color:0xb9bec6}),zebra);
@@ -1143,7 +1160,7 @@ function buildBlvd(){
     pv.set(sd*16.5,1.5,z); m4.compose(pv,new THREE.Quaternion(),one); trunks.push(m4.clone());
     pv.set(sd*16.5,4.3,z); m4.compose(pv,new THREE.Quaternion().setFromEuler(new THREE.Euler(R_(),R_()*3,0)),new THREE.Vector3(s*1.1,s,s*1.1)); crowns.push(m4.clone()); }); }
   mkInst(new THREE.CylinderGeometry(.16,.22,3,6),new THREE.MeshStandardMaterial({color:0x1d1813,roughness:1}),trunks);
-  mkInst(new THREE.IcosahedronGeometry(2.3,0),new THREE.MeshStandardMaterial({color:0x16241b,roughness:1,flatShading:true}),crowns);
+  mkInst(leafyCrown(2.3,7),new THREE.MeshStandardMaterial({color:0x2a4a2c,roughness:.95,vertexColors:true}),crowns);
 
   // signs
   function faceRoad(mesh,sd){ mesh.rotation.y=-sd*Math.PI/2; return mesh; }
@@ -1262,7 +1279,8 @@ function buildBlvd(){
   for(let i=0;i<90;i++){ const sd=R_()<.5?-1:1, x=sd*(170+R_()*300), z=-1300+R_()*1500, h=6+R_()*16*(R_()<.08?4:1), w=14+R_()*30, d=14+R_()*30;
     pv.set(x,h/2,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(w,h,d)); sky.push(m4.clone());
     for(let k=0;k<8;k++) winPts.push(x-sd*w/2*1.01,1+R_()*(h-2),z+(R_()-.5)*d); }
-  mkInst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x0a0d13,roughness:1}),sky);
+  { const winT=CT(canvasTex(64,64,(g,w,h)=>{ g.fillStyle='#000'; g.fillRect(0,0,w,h); for(let y=4;y<h;y+=12) for(let x=3;x<w;x+=10) if(Math.random()<.35){ g.fillStyle=Math.random()<.8?'#ffcf8a':'#cfe3ff'; g.fillRect(x,y,5,6); } }),true);
+    winT.repeat.set(3,2); mkInst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x10131a,roughness:.95,emissive:0xffffff,emissiveMap:winT,emissiveIntensity:.55}),sky); }
   const wg=new THREE.BufferGeometry(); wg.setAttribute('position',new THREE.Float32BufferAttribute(winPts,3));
   S.add(new THREE.Points(wg,new THREE.PointsMaterial({color:0xffcf8a,size:1.1,sizeAttenuation:true,transparent:true,opacity:.8})));
 

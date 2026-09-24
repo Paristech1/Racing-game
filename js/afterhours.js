@@ -1858,8 +1858,8 @@ function buildCity(C){
     // the Wissahickon woods west of Lincoln Dr: dense, taller, uneven
     const RW=rng(1911); for(let i=0;i<150;i++){ const x=-758+RW()*70, z=-986+RW()*440; if(x>-688) continue; tree(x,z,1.2+RW()*.8,RW()<.5); }
     mkInst(new THREE.CylinderGeometry(.16,.22,4.2,6),treeM,trunks);
-    mkInst(new THREE.SphereGeometry(1.55,12,8),leafM,crowns);
-    mkInst(new THREE.SphereGeometry(1.35,12,8),leafM2,crown2);
+    mkInst(leafyCrown(1.55,11),new THREE.MeshStandardMaterial({color:0x2a4a2c,roughness:.95,vertexColors:true}),crowns);
+    mkInst(leafyCrown(1.35,23),new THREE.MeshStandardMaterial({color:0x34562e,roughness:.95,vertexColors:true}),crown2);
     flat(-760,-686,-990,-540,.03,new THREE.MeshStandardMaterial({color:0x10261a,roughness:1})); // forest floor
     // Wissahickon schist wall along Lincoln Dr
     const schist=new THREE.MeshStandardMaterial({map:CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#4a4a46'; g.fillRect(0,0,w,h);

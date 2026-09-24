@@ -46,7 +46,7 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - Back across the Delaware on a 16 m-high I-95 viaduct with lit parapets.
   - Up Broad St past City Hall and the golden, uplit Art Museum, with Rocky at the foot of the steps, to the Boulevard U-turn.
 
-- **Event 10: Mt Airy Run.** Northwest Philly — Germantown Ave, Lincoln Dr, and Greene St, 3 laps. Speed bumps and potholes on the racing line (live traffic, 7 cars).
+- **Event 10: Mt Airy Run.** Northwest Philly, 3 laps of a 1.4 km rowhome loop. Up Greene St, across Mt Pleasant Ave, north on the Belgian-block cobbles and trolley rails of Germantown Ave, down Lincoln Dr beside the Wissahickon woods and a schist wall, then back along Upsal St. Speed bumps and potholes on the racing line (live traffic, 7 cars).
 
 - **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
 
@@ -97,7 +97,8 @@ Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sover
 - **Richmond:** the heaviest vehicle, a pickup truck that shoves everything else out of the way.
 - **Zenkai 37:** a red widebody coupe with fender flares, a bolted wing, hood vents and six-spoke wheels.
 - **Split 63:** a black split-window restomod with chrome bumpers, side-exit pipes and red-lipped wheels.
-- **Overload 3K:** a 3,000 hp quad-motor electric hypercar with a bubble canopy, dorsal fin, cyan light blade and swan-neck wing. The most powerful car in the game. Rivals only bring it now and then (you'll get a warning), but it's always in the Gauntlet.
+- **Kage R:** a chopped silver wedge with a wide cab-forward greenhouse and a black roof, crossed nose to tail by an amber spine. It has slit LED headlights, NACA haunch scoops, a louvred deck and a ducktail airfoil.
+- **Overload 3K:** a 3,000 hp quad-motor electric hypercar with a sculpted body: pontoon fenders, a tinted bubble canopy, a lit dorsal fin, and cyan light blades across the nose and along the rockers. It has camera pods for mirrors, a glowing diffuser and a swan-neck airfoil wing. The most powerful car in the game. Rivals only bring it now and then (you'll get a warning), but it's always in the Gauntlet.
 - **Volcano P1:** a Volcano-yellow hybrid hypercar modeled on the McLaren P1, with its own sculpted body. The body is lofted from cross-sections, so it has tumblehome, a pinched waist, bulging haunches and fender peaks. It has a teardrop glass canopy with a body-colored roof and snorkel, tube-built light signatures (the smile intake, boomerang LEDs and a C-shaped tail light), and a raked carbon side scoop. At the back: a real airfoil-section active wing, a twill carbon-fibre splitter, louvres and diffuser, center-exit exhausts, and a fresnel rim on the paint so the shape reads at night. It has the highest top speed in the archive, flat out and on boost. Like the Overload, rivals only bring it on a boss night.
 
 Every car has metallic-flake paint under a clear coat, and details down to the wheels:
@@ -139,6 +140,21 @@ Each persona bends differently. Wildcard and Bruiser go all-in quickly, and The 
 - **Rain nights:** open-air events have a 45% chance of rain, shown on the loading screen. You get rain streaks, tire spray, a rain audio bed, wetter roads and stronger reflections. Rain stops inside tunnels.
 - **Speed stages:** headlight beams, beam cones, speed streaks, taillight trails and speed blur stay calm when you're cruising. They step up at about 90, 130 and 160 mph, and one more stage while boosting. A 4-pip meter under the speedometer shows the stage, turning amber and then red.
 - **Light and atmosphere:** volumetric cones under streetlights, headlight beams and road throw from every car, taillight trails at speed, exhaust flames while boosting, and a night-sky dome with stars, a moon and clouds lit by the city.
+
+## Sculpted cars and city detail
+
+The Kage R, Overload 3K and Volcano P1 are built the way the [threejs-skills](https://github.com/CloudAI-X/threejs-skills) pack recommends:
+- **Bodies** are lofted from dozens of cross-sections (custom BufferGeometry).
+- **Light signatures** are tubes swept along curves.
+- **Wings and scoops** are extruded airfoil and teardrop shapes.
+- **Materials** include a canvas twill carbon fibre, and a fresnel rim injected into the clear-coat paint.
+
+City boards also get:
+- Realistic facades: 1–2 m windows with mullions, sills and lit rooms under blinds.
+- Lit shop interiors.
+- Rooftop AC units and water tanks.
+
+Roosevelt Blvd and Mt Airy get leafy tree canopies, textured grass medians, striped lots and a guide rail.
 
 ## Speed ceiling
 

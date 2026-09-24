@@ -57,7 +57,7 @@ CARS.push(
   rival:'Rival note: The Wall can\'t hold you off in this. Push through.',
   note:'quiet until\nit isn\'t.', notePos:{l:'8%',t:'36%'},
   cam:{p:[3.9,.95,5.4],l:[0,.7,.3],roll:-.06,fov:32}},
- {id:'granfour',name:'GRAN FOUR',body:'fastback',paint:0x5b5f65,metal:.35,rough:.55,matte:true,rim:0x16181b,caliper:0xffc21a,wing:true,world:'ice',
+ {id:'granfour',name:'GRAN FOUR',body:'fastback',paint:0x5b5f65,metal:.35,rough:.55,matte:true,rim:0x16181b,caliper:0xffc21a,wing:false,accent:0xffc21a,world:'ice',
   top:89,acc:22,grip:30,nitro:1.0,mass:1.35,
   kick:'Four doors',loc:'Forest Lot',when:'After rain, 05:30',
   caption:'Four doors, four seats, one driver who actually matters.',
@@ -67,7 +67,7 @@ CARS.push(
   cam:{p:[4.8,.8,3.4],l:[0,.6,.2],roll:.1,fov:32}}
 );
 CARS.push(
- {id:'bell',name:'BELL 76',paint:0x14306b,metal:.7,rough:.16,rim:0x16181b,caliper:0xd8b04a,wing:true,livery:0xd8b04a,world:'ice',
+ {id:'bell',name:'BELL 76',body:'bell',paint:0x14306b,metal:.7,rough:.16,rim:0x16181b,caliper:0xd8b04a,wing:true,accent:0xd8b04a,spokes:10,world:'ice',
   top:94,acc:21,grip:27,nitro:1.3,mass:1.2,
   kick:'Special issue',loc:'Independence Mall',when:'July 4th, 23:59',
   caption:'Blue and gold, built for exactly one thing: the longest straight in the city.',
@@ -75,7 +75,7 @@ CARS.push(
   rival:'Rival note: The Closer can\'t match it flat out. Just don\'t give it corners.',
   note:'bridge\nweapon.', notePos:{l:'56%',t:'34%'},
   cam:{p:[4.4,1.0,-3.9],l:[0,.55,-.2],roll:.08,fov:32}},
- {id:'passyunk',name:'PASSYUNK R',body:'hatch',paint:0xb3121c,metal:.5,rough:.22,rim:0xe8eaee,caliper:0xffc21a,wing:true,world:'flash',
+ {id:'passyunk',name:'PASSYUNK R',body:'hatch',paint:0xb3121c,metal:.5,rough:.22,rim:0xe8eaee,caliper:0xffc21a,wing:false,world:'flash',
   top:84,acc:26,grip:35,nitro:1.05,mass:.85,
   kick:'Corner shop',loc:'East Passyunk Ave',when:'Friday, 01:40',
   caption:'Double-parked outside the cheesesteak window. Fits through gaps nothing else will.',
@@ -121,7 +121,7 @@ CARS.push(
   cam:{p:[4.8,.9,-4.2],l:[0,.45,-.2],roll:.08,fov:30}}
 );
 CARS.push(
- {id:'wisp',name:'WISP 07',body:'hatch',paint:0xe8f4ff,metal:.35,rough:.18,rim:0xc8dce8,caliper:0x7dffef,wing:true,world:'flash',
+ {id:'wisp',name:'WISP 07',body:'wisp',paint:0xe8f4ff,metal:.35,rough:.18,rim:0xc8dce8,caliper:0x7dffef,wing:true,accent:0x7dffef,spokes:5,world:'flash',
   top:97,acc:39,grip:29,nitro:1.55,mass:.52,nitroRegenMul:.28,nosVmax:1.42,nosAccMul:2.05,nosDrainMul:1.18,
   kick:'Carbon tub',loc:'South Street, Loading Bay 2',when:'Tuesday, 01:08',
   caption:'Weighed on a freight scale. The clerk thought the scale was broken.',
@@ -473,11 +473,14 @@ const CARTEX=(()=>{ const t=(c,rep)=>{ const x=new THREE.CanvasTexture(c); if(re
     ['AFTERHOURS','R19','AFTERHOURS','R19'].forEach((s,i)=>{ g.save(); g.translate(128,128); g.rotate(i*Math.PI/2); g.fillText(s,0,-100); g.restore(); }); });
   const rotor=canvasTex(128,128,(g,w,h)=>{ const gr=g.createRadialGradient(64,64,10,64,64,64); gr.addColorStop(0,'#2a2c30'); gr.addColorStop(.45,'#5a5e64'); gr.addColorStop(.9,'#8d9299'); gr.addColorStop(1,'#3a3c40');
     g.fillStyle=gr; g.fillRect(0,0,w,h); g.fillStyle='#16171a'; for(let i=0;i<36;i++){ const a=i/36*Math.PI*2, r=40+(i%3)*7; g.beginPath(); g.arc(64+Math.cos(a)*r,64+Math.sin(a)*r,2.2,0,7); g.fill(); } });
-  return {flake:t(flake,6),tread:t(tread),side:t(side),rotor:t(rotor)};
+  const carbon=canvasTex(64,64,(g,w,h)=>{ for(let y=0;y<h;y+=8) for(let x=0;x<w;x+=8){ const o=((x+y)/8)%2; // 2x2 twill weave
+    g.fillStyle=o?'#1d2025':'#0e1013'; g.fillRect(x,y,8,8); g.fillStyle='rgba(255,255,255,.06)'; if(o) g.fillRect(x,y+1,8,2); else g.fillRect(x+1,y,2,8); } });
+  return {flake:t(flake,6),tread:t(tread),side:t(side),rotor:t(rotor),carbon:t(carbon,3)};
 })();
 const tireTreadM=new THREE.MeshStandardMaterial({color:0x0e0e0f,roughness:.9,envMapIntensity:.5,bumpMap:CARTEX.tread,bumpScale:.015}), tireSideM=new THREE.MeshStandardMaterial({map:CARTEX.side,roughness:.92,metalness:0,envMapIntensity:.4});
 const rotorM=new THREE.MeshStandardMaterial({map:CARTEX.rotor,metalness:.85,roughness:.35}), barrelM=new THREE.MeshStandardMaterial({color:0x0a0a0b,metalness:.6,roughness:.5,side:THREE.DoubleSide});
 const trimM=new THREE.MeshStandardMaterial({color:0x050506,metalness:.2,roughness:.25}), chromeTrimM=new THREE.MeshStandardMaterial({color:0xdfe4ea,metalness:1,roughness:.1});
+const carbonM=new THREE.MeshStandardMaterial({map:CARTEX.carbon,metalness:.45,roughness:.28,envMapIntensity:1.1});
 const gapM=new THREE.MeshBasicMaterial({color:0x020203}), lensM=new THREE.MeshStandardMaterial({color:0x0b0e13,metalness:.9,roughness:.08}), exhM=new THREE.MeshStandardMaterial({color:0xb8bec6,metalness:1,roughness:.18});
 const TIRE_GEO=new THREE.CylinderGeometry(.37,.37,.3,32), ROTOR_GEO=new THREE.CylinderGeometry(.25,.25,.024,28), BARREL_GEO=new THREE.CylinderGeometry(.275,.275,.2,24,1,true);
 const PLATE_CACHE={};
@@ -518,7 +521,11 @@ const BODIES={
  vanta:{pts:[[-2.72,.26],[-2.78,.48],[-2.55,.62],[-1.75,.7],[-.75,.72],[.25,.66],[1.2,.5],[1.9,.36],[2.32,.28],[2.36,.22]],base:.14,
    cab:[[-.25,.68],[.15,.98],[.65,1.02],[1.02,.84],[1.22,.58]],cabBase:[-.25,.66,1.22,.56],w:2.08,cw:1.14,wr:.36,wb:1.55,tr:1.08,front:2.36,rear:2.78,headY:.4,tailY:.54,wingY:1.14,wingZ:-2.4,swan:true},
  stratos:{pts:[[-2.58,.28],[-2.64,.7],[-2.38,.96],[-1.5,1.02],[-.45,.92],[.55,.72],[1.4,.52],[2.0,.4],[2.38,.32],[2.42,.24]],base:.16,
-   cab:[[-.85,.92],[-.25,1.26],[.5,1.3],[1.0,1.02],[1.32,.68]],cabBase:[-.85,.9,1.32,.66],w:2.1,cw:1.22,wr:.37,wb:1.5,tr:1.05,front:2.42,rear:2.64,headY:.46,tailY:.86,wingY:1.52,wingZ:-2.28,swan:true}
+   cab:[[-.85,.92],[-.25,1.26],[.5,1.3],[1.0,1.02],[1.32,.68]],cabBase:[-.85,.9,1.32,.66],w:2.1,cw:1.22,wr:.37,wb:1.5,tr:1.05,front:2.42,rear:2.64,headY:.46,tailY:.86,wingY:1.52,wingZ:-2.28,swan:true},
+ bell:{pts:[[-2.66,.34],[-2.72,.62],[-2.52,.84],[-1.7,.96],[-.7,.99],[.3,.92],[1.2,.76],[1.85,.58],[2.26,.42],[2.3,.3]],base:.2,
+   cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:1.03,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36},
+ wisp:{pts:[[-1.95,.34],[-2.0,.62],[-1.85,.8],[-1.2,.86],[-.4,.84],[.4,.74],[1.2,.58],[1.75,.44],[2.0,.34],[2.02,.26]],base:.18,
+   cab:[[-1.05,.82],[-.55,1.2],[.2,1.24],[.75,1.0],[1.1,.66]],cabBase:[-1.05,.8,1.1,.62],w:1.84,cw:1.12,wr:.34,wb:1.3,tr:.96,front:2.02,rear:2.0,headY:.5,tailY:.7,wingY:1.1,wingZ:-1.82,swan:true}
 };
 const bronzeM=()=>new THREE.MeshStandardMaterial({color:0x8a5a2b,metalness:1,roughness:.25});
 /* Fold a group's direct child meshes into one mesh per material (transforms baked in). A detailed car is
@@ -646,7 +653,7 @@ function p1Shell(g,def,B,paint,glass){
   [[0xcfe6ff,1.0,.6,.53,1.98],[0xcfe6ff,1.0,-.6,.53,1.98],[0xff2030,.8,0,.82,-2.36]].forEach(a=>{ const s=glowSprite(a[0],a[1]); s.position.set(a[2],a[3],a[4]); g.add(s); });
 }
 function buildCar(def,opts){
-  opts=opts||{}; const B=BODIES[def.body||'wedge'];
+  opts=opts||{}; const B=BODIES[def.body||'wedge'], cid=def.chassisId||def.id; // rivals race a copy of an archive car under their own id
   const g=new THREE.Group();
   const paint=new THREE.MeshPhysicalMaterial({color:def.paint,metalness:def.metal,roughness:def.rough,clearcoat:def.matte?0:1,clearcoatRoughness:.03,envMapIntensity:1.25});
   if(!def.matte){ paint.normalMap=CARTEX.flake; paint.normalScale=new THREE.Vector2(.12+def.metal*.18,.12+def.metal*.18); } // metallic flake under a smooth clear coat
@@ -676,8 +683,18 @@ function buildCar(def,opts){
   const cb=B.cabBase;
   g.add(new THREE.Mesh(profileGeo(B.cab,[[cb[0],cb[1]],[cb[2],cb[3]],[cb[0],cb[1]]],B.cw,.1),glass));
   const box=(w,h,d,m,x,y,z,ry)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);if(ry)b.rotation.y=ry;g.add(b);return b;};
+  // surface heights along the car (z): body deck and cabin roof, sampled from the same splines the extrusions use (+ bevel)
+  const spl=p=>new THREE.SplineCurve(p.map(q=>new THREE.Vector2(q[0],q[1]))).getPoints(96);
+  const lin=(p,z)=>{ let i=1; while(i<p.length-1&&(p[i].x<z||p[i].x<=p[i-1].x)) i++; const a=p[i-1], b=p[i], t=clamp((z-a.x)/((b.x-a.x)||1),0,1); return a.y+(b.y-a.y)*t; };
+  const deckP=spl(B.pts), roofP=spl(B.cab), deckY=z=>lin(deckP,z)+.135, roofY=z=>lin(roofP,z)+.1;
+  const strip=(x,w,z0,z1,m,n,top)=>{ top=top||deckY; const dz=(z1-z0)/n; // thin band laid over a curved surface in n straight pieces
+    for(let i=0;i<n;i++){ const za=z0+i*dz, ya=top(za), yb=top(za+dz); box(w,.012,Math.hypot(dz,yb-ya)+.01,m,x,(ya+yb)/2+.006,za+dz/2).rotation.x=-Math.atan2(yb-ya,dz); } };
+  const pipe=(x,y,z,r)=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.1,.16,14,1,true),exhM); t.rotation.x=Math.PI/2; t.position.set(x,y,z); g.add(t);
+    const inner=new THREE.Mesh(new THREE.CircleGeometry(r*.9,14),gapM); inner.position.set(x,y,z+.06); inner.rotation.y=Math.PI; g.add(inner); };
+  const flares=(m,h)=>[[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{ const x=sx*(B.w/2+.15), y=B.wr*2+h, z=sz*B.wb; // arch cladding: top run plus two raked ends
+    box(.16,.07,1.0,m,x,y,z); [1,-1].forEach(e=>box(.16,.07,.38,m,x,y-.12,z+e*.62).rotation.x=e*.75); });
   const hw=B.w/2+.12, F=B.front, Rr=B.rear;
-  if(!cut){ box(.05,.2,.75,blackM,hw,B.base+.36,-.5); box(.05,.2,.75,blackM,-hw,B.base+.36,-.5); }
+  if(!cut&&cid!=='bell'){ box(.05,.2,.75,blackM,hw,B.base+.36,-.5); box(.05,.2,.75,blackM,-hw,B.base+.36,-.5); } // bell's intake sits inside its C-sweep
   box(1.6,.2,.3,blackM,0,B.base+.08,-Rr+.1); box(2.0,.12,.5,blackM,0,B.base+.01,F-.26);
   const hx=B.w*.36;
   // headlight units: glossy housing, two projector lenses and an LED running-light strip
@@ -705,7 +722,7 @@ function buildCar(def,opts){
     box(B.w*.78,.022,.03,acc,0,B.headY+.06,F-.1);
     [1,-1].forEach(sd=>{ box(.02,.02,B.wb*2-.6,acc,sd*(B.w/2+.14),B.base+.1,0); const it=box(.06,.26,.7,trimM,sd*(B.w/2+.1),B.base+.42,-.85); it.rotation.y=sd*.12; });
     [1,-1].forEach(sd=>{ const s=glowSprite(def.accent||0x2fe6ff,.7); s.position.set(sd*(B.w/2+.14),B.base+.1,1); g.add(s); }); }
-  if(def.id==='stratos'){ // high-tail aero: gold endplates sit on the wing, intakes follow the new deck
+  if(cid==='stratos'){ // high-tail aero: gold endplates sit on the wing, intakes follow the new deck
     const gold=new THREE.MeshStandardMaterial({color:def.livery,roughness:.28,metalness:.55});
     box(.5,.06,.12,blackM,0,B.headY+.16,F-.55);
     [1,-1].forEach(sd=>{ box(.22,.04,.36,gold,sd*(B.w/2-.02),B.base+.16,F-.22).rotation.y=sd*.28;
@@ -713,10 +730,7 @@ function buildCar(def,opts){
     [1,-1].forEach(sd=>box(.05,.42,.62,gold,sd*1.12,B.wingY-.08,B.wingZ));
   }
   if(def.lightbar){ box(1.5,.08,.16,headM,0,2.06,.28); [-.55,0,.55].forEach(x=>{ const s=glowSprite(0xeaf4ff,.9); s.position.set(x,2.07,.4); g.add(s); }); }
-  if(def.body==='sedan'||def.body==='suv'||def.body==='truck'){ // upright grille
-    const gr=box(1.1,.34,.06,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.9,roughness:.2}),0,B.headY-.12,F-.02);
-    for(let i=0;i<5;i++) box(.02,.3,.08,new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:1,roughness:.2}),-.44+i*.22,B.headY-.12,F+.01); void gr; }
-  if(def.id==='kage'){ // chopped silver coupe: amber spine follows the deck, black roof, rear haunches
+  if(cid==='kage'){ // chopped silver coupe: amber spine follows the deck, black roof, rear haunches
     const amber=new THREE.MeshStandardMaterial({color:0xffc21a,roughness:.32,metalness:.4});
     box(.16,.03,B.front+B.rear-1.1,amber,0,B.base+.22,.1);
     box(B.cw*.9,.03,Math.abs(B.cabBase[2]-B.cabBase[0])-.15,blackM,0,B.cab[2][1]+.02,(B.cabBase[0]+B.cabBase[2])/2);
@@ -724,7 +738,7 @@ function buildCar(def,opts){
     [1,-1].forEach(sd=>box(.16,.22,.85,paint,sd*(B.w/2+.02),B.base+.32,-1.15));
     paint.clearcoat=1; paint.clearcoatRoughness=.02;
   }
-  if(def.id==='noctis'){ // long-hood GT: chrome grille, red beltline, triple center exhaust
+  if(cid==='noctis'){ // long-hood GT: chrome grille, red beltline, triple center exhaust
     const red=new THREE.MeshStandardMaterial({color:0xc01820,roughness:.32,metalness:.25});
     box(B.w*.9,.035,.08,red,0,B.tailY-.02,-Rr-.04);
     box(.9,.03,Math.abs(B.cabBase[2]-B.cabBase[0])-.2,red,0,B.cab[2][1]+.015,(B.cabBase[0]+B.cabBase[2])/2);
@@ -735,13 +749,116 @@ function buildCar(def,opts){
     [-1,0,1].forEach(sd=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.16,12,1,true),exhM); t.rotation.x=Math.PI/2; t.position.set(sd*.2,B.base+.18,-Rr-.02); g.add(t); });
     paint.clearcoat=1; paint.clearcoatRoughness=.04;
   }
-  if(def.id==='vanta'){ // longtail LM: black canopy, cyan side ducts, number roundel on the door
+  if(cid==='vanta'){ // longtail LM: black canopy, cyan side ducts, number roundel on the door
     box(B.cw*.85,.025,1.05,blackM,0,B.cab[2][1]+.02,.45);
     const cyan=new THREE.MeshStandardMaterial({color:0x19c2ff,emissive:0x0a2844,emissiveIntensity:.45,roughness:.35,metalness:.2});
     [1,-1].forEach(sd=>box(.04,.16,.55,cyan,sd*(B.w/2+.06),B.base+.32,-.9));
     const disc=new THREE.Mesh(new THREE.CircleGeometry(.14,24),new THREE.MeshStandardMaterial({color:0x19c2ff,roughness:.4,metalness:.15})); disc.position.set(-(B.w/2+.13),.72,.55); disc.rotation.y=-Math.PI/2; g.add(disc);
     const num=new THREE.Mesh(new THREE.CircleGeometry(.09,20),new THREE.MeshBasicMaterial({color:0x0a0c10})); num.position.set(-(B.w/2+.14),.72,.55); num.rotation.y=-Math.PI/2; g.add(num);
     paint.clearcoat=1; paint.clearcoatRoughness=.06;
+  }
+  if(cid==='kern'){ // rear-engine GT: round chrome-ringed lamps, gold twin stripes over the front lid and roof, carbon splitter and door blades
+    const gold=new THREE.MeshStandardMaterial({color:def.caliper,roughness:.28,metalness:.75});
+    [1,-1].forEach(sd=>{ const ry=sd*.38, x=sd*hx, z=F-.06;
+      const ring=new THREE.Mesh(new THREE.TorusGeometry(.1,.018,8,24),chromeTrimM); ring.position.set(x,B.headY+.03,z); ring.rotation.y=ry; g.add(ring);
+      const lamp=new THREE.Mesh(new THREE.CircleGeometry(.09,20),headM); lamp.position.set(x,B.headY+.03,z-.005); lamp.rotation.y=ry; g.add(lamp);
+      box(.03,.16,1.2,carbonM,sd*(B.w/2+.14),B.base+.28,.2);
+      box(.012,.02,2.7,gold,sd*(B.w/2+.136),B.base+.5,.6); });
+    [.16,-.16].forEach(x=>{ strip(x,.14,cb[2],F-.2,gold,6); strip(x,.14,-.7,cb[2]-.1,gold,6,roofY); });
+    box(B.w*.92,.03,.32,carbonM,0,B.base+.02,F-.08);
+  }
+  if(cid==='dune'){ // rally-raid SUV: roof rack and spot lamps, arch cladding, skid plate, snorkel, tow hooks, spare on the tailgate
+    const alloy=new THREE.MeshStandardMaterial({color:0x9aa2ab,metalness:.9,roughness:.35}), orange=new THREE.MeshStandardMaterial({color:0xff6a1a,roughness:.4,metalness:.3});
+    const rt=roofY(-.3)+.08;
+    [1,-1].forEach(sd=>{ box(.05,.06,2.3,blackM,sd*.66,rt,-.3); [-1.4,.8].forEach(z=>{ const h=rt-roofY(z)+.03; box(.05,h,.06,blackM,sd*.66,rt-h/2,z); }); });
+    [-1.2,-.3,.6].forEach(z=>box(1.4,.04,.06,blackM,0,rt+.02,z));
+    box(1.5,.05,.08,blackM,0,rt+.05,.8);
+    [-.54,-.18,.18,.54].forEach(x=>{ const c=new THREE.Mesh(new THREE.CylinderGeometry(.09,.1,.1,16),blackM); c.rotation.x=Math.PI/2; c.position.set(x,rt+.15,.82); g.add(c);
+      const l=new THREE.Mesh(new THREE.CircleGeometry(.075,16),headM); l.position.set(x,rt+.15,.875); g.add(l); const s=glowSprite(0xfff1d6,.55); s.position.set(x,rt+.15,.92); g.add(s); });
+    flares(trimM,.12);
+    box(1.2,.34,.06,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.8,roughness:.3}),0,B.headY-.14,F+.05);
+    for(let i=0;i<3;i++) box(1.14,.035,.08,alloy,0,B.headY-.24+i*.1,F+.08);
+    box(1.3,.05,.55,alloy,0,B.base-.04,F-.1).rotation.x=.45;
+    [1,-1].forEach(sd=>{ box(.08,.1,.14,orange,sd*.62,B.base+.04,F+.04); box(.22,.04,1.5,alloy,sd*(B.w/2+.22),B.base-.04,0);
+      [1,-1].forEach(sz=>box(.3,.34,.02,blackM,sd*B.tr,.3,sz*B.wb-.62)); });
+    const sn=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.9,12),blackM); sn.position.set(B.w/2+.14,1.42,1.3); sn.rotation.x=-.28; g.add(sn); box(.14,.12,.2,blackM,B.w/2+.14,1.86,1.24);
+    const spare=new THREE.Mesh(TIRE_GEO,[tireTreadM,tireSideM,tireSideM]); spare.scale.setScalar(1.08); spare.rotation.x=Math.PI/2; spare.position.set(0,1.3,-Rr-.24); g.add(spare);
+    const hubR=new THREE.Mesh(new THREE.RingGeometry(.08,.2,20),def.bronze?bronzeM():blackM); hubR.rotation.y=Math.PI; hubR.position.set(0,1.3,-Rr-.405); g.add(hubR);
+  }
+  if(cid==='sovereign'){ // chauffeur saloon: tall chrome grille and mascot, hood strake, coach line, rear-hinged coach doors, discreet widebody arches
+    box(.8,.5,.08,chromeTrimM,0,B.headY-.06,F-.02); box(.7,.42,.06,new THREE.MeshStandardMaterial({color:0x07080a,metalness:.9,roughness:.2}),0,B.headY-.06,F+.005);
+    for(let i=0;i<9;i++) box(.022,.4,.06,chromeTrimM,-.32+i*.08,B.headY-.06,F+.02);
+    box(.03,.12,.07,chromeTrimM,0,B.headY+.26,F-.1).rotation.x=-.35;
+    strip(0,.05,1.05,F-.2,chromeTrimM,5);
+    box(1.7,.03,.04,chromeTrimM,0,B.base+.12,F+.02);
+    const top=Math.min(cb[1],cb[3])-.05, mid=(cb[0]+cb[2])/2-.1;
+    [1,-1].forEach(sd=>{ box(.01,.014,4.3,chromeTrimM,sd*(B.w/2+.137),B.base+.6,0);
+      box(.008,top-B.base-.14,.014,gapM,sd*(B.w/2+.128),(top+B.base+.14)/2,mid);
+      box(.02,.035,.17,chromeTrimM,sd*(B.w/2+.135),top-.12,mid-.25); });
+    [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>box(.14,.3,1.2,paint,sx*(B.w/2+.08),B.wr+.3,sz*B.wb).rotation.x=sz*.04);
+  }
+  if(cid==='granfour'){ // four-door fastback: 4-point LED lamps, black panoramic roof, pop-up ducktail, yellow lip and skirt accents, quad exhaust
+    const yel=new THREE.MeshStandardMaterial({color:def.accent,roughness:.35,metalness:.2});
+    [1,-1].forEach(sd=>{ const ry=sd*.38; [[-.1,.04],[.1,.04],[-.1,-.035],[.1,-.035]].forEach(([t,y])=>box(.07,.03,.02,headM,sd*hx+t*Math.cos(ry),B.headY+y,F-.09-t*Math.sin(ry),ry));
+      box(.02,.03,B.wb*2-1.1,yel,sd*(B.w/2+.136),B.base+.02,0); box(.014,.13,B.wb*2-.9,trimM,sd*(B.w/2+.132),B.base+.12,0);
+      const mid=(cb[0]+cb[2])/2-.05, top=Math.min(cb[1],cb[3])-.05; box(.008,top-B.base-.14,.014,gapM,sd*(B.w/2+.128),(top+B.base+.14)/2,mid);
+      box(.02,.035,.17,chromeTrimM,sd*(B.w/2+.135),top-.12,mid-.35); });
+    strip(0,B.cw*.82,-1.3,.8,trimM,6,roofY);
+    box(B.w*.8,.03,.06,yel,0,B.base+.02,F+.02);
+    const dz=-2.18, dy=deckY(dz)+.08; box(1.5,.035,.26,paint,0,dy,dz).rotation.x=-.15; [1,-1].forEach(sd=>box(.04,.08,.1,blackM,sd*.5,dy-.05,dz));
+    [.3,-.3].forEach(x=>pipe(x,B.base+.22,-Rr-.02,.05));
+  }
+  if(cid==='bell'){ // W16 longtail: gold C-sweep on each flank, horseshoe grille, quad-LED headlamps, gold dorsal spine, square quad exhaust
+    const gold=new THREE.MeshStandardMaterial({color:def.accent,roughness:.22,metalness:.85});
+    const R=.44, zc=-.05, yc=B.base+.42, n=16;
+    [1,-1].forEach(sd=>{ const x=sd*(B.w/2+.145);
+      for(let i=0;i<n;i++){ const a=-Math.PI/2+(i+.5)/n*Math.PI; box(.022,.08,R*Math.PI/n*1.25,gold,x,yc+R*Math.sin(a),zc-R*Math.cos(a)).rotation.x=a-Math.PI/2; }
+      box(.02,.5,.26,carbonM,sd*(B.w/2+.138),yc,zc-R+.19);
+      const ry=sd*.38; [-.18,-.06,.06,.18].forEach(t=>box(.08,.04,.02,headM,sd*hx+t*Math.cos(ry),B.headY+.035,F-.09-t*Math.sin(ry),ry)); });
+    const hs=new THREE.Mesh(new THREE.TorusGeometry(.17,.03,8,28,Math.PI*1.3),chromeTrimM); hs.rotation.z=Math.PI*.85; hs.position.set(0,B.headY-.1,F+.04); g.add(hs);
+    const hf=new THREE.Mesh(new THREE.CircleGeometry(.16,24),carbonM); hf.position.set(0,B.headY-.1,F+.03); g.add(hf);
+    strip(0,.04,cb[0]+.15,cb[2]-.2,gold,6,roofY); strip(0,.04,-2.45,cb[0]+.1,gold,5);
+    [[-.1,.07],[.1,.07],[-.1,-.07],[.1,-.07]].forEach(([x,y])=>{ box(.15,.11,.14,exhM,x,B.base+.24+y,-Rr-.02); box(.11,.07,.02,gapM,x,B.base+.24+y,-Rr-.095); });
+  }
+  if(cid==='passyunk'){ // hot hatch: roof-edge spoiler, gloss black roof, twin white stripes, hood scoop, fender vents, canards, triple center exhaust
+    const white=new THREE.MeshStandardMaterial({color:0xf2f4f6,roughness:.3,metalness:.1});
+    strip(0,B.cw*.86,-1.6,.35,trimM,6,roofY);
+    [.13,-.13].forEach(x=>{ strip(x,.12,cb[2],F-.12,white,6); strip(x,.12,-1.6,.35,white,6,z=>roofY(z)+.012); });
+    const sy=roofY(-1.72)+.02; box(B.cw*.92,.035,.34,paint,0,sy,-1.86).rotation.x=.12; [1,-1].forEach(sd=>box(.03,.12,.34,trimM,sd*B.cw*.46,sy-.04,-1.86));
+    box(.44,.07,.3,trimM,0,deckY(1.45)+.03,1.45);
+    [1,-1].forEach(sd=>{ for(let i=0;i<3;i++) box(.02,.035,.3,trimM,sd*(B.w/2+.135),B.base+.5-i*.07,B.wb-.62);
+      box(.26,.025,.12,trimM,sd*(B.w/2-.08),B.base+.12,F-.02).rotation.z=sd*.3; });
+    [-.16,0,.16].forEach(x=>pipe(x,B.base+.18,-Rr-.02,.05));
+  }
+  if(cid==='richmond'){ // work pickup: open bed with liner and a pallet, headache rack, amber cab markers, steel bumpers, tow hooks, hitch, arch flares, mud flaps
+    const liner=new THREE.MeshStandardMaterial({color:0x121316,roughness:.85,metalness:.1}), steel=new THREE.MeshStandardMaterial({color:0x2a2d33,metalness:.7,roughness:.45});
+    const amber=new THREE.MeshBasicMaterial({color:0xffa028,toneMapped:false}), orange=new THREE.MeshStandardMaterial({color:def.caliper,roughness:.4,metalness:.3}), wood=new THREE.MeshStandardMaterial({color:0x8a6a44,roughness:.85});
+    const bz0=-2.7, bz1=-.7, bl=bz1-bz0, bm=(bz0+bz1)/2, by=1.35;
+    box(B.w-.06,.02,bl-.1,liner,0,by+.01,bm);
+    [1,-1].forEach(sd=>{ box(.1,.3,bl,paint,sd*(B.w/2+.07),by+.15,bm); box(.12,.03,bl,steel,sd*(B.w/2+.07),by+.31,bm); });
+    box(B.w+.24,.3,.1,paint,0,by+.15,bz0); box(B.w+.24,.3,.08,paint,0,by+.15,bz1);
+    for(let i=0;i<5;i++) box(1.1,.03,.14,wood,0,by+.16,-1.7-.36+i*.18);
+    [-.45,0,.45].forEach(x=>box(.12,.12,.9,wood,x,by+.08,-1.7));
+    [1,-1].forEach(sd=>box(.06,.7,.06,steel,sd*.8,by+.35,bz1-.08)); box(1.66,.06,.06,steel,0,by+.7,bz1-.08); [-.3,0,.3].forEach(x=>box(.03,.64,.03,steel,x,by+.35,bz1-.08));
+    const my=roofY(.66)+.02; [-.4,-.2,0,.2,.4].forEach(x=>box(.08,.035,.05,amber,x,my,.66));
+    box(1.3,.44,.06,steel,0,B.headY-.12,F+.06); for(let i=0;i<3;i++) box(1.2,.05,.08,exhM,0,B.headY-.26+i*.14,F+.09);
+    box(B.w+.1,.22,.22,steel,0,B.base+.02,F+.02); [1,-1].forEach(sd=>box(.08,.12,.16,orange,sd*.62,B.base-.08,F+.12));
+    box(.7,.06,1.0,paint,0,deckY(1.9)+.02,1.9).rotation.x=-Math.atan2(deckY(2.4)-deckY(1.4),1); box(.36,.12,.28,blackM,0,deckY(1.55)+.1,1.55);
+    box(B.w,.14,.24,steel,0,B.base+.02,-Rr-.02); box(.1,.1,.26,steel,0,B.base-.04,-Rr-.16);
+    flares(blackM,.1);
+    [1,-1].forEach(sd=>[1,-1].forEach(sz=>box(.32,.38,.02,blackM,sd*B.tr,.32,sz*B.wb-.66)));
+  }
+  if(cid==='wisp'){ // carbon-tub featherweight: exposed carbon splitter, skirts, side pods and shark fin, mint light blades, pearl sheen
+    const mint=new THREE.MeshBasicMaterial({color:def.accent,toneMapped:false});
+    paint.sheen=new THREE.Color(0x3c7784); paint.clearcoat=1; paint.clearcoatRoughness=.02; // pearl: a cool sheen over the white
+    box(B.w*.96,.03,.34,carbonM,0,B.base+.01,F-.1);
+    box(B.w*.8,.02,.03,mint,0,B.headY+.09,F-.12);
+    [1,-1].forEach(sd=>{ box(.03,.1,B.wb*2-.7,carbonM,sd*(B.w/2+.13),B.base+.1,0); box(.02,.018,B.wb*2-.8,mint,sd*(B.w/2+.15),B.base+.17,0);
+      box(.05,.22,.5,carbonM,sd*(B.w/2+.12),B.base+.38,-.75).rotation.y=sd*.1;
+      const s=glowSprite(def.accent,.5); s.position.set(sd*(B.w/2+.15),B.base+.17,.6); g.add(s); });
+    box(.035,.3,1.0,carbonM,0,deckY(-1.25)+.1,-1.25).rotation.x=.12;
+    strip(0,.34,cb[0]+.12,cb[2]-.2,carbonM,6,roofY);
+    box(B.w*.7,.025,.03,mint,0,B.base+.14,-Rr-.08);
   }
   if(def.wing){ const wy=B.wingY, wz=B.wingZ;
     if(B.swan||def.swanWing){ [.5,-.5].forEach(x=>{ const p=box(.06,.62,.14,blackM,x,wy-.25,wz+.12); p.rotation.x=.35; }); const w=box(2.1,.06,.55,blackM,0,wy,wz); w.rotation.x=-.12;
@@ -766,8 +883,7 @@ function buildCar(def,opts){
   const plate=plateTex(def.plate||def.name.replace(/[^A-Z0-9]/g,'').slice(0,7));
   const pf=new THREE.Mesh(new THREE.PlaneGeometry(.52,.13),new THREE.MeshStandardMaterial({map:plate,roughness:.5})); pf.position.set(0,B.base+.2,F+.02); g.add(pf);
   const pr=pf.clone(); pr.position.set(0,B.base+.3,-Rr-.06); pr.rotation.y=Math.PI; g.add(pr);
-  if(def.id!=='noctis') [1,-1].forEach(sd=>{ const t=new THREE.Mesh(new THREE.CylinderGeometry(.055,.06,.16,14,1,true),exhM); t.rotation.x=Math.PI/2; t.position.set(sd*.45,B.base+.22,-Rr-.02); g.add(t);
-    const inner=new THREE.Mesh(new THREE.CircleGeometry(.05,14),gapM); inner.position.set(sd*.45,B.base+.22,-Rr+.04); inner.rotation.y=Math.PI; g.add(inner); });
+  if(!['noctis','bell','passyunk'].includes(cid)) [1,-1].forEach(sd=>pipe(sd*.45,B.base+.22,-Rr-.02,.055)); // those three carry their own center exits
   for(let i=0;i<5;i++) box(.025,.12,.4,trimM,-.5+i*.25,B.base+.02,-Rr+.12);
   }
   g.add(shadowPlane(B.w+1.05,(B.front+B.rear)*1.24));

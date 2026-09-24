@@ -1307,28 +1307,31 @@ const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
   roads:[{ew:1,c:-700,dir:1,a:-20,b:720},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:720,dir:1,a:-700,b:-300},{ew:0,c:2480,dir:1,a:-300,b:450}],
   cams:[[-20,-1150,1,0],[420,-700,0,1],[-80,150,-1,0],[2480,-200,1,0]],
   decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}};
-/* Event 10: Mt Airy / Germantown — tree-lined rowhome streets, speed bumps, potholes (≈2.6 km / lap). */
+/* Event 10: Mt Airy / Germantown (≈1.44 km / lap). A clean loop on the rowhome grid: up Greene St, across Mt Pleasant,
+   north on the Belgian-block cobbles and trolley rails of Germantown Ave, over Hortter St, down Lincoln Dr past the
+   Wissahickon woods and back along Upsal St. Speed bumps and potholes on every street. */
 const MTAIRY_ZS=[-990,-900,-810,-720,-630,-540,-450];
-function mtAiryHills(x,z){ return 1.05*Math.sin((x+520)*.011)*Math.cos((z+820)*.009)+.4*Math.sin((x+z)*.005); }
-const MTAIRY_CFG={banner:'EVENT 10 · MT AIRY RUN',start:[-480,-720],
-  corners:[[-480,-980,28],[-660,-980,24],[-660,-850,22],[-360,-850,24],[-360,-720,26],[-480,-720,20]],
-  yAt:(x,z)=>mtAiryHills(x,z), zMin:-1100, ZS:MTAIRY_ZS, jerseyMaxX:-220,
+function mtAiryHills(){ return 0; } // flat: the rowhomes, sidewalks and trees all sit at street level with the road
+const MTAIRY_CFG={banner:'EVENT 10 · MT AIRY RUN',start:[-400,-600],
+  corners:[[-400,-810,24],[-490,-810,24],[-490,-990,26],[-670,-990,26],[-670,-540,28],[-400,-540,28]],
+  yAt:()=>0, zMin:-1100, ZS:MTAIRY_ZS, jerseyMaxX:-220,
   nwGrid:{XS:[-760,-670,-580,-490,-400,-310,-220], ZS:MTAIRY_ZS},
-  trackX:(x,zc)=>(x===-480&&zc>-980&&zc<-720)||(x===-660&&zc>-980&&zc<-850)||(x===-360&&zc>-850&&zc<-720),
-  trackZ:(z,xc)=>(z===-980&&xc>-660&&xc<-480)||(z===-850&&xc>-660&&xc<-360)||(z===-720&&xc>-480&&xc<-360),
-  skip:[[-700,-260,-990,-430],[-760,-680,-1060,-990],[-580,-490,-900,-810]], excl:[],
-  namesX:{'-660':'Lincoln Dr','-480':'Germantown Ave','-360':'Greene St'},
-  namesZ:{'-980':'Hortter St','-850':'Phil-Ellena St','-720':'Upsal St'},
-  gantries:[[-480,-920,'GERMANTOWN AVE','MT AIRY · CHESTNUT HILL  ↑'],[-660,-910,'LINCOLN DR','WISSAHICKON VALLEY  →'],[-360,-780,'GREENE ST','GERMANTOWN  ↓']],
-  roads:[{ew:0,c:-480,dir:1,a:-980,b:-720},{ew:1,c:-980,dir:-1,a:-660,b:-480},{ew:0,c:-660,dir:-1,a:-980,b:-850},{ew:1,c:-850,dir:1,a:-660,b:-360},{ew:0,c:-360,dir:1,a:-850,b:-720},{ew:1,c:-720,dir:-1,a:-480,b:-360}],
-  cams:[[-480,-860,1,0],[-660,-870,0,1]],
+  trackX:(x,zc)=>(x===-400&&zc>-810&&zc<-540)||(x===-490&&zc>-990&&zc<-810)||(x===-670&&zc>-990&&zc<-540),
+  trackZ:(z,xc)=>(z===-810&&xc>-490&&xc<-400)||(z===-990&&xc>-670&&xc<-490)||(z===-540&&xc>-670&&xc<-400),
+  skip:[[-760,-670,-990,-540],[-760,-680,-1060,-990],[-580,-490,-720,-630]], excl:[],
+  namesX:{'-670':'Lincoln Dr','-490':'Germantown Ave','-400':'Greene St'},
+  namesZ:{'-990':'Hortter St','-810':'Mt Pleasant Ave','-540':'Upsal St'},
+  gantries:[[-400,-700,'GREENE ST','MT PLEASANT  ↑'],[-490,-900,'GERMANTOWN AVE','CHESTNUT HILL  ↑'],[-670,-800,'LINCOLN DR','WISSAHICKON VALLEY  ↓'],[-560,-540,'UPSAL ST','GERMANTOWN  →']],
+  roads:[{ew:0,c:-400,dir:-1,a:-810,b:-540},{ew:0,c:-490,dir:-1,a:-990,b:-810},{ew:0,c:-670,dir:1,a:-990,b:-540},{ew:1,c:-540,dir:1,a:-670,b:-400}],
+  cams:[[-400,-680,1,0],[-670,-760,-1,0]],
   mtairy:true,
   hazards:[
-    [-480,-780,0,'bump'],[-480,-840,0,'bump'],[-480,-900,-3.2,'pothole'],[-480,-950,3,'bump'],
-    [-620,-980,0,'bump'],[-660,-940,0,'pothole'],[-660,-880,3.2,'bump'],[-660,-865,-3,'pothole'],
-    [-500,-850,0,'pothole'],[-420,-850,0,'bump'],[-380,-850,3,'pothole'],
-    [-360,-800,-3.2,'bump'],[-360,-760,0,'pothole'],[-360,-735,3,'bump'],
-    [-430,-720,0,'bump'],[-480,-735,-3,'pothole']
+    [-400,-640,0,'bump'],[-400,-700,-3.2,'pothole'],[-400,-760,0,'bump'],
+    [-445,-810,3,'pothole'],
+    [-490,-860,0,'bump'],[-490,-910,3.2,'pothole'],[-490,-950,0,'bump'],
+    [-580,-990,-3,'pothole'],
+    [-670,-940,0,'bump'],[-670,-860,3.2,'pothole'],[-670,-760,0,'bump'],[-670,-650,-3,'pothole'],
+    [-600,-540,0,'bump'],[-520,-540,3,'pothole'],[-450,-540,0,'bump']
   ]};
 function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
   const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); S.add(m); return m; };
@@ -1681,20 +1684,37 @@ function buildCity(C){
     const awning=new THREE.MeshStandardMaterial({color:0x8e1c1c,roughness:.5});
     boxM(8,.35,4.2,awning,-708,4.6,-1008);
     const wawa=mesh(new THREE.PlaneGeometry(4.6,1.2),new THREE.MeshBasicMaterial({map:CT(signCanvas('WAWA',{bg:'#d42020',color:'#fff',size:56})),toneMapped:false}),-512,5.4,-1002); wawa.rotation.y=Math.PI/2;
-    const trunks=[], crowns=[], crown2=[];
-    [[-480,-960,-740],[-660,-960,-870],[-360,-830,-740]].forEach(([x,z0,z1])=>{
-      for(let z=z0;z<z1;z+=18) [-14,14].forEach((ox,i)=>{ const px=x+ox, py=mtAiryHills(px,z);
-        pv.set(px,py+2.1,z); m4.compose(pv,new THREE.Quaternion(),one); trunks.push(m4.clone());
-        pv.set(px,py+5.1,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(1,.85,1)); (i?crown2:crowns).push(m4.clone()); }); });
-    [[-560,-870],[-520,-840],[-535,-860]].forEach(([x,z])=>{ const y=mtAiryHills(x,z);
-      pv.set(x,y+2.2,z); m4.compose(pv,new THREE.Quaternion(),one); trunks.push(m4.clone());
-      pv.set(x,y+5.4,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(1.15,1,1.15)); crowns.push(m4.clone()); });
+    const trunks=[], crowns=[], crown2=[], tree=(x,z,sc,alt)=>{ pv.set(x,2.1*sc,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(sc,sc,sc)); trunks.push(m4.clone());
+      pv.set(x,5.1*sc,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(sc,.85*sc,sc)); (alt?crown2:crowns).push(m4.clone()); };
+    // street trees along the sidewalks of every leg
+    const CN=MTAIRY_CFG.corners, clearOfCorners=(x,z)=>CN.every(([cx,cz])=>Math.hypot(x-cx,z-cz)>34);
+    const street=(x,z,i)=>{ if(clearOfCorners(x,z)) tree(x,z,.9,i); }; // on the sidewalk, between the lamp posts
+    [[-400,-800,-550],[-490,-980,-820],[-670,-980,-550]].forEach(([x,z0,z1])=>{ for(let z=z0+8;z<z1;z+=16) [-9.6,9.6].forEach((ox,i)=>street(x+ox,z,i)); });
+    [[-540,-660,-410],[-990,-660,-500],[-810,-480,-410]].forEach(([z,x0,x1])=>{ for(let x=x0+8;x<x1;x+=16) [-9.6,9.6].forEach((oz,i)=>street(x,z+oz,i)); });
+    // the Wissahickon woods west of Lincoln Dr: dense, taller, uneven
+    const RW=rng(1911); for(let i=0;i<150;i++){ const x=-758+RW()*70, z=-986+RW()*440; if(x>-688) continue; tree(x,z,1.2+RW()*.8,RW()<.5); }
     mkInst(new THREE.CylinderGeometry(.16,.22,4.2,6),treeM,trunks);
     mkInst(new THREE.SphereGeometry(1.55,12,8),leafM,crowns);
     mkInst(new THREE.SphereGeometry(1.35,12,8),leafM2,crown2);
-    flat(-575,-495,-895,-815,.04,new THREE.MeshStandardMaterial({color:0x163024,roughness:1}));
-    flat(-500,-380,-800,-750,.05,new THREE.MeshStandardMaterial({color:0x3a342c,roughness:.95}));
-    [[-500,-900],[-640,-920],[-390,-780],[-450,-740]].forEach(([x,z])=>{
+    flat(-760,-686,-990,-540,.03,new THREE.MeshStandardMaterial({color:0x10261a,roughness:1})); // forest floor
+    // Wissahickon schist wall along Lincoln Dr
+    const schist=new THREE.MeshStandardMaterial({map:CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#4a4a46'; g.fillRect(0,0,w,h);
+      for(let y=0;y<h;y+=10) for(let x=-(y%20);x<w;x+=22){ const v=58+((x*7+y*13)%40); g.fillStyle=`rgb(${v},${v-2},${v-8})`; g.fillRect(x+1,y+1,20,8); } }),true),roughness:.95});
+    schist.map.repeat.set(40,1); boxM(1,1.3,420,schist,-670-W-5.4,.65,-765);
+    // pocket park inside the loop
+    flat(-578,-492,-718,-632,.04,new THREE.MeshStandardMaterial({color:0x163024,roughness:1}));
+    // Germantown Ave: Belgian-block cobbles and SEPTA trolley rails
+    const onGtn=p=>Math.abs(p.x+490)<3&&p.z<-835&&p.z>-965;
+    const cobT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#2a2826'; g.fillRect(0,0,w,h);
+      for(let y=0;y<h;y+=8) for(let x=-(y/8%2)*6;x<w;x+=12){ const v=58+((x*31+y*17)%34); g.fillStyle=`rgb(${v},${v-3},${v-7})`; g.fillRect(x+1,y+1,10,6); } }),true);
+    cobT.repeat.set(3,1);
+    ribbonF(tr,S,wetRoad(new THREE.MeshStandardMaterial({map:cobT,roughness:.55,metalness:.1})),(k,p)=>onGtn(p)?[-W,.02,W,.02]:null,4);
+    const railM=new THREE.MeshStandardMaterial({color:0xb8bec6,metalness:1,roughness:.2});
+    [-4.2,-2.8,2.8,4.2].forEach(o=>ribbonF(tr,S,railM,(k,p)=>onGtn(p)?[o-.05,.045,o+.05,.045]:null));
+    const trolley=new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.6,roughness:.4});
+    for(let z=-960;z<-835;z+=30) [-1,1].forEach(sd=>boxM(.2,7,.2,trolley,-490+sd*(W+2.6),3.5,z)); // catenary poles
+    ribbonF(tr,S,trolley,(k,p)=>onGtn(p)?[-3.5,6.4,-3.46,6.44]:null); ribbonF(tr,S,trolley,(k,p)=>onGtn(p)?[3.46,6.4,3.5,6.44]:null); // overhead wire
+    [[-420,-640],[-500,-900],[-640,-960],[-660,-620],[-460,-560]].forEach(([x,z])=>{
       const L=new THREE.PointLight(0xffc98a,.9,24,2); L.position.set(x,7,z); S.add(L);
       const s=glowSprite(0xffd9a0,2.2); s.position.set(x,6.2,z); S.add(s); });
   }
@@ -1931,8 +1951,8 @@ const EVENTS=[
    specs:'8.8 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
    note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'},
   {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 10',loc:'Northwest Philly',when:'Germantown Ave to Lincoln Dr',
-   caption:'Three laps through Mt Airy and Germantown: rowhome blocks, tree-lined Germantown Ave, a kink onto Lincoln Dr, then back through Greene St. The city never repaved it — speed bumps and potholes punish anyone still on the gas.',
-   specs:'2.6 KM LOOP / 3 LAPS / 7 CARS / LIVE TRAFFIC / SPEED BUMPS & POTHOLES',
+   caption:'Three laps through Mt Airy and Germantown: up Greene St between the rowhomes, onto the Belgian-block cobbles and trolley rails of Germantown Ave, down Lincoln Dr beside the Wissahickon woods, then back along Upsal St. The city never repaved it: speed bumps and potholes punish anyone still on the gas.',
+   specs:'1.4 KM LOOP / 3 LAPS / 7 CARS / LIVE TRAFFIC / SPEED BUMPS & POTHOLES',
    note:'bumps.\npotholes.\nreal life.',load:'Mt Airy Run. Germantown and Lincoln Dr. Mind the asphalt.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
@@ -2039,10 +2059,10 @@ EVENTS[8].setup=()=>{ const at=EVENTS[8].sNear;
     [at(2000,450),3.4,'shock'],[at(1400,450),0,'long'],[at(800,450),-3.4,'refill'],[at(250,450),3.4,'over'],[at(-80,300),-3.4,'grip'],[at(-80,-100),3.4,'over'],[at(-80,-800),0,'shock'],[at(-80,-1200),-3.4,'sling'],
     [at(-20,-1150),0,'desperate',{last:1}],[at(-20,-980),3.4,'echoboost',{lastTwo:1}],[at(520,-700),3.4,'wispflux',{car:'wisp',sig:1}],[at(1700,-300),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 EVENTS[9].setup=()=>{ const at=EVENTS[9].sNear;
-  addPickups(EVENTS[9],[[at(-480,-820),-3.4,'refill'],[at(-480,-910),3.4,'grip'],[at(-660,-920),0,'shield'],[at(-660,-865),-3.4,'sling'],
-    [at(-500,-850),3.4,'over'],[at(-420,-850),0,'refill'],[at(-360,-780),-3.4,'long'],[at(-360,-735),3.4,'shock'],
-    [at(-480,-735),0,'desperate',{last:1}],[at(-660,-875),3.4,'echoboost',{lastTwo:1}],[at(-480,-880),3.4,'wispflux',{car:'wisp',sig:1}],
-    [at(-360,-760),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
+  addPickups(EVENTS[9],[[at(-400,-620),-3.4,'refill'],[at(-400,-730),3.4,'grip'],[at(-490,-880),0,'shield'],[at(-490,-930),-3.4,'sling'],
+    [at(-590,-990),3.4,'over'],[at(-670,-900),0,'refill'],[at(-670,-700),-3.4,'long'],[at(-670,-610),3.4,'shock'],[at(-560,-540),0,'sling'],
+    [at(-400,-680),0,'desperate',{last:1}],[at(-670,-820),3.4,'echoboost',{lastTwo:1}],[at(-490,-860),3.4,'wispflux',{car:'wisp',sig:1}],
+    [at(-480,-540),-3.4,'stratossurge',{car:'stratos',sig:1}]]); }
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 const puHomF=mkF(), puHomT=new THREE.Vector3();
 function raceFieldN(){ return EV.knockout?koActive().length:racers.filter(x=>!x.finished&&!x.out).length; }

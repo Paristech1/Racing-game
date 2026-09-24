@@ -483,12 +483,20 @@ let SKY_MAT=null;
 function addDome(S){
   if(!SKY_MAT){ const tex=CT(canvasTex(1024,512,(g,w,h)=>{ const R=rng(9);
     const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#01030a'); gr.addColorStop(.3,'#060b18'); gr.addColorStop(.44,'#141a2c'); gr.addColorStop(.5,'#2b2331'); gr.addColorStop(.53,'#151b2b'); gr.addColorStop(1,'#0b0e15'); g.fillStyle=gr; g.fillRect(0,0,w,h);
-    for(let i=0;i<520;i++){ const y=R()*h*.36; g.fillStyle=`rgba(220,230,255,${.25+R()*.6})`; const s=R()<.08?1.6:.9; g.fillRect(R()*w,y,s,s); }
-    const mg=g.createRadialGradient(w*.72,h*.2,0,w*.72,h*.2,60); mg.addColorStop(0,'rgba(240,244,255,1)'); mg.addColorStop(.12,'rgba(230,236,255,.9)'); mg.addColorStop(.2,'rgba(170,190,230,.25)'); mg.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=mg; g.fillRect(w*.72-60,h*.2-60,120,120);
     for(let i=0;i<420;i++){ const y=h*(.33+Math.pow(R(),.6)*.165), x=R()*w, rx=40+R()*140, ry=5+R()*14, t=(y/h-.33)/.165;
       const c=g.createRadialGradient(x,y,0,x,y,rx); const col=t>.8?`${96+R()*30|0},${70+R()*16|0},${72|0}`:`${34+t*40|0},${42+t*26|0},${62+t*14|0}`; c.addColorStop(0,`rgba(${col},${.04+R()*.06})`); c.addColorStop(1,`rgba(${col},0)`);
       g.save(); g.translate(x,y); g.scale(1,ry/rx); g.translate(-x,-y); g.fillStyle=c; g.fillRect(x-rx,y-rx,rx*2,rx*2); g.restore(); }
-    const hz=g.createLinearGradient(0,h*.44,0,h*.52); hz.addColorStop(0,'rgba(255,150,90,0)'); hz.addColorStop(.7,'rgba(255,140,80,.14)'); hz.addColorStop(1,'rgba(255,140,80,0)'); g.fillStyle=hz; g.fillRect(0,h*.44,w,h*.08); }));
+    const hz=g.createLinearGradient(0,h*.44,0,h*.52); hz.addColorStop(0,'rgba(255,150,90,0)'); hz.addColorStop(.7,'rgba(255,140,80,.14)'); hz.addColorStop(1,'rgba(255,140,80,0)'); g.fillStyle=hz; g.fillRect(0,h*.44,w,h*.08);
+    // Skia dithers canvas gradients, and the dome magnifies each texel ~4x on screen, so the dither read as a dot
+    // lattice across the sky. Blur the gradient layers (wrapping horizontally so the u seam stays clean), then add
+    // the stars and moon on top so they stay sharp
+    const pad=8, t=document.createElement('canvas'); t.width=w+pad*2; t.height=h; const tg=t.getContext('2d');
+    tg.drawImage(g.canvas,pad,0); tg.drawImage(g.canvas,pad-w,0); tg.drawImage(g.canvas,pad+w,0);
+    g.clearRect(0,0,w,h); g.filter='blur(2.5px)'; g.drawImage(t,-pad,0); g.filter='none';
+    g.fillStyle='#01030a'; g.fillRect(0,0,w,4); // the blur pulls transparency in at the pole row
+    for(let i=0;i<520;i++){ const y=R()*h*.36; g.fillStyle=`rgba(220,230,255,${.25+R()*.6})`; const s=R()<.08?1.6:.9; g.fillRect(R()*w,y,s,s); }
+    const mg=g.createRadialGradient(w*.72,h*.2,0,w*.72,h*.2,60); mg.addColorStop(0,'rgba(240,244,255,1)'); mg.addColorStop(.12,'rgba(230,236,255,.9)'); mg.addColorStop(.2,'rgba(170,190,230,.25)'); mg.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=mg; g.fillRect(w*.72-60,h*.2-60,120,120);
+    }));
     SKY_MAT=new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,fog:false,depthWrite:false}); }
   const m=new THREE.Mesh(new THREE.SphereGeometry(1400,40,20),SKY_MAT); m.renderOrder=-1; m.frustumCulled=false; S.add(m); S.userData.dome=m; return m;
 }
@@ -2691,11 +2699,16 @@ function sceneKit(o){
       quad(b,[a[0],y0,a[1]],[e[0],y0,e[1]],[e[0],y1,e[1]],[a[0],y1,a[1]],[mx/ml,0,mz/ml],[[uo,y0/T],[uo+len/T,y0/T],[uo+len/T,y1/T],[uo,y1/T]]); }
     quad(roofB,[pts[0][0],y1,pts[0][1]],[pts[1][0],y1,pts[1][1]],[pts[2][0],y1,pts[2][1]],[pts[3][0],y1,pts[3][1]],[0,1,0],[[0,0],[1,0],[1,1],[0,1]]); };
   // a row of buildings facing the road on one side, from s0 to s1 (setback measured from the centerline)
+  // true when a footprint (center c, length along t, depth along r) keeps every corner and edge midpoint off the
+  // road and sidewalk: frontage on the inside of a bend (or near another leg of the loop) would otherwise sit on it
+  K.clearOf=(c,t,r,len,dep,min)=>{ const tr=K.tr, m2=min*min;
+    for(const [a,b] of [[-1,-1],[-1,1],[1,-1],[1,1],[0,-1],[0,1],[-1,0],[1,0]]){ const x=c.x+t.x*a*len/2+r.x*b*dep/2, z=c.z+t.z*a*len/2+r.z*b*dep/2;
+      for(let k=0;k<tr.N;k+=2){ const p=tr.pts[k], dx=p.x-x, dz=p.z-z; if(dx*dx+dz*dz<m2) return false; } } return true; };
   K.frontage=(s0,s1,side,o2)=>{ o2=o2||{}; const W=K.tr.W; let s=s0;
     while(s<s1){ const len=(o2.len||[14,26])[0]+K.R()*((o2.len||[14,26])[1]-(o2.len||[14,26])[0]); const sm=s+len/2; K.at(sm,side*(W+(o2.set||6)));
       const yaw=Math.atan2(K.f.t.x,K.f.t.z), dep=(o2.dep||[12,20])[0]+K.R()*((o2.dep||[12,20])[1]-(o2.dep||[12,20])[0]), h=(o2.h||[8,16])[0]+K.R()*((o2.h||[8,16])[1]-(o2.h||[8,16])[0]);
       const c=K.pv.clone().addScaledVector(K.f.r,side*dep/2), st=o2.styles||['brick','stone'];
-      if(!o2.gap||K.R()>o2.gap) K.obox(st[(K.R()*st.length)|0],c.x,c.z,yaw,dep,len-1.2,h,(o2.y0!==undefined?o2.y0:K.f.p.y-.5));
+      if((!o2.gap||K.R()>o2.gap)&&K.clearOf(c,K.f.t,K.f.r,len-1.2,dep,W+4.4)) K.obox(st[(K.R()*st.length)|0],c.x,c.z,yaw,dep,len-1.2,h,(o2.y0!==undefined?o2.y0:K.f.p.y-.5));
       s+=len+(o2.space||1); } };
   K.flush=()=>{ Object.values(K.fac).concat([roofB]).forEach(b=>{ if(!b.pos.length) return; const g=new THREE.BufferGeometry();
     g.setAttribute('position',new THREE.Float32BufferAttribute(b.pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(b.nor,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(b.uv,2));
@@ -3118,6 +3131,13 @@ function buildKensington(){
   K.flat(770+W+4.5,770+44,-280,170,.02,new THREE.MeshStandardMaterial({color:0x1b1c20,roughness:.85}));
   K.frontage(sAll0,sAll1,-1,{set:5.4,h:[8,11],dep:[10,13],len:[5,6.5],space:.12,gap:.06,styles:['brick']});
   K.frontage(sAll0,sAll1,1,{set:5.4,h:[8,11],dep:[10,13],len:[5,6.5],space:.12,gap:.06,styles:['brick','stone']});
+  // fill the bare stretches: the far side of Kensington Ave by the line, Allegheny back round to the El, and the
+  // inside of Lehigh (clear of the freight tracks) and Aramingo
+  K.frontage(sElA,tr.L-20,-1,{set:5.6,h:[8,12],dep:[10,14],len:[6,9],space:.3,gap:.1,styles:['brick','stone']});
+  [-1,1].forEach(sd=>K.frontage(sAll1+10,sElA-10,sd,{set:5.4,h:[8,11],dep:[10,13],len:[5,6.5],space:.12,gap:.08,styles:sd>0?['brick','stone']:['brick']}));
+  K.frontage(sLeh0+12,K.sNear(612,-320),1,{set:7,h:[9,14],dep:[18,30],len:[24,44],space:4,styles:['brick','stone']});
+  K.frontage(K.sNear(668,-320),sLeh1-12,1,{set:7,h:[9,14],dep:[18,30],len:[24,44],space:4,styles:['brick','stone']});
+  K.frontage(sAra0+12,sAra1-12,1,{set:6,h:[8,13],dep:[14,22],len:[18,36],space:3,styles:['brick','stone']});
   const STORE=['CHECK CASHING','PIZZA · HOAGIES','BEER DELI','CHINESE FOOD','PAWN','TATTOO','CORNER STORE','WATER ICE','BARBER'], SC=['#7dff9a','#ff3b3b','#ffd23b','#ff6fd8','#6fe3ff','#f4f7ff'];
   for(let s=30,i=0;s<sElB-20;s+=52,i++){ const sd=i%2?1:-1; K.at(s,sd*(W+5.1),4.4); const r=K.f.r.clone().multiplyScalar(-sd); K.sign(signCanvas(STORE[i%STORE.length],{bg:'#07080a',color:SC[i%SC.length],size:46,glow:14}),5,1.1,K.pv.x,K.pv.y,K.pv.z,Math.atan2(r.x,r.z)); }
   const MUR=[['#ff6f3c','#ffd23b','#2f6fd6'],['#7dff9a','#1d6fd6','#ff6fd8'],['#e81828','#f4f7ff','#18b3a6']];

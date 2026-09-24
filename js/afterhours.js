@@ -4168,7 +4168,8 @@ function stepRacer(r,dt,inp){
     if(brake) nitro=false;
     r._nos=nitro;
   }
-  r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*9)):steer;
+  // digital steering: build lock at a steady rate, but let go and counter-steer quicker so corrections feel crisp
+  r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*(Math.abs(steer)<Math.abs(r.steer)||steer*r.steer<0?15:8.5))):steer;
   if(d.noBoost) nitro=false;
   const cap=d.vcap||VCAP;
   const nosVmax=d.nosVmax||1.22, nosV=nitro?nosVmax*(r.fxWisp>0?1.1:1):1;

@@ -1,6 +1,6 @@
 ---
 name: afterhours-threejs
-description: AFTERHOURS racing game Three.js stack and file layout. Use whenever editing 3D, rendering, tracks, cars, post-processing, or UI tied to the canvas in this repository.
+description: AFTERHOURS racing game Three.js stack, file layout and car-building helpers. Always use first, before any other threejs-* skill, whenever editing 3D, rendering, tracks, cars, post-processing, or UI tied to the canvas in this repository.
 ---
 
 # AFTERHOURS Three.js context
@@ -32,6 +32,22 @@ Open http://localhost:8080 — needs egress to cdnjs, jsDelivr, and Google Fonts
 - **City tracks:** `buildCity(C)` + configs like `PHILLY_CFG`, `MTAIRY_CFG` (corners, `yAt`, hazards, props)
 - **Race loop:** mode `race`, `TR` track, `EV` current event, physics in same file
 - **Post FX:** `EffectComposer` + bloom; scene `userData.bloom` thresholds per event
+
+## Building cars (`buildCar` in `afterhours.js`)
+
+- **Body:** each car's silhouette is a `BODIES` entry (`pts` = body profile, `cab` = glass canopy, x runs rear to front). `profileGeo` extrudes it with a bevel, so the side face sits at `±(B.w/2 + .14)`. Put side trim at `B.w/2 + .14` to `.15`; anything under `.14` is hidden inside the paint.
+- **Per-car details:** add an `if(cid==='<id>'){ ... }` block. Use `cid` (`def.chassisId || def.id`), not `def.id`, so rivals driving that chassis get the details too.
+- **Helpers in scope:**
+  - `box`: add a box mesh.
+  - `deckY(z)` / `roofY(z)`: surface height sampled from the same splines the extrusion uses.
+  - `strip(x, w, z0, z1, mat, n, top, t)`: a stripe, or a raised bulge with thickness `t`, laid over a curved surface.
+  - `pipe`: an exhaust tip.
+  - `flares`: wheel-arch cladding.
+  - `decal(w, h, draw)`: a canvas-texture material for badges and numbers.
+- **Shared materials:** `paint` (MeshPhysical clearcoat plus flake normal map), `carbonM` (canvas twill weave), `chromeTrimM`, `trimM`, `blackM`, `headM` / `tailM` (unlit, `toneMapped:false`, so they bloom), `gapM`.
+- **Draw calls:** `mergeByMaterial` folds every direct child of the car group into one mesh per material. Reuse materials instead of creating new ones per part.
+- **Speed:** `top`, `acc`, `grip`, `nitro` and `mass` drive the physics. `vcap` raises a car's own speed ceiling above the global `VCAP`. See `stepRacer` for the outlaw-car mechanics (`noBoost`, `sigTop`, `lastTop`, `cleanTop`).
+- **Testing:** after a car change, bump `?v=` in `index.html`. Check the car in the car-select studio from two angles (drag vertically first to orbit; a horizontal drag changes car).
 
 ## Conventions when porting skill examples
 

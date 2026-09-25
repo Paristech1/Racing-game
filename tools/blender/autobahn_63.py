@@ -380,7 +380,7 @@ tube('taillight', tl, .014, 'TAIL', res=4)
 for sd in (1, -1):
     x0, y0, z0 = tl[-1 if sd > 0 else 0]
     ret = [(x0, y0, z0)]
-    for i, xx in enumerate((.83, .87), 1):                      # wrap round the tail corner, hugging the surface
+    for i, xx in enumerate((.81, .84), 1):                      # wrap round the tail corner, hugging the surface
         yy = y0 - .006 * i; ret.append((sd * xx, yy, (surf_back(sd * xx, yy) or z0) - .004))
     for i, z in enumerate((-2.46, -2.38), 3): ret.append((sd * ((surf_side(y0 - .006 * i, z, sd) or .9) + .003), y0 - .006 * i, z))
     tube(f'tailret{sd}', ret, .012, 'TAIL', res=4)

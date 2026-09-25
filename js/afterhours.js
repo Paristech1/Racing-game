@@ -820,7 +820,7 @@ function volcanoShell(g,def,B,paint,glass,opts){
    Proportioned from side-view refs of the class: long hood with the cowl behind the front axle, convex sides that swell over
    both axles into wide hips, a low tumblehome glasshouse falling to a ducktail, gloss-black sills/valance, flush lower aero.
    Blender material names map onto the game's materials; the procedural autobahnShell stays as the fallback. */
-const PLATE_Z=-2.61, HEAD_Z=2.3, TAIL_Z=-2.64; // lamp glow / plate stations on the v2 body (provisional until the v2 GLB export lands)
+const PLATE_Z=-2.605, HEAD_Z=2.28, TAIL_Z=-2.64; // lamp glow / plate stations measured off the v2 GLB
 function autobahnGlbShell(g,def,B,paint,glass,opts){
   const parts=glbParts('autobahn'); if(!parts) return autobahnShell(g,def,B,paint,glass,opts);
   const K=carKit(g); rimPaint(paint,0x6f9dff,.12); paint.clearcoat=1; paint.clearcoatRoughness=.012; paint.roughness=Math.min(paint.roughness,.12);
@@ -6412,6 +6412,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=1'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

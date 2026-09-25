@@ -307,16 +307,23 @@ CZS = [lerp(CZ0, CZ1, i / 159) for i in range(160)]
 cab = [[G(x, y, z) for x, y in mirror_ring(cab_ring(z))] for z in CZS]
 cabin = loft('Cabin', cab, 'PAINT'); cabin.data.materials.append(M['GLASS']); cabin.data.materials.append(M['GLOSSBLACK'])
 DLO_R0, DLO_R1, DLO_F, DLO_K = -1.8, -1.3, .5, .57   # C-pillar point at the belt / at the roof, A-pillar at the belt
+NR = len(cab[0]); NH = NR // 2 + 1                  # ring size / half-ring size (mirror_ring)
+def ring_u(jj):                                      # 0 at the belt -> .55 at the roof rail -> 1 on the centreline
+    h = jj if jj < NH else NR - jj
+    return clamp((h - 2) / 14 * .55, 0, .55) if h <= 16 else .55 + (h - 16) / (NH - 1 - 16) * .45
+def a_line(u): return lerp(DLO_F, -.06, clamp(u / .6, 0, 1))   # A-pillar centre line in (u, z)
 for p in cabin.data.polygons:
-    c = p.center; gx, gy, gz = abs(c.x), c.z, -c.y; n = p.normal; nx, nz = abs(n.x), -n.y
-    b = BELT.get(round(min(max(gz, CZ0), CZ1), 5)) or belt(gz); rw = rw_(gz); top = kf(CH, gz)
-    if gy < b + .01: continue
-    h = clamp((gy - b) / max(top - .05 - b, .01), 0, 1)
-    if nz > .42 and gz > -.15 and gx < rw * .93: p.material_index = 1                          # windscreen
-    elif nz < -.22 and gz < -1.4 and gx < rw * .86: p.material_index = 1                      # rear glass
-    elif nx > .45 and h < .96:
-        if lerp(DLO_R0, DLO_R1, h) < gz < DLO_F - DLO_K * h:
-            p.material_index = 2 if -.72 < gz < -.62 else 1                                    # side glass, black B-pillar
+    js = sorted({v % NR for v in p.vertices})
+    if len(js) != 2: continue                        # end caps stay paint
+    j0, j1 = js if js[1] - js[0] == 1 else (js[1], js[0])
+    u = .5 * (ring_u(j0) + ring_u(j1)); gz = -p.center.y
+    if min(j0 if j0 < NH else NR - j0, j1 if j1 < NH else NR - j1) < 2: continue   # belt skirt
+    za = a_line(u)
+    if gz > za + .03: p.material_index = 1                                           # windscreen, wraps to the cowl
+    elif gz > za - .03: continue                                                     # slim A-pillar
+    elif u >= .6: p.material_index = 1 if gz < -1.42 else 0                          # rear glass / painted roof
+    elif u < .53 and lerp(DLO_R0, DLO_R1, u / .53) < gz:
+        p.material_index = 2 if -.72 < gz < -.62 else 1                              # side glass, black B-pillar
 sharpen(cabin, 32)
 for sd in (1, -1):   # bright DLO surround: along the belt, over the door tops, into the C-pillar point
     tube(f'dlo_belt{sd}', [(sd * (cw_(z) + .003), belt(z) + .005, z) for z in [lerp(DLO_F, DLO_R0, k / 20) for k in range(21)]], .0065, 'CHROME', res=4)

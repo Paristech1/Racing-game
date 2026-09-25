@@ -361,11 +361,25 @@ try{ SAVE=JSON.parse(localStorage.getItem('afterhours.v1')||'{}')||{}; }catch(e)
 function persist(){ try{ localStorage.setItem('afterhours.v1',JSON.stringify(SAVE)); }catch(e){} }
 function hist(id){ const h=SAVE[id]||(SAVE[id]={runs:0,wins:0,hits:0,last:0}); if(!h.bestBy){ h.bestBy={}; if(h.best) h.bestBy.tunnel=h.best; } return h; }
 
+/* ---------------- GEOMETRY DETAIL ----------------
+   Game-wide polygon upgrade (threejs-geometry): every round primitive is built with more segments than its call site asks
+   for, so wheels, tyres, poles, lamps, domes and arches read smooth up close. Intentionally faceted shapes (3-5 sided prisms,
+   flat-shaded icosahedra) are left alone. Phones get a smaller multiplier. */
+const GEO_DETAIL=(matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700)?1.5:2;
+{ const up=(n,min,max)=>n>=6?Math.min(max,Math.max(min,Math.round(n*GEO_DETAIL))):n;
+  const C=THREE.CylinderGeometry, Sp=THREE.SphereGeometry, T=THREE.TorusGeometry, Ci=THREE.CircleGeometry, Ri=THREE.RingGeometry, Co=THREE.ConeGeometry, La=THREE.LatheGeometry;
+  THREE.CylinderGeometry=class extends C{ constructor(a,b,h,rs,hs,o,ts,tl){ super(a,b,h,up(rs===undefined?8:rs,12,96),hs,o,ts,tl); } };
+  THREE.ConeGeometry=class extends Co{ constructor(r,h,rs,hs,o,ts,tl){ super(r,h,up(rs===undefined?8:rs,12,96),hs,o,ts,tl); } };
+  THREE.SphereGeometry=class extends Sp{ constructor(r,ws,hs,a,b,c,d){ super(r,up(ws===undefined?32:ws,12,96),up(hs===undefined?16:hs,8,64),a,b,c,d); } };
+  THREE.TorusGeometry=class extends T{ constructor(r,t,rs,ts,arc){ super(r,t,up(rs===undefined?8:rs,8,24),up(ts===undefined?6:ts,16,160),arc); } };
+  THREE.CircleGeometry=class extends Ci{ constructor(r,seg,a,b){ super(r,up(seg===undefined?8:seg,16,128),a,b); } };
+  THREE.RingGeometry=class extends Ri{ constructor(i,o,ts,ps,a,b){ super(i,o,up(ts===undefined?8:ts,16,128),ps,a,b); } };
+  THREE.LatheGeometry=class extends La{ constructor(pts,seg,a,b){ super(pts,up(seg===undefined?12:seg,16,96),a,b); } }; }
 /* ---------------- RENDERER ---------------- */
 const canvas=$('#gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
 const PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700; // phones get a lighter pipeline
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,PHONE?1.4:1.6));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,PHONE?1.4:2));
 // if iOS resets the GPU, come back cleanly instead of sitting on a frozen frame
 canvas.addEventListener('webglcontextlost',e=>{ e.preventDefault(); const d=document.getElementById('ldsub'); if(d) d.textContent='Graphics were reset by the phone. Reloading.'; setTimeout(()=>location.reload(),1200); });
 // surface script errors on screen so a stuck load can be reported
@@ -642,7 +656,10 @@ function kfCR(keys,z){ // Catmull-Rom through [z,value] keys
   return .5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3);
 }
 // sweep a half cross-section (bottom-center → top-center, mirrored) through stations along z; capped ends
-function loftGeo(stations){
+function refineSection(pts){ const out=[]; for(let i=0;i<pts.length;i++){ out.push(pts[i]); if(i===pts.length-1) break;
+    const a=pts[Math.max(0,i-1)], b=pts[i], c=pts[i+1], d=pts[Math.min(pts.length-1,i+2)];
+    out.push([(-a[0]+9*b[0]+9*c[0]-d[0])/16,(-a[1]+9*b[1]+9*c[1]-d[1])/16]); } return out; } // Catmull-Rom at t=.5
+function loftGeo(stations){ if(GEO_DETAIL>1&&stations.length&&stations[0].pts.length<24) stations=stations.map(st=>({z:st.z,pts:refineSection(st.pts)}));
   const S=stations.length, m=stations[0].pts.length, n=2*(m-1), pos=[], uv=[], idx=[];
   const ring=st=>st.pts.concat(st.pts.slice(1,-1).reverse().map(([x,y])=>[-x,y]));
   stations.forEach((st,i)=>{ ring(st).forEach(([x,y],j)=>{ pos.push(x,y,st.z); uv.push(j/n,i/(S-1)); }); });
@@ -690,7 +707,7 @@ function sculptBody(g,S,paint,K){
     const yb=kfCR(S.ybK,z)+.03*tn*tn, hs=kfCR(S.hwS,z)*taper, hl=Math.min(kfCR(S.hwL,z)*taper,hs-.08), yc=kfCR(S.ycK,z);
     const ay=Math.max(arch(z),yb+.16), ys=Math.max(kfCR(S.ysK,z),ay+.05), yf=lerp(Math.max(kfCR(S.yfK,z),ys+.06),Math.max(yc+.03,ys+.04),tn), ht=hs-(S.inset||.15);
     return {yb,hs,hl,yc,ay,ys,yf,ht}; };
-  const st=[], NS=S.NS||48;
+  const st=[], NS=Math.round((S.NS||48)*GEO_DETAIL);
   for(let i=0;i<NS;i++){ const z=S.Z0+(S.Z1-S.Z0)*i/(NS-1), c=sec(z);
     st.push({z,pts:[[0,c.yb],[c.hl*.9,c.yb],[c.hl,c.yb+.05],[c.hl,c.ay],[c.hs*.985,Math.max(c.ys-.08,c.ay+.02)],[c.hs,c.ys],[c.hs-.05,c.ys+.07],[c.ht,c.yf],[c.ht*.5,(c.yf+c.yc)/2+.015],[0,c.yc]]}); }
   K.add(loftGeo(st),paint);
@@ -708,7 +725,7 @@ function sculptBody(g,S,paint,K){
 }
 /* teardrop / bubble canopy with an optional roof skin and black window trim */
 function sculptCanopy(g,C,T,glass,roofM,K){
-  const dome=(z0,z1,a0,sc,lift)=>{ const st=[]; for(let i=0;i<22;i++){ const z=z0+(z1-z0)*i/21, cw=kfCR(C.cwK,z)*sc, top=kfCR(C.htK,z)*(1+(sc-1)*.5)+lift, base=T.yc(z)-.03;
+  const dome=(z0,z1,a0,sc,lift)=>{ const st=[], NC=Math.round(22*GEO_DETAIL); for(let i=0;i<NC;i++){ const z=z0+(z1-z0)*i/(NC-1), cw=kfCR(C.cwK,z)*sc, top=kfCR(C.htK,z)*(1+(sc-1)*.5)+lift, base=T.yc(z)-.03;
       const pts=[[0,a0>0?base+(top-base)*.55:base],[cw*Math.cos(a0),a0>0?base+(top-base)*Math.sin(a0):base]];
       for(let k=1;k<=5;k++){ const a=a0+(Math.PI/2-a0)*k/6; pts.push([cw*Math.cos(a)*(1-(C.tumble||.06)*Math.sin(a)),base+(top-base)*Math.pow(Math.sin(a),C.pow||.8)]); }
       pts.push([0,top]); st.push({z,pts}); } return loftGeo(st); };

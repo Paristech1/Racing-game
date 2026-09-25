@@ -96,7 +96,7 @@ HW = [[-2.62, .76], [-2.52, .87], [-2.35, .95], [-2.0, 1.0], [-1.55, 1.03], [-1.
 YB = [[-2.62, .46], [-2.45, .28], [-2.2, .17], [2.0, .165], [2.28, .2], [2.42, .27]]                    # floor
 YS = [[-2.62, .82], [-2.4, .87], [-1.8, .9], [-1.35, .87], [-.7, .81], [.2, .78], [.9, .78], [1.4, .79], [1.8, .76],
       [2.1, .7], [2.32, .62], [2.42, .52]]                                                                # shoulder: fender crown + haunch
-YT = [[-2.62, .88], [-2.52, .975], [-2.35, .985], [-1.8, .99], [-1.0, .97], [0, .93], [.55, .9], [1.0, .87], [1.5, .83],
+YT = [[-2.62, .88], [-2.52, .985], [-2.35, .995], [-1.8, 1.0], [-1.0, .97], [0, .925], [.55, .895], [1.0, .87], [1.5, .83],
       [1.9, .78], [2.15, .72], [2.32, .65], [2.42, .56]]                                                  # hood / deck centre
 def dome(x, z):  # twin hood power domes
     w = smooth(.62, .95, z) * (1 - smooth(1.85, 2.2, z))
@@ -106,8 +106,10 @@ def section(z):
     yw = yb + (ys - yb) * .5                     # widest point, just above the hubs
     Rx = .15; Ry = max(.022, (yt - .012) - ys); x0 = hs - .045
     half = [(0, yb), (hs - .25, yb), (hs - .135, yb + .008), (hs - .1, yb + .045), (hs - .085, yb + .1)]
-    for k in range(1, 5):                        # lower body: bows out from a deep sill tuck to the bulge
-        t = k / 4; half.append((hs - .085 * (1 - t) ** 2.2, lerp(yb + .1, yw, t)))
+    yl = lerp(.52, .36, smooth(-1.3, 1.1, z))     # lower swage: a scooped line sweeping up from the front door to the haunch
+    wl = smooth(-1.35, -1.05, z) * (1 - smooth(.85, 1.1, z))
+    for k in range(1, 9):                        # lower body: bows out from a deep sill tuck to the bulge
+        t = k / 8; y = lerp(yb + .1, yw, t); half.append((hs - .085 * (1 - t) ** 2.2 - .016 * wl * math.exp(-((y - yl) / .04) ** 2), y))
     for t in (.22, .44, .5, .56, .78, 1.):       # upper body: tumbles in, with a crisp stepped feature line
         half.append((hs - .045 * t ** 1.7 - (.007 if t > .5 else 0), lerp(yw, ys, t)))
     for k in range(1, 7):                        # shoulder radius
@@ -171,10 +173,9 @@ ARCH_R = .408
 for sd in (1, -1):
     for zw in (WB, -WB): cyl_x(f'arch{sd}{zw}', WR, zw, ARCH_R, sd * .6, sd * 1.4)
 # front: one wide lower mouth, two corner intakes, a slim upper slot
-front_prism('mouth', rounded(0, .345, 1.08, .19, .05, skew=-.08), 2.1, 2.9)
+front_prism('mouth', [(-.56, .2), (.56, .2), (.5, .47), (.4, .5), (-.4, .5), (-.5, .47)], 2.06, 2.9)
 for sd in (1, -1):
-    front_prism(f'corner{sd}', [(sd * .63, .21), (sd * .86, .24), (sd * .84, .43), (sd * .66, .4)], 2.02, 2.9)
-front_prism('uslot', rounded(0, .505, .5, .026, .012), 2.15, 2.9)
+    front_prism(f'corner{sd}', [(sd * .62, .2), (sd * .86, .22), (sd * .86, .44), (sd * .72, .47), (sd * .6, .36)], 2.0, 2.9)
 # rear: diffuser bay, plate pocket
 front_prism('diff', rounded(0, .29, 1.5, .22, .04), -2.9, -2.36, 'GLOSSBLACK')
 front_prism('plate', rounded(0, .58, .54, .13, .02), -2.9, -2.6, 'GLOSSBLACK')
@@ -240,7 +241,7 @@ gb = slot_of(body, 'GLOSSBLACK')
 for p in body.data.polygons:
     if p.material_index != 0: continue
     c = p.center; gx, gy, gz = abs(c.x), c.z, -c.y; yb = kf(YB, gz)
-    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4):
+    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4) or (gz < -2.5 and .74 < gy < .9 and gx < .86):
         p.material_index = gb
 sharpen(body, 28)
 bvh = BV()
@@ -337,10 +338,13 @@ for sd in (1, -1):
         x = sd * lerp(.68, .82, k / 2); zc = surf_front(x, .32) or 2.3
         box(f'cfin{sd}{k}', (.01, .2, .12), (x, .32, zc - .07), 'CARBON', rot=(0, sd * .25, 0))
 # lower mouth: three satin blades across the opening with a carbon lip below
-for k in range(3):
-    y = .29 + k * .055; zc = surf_front(0, y) or 2.4
-    box(f'mblade{k}', (lerp(1.0, .92, k / 2), .012, .05), (0, y, zc - .07), 'SATIN')
-lip = [(-.9, 1.98)] + [(math.sin(a) * .9, 2.22 + math.cos(a) * .15) for a in [(-math.pi / 2) + math.pi * k / 24 for k in range(25)]] + [(.9, 1.98)]
+for k in range(5):                                                                                  # grille: satin blades, deep in the mouth
+    y = .24 + k * .055; zc = surf_front(0, y) or 2.3
+    box(f'mblade{k}', (lerp(1.04, .86, k / 4), .01, .04), (0, y, zc - .09), 'SATIN', rot=(-.25, 0, 0))
+for k in range(7):
+    x = -.42 + k * .14; zc = surf_front(x, .34) or 2.3
+    box(f'mvane{k}', (.008, .27, .04), (x, .34, zc - .1), 'GLOSSBLACK')
+lip = [(-.88, 1.98)] + [(math.sin(a) * .88, 2.2 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 24 for k in range(25)]] + [(.88, 1.98)]
 extrude_y('Lip', lip, .16, .178, 'CARBON')
 
 # ================================================================ FLANKS
@@ -378,10 +382,10 @@ for sd in (1, -1):
     ret = [(x0, y0, z0)] + [(sd * ((surf_side(y0 - .01 * i, z, sd) or .95) + .003), y0 - .01 * i, z) for i, z in enumerate((-2.52, -2.44, -2.34), 1)]
     tube(f'tailret{sd}', ret, .012, 'TAIL', res=4)
     for ex in (.4, .56):                                                                            # quad round tailpipes in the diffuser
-        cyl_z(f'exh{sd}{ex}', sd * ex, .27, -2.5, -2.3, .046, 'CHROME', open_=True)
-        cyl_z(f'exhi{sd}{ex}', sd * ex, .27, -2.46, -2.44, .04, 'GAP')
+        cyl_z(f'exh{sd}{ex}', sd * ex, .27, -2.44, -2.26, .046, 'CHROME', open_=True)
+        cyl_z(f'exhi{sd}{ex}', sd * ex, .27, -2.4, -2.38, .04, 'GAP')
 for k in range(5):                                                                                  # diffuser strakes, inside the footprint
-    x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.06, .17), (-2.36, .17), (-2.36, .3), (-2.24, .29)], x - .007, x + .007, 'CARBON')
+    x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.02, .17), (-2.3, .17), (-2.3, .28), (-2.2, .28)], x - .007, x + .007, 'CARBON')
 lipd = []                                                                                           # carbon ducktail lip
 for i in range(18):
     x = lerp(-.64, .64, i / 17); lipd.append((x, surf_y(x, -2.5) or .95))

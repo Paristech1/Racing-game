@@ -184,10 +184,10 @@ CARS.push(
   rival:'Rival note: never leave it behind you for long.',
   note:'patient.\nthen not.', notePos:{l:'58%',t:'33%'},
   cam:{p:[-4.4,.95,3.9],l:[0,.5,.3],roll:.05,fov:31}},
- {id:'autobahn',sculpt:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x1638a8,metal:.72,rough:.2,rim:0x131417,rimLip:0x0e0f11,lowPro:true,caliper:0xffc21a,wing:false,spokes:10,world:'flash',
+ {id:'autobahn',sculpt:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x0f2a96,metal:.86,rough:.14,rim:0x2a2d33,chrome:true,lowPro:true,caliper:0xffc21a,wing:false,spokes:10,world:'flash',
   top:96,acc:27,grip:30,nitro:1.15,mass:1.4,cleanTop:358,vcap:360,
   kick:'Outlaw 04',loc:'I-76, Blue Route split',when:'Unrestricted, 03:30',
-  caption:'Four doors, matte blue, a grille of vertical chrome. It gets faster the longer you leave it alone.',
+  caption:'Four doors, candy blue over carbon, black-chrome forged wheels and a light bar across the tail. It gets faster the longer you leave it alone.',
   specs:'4.0L TWIN-TURBO V8 + E-AXLE / 830 HP / FOUR DOORS / 800 MPH',
   rival:'Rival note: smooth is fast. Smoother is faster. Smoothest is something else.',
   note:'don\'t touch\nanything.', notePos:{l:'58%',t:'34%'},
@@ -1072,8 +1072,8 @@ function mantisShell(g,def,B,paint,glass){
    ends in a point, pronounced rear haunches, slim tail lamps, quad trapezoid exhausts. The finish follows the
    blender-skills product-polish recipe: flat material values, no noisy normal maps, a clear coat over satin paint. ---- */
 function autobahnShell(g,def,B,paint,glass){
-  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x7aa6ff,.16);
-  paint.clearcoat=1; paint.clearcoatRoughness=.02; // deep gloss metallic blue under a full clear coat (product-polish recipe: flat values, no flake map)
+  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x6f9dff,.26);
+  paint.clearcoat=1; paint.clearcoatRoughness=.015; paint.sheen!==undefined&&(paint.sheen=0); // deep gloss metallic blue under a full clear coat (product-polish recipe: flat values, no flake map)
   const silver=new THREE.MeshStandardMaterial({color:0xc4cad2,metalness:1,roughness:.2});
   const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
   const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:72,inset:.14,
@@ -1094,15 +1094,14 @@ function autobahnShell(g,def,B,paint,glass){
     const gT=.665, gB=.435, hwT=.37, hwB=.42;
     K.add(shp([[-hwB-.03,gB-.03],[hwB+.03,gB-.03],[hwT+.03,gT+.025],[-hwT-.03,gT+.025]]),GLOSS_BLACK,0,0,z);
     K.add(shp([[-hwB,gB],[hwB,gB],[hwT,gT],[-hwT,gT]]),gapM,0,0,z+.002);
-    for(let i=0;i<13;i++){ if(i===6) continue; const t=(i+.5)/13, xb=lerp(-hwB,hwB,t)*.95, xt=lerp(-hwT,hwT,t)*.95, sl=K.add(new THREE.BoxGeometry(.016,gT-gB-.04,.02),chromeTrimM,(xb+xt)/2,(gT+gB)/2,z+.008); sl.rotation.z=-(xt-xb)/(gT-gB); }
-    const cy=(gT+gB)/2; K.add(new THREE.CircleGeometry(.082,32),GLOSS_BLACK,0,cy,z+.016); K.add(new THREE.TorusGeometry(.082,.011,8,36),chromeTrimM,0,cy,z+.02);
-    K.add(new THREE.BoxGeometry(.11,.016,.012),chromeTrimM,0,cy,z+.022); [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.04,.011,.012),chromeTrimM,sd*.026,cy+.026,z+.022).rotation.z=-sd*.7); // original A63 roundel
+    for(let i=0;i<13;i++){ const t=(i+.5)/13, xb=lerp(-hwB,hwB,t)*.95, xt=lerp(-hwT,hwT,t)*.95, sl=K.add(new THREE.BoxGeometry(.016,gT-gB-.04,.02),chromeTrimM,(xb+xt)/2,(gT+gB)/2,z+.008); sl.rotation.z=-(xt-xb)/(gT-gB); }
+    K.tube([[-.4,gT+.04,z+.01],[0,gT+.046,z+.01],[.4,gT+.04,z+.01]],.007,headM,16); K.glow(0xcfe6ff,.5,0,gT+.05,z+.05); // lit bar across the top of the grille
     [1,-1].forEach(sd=>{ K.add(shp([[sd*.46,.24],[sd*.8,.26],[sd*.84,.5],[sd*.66,.5],[sd*.5,.4]]),GLOSS_BLACK,0,0,z); // corner intake
       for(let i=0;i<3;i++) K.add(new THREE.BoxGeometry(.3,.008,.02),gapM,sd*.66,.3+i*.06,z+.006);
       K.tube([[sd*.44,.64,z+.004],[sd*.62,.655,z+.004],[sd*.76,.64,z+.004]],.008,headM,10); });
     K.add(shp([[-.44,.22],[.44,.22],[.4,.36],[-.4,.36]]),GLOSS_BLACK,0,0,z); // lower intake
     for(let i=0;i<9;i++) K.add(new THREE.BoxGeometry(.006,.1,.012),gapM,-.36+i*.09,.29,z+.006);
-    K.add(new THREE.BoxGeometry(1.62,.03,.2),GLOSS_BLACK,0,.2,F-.1); }
+    K.add(new THREE.BoxGeometry(1.7,.03,.26),carbon,0,.2,F-.08); }
   // slim swept headlamps on the nose: dark housing, multibeam dots, LED eyebrow, clear cover
   [1,-1].forEach(sd=>{ const z0=F-.4, z1=F-.03, xi=z=>lerp(.66,.42,(z-z0)/(z1-z0)), xo=z=>Math.min(lerp(.92,.8,(z-z0)/(z1-z0)),T.sec(z).ht-.01);
     K.add(bandGeo((u,z)=>{ const x=sd*lerp(xi(z),xo(z),u); return [x,T.top(x,z)+.006]; },z0,z1,12,6,sd<0),lensM);
@@ -1118,9 +1117,9 @@ function autobahnShell(g,def,B,paint,glass){
     K.shut(sd,1.24); K.shut(sd,.04); K.shut(sd,-1.18);
     [.72,-.56].forEach(z=>{ const s=T.sec(z); K.add(new THREE.BoxGeometry(.012,.028,.2),chromeTrimM,sd*(s.hs+.01),s.ys-.03,z); });
     { const z=WB-WR-.32, s=T.sec(z); K.add(new THREE.BoxGeometry(.012,.09,.26),GLOSS_BLACK,sd*(s.hs*.99+.006),s.ys-.12,z); K.add(new THREE.BoxGeometry(.014,.016,.24),silver,sd*(s.hs*.99+.012),s.ys-.12,z); }
-    K.sill(sd,-WB+WR+.22,WB-WR-.22,.03,.15,GLOSS_BLACK);
+    K.sill(sd,-WB+WR+.22,WB-WR-.22,.035,.16,carbon);
     { const pts=[]; for(let i=0;i<=8;i++){ const z=lerp(-WB+WR+.3,WB-WR-.3,i/8), c=T.sec(z); pts.push([sd*(c.hl+.014),c.yb+.1,z]); } K.tube(pts,.006,silver,16); }
-    K.mirror(sd,1.02,paint); });
+    K.mirror(sd,1.02,carbon); });
   // rear: long slim tail lamps, corner vents, reflectors, black diffuser with fins, paired trapezoid exhausts, raised blade spoiler
   { const z=-R-.012;
     [1,-1].forEach(sd=>{ K.tube([[sd*.24,.87,z],[sd*.55,.875,z],[sd*.8,.86,z-.005],[sd*.92,.83,z+.04]],.02,GLOSS_BLACK,16);
@@ -1129,10 +1128,11 @@ function autobahnShell(g,def,B,paint,glass){
       K.add(new THREE.BoxGeometry(.05,.24,.04),GLOSS_BLACK,sd*.86,.56,-R+.02).rotation.z=sd*.25; // corner vent
       K.add(new THREE.BoxGeometry(.2,.022,.02),tailM,sd*.58,.5,z); // reflector
       [.5,.68].forEach(x=>{ K.add(new THREE.BoxGeometry(.15,.075,.14),exhM,sd*x,.33,-R-.02); K.add(new THREE.BoxGeometry(.12,.05,.02),gapM,sd*x,.33,-R-.095); }); });
-    K.add(new THREE.PlaneGeometry(1.72,.22),GLOSS_BLACK,0,.33,z).rotation.y=Math.PI;
-    for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(.02,.16,.36),GLOSS_BLACK,-.3+i*.15,.3,-R+.14);
-    const yb=T.top(0,-2.28); const w=K.add(K.airfoil(.26,.03,1.5),GLOSS_BLACK,0,yb+.13,-2.22); w.rotation.y=Math.PI/2; w.rotation.z=-.06;
-    [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.03,.12,.08),GLOSS_BLACK,sd*.42,yb+.06,-2.28)); }
+    K.add(new THREE.PlaneGeometry(1.72,.22),carbon,0,.33,z).rotation.y=Math.PI;
+    for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.18,.4),carbon,-.45+i*.15,.3,-R+.14);
+    K.tube([[-.26,.874,z-.014],[0,.876,z-.014],[.26,.874,z-.014]],.007,tailM,10); K.glow(0xff2030,.9,0,.876,-R-.08); // full-width light bar
+    const yb=T.top(0,-2.28); const w=K.add(K.airfoil(.26,.03,1.5),carbon,0,yb+.13,-2.22); w.rotation.y=Math.PI/2; w.rotation.z=-.06;
+    [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.03,.12,.08),carbon,sd*.42,yb+.06,-2.28)); }
   K.plate(def,.55,-R-.02);
   return T;
 }
@@ -1839,7 +1839,7 @@ const STREET={
  hellbound:{wheel:'dish',camber:.03},
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
  mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
- autobahn:{wheel:'twin'},
+ autobahn:{wheel:'forged',camber:.03},
  zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
 };
 const VINYLS={
@@ -1917,7 +1917,7 @@ function streetStyle(g,def,B,cid,flank){
       const mesh=new THREE.Mesh(geo,vinylMat(cid,st,sd>0)); mesh.renderOrder=1; g.add(mesh); }); }
 }
 // rim designs; spin is the wheel's spinning group, side = +-1, rimM the rim material
-const WHEEL_GEO={}, FORGED_CHROME=new THREE.MeshStandardMaterial({color:0xf6f8fa,metalness:.88,roughness:.1,envMapIntensity:2.6});
+const WHEEL_GEO={}, FORGED_CHROME=new THREE.MeshStandardMaterial({color:0xf6f8fa,metalness:.88,roughness:.1,envMapIntensity:2.6}), FORGED_BLACK=new THREE.MeshStandardMaterial({color:0x3a3f47,metalness:1,roughness:.12,envMapIntensity:2.2});
 function wheelStyle(spin,side,style,rimM,def){
   const at=(o,x)=>{ o.position.x=side*x; spin.add(o); return o; };
   const spokes=(n,wd,x,len)=>{ for(let k=0;k<n;k++){ const s=new THREE.Mesh(new THREE.BoxGeometry(.03,len,wd),rimM); s.rotation.x=k*Math.PI/n; at(s,x); } };
@@ -1950,9 +1950,10 @@ function wheelStyle(spin,side,style,rimM,def){
             const g=new THREE.ExtrudeGeometry(sh,{depth:.03,bevelEnabled:true,bevelThickness:.008,bevelSize:.007,bevelSegments:2,curveSegments:8}); g.rotateY(Math.PI/2); blades.push(g); }); }
         const rivet=new THREE.CylinderGeometry(.009,.009,.016,6); rivet.rotateZ(Math.PI/2);
         return {blades,rivet,cap:new THREE.CylinderGeometry(.088,.098,.05,28).rotateZ(Math.PI/2),badge:new THREE.CircleGeometry(.045,20)}; })());
-      C.blades.forEach(g=>at(new THREE.Mesh(g,FORGED_CHROME),.128));
+      const FC=def.id==='autobahn'||def.chassisId==='autobahn'?FORGED_BLACK:FORGED_CHROME;
+      C.blades.forEach(g=>at(new THREE.Mesh(g,FC),.128));
       at(new THREE.Mesh(C.back||(C.back=new THREE.RingGeometry(.09,.29,32)),barrelM),.1).rotation.y=side*Math.PI/2; // dark barrel face so the chrome pops
-      at(new THREE.Mesh(C.cap,FORGED_CHROME),.172);
+      at(new THREE.Mesh(C.cap,FC),.172);
       at(new THREE.Mesh(C.badge,blackM),.198).rotation.y=side*Math.PI/2;
       for(let k=0;k<20;k++){ const a=k/20*Math.PI*2, r=new THREE.Mesh(C.rivet,FORGED_CHROME); r.position.set(side*.165,Math.cos(a)*.285,Math.sin(a)*.285); spin.add(r); }
       break; }

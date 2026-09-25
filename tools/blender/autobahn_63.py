@@ -88,17 +88,18 @@ def slot_of(ob, key):
     ob.data.materials.append(M[key]); return len(ob.data.materials) - 1
 
 # ================================================================ BODY
-Z0, Z1, WB, WR = -2.56, 2.5, 1.5, .37
+Z0, Z1, WB, WR = -2.62, 2.42, 1.5, .37
 # plan: max half-width (at the bulge line). Swells over both axles, pinches at the doors, hips widest.
-HW = [[-2.56, .78], [-2.46, .88], [-2.3, .95], [-2.0, 1.0], [-1.55, 1.025], [-1.1, .99], [-.5, .955], [.2, .945], [.8, .955],
-      [1.15, .98], [1.5, .995], [1.85, .97], [2.15, .92], [2.36, .84], [2.5, .7]]
-YB = [[-2.56, .44], [-2.42, .28], [-2.2, .17], [2.05, .165], [2.32, .2], [2.5, .27]]                    # floor
-YS = [[-2.56, .8], [-2.35, .86], [-1.8, .89], [-1.35, .86], [-.7, .8], [.2, .77], [.9, .765], [1.4, .775], [1.8, .745],
-      [2.15, .68], [2.38, .6], [2.5, .5]]                                                                 # shoulder: fender crown + haunch
-YT = [[-2.56, .86], [-2.47, .965], [-2.3, .97], [-1.7, .975], [-.6, .95], [.5, .93], [1.2, .9], [1.6, .85], [1.95, .785],
-      [2.2, .72], [2.38, .64], [2.5, .55]]                                                                # hood / deck centre
+# proportions from the side-view refs: short front overhang, long rear overhang, cowl well behind the front axle (long hood)
+HW = [[-2.62, .76], [-2.52, .87], [-2.35, .95], [-2.0, 1.0], [-1.55, 1.03], [-1.1, .99], [-.5, .955], [.2, .945], [.75, .955],
+      [1.1, .98], [1.5, .995], [1.85, .97], [2.12, .92], [2.3, .84], [2.42, .7]]
+YB = [[-2.62, .46], [-2.45, .28], [-2.2, .17], [2.0, .165], [2.28, .2], [2.42, .27]]                    # floor
+YS = [[-2.62, .82], [-2.4, .87], [-1.8, .9], [-1.35, .87], [-.7, .81], [.2, .78], [.9, .78], [1.4, .79], [1.8, .76],
+      [2.1, .7], [2.32, .62], [2.42, .52]]                                                                # shoulder: fender crown + haunch
+YT = [[-2.62, .88], [-2.52, .975], [-2.35, .985], [-1.8, .99], [-1.0, .97], [0, .93], [.55, .9], [1.0, .87], [1.5, .83],
+      [1.9, .78], [2.15, .72], [2.32, .65], [2.42, .56]]                                                  # hood / deck centre
 def dome(x, z):  # twin hood power domes
-    w = smooth(1.28, 1.5, z) * (1 - smooth(1.95, 2.25, z))
+    w = smooth(.62, .95, z) * (1 - smooth(1.85, 2.2, z))
     return .03 * w * math.exp(-((abs(x) - .33) / .11) ** 2)
 def section(z):
     hs = kf(HW, z); yb = kf(YB, z); ys = kf(YS, z); yt = max(kf(YT, z), ys + .03)
@@ -122,7 +123,7 @@ def section(z):
     return [(x * (1 - .2 * en - .12 * er), ym + (y - ym) * (1 - .28 * en - .18 * er)) for x, y in half]
 def lean(y, z):  # shark nose: the upper nose leans forward over a tucked chin; the tail's top overhangs a tucked valance
     yb = kf(YB, z); yt = kf(YT, z); h = clamp((y - yb) / max(yt - yb, .01), 0, 1)
-    return .07 * smooth(2.05, 2.5, z) * (h - .5) - .06 * smooth(-2.3, -2.56, z) * (h - .4)
+    return .07 * smooth(1.95, 2.42, z) * (h - .5) - .06 * smooth(-2.35, -2.62, z) * (h - .4)
 stations = []
 NS = 220
 for i in range(NS):
@@ -170,13 +171,13 @@ ARCH_R = .408
 for sd in (1, -1):
     for zw in (WB, -WB): cyl_x(f'arch{sd}{zw}', WR, zw, ARCH_R, sd * .6, sd * 1.4)
 # front: one wide lower mouth, two corner intakes, a slim upper slot
-front_prism('mouth', rounded(0, .345, 1.08, .19, .05, skew=-.08), 2.2, 2.9)
+front_prism('mouth', rounded(0, .345, 1.08, .19, .05, skew=-.08), 2.1, 2.9)
 for sd in (1, -1):
-    front_prism(f'corner{sd}', [(sd * .63, .21), (sd * .86, .24), (sd * .84, .43), (sd * .66, .4)], 2.14, 2.9)
-front_prism('uslot', rounded(0, .505, .5, .026, .012), 2.25, 2.9)
+    front_prism(f'corner{sd}', [(sd * .63, .21), (sd * .86, .24), (sd * .84, .43), (sd * .66, .4)], 2.02, 2.9)
+front_prism('uslot', rounded(0, .505, .5, .026, .012), 2.15, 2.9)
 # rear: diffuser bay, plate pocket
-front_prism('diff', rounded(0, .29, 1.5, .22, .04), -2.9, -2.33, 'GLOSSBLACK')
-front_prism('plate', rounded(0, .56, .54, .13, .02), -2.9, -2.535, 'GLOSSBLACK')
+front_prism('diff', rounded(0, .29, 1.5, .22, .04), -2.9, -2.36, 'GLOSSBLACK')
+front_prism('plate', rounded(0, .58, .54, .13, .02), -2.9, -2.6, 'GLOSSBLACK')
 
 bvh = None
 def BV(): return BVHTree.FromObject(body, DG())
@@ -209,7 +210,7 @@ for sd in (1, -1):
     ob = new_obj(f'lampcut{sd}', verts, faces, 'GLOSSBLACK', False); fixn(ob); cutter(ob, 'GLOSSBLACK')
 # panel gaps: doors, hood shut lines, hatch
 for sd in (1, -1):
-    for z0, lean, top in ((1.04, .1, .0), (-.06, .0, .0), (-1.02, -.1, .0)):
+    for z0, lean, top in ((.66, -.08, .0), (-.66, .0, .0), (-1.38, -.12, .0)):
         pts = []
         for k in range(12):
             y = lerp(.25, kf(YT, z0) - .03, k / 11); z = z0 + lean * (y - .25)
@@ -219,10 +220,10 @@ for sd in (1, -1):
         strip_cut(f'door{sd}{z0}', pts, .0035, .012)
     pts = []
     for k in range(14):
-        z = lerp(1.26, 2.36, k / 13); x = sd * lerp(.7, .6, (k / 13) ** 1.5); y = surf_y(x, z)
+        z = lerp(.66, 2.26, k / 13); x = sd * lerp(.7, .58, (k / 13) ** 1.5); y = surf_y(x, z)
         if y: pts.append((x, y, z))
     strip_cut(f'hoodgap{sd}', pts, .0035, .012, axis='top')
-pts = [(x, (surf_y(x, -2.4) or .95), -2.4) for x in [lerp(-.62, .62, k / 12) for k in range(13)]]
+pts = [(x, (surf_y(x, -2.44) or .95), -2.44) for x in [lerp(-.62, .62, k / 12) for k in range(13)]]
 strip_cut('hatchgap', pts, .0035, .012, axis='across')
 
 cc = bpy.data.collections.new('Cutters'); scene.collection.children.link(cc)
@@ -239,7 +240,7 @@ gb = slot_of(body, 'GLOSSBLACK')
 for p in body.data.polygons:
     if p.material_index != 0: continue
     c = p.center; gx, gy, gz = abs(c.x), c.z, -c.y; yb = kf(YB, gz)
-    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.3 and gy < yb + .05) or (gz < -2.4 and gy < .4):
+    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4):
         p.material_index = gb
 sharpen(body, 28)
 bvh = BV()
@@ -287,9 +288,9 @@ for sd in (1, -1):
         new_obj(f'liner{sd}{zw}', verts, faces, 'GAP')
 
 # ================================================================ CABIN: low glasshouse with tumblehome, fastback to a ducktail
-CZ0, CZ1 = -2.3, 1.22
-CH = [[-2.3, .975], [-1.95, 1.08], [-1.45, 1.23], [-.8, 1.345], [-.2, 1.395], [.25, 1.39], [.6, 1.33], [.92, 1.15], [1.22, .935]]
-def cw_(z): return kf(HW, z) - .205 - .06 * smooth(-1.7, -2.3, z) - .05 * smooth(.95, 1.22, z)
+CZ0, CZ1 = -2.35, .6
+CH = [[-2.35, .995], [-2.0, 1.1], [-1.55, 1.23], [-1.05, 1.335], [-.6, 1.4], [-.3, 1.418], [-.08, 1.4], [.1, 1.3], [.35, 1.105], [.6, .9]]
+def cw_(z): return kf(HW, z) - .205 - .06 * smooth(-1.75, -2.35, z) - .05 * smooth(.3, .6, z)
 def rw_(z): return cw_(z) - .215
 def belt(z): return (surf_y(cw_(z) + .01, z) or kf(YT, z)) - .004
 BELT = {}
@@ -304,23 +305,23 @@ def cab_ring(z, grow=0.):
 CZS = [lerp(CZ0, CZ1, i / 159) for i in range(160)]
 cab = [[G(x, y, z) for x, y in mirror_ring(cab_ring(z))] for z in CZS]
 cabin = loft('Cabin', cab, 'PAINT'); cabin.data.materials.append(M['GLASS']); cabin.data.materials.append(M['GLOSSBLACK'])
-DLO_R0, DLO_R1, DLO_F = -1.86, -1.36, 1.1   # C-pillar point at the belt / at the roof, A-pillar at the belt
+DLO_R0, DLO_R1, DLO_F, DLO_K = -1.8, -1.3, .5, .57   # C-pillar point at the belt / at the roof, A-pillar at the belt
 for p in cabin.data.polygons:
     c = p.center; gx, gy, gz = abs(c.x), c.z, -c.y; n = p.normal; nx, nz = abs(n.x), -n.y
     b = BELT.get(round(min(max(gz, CZ0), CZ1), 5)) or belt(gz); rw = rw_(gz); top = kf(CH, gz)
     if gy < b + .01: continue
     h = clamp((gy - b) / max(top - .05 - b, .01), 0, 1)
-    if nz > .42 and gz > .55 and gx < rw * .93: p.material_index = 1                          # windscreen
-    elif nz < -.22 and gz < -1.5 and gx < rw * .86: p.material_index = 1                      # rear glass
+    if nz > .42 and gz > -.15 and gx < rw * .93: p.material_index = 1                          # windscreen
+    elif nz < -.22 and gz < -1.4 and gx < rw * .86: p.material_index = 1                      # rear glass
     elif nx > .45 and h < .96:
-        if lerp(DLO_R0, DLO_R1, h) < gz < DLO_F - .42 * h:
-            p.material_index = 2 if -.12 < gz < -.02 else 1                                    # side glass, black B-pillar
+        if lerp(DLO_R0, DLO_R1, h) < gz < DLO_F - DLO_K * h:
+            p.material_index = 2 if -.72 < gz < -.62 else 1                                    # side glass, black B-pillar
 sharpen(cabin, 32)
 for sd in (1, -1):   # bright DLO surround: along the belt, over the door tops, into the C-pillar point
     tube(f'dlo_belt{sd}', [(sd * (cw_(z) + .003), belt(z) + .005, z) for z in [lerp(DLO_F, DLO_R0, k / 20) for k in range(21)]], .0065, 'CHROME', res=4)
     top = []
     for k in range(20):
-        z = lerp(DLO_F - .42 * .97, DLO_R1, k / 19); r = cab_ring(z, .006); p = r[2 + 14]; top.append((sd * p[0], p[1], z))
+        z = lerp(DLO_F - DLO_K * .97, DLO_R1, k / 19); r = cab_ring(z, .006); p = r[2 + 14]; top.append((sd * p[0], p[1], z))
     top.append((sd * (cw_(DLO_R0) + .003), belt(DLO_R0) + .005, DLO_R0))
     tube(f'dlo_top{sd}', top, .0065, 'CHROME', res=4)
 
@@ -339,20 +340,20 @@ for sd in (1, -1):
 for k in range(3):
     y = .29 + k * .055; zc = surf_front(0, y) or 2.4
     box(f'mblade{k}', (lerp(1.0, .92, k / 2), .012, .05), (0, y, zc - .07), 'SATIN')
-lip = [(-.9, 2.08)] + [(math.sin(a) * .9, 2.34 + math.cos(a) * .18) for a in [(-math.pi / 2) + math.pi * k / 24 for k in range(25)]] + [(.9, 2.08)]
+lip = [(-.9, 1.98)] + [(math.sin(a) * .9, 2.22 + math.cos(a) * .15) for a in [(-math.pi / 2) + math.pi * k / 24 for k in range(25)]] + [(.9, 1.98)]
 extrude_y('Lip', lip, .16, .178, 'CARBON')
 
 # ================================================================ FLANKS
 for sd in (1, -1):
-    for z in (.66, -.44):                                                                           # flush handles
+    for z in (.05, -1.02):                                                                           # flush handles
         y = kf(YS, z) - .06; x = surf_side(y, z, sd)
         if x: box(f'handle{sd}{z}', (.01, .018, .2), (sd * (x + .002), y, z), 'SATIN')
-    z = WB - .6; y = .6; x = surf_side(y, z, sd)                                                    # fender vent behind the front wheel
+    z = .92; y = .6; x = surf_side(y, z, sd)                                                    # fender vent behind the front wheel
     if x:
         box(f'ventbk{sd}', (.012, .06, .22), (sd * (x - .003), y, z), 'GLOSSBLACK', rot=(-.12 * sd * 0, 0, 0))
         box(f'ventbl{sd}', (.012, .012, .2), (sd * (x + .002), y, z), 'CHROME')
     # mirrors: blade stalk off the door, teardrop cap
-    mz = .88; my = belt(mz) + .02; mx = cw_(mz)
+    mz = .4; my = belt(mz) + .02; mx = cw_(mz)
     tube(f'mstalk{sd}', [(sd * (mx - .02), my - .015, mz), (sd * (mx + .06), my + .01, mz - .03), (sd * (mx + .1), my + .03, mz - .05)], .011, 'GLOSSBLACK', res=4)
     b = bmesh.new(); bmesh.ops.create_uvsphere(b, u_segments=24, v_segments=14, radius=1.)
     for v in b.verts:
@@ -370,27 +371,27 @@ for sd in (1, -1):
 # ================================================================ REAR
 tl = []
 for k in range(-14, 15):                                                                            # full-width light bar
-    x = k / 14 * .9; y = .81 + .012 * (1 - (k / 14) ** 2); z = (surf_back(x, y) or -2.55) - .004; tl.append((x, y, z))
+    x = k / 14 * .88; y = .83 + .012 * (1 - (k / 14) ** 2); z = (surf_back(x, y) or -2.55) - .004; tl.append((x, y, z))
 tube('taillight', tl, .014, 'TAIL', res=4)
 for sd in (1, -1):
     x0, y0, z0 = tl[-1 if sd > 0 else 0]
-    ret = [(x0, y0, z0)] + [(sd * ((surf_side(y0 - .01 * i, z, sd) or .95) + .003), y0 - .01 * i, z) for i, z in enumerate((-2.46, -2.38, -2.28), 1)]
+    ret = [(x0, y0, z0)] + [(sd * ((surf_side(y0 - .01 * i, z, sd) or .95) + .003), y0 - .01 * i, z) for i, z in enumerate((-2.52, -2.44, -2.34), 1)]
     tube(f'tailret{sd}', ret, .012, 'TAIL', res=4)
     for ex in (.4, .56):                                                                            # quad round tailpipes in the diffuser
-        cyl_z(f'exh{sd}{ex}', sd * ex, .27, -2.49, -2.3, .046, 'CHROME', open_=True)
-        cyl_z(f'exhi{sd}{ex}', sd * ex, .27, -2.44, -2.42, .04, 'GAP')
+        cyl_z(f'exh{sd}{ex}', sd * ex, .27, -2.5, -2.3, .046, 'CHROME', open_=True)
+        cyl_z(f'exhi{sd}{ex}', sd * ex, .27, -2.46, -2.44, .04, 'GAP')
 for k in range(5):                                                                                  # diffuser strakes, inside the footprint
-    x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.08, .17), (-2.44, .17), (-2.44, .34), (-2.28, .3)], x - .007, x + .007, 'CARBON')
+    x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.06, .17), (-2.36, .17), (-2.36, .3), (-2.24, .29)], x - .007, x + .007, 'CARBON')
 lipd = []                                                                                           # carbon ducktail lip
 for i in range(18):
-    x = lerp(-.66, .66, i / 17); lipd.append((x, surf_y(x, -2.46) or .95))
+    x = lerp(-.64, .64, i / 17); lipd.append((x, surf_y(x, -2.5) or .95))
 verts = []; faces = []
-for x, y in lipd: verts += [G(x, y - .004, -2.42), G(x, y + .006, -2.42), G(x, y + .022, -2.585), G(x, y - .006, -2.56)]
+for x, y in lipd: verts += [G(x, y - .004, -2.46), G(x, y + .006, -2.46), G(x, y + .02, -2.62), G(x, y - .006, -2.6)]
 for i in range(len(lipd) - 1):
     for j in range(4): a = 4 * i + j; b = 4 * i + (j + 1) % 4; faces.append((a, b, b + 4, a + 4))
 L = 4 * (len(lipd) - 1); faces += [(0, 1, 2, 3), (L + 3, L + 2, L + 1, L)]
 ob = new_obj('Ducktail', verts, faces, 'CARBON', False); fixn(ob)
-extrude_y('Floor', [(-.82, -2.15), (.82, -2.15), (.82, 2.1), (-.82, 2.1)], .15, .17, 'GLOSSBLACK')
+extrude_y('Floor', [(-.82, -2.15), (.82, -2.15), (.82, 2.0), (-.82, 2.0)], .15, .17, 'GLOSSBLACK')
 
 objs = [o for o in CAR.objects if o.type == 'MESH']
 tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs)

@@ -100,7 +100,7 @@ for k in range(4):
 lip = [(-1.0, 2.1)] + [(math.sin(a) * 1.0, 2.34 + math.cos(a) * .2) for a in [(-math.pi / 2) + math.pi * k / 24 for k in range(25)]] + [(1.0, 2.1)]
 car.extrude_y('Splitter', lip, .12, .14, 'CARBON')
 for sd in (1, -1):
-    for x in (.35, .7): car.cyl(f'strut{sd}{x}', (sd * x, .14, 2.46), (sd * x, .3, 2.32), .008, 'CHROME', seg=8)
+    for x in (.45,): car.cyl(f'strut{sd}{x}', (sd * x, .14, 2.4), (sd * x, .28, 2.3), .01, 'GLOSSBLACK', seg=8)
 # ---- rivets round every flare, side skirts, quad side exits ahead of the rear wheels
 for sd in (1, -1):
     for zw in (WB, -WB):
@@ -121,7 +121,7 @@ for sd in (1, -1):
         car.cyl(f'exh{sd}{ex}', (sd * ex, .28, zt + .16), (sd * ex, .28, zt), .05, 'CHROME', cap=False)
         car.cyl(f'exhi{sd}{ex}', (sd * ex, .28, zt + .04), (sd * ex, .28, zt + .03), .043, 'GAP')
 for k in range(5):
-    x = -.4 + k * .2; car.extrude_x(f'fin{k}', [(-2.0, .16), (-2.36, .16), (-2.36, .3), (-2.2, .29)], x - .007, x + .007, 'CARBON')
+    x = -.4 + k * .2; car.extrude_x(f'fin{k}', [(-1.96, .16), (-2.2, .16), (-2.2, .28), (-2.08, .28)], x - .007, x + .007, 'CARBON')
 for sd in (1, -1):   # mirrors
     mz = .38; my = car.belt(mz) + .02; mx = car.C['cw'](mz)
     car.tube(f'mstalk{sd}', [(sd * (mx - .02), my - .015, mz), (sd * (mx + .06), my + .01, mz - .03), (sd * (mx + .1), my + .03, mz - .05)], .011, 'GLOSSBLACK', res=4)

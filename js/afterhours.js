@@ -187,7 +187,7 @@ CARS.push(
  {id:'autobahn',sculpt:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x0f2a96,metal:.86,rough:.14,rim:0x2a2d33,chrome:true,lowPro:true,caliper:0xffc21a,wing:false,spokes:10,world:'flash',
   top:96,acc:27,grip:30,nitro:1.15,mass:1.4,cleanTop:358,vcap:360,
   kick:'Outlaw 04',loc:'I-76, Blue Route split',when:'Unrestricted, 03:30',
-  caption:'Four doors, candy blue over carbon, black-chrome forged wheels and a light bar across the tail. It gets faster the longer you leave it alone.',
+  caption:'Four doors, a hard shoulder line and a light bar across the tail. Drawn in Blender, finished in candy blue. It gets faster the longer you leave it alone.',
   specs:'4.0L TWIN-TURBO V8 + E-AXLE / 830 HP / FOUR DOORS / 800 MPH',
   rival:'Rival note: smooth is fast. Smoother is faster. Smoothest is something else.',
   note:'don\'t touch\nanything.', notePos:{l:'58%',t:'34%'},
@@ -772,9 +772,9 @@ function p1Shell(g,def,B,paint,glass){
    threejs-loaders: GLTFLoader (r128 examples/js global) runs before the game boots (see the bootstrap at the end of this file).
    Each Blender material name maps onto the game's own materials, so the car keeps the clear-coat paint, fresnel rim,
    carbon weave and blooming lamps the rest of the archive uses. Falls back to the procedural p1Shell if the file is missing. */
-let VOLCANO_PARTS=null; // [{geo, key}] baked once, cloned per car
-function volcanoParts(){ if(VOLCANO_PARTS) return VOLCANO_PARTS;
-  const src=(window.AH_MODELS||{}).volcano; if(!src) return null;
+const GLB_PARTS={}; // model key -> [{geo, key}] baked once, shared by every car built from it
+function glbParts(model){ if(GLB_PARTS[model]!==undefined) return GLB_PARTS[model];
+  const src=(window.AH_MODELS||{})[model]; if(!src) return (GLB_PARTS[model]=null);
   src.updateMatrixWorld(true); const parts=[];
   src.traverse(o=>{ if(!o.isMesh) return; const g=o.geometry.clone().applyMatrix4(o.matrixWorld), key=(o.material&&o.material.name||'PAINT').split('.')[0];
     if(key==='CARBON'){ // no UVs from Blender: box-project so the twill weave has something to sample (threejs-textures)
@@ -783,8 +783,8 @@ function volcanoParts(){ if(VOLCANO_PARTS) return VOLCANO_PARTS;
         const [u,v]=nx>=ny&&nx>=nz?[z,y]:(ny>=nz?[x,z]:[x,y]); uv[i*2]=u*1.6; uv[i*2+1]=v*1.6; }
       g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); }
     parts.push({geo:g,key}); });
-  return VOLCANO_PARTS=parts;
-}
+  return (GLB_PARTS[model]=parts); }
+const volcanoParts=()=>glbParts('volcano');
 function volcanoShell(g,def,B,paint,glass,opts){
   const parts=volcanoParts(); if(!parts) return p1Shell(g,def,B,paint,glass,opts);
   const K=carKit(g); rimPaint(paint,def.rimGlow||0xffb040,.3);
@@ -797,6 +797,22 @@ function volcanoShell(g,def,B,paint,glass,opts){
   const HS=[[-2.32,.93],[-2.1,1.05],[-1.6,1.12],[-1.2,1.1],[-.7,1.0],[-.1,.965],[.6,.985],[1.1,1.06],[1.5,1.08],[1.95,1.02],[2.26,.86]],
     YS=[[-2.32,.58],[-1.6,.58],[-.9,.52],[0,.48],[.8,.48],[1.4,.5],[1.95,.44],[2.26,.36]], YB=[[-2.32,.3],[-2.12,.19],[-1.9,.165],[1.9,.165],[2.12,.2],[2.26,.27]];
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.14,ay:ys-.1,yc:ys+.25,yf:ys+.25}; }};
+}
+
+/* ---- AUTOBAHN 63 (Blender build): an original four-door GT modelled in Blender (tools/blender/autobahn_63.py) ----
+   Taut body side with a crisp shoulder crease, a one-piece cabin with inset glass, cut panel gaps, recessed lamps and intakes.
+   Blender material names map onto the game's materials; the procedural autobahnShell stays as the fallback. */
+function autobahnGlbShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('autobahn'); if(!parts) return autobahnShell(g,def,B,paint,glass,opts);
+  const K=carKit(g); rimPaint(paint,0x6f9dff,.12); paint.clearcoat=1; paint.clearcoatRoughness=.012; paint.roughness=Math.min(paint.roughness,.12);
+  const satin=new THREE.MeshStandardMaterial({color:0x3c4047,metalness:.9,roughness:.32});
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:glass,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin};
+  parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
+  { const pr=K.add(new THREE.PlaneGeometry(.5,.12),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'AUTOBAHN'),roughness:.5}),0,.55,-2.55); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.32,sd*.64,.64,2.4); K.glow(0xff2030,.3,sd*.7,.84,-2.6); });
+  const HS=[[-2.56,.86],[-2.35,.98],[-1.95,1.03],[-1.5,1.045],[-1.0,1.015],[-.3,.975],[.5,.975],[1.1,.99],[1.5,1.0],[1.95,.985],[2.3,.93],[2.52,.8]],
+    YS=[[-2.56,.66],[-2.2,.73],[-1.55,.77],[-.9,.72],[0,.69],[.9,.68],[1.5,.68],[2.1,.64],[2.52,.56]], YB=[[-2.56,.36],[-2.35,.22],[-2.05,.19],[2.05,.19],[2.35,.22],[2.52,.3]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.09,ay:ys-.12,yc:ys+.22,yf:ys+.22}; }};
 }
 
 /* ---- Kage R: a chopped silver wedge, cab forward, black roof, amber spine ---- */
@@ -1813,7 +1829,7 @@ function zephyrShell(g,def,B,paint,glass){
   K.plate(def,.4,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell,zephyr:zephyrShell};
+const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -6307,6 +6323,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=1'],['autobahn','models/autobahn_63.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

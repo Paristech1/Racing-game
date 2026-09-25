@@ -2413,13 +2413,38 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
    kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
 const KIT_CACHE={};
 function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
-  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (KIT_CACHE[name]=null);
+  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (KIT_CACHE[name]=null);
   src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
   root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
   return (KIT_CACHE[name]=parts); }
 function kitInst(S,name,mats,list,colors,colorKey){ const parts=kitParts(name); if(!parts||!list.length) return false;
   parts.forEach(p=>{ const m=mats[p.key]; if(!m) return; const im=new THREE.InstancedMesh(p.geo,m,list.length); list.forEach((x,i)=>im.setMatrixAt(i,x));
     if(colors&&p.key===colorKey){ const c=new THREE.Color(); colors.forEach((h,i)=>im.setColorAt(i,c.setHex(h))); im.instanceColor.needsUpdate=true; } S.add(im); }); return true; }
+/* ---- Philly Classic landmark kit (Blender build, models/philly_kit.glb): City Hall, the Art Museum, four Boathouse Row
+   variants, a Ben Franklin Bridge tower. Material names from tools/blender/philly_kit.py map onto these (threejs-materials):
+   warm uplit stone, slate mansards that pick up the env map, lit windows and LED lines that bloom (unlit, toneMapped off). */
+let PK_MATS=null;
+function phillyKitMats(){ if(PK_MATS) return PK_MATS; const D=THREE.DoubleSide, std=o=>new THREE.MeshStandardMaterial(Object.assign({side:D},o));
+  return PK_MATS={STONE:upLit(std({color:0xcfc3a8,emissive:0x5a4428,emissiveIntensity:.16,roughness:.8}),{k:.42,h:22}),
+    STONEHI:upLit(std({color:0xe6dabd,emissive:0x7a5a32,emissiveIntensity:.24,roughness:.7}),{k:.5,h:22}),
+    GRANITE:std({color:0x4a4744,roughness:.9}), SLATE:std({color:0x1a2230,metalness:.45,roughness:.38,envMapIntensity:1.4}),
+    WIN:new THREE.MeshBasicMaterial({color:0xffc88a,toneMapped:false,side:D}), GAP:std({color:0x050506,roughness:1}),
+    BRONZE:std({color:0x5a3e22,emissive:0x2a1808,metalness:.8,roughness:.4}), GOLD:std({color:0xd8b04a,emissive:0x6a4a10,metalness:1,roughness:.3}),
+    SAND:upLit(std({color:0xc9a26c,emissive:0x8a5a24,emissiveIntensity:.22,roughness:.65}),{k:.5,h:12}),
+    ROOFBLUE:std({color:0x2d6488,emissive:0x0a1e2c,metalness:.3,roughness:.35,envMapIntensity:1.3}),
+    LED:new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false,side:D}), WOOD:std({color:0x2a2c33,roughness:.85}),
+    TRIM:std({color:0x8a8a86,roughness:.7}), STEEL:std({color:0x2f5d9e,emissive:0x0a1a33,emissiveIntensity:1,metalness:.6,roughness:.45})}; }
+/* street-level uplight on facades (threejs-shaders via onBeforeCompile): a warm wash that falls off with height, and on
+   Philly's Avenue of the Arts some blocks pick the magenta/violet architectural uplights instead (hashed per 38 m cell). */
+const UP_DEF={k:.3,h:10,a:0xffa55a,b:0xc85aff,mix:0};
+function upLit(mat,o){ o=Object.assign({},UP_DEF,o); const U={uUp:{value:o.k},uUpH:{value:o.h},uUpA:{value:new THREE.Color(o.a)},uUpB:{value:new THREE.Color(o.b)},uUpMix:{value:o.mix}};
+  mat.userData.up=U;
+  mat.onBeforeCompile=sh=>{ Object.assign(sh.uniforms,mat.userData.up);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vUpW;').replace('#include <project_vertex>',
+      '#include <project_vertex>\n{ vec4 wp=vec4(transformed,1.0);\n#ifdef USE_INSTANCING\nwp=instanceMatrix*wp;\n#endif\nvUpW=(modelMatrix*wp).xyz; }');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vUpW; uniform float uUp,uUpH,uUpMix; uniform vec3 uUpA,uUpB;').replace('#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n{ float hU=fract(sin(dot(floor(vUpW.xz/38.0),vec2(12.9898,78.233)))*43758.5453); vec3 upC=mix(uUpA,uUpB,step(1.0-uUpMix,hU));\n  totalEmissiveRadiance+=upC*exp(-max(vUpW.y,0.0)/uUpH)*uUp*(0.25+diffuseColor.rgb*2.2); }'); };
+  mat.customProgramCacheKey=()=>'upLit'; return mat; }
 let KIT_MATS=null; // one shared material set for the Blender kits
 function kitMats(){ if(KIT_MATS) return KIT_MATS;
   const lamp=new THREE.MeshBasicMaterial({color:0xfff1dc,toneMapped:false});
@@ -2922,7 +2947,11 @@ const PHILLY_CFG={banner:'EVENT 08 · PHILLY CLASSIC',start:[-20,-1150],
     [2480,-120,'SPORTS COMPLEX','SOUTH PHILLY  ↓'],[1900,450,'I-95 SOUTH','DELAWARE EXPRESSWAY'],[-80,260,'BROAD STREET','CITY HALL · LOVE PARK'],[-80,-440,'ART MUSEUM','ROCKY STEPS  ←'],[-80,-1250,'PHILLY CLASSIC','FULL GRID · ALL CARS']],
   roads:[{ew:1,c:-700,dir:1,a:-20,b:720},{ew:0,c:-80,dir:-1,a:-700,b:450},{ew:0,c:720,dir:1,a:-700,b:-300},{ew:0,c:2480,dir:1,a:-300,b:450}],
   cams:[[-20,-1150,1,0],[420,-700,0,1],[-80,150,-1,0],[2480,-200,1,0]],
-  decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735}, fireworks:[[-50,92,-520],[330,95,-760],[1380,90,-120],[1900,92,420],[-80,98,120],[2480,92,40]]};
+  decoBridge:true, philly:true, blvd:{xw:-80,xe:-20,z0:-1368,z1:-735},
+  // magazine look: blue-hour sky over a warm city glow, sodium streets, uplit facades with violet accents, a teal/amber grade and grain
+  sky:[[0,'#03061a'],[.42,'#0b1838'],[.7,'#1d2a55'],[.86,'#4a3a62'],[1,'#8a4a4a']], fog:0x1d2440, fogD:.0021, sodium:true,
+  uplight:{k:.6,h:7,mix:.24,a:0xffa15a,b:0xb45cff}, grade:{shadow:[.84,.97,1.22],high:[1.16,1.0,.83],sat:1.22,vig:.52,grain:.045},
+  bloom:{strength:.9,radius:.55,threshold:.74}, fireworks:[[-50,92,-520],[330,95,-760],[1380,90,-120],[1900,92,420],[-80,98,120],[2480,92,40]]};
 function installRoadHazards(tr,S,sNear,list,f,q,basis,nr,W){
   const add=(geo,mat,x,y,z)=>{ const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); S.add(m); return m; };
   const bumpTex=CT(canvasTex(128,32,(g,w,h)=>{ g.fillStyle='#3a3835'; g.fillRect(0,0,w,h); g.fillStyle='#ffd23b'; for(let i=0;i<6;i++) g.fillRect(i*22+4,10,12,12); }),true);
@@ -3034,8 +3063,9 @@ function buildCity(C){
   const sNear=(x,z)=>{ let bi=0,bd=1e18; for(let k=0;k<tr.N;k++){ const p=tr.pts[k], d=(p.x-x)*(p.x-x)+(p.z-z)*(p.z-z); if(d<bd){ bd=d; bi=k; } } return bi*tr.ds; };
   const S=new THREE.Scene();
   S.userData.bloom={strength:.9,radius:.5,threshold:.72};
-  S.background=CT(canvasTex(8,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#02040a'); gr.addColorStop(.5,'#0a1224'); gr.addColorStop(.78,'#1e2336'); gr.addColorStop(1,'#3a2c2c'); g.fillStyle=gr; g.fillRect(0,0,w,h); }));
-  S.fog=new THREE.FogExp2(0x151b2b,0.0024); S.environment=ENV.street; addDome(S);
+  const SKY=C.sky||[[0,'#02040a'],[.5,'#0a1224'],[.78,'#1e2336'],[1,'#3a2c2c']];
+  S.background=CT(canvasTex(8,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); SKY.forEach(([t,c])=>gr.addColorStop(t,c)); g.fillStyle=gr; g.fillRect(0,0,w,h); }));
+  S.fog=new THREE.FogExp2(C.fog||0x151b2b,C.fogD||0.0024); if(C.grade) S.userData.grade=C.grade; if(C.bloom) S.userData.bloom=C.bloom; S.environment=ENV.street; addDome(S);
   S.add(new THREE.HemisphereLight(0x8fa6cc,0x0b0d12,.65));
   const moonL=new THREE.DirectionalLight(0xbcd0ff,.35); moonL.position.set(-1,2,1); S.add(moonL);
   const f=mkF(), q=new THREE.Quaternion(), basis=new THREE.Matrix4(), nr=new THREE.Vector3(), m4=new THREE.Matrix4(), pv=new THREE.Vector3(), one=new THREE.Vector3(1,1,1);
@@ -3098,7 +3128,9 @@ function buildCity(C){
   addStart();
 
   // ---- city blocks, merged into a few draw calls ----
-  const FAC={}; ['glass','brick','stone','hall'].forEach(k=>{ const t=facadeTex(k); FAC[k]={mat:new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:k==='hall'?1.0:.85,roughness:k==='glass'?.35:.85,metalness:k==='glass'?.5:.05}),pos:[],nor:[],uv:[]}; });
+  const UPL=Object.assign({},UP_DEF,C.uplight||{});
+  const FAC={}; ['glass','brick','stone','hall'].forEach(k=>{ const t=facadeTex(k); FAC[k]={mat:upLit(new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:k==='hall'?1.0:.85,roughness:k==='glass'?.35:.85,metalness:k==='glass'?.5:.05}),k==='glass'?Object.assign({},UPL,{k:UPL.k*.5}):UPL),pos:[],nor:[],uv:[]}; });
+  const trims=[]; // cornices and string courses: silhouette and a ledge that catches the street light
   const skyMat=FAC.glass.mat.clone(); skyMat.fog=false; FAC.sky={mat:skyMat,pos:[],nor:[],uv:[]};
   FAC.roof={mat:new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:1}),pos:[],nor:[],uv:[]};
   const storeTex=(em)=>CT(canvasTex(512,128,(g)=>{ g.fillStyle=em?'#000':'#17181c'; g.fillRect(0,0,512,128);
@@ -3128,6 +3160,10 @@ function buildCity(C){
     faceQuad(b,'e',z0,z1,y0,y1,x1,uo,uo+(z1-z0)/T,va,vb); faceQuad(b,'w',z0,z1,y0,y1,x0,uo,uo+(z1-z0)/T,va,vb);
     const r=FAC.roof; r.pos.push(x0,y1,z1,x1,y1,z1,x1,y1,z0,x0,y1,z1,x1,y1,z0,x0,y1,z0); for(let i=0;i<6;i++) r.nor.push(0,1,0); r.uv.push(0,0,1,0,1,1,0,0,1,1,0,1);
     if(h>80) beacons.push((x0+x1)/2,y1+1.5,(z0+z1)/2);
+    if(b!==FAC.store&&b!==FAC.sky&&b!==FAC.glass&&b!==FAC.hall&&x1-x0>6&&z1-z0>6){ const cx=(x0+x1)/2, cz=(z0+z1)/2;
+      trims.push(new THREE.Matrix4().compose(new THREE.Vector3(cx,y1-.35,cz),new THREE.Quaternion(),new THREE.Vector3(x1-x0+1.1,1.1,z1-z0+1.1)));
+      trims.push(new THREE.Matrix4().compose(new THREE.Vector3(cx,y1-1.3,cz),new THREE.Quaternion(),new THREE.Vector3(x1-x0+.5,.35,z1-z0+.5)));
+      if(h>14&&!y0) trims.push(new THREE.Matrix4().compose(new THREE.Vector3(cx,6.9,cz),new THREE.Quaternion(),new THREE.Vector3(x1-x0+.4,.45,z1-z0+.4))); }
     if(b!==FAC.store&&b!==FAC.sky&&x1-x0>10&&z1-z0>10){ const n=1+(R_()*3|0); // rooftop plant: AC units, and water tanks on the mid-rise masonry
       for(let k=0;k<n;k++) roofAC.push([x0+3+R_()*(x1-x0-6),y1,z0+3+R_()*(z1-z0-6),1.6+R_()*2.2]);
       if(h<60&&b!==FAC.glass&&R_()<.35) roofTank.push([x0+4+R_()*(x1-x0-8),y1,z0+4+R_()*(z1-z0-8)]); } }
@@ -3180,19 +3216,26 @@ function buildCity(C){
   // ---- landmarks ----
   // City Hall: stone base, corner pavilions, clock tower, cupola and the William Penn statue
   const H=FAC.hall, hx=-3, hz=-72;
+  const hallKit=kitInst(S,'CityHall',phillyKitMats(),[new THREE.Matrix4().makeTranslation(hx,0,hz)]);
+  if(!hallKit){
   block(H,hx-42,hx+42,hz-42,hz+42,34);
   [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b])=>block(H,hx+a*42-(a>0?16:0),hx+a*42+(a<0?16:0),hz+b*42-(b>0?16:0),hz+b*42+(b<0?16:0),44));
   block(H,hx-13,hx+13,hz-13,hz+13,62,34); block(H,hx-11,hx+11,hz-11,hz+11,12,96);
+  }
   const clockTex=CT(canvasTex(128,128,(g)=>{ g.fillStyle='#fff3d6'; g.beginPath(); g.arc(64,64,62,0,7); g.fill(); g.strokeStyle='#2a2218'; g.lineWidth=5;
     for(let i=0;i<12;i++){ const a=i/12*Math.PI*2; g.beginPath(); g.moveTo(64+Math.cos(a)*50,64+Math.sin(a)*50); g.lineTo(64+Math.cos(a)*58,64+Math.sin(a)*58); g.stroke(); }
     g.lineWidth=6; g.beginPath(); g.moveTo(64,64); g.lineTo(64,24); g.moveTo(64,64); g.lineTo(90,76); g.stroke(); }));
   const clockM=new THREE.MeshBasicMaterial({map:clockTex,toneMapped:false});
   const clock=(x,y,z,ry,r)=>{ const c=mesh(new THREE.CircleGeometry(r,32),clockM,x,y,z); c.rotation.y=ry; };
+  if(hallKit){ const cy=90, co=12.08; clock(hx,cy,hz+co,0,4.4); clock(hx,cy,hz-co,Math.PI,4.4); clock(hx+co,cy,hz,Math.PI/2,4.4); clock(hx-co,cy,hz,-Math.PI/2,4.4);
+    [[0,1],[0,-1],[1,0],[-1,0]].forEach(([a,b])=>{ const g=glowSprite(0xfff0c8,11); g.position.set(hx+a*13,cy,hz+b*13); g.material.opacity=.6; S.add(g); }); // clock glow
+    [[-46,-46],[46,-46],[-46,46],[46,46],[0,-47],[0,47],[-47,0],[47,0]].forEach(([a,b])=>{ const g=glowSprite(0xffcf8a,9); g.position.set(hx+a,1.5,hz+b); g.material.opacity=.7; S.add(g); }); } // floodlight heads
+  else {
   clock(hx,102,hz+11.1,0,4.6); clock(hx,102,hz-11.1,Math.PI,4.6); clock(hx+11.1,102,hz,Math.PI/2,4.6); clock(hx-11.1,102,hz,-Math.PI/2,4.6);
   const goldStone=new THREE.MeshStandardMaterial({color:0xb09a74,emissive:0x5a4426,emissiveIntensity:.8,roughness:.7});
   mesh(new THREE.CylinderGeometry(8,10,18,8),goldStone,hx,117,hz); mesh(new THREE.CylinderGeometry(2.5,8,14,8),goldStone,hx,133,hz);
   const bronze=new THREE.MeshStandardMaterial({color:0x6a4a2a,emissive:0x3a2410,metalness:.8,roughness:.4});
-  mesh(new THREE.CylinderGeometry(1,1.4,7,8),bronze,hx,143.5,hz); mesh(new THREE.SphereGeometry(1.1,10,8),bronze,hx,147.6,hz);
+  mesh(new THREE.CylinderGeometry(1,1.4,7,8),bronze,hx,143.5,hz); mesh(new THREE.SphereGeometry(1.1,10,8),bronze,hx,147.6,hz); }
   flat(-67,62,-152,7,.02,new THREE.MeshStandardMaterial({color:0x2c2822,roughness:.8}));
   [[-58,-150],[52,-150],[-58,0],[52,0]].forEach(([x,z])=>{ const s=glowSprite(0xffd9a0,5); s.position.set(x,5,z); S.add(s); });
   // LOVE Park, facing 15th St
@@ -3236,7 +3279,7 @@ function buildCity(C){
 
   // ---- the Ben Franklin Bridge ----
   const steel=new THREE.MeshStandardMaterial({color:0x2f5d9e,emissive:0x0a1a33,emissiveIntensity:1,metalness:.6,roughness:.45,side:THREE.DoubleSide});
-  const concrete=new THREE.MeshStandardMaterial({color:0x6a6e76,roughness:.9,side:THREE.DoubleSide});
+  const concrete=new THREE.MeshStandardMaterial({color:0x50545c,roughness:.9,side:THREE.DoubleSide});
   const stone=new THREE.MeshStandardMaterial({color:0x5a5650,roughness:.95,side:THREE.DoubleSide});
   const railM=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:1,roughness:.3,side:THREE.DoubleSide});
   function deck(tr,ok){ const el=(k,p)=>(!ok||ok(k))&&p.y>.4&&p.z<-250;
@@ -3252,7 +3295,10 @@ function buildCity(C){
   }
   deck(tr);
   // towers, piers, anchorages
+  const towerKit=kitInst(S,'BFBTower',Object.assign({},phillyKitMats(),{STEEL:steel}),BR.towers.map(x=>new THREE.Matrix4().makeTranslation(x,-8,-320)));
   BR.towers.forEach(x=>{
+    if(towerKit){ boxM(18,9,86,stone,x,-4,-320); const bc=glowSprite(0xff2030,3); bc.position.set(x,106.5,-320); S.add(bc);
+      [-285,-355].forEach(z=>{ const g=glowSprite(0x9fc8ff,22); g.position.set(x,4,z); g.material.opacity=.5; S.add(g); }); return; } // floodlit legs
     BR.cableZ.forEach(z=>boxM(4.5,112,6,steel,x,50,z));
     [24,60,85,104].forEach(y=>boxM(4,y===24?2:3,70,steel,x,y,-320));
     [[60,85],[85,104]].forEach(([a,b])=>{ const h=b-a, len=Math.hypot(h,70), ang=Math.atan2(h,70);
@@ -3289,7 +3335,8 @@ function buildCity(C){
   const tp=mesh(new THREE.PlaneGeometry(14,2.2),new THREE.MeshBasicMaterial({map:CT(signCanvas2('TOLL PLAZA','NEW JERSEY',{bg:'#0e1218',color:'#f4f7ff'})),toneMapped:false}),2031.9,9.4,-320); tp.rotation.y=-Math.PI/2; }
 
   // ---- street lights along the course ----
-  const poleM=new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.7,roughness:.4}), lampM=new THREE.MeshBasicMaterial({color:0xeaf2ff,toneMapped:false});
+  const SOD=!!C.sodium; // Philly: warm high-pressure sodium on the landmark streets, like the Broad St photos
+  const poleM=new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.7,roughness:.4}), lampM=new THREE.MeshBasicMaterial({color:SOD?0xffd6a0:0xeaf2ff,toneMapped:false});
   const poles=[],arms=[],heads=[],pools=[],flare=[],lampSt=[];
   for(let s=10;s<tr.L;s+=32){ frame(s,f,tr); if(f.p.y<-.3) continue; orientQ(f,q,basis,nr);
     [-1,1].forEach(sd=>{ const b=f.p.clone().addScaledVector(f.r,sd*(W+3.4));
@@ -3299,10 +3346,10 @@ function buildCity(C){
       pv.y=f.p.y+.05; m4.compose(pv,new THREE.Quaternion(),one); pools.push(m4.clone()); m4.compose(pv,q,one); lampSt.push(m4.clone()); }); }
   mkInst(new THREE.CylinderGeometry(.14,.2,9,8),poleM,poles); mkInst(new THREE.BoxGeometry(3.6,.14,.2),poleM,arms); mkInst(new THREE.BoxGeometry(1.1,.2,.5),lampM,heads);
   const poolGeo=new THREE.PlaneGeometry(15,15); poolGeo.rotateX(-Math.PI/2);
-  mkInst(poolGeo,new THREE.MeshBasicMaterial({map:poolTex,color:0x7a8fb8,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}),pools);
+  mkInst(poolGeo,new THREE.MeshBasicMaterial({map:poolTex,color:SOD?0xb8793a:0x7a8fb8,transparent:true,opacity:SOD?.6:.5,blending:THREE.AdditiveBlending,depthWrite:false}),pools);
   lampStreaks(S,lampSt); lampCones(S,heads);
   const fl=new THREE.BufferGeometry(); fl.setAttribute('position',new THREE.Float32BufferAttribute(flare,3));
-  S.add(new THREE.Points(fl,new THREE.PointsMaterial({map:glowTex,color:0xdfe9ff,size:3,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})));
+  S.add(new THREE.Points(fl,new THREE.PointsMaterial({map:glowTex,color:SOD?0xffc890:0xdfe9ff,size:SOD?3.6:3,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})));
   { const acM=new THREE.MeshStandardMaterial({color:0x5a5f68,roughness:.7,metalness:.4}), woodM=new THREE.MeshStandardMaterial({color:0x3a2c20,roughness:.95}), legM=new THREE.MeshStandardMaterial({color:0x22252a,roughness:.8,metalness:.5});
     mkInst(new THREE.BoxGeometry(1,1,1),acM,roofAC.map(([x,y,z,sz])=>{ pv.set(x,y+sz*.35,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(sz,sz*.7,sz*1.3)); return m4.clone(); }));
     mkInst(new THREE.CylinderGeometry(2.1,2.1,4.2,14),woodM,roofTank.map(([x,y,z])=>{ pv.set(x,y+5.4,z); m4.compose(pv,new THREE.Quaternion(),one); return m4.clone(); }));
@@ -3399,12 +3446,18 @@ function buildCity(C){
     flat(-128,-90,-640,-490,.03,new THREE.MeshStandardMaterial({color:0x3a3630,roughness:.85})); // plaza
     for(let i=0;i<18;i++){ const h=(i+1)*.42; boxM(1.5,h,64,stepM,-129-i*1.5,h/2,-565); } // the steps, climbing west
     const tY=18*.42; boxM(16,tY,110,stepM,-164,tY/2,-565); // terrace
+    const PK=phillyKitMats();
+    if(kitInst(S,'ArtMuseum',PK,[new THREE.Matrix4().makeTranslation(-190,tY,-565)])){ // temple front, wings round the courtyard
+      boxM(66,tY,132,stepM,-189,tY/2,-565); [-1,1].forEach(sd=>boxM(11.6,tY,34,stepM,-150.2,tY/2,-565+sd*49));  // podium under the kit
+      [[-150,-600],[-150,-530],[-140,-614],[-140,-516],[-160,-565]].forEach(([x,z])=>{ const g=glowSprite(0xffc27a,8); g.position.set(x,tY+.8,z); g.material.opacity=.7; S.add(g); }); } // column flood heads
+    else {
     boxM(56,15,74,gold,-200,tY+7.5,-565); boxM(58,1.4,76,goldHi,-200,tY+15.7,-565); // central pavilion + cornice
     for(let i=0;i<8;i++){ const z=-594+i*(58/7); mesh(new THREE.CylinderGeometry(.85,.95,12,12),goldHi,-170,tY+6,z); } // colonnade
     { const sh=new THREE.Shape(); sh.moveTo(-31,0); sh.lineTo(31,0); sh.lineTo(0,6.5); sh.lineTo(-31,0);
       const pm=mesh(new THREE.ExtrudeGeometry(sh,{depth:3,bevelEnabled:false}),goldHi,-173,tY+16.4,-565); pm.rotation.y=Math.PI/2; } // pediment
     [-1,1].forEach(sd=>{ boxM(46,13,26,gold,-186,tY+6.5,-565+sd*52); boxM(48,1.2,28,goldHi,-186,tY+13.6,-565+sd*52); // wings wrapping the courtyard
       for(let i=0;i<4;i++) mesh(new THREE.CylinderGeometry(.7,.8,10,10),goldHi,-162,tY+5,-565+sd*(42+i*6)); });
+    }
     [[-128,-600],[-128,-530],[-150,-620],[-150,-510],[-165,-565]].forEach(([x,z])=>{ const g=glowSprite(warmLamp,16); g.position.set(x,3,z); S.add(g); }); // uplights
     const pma=mesh(new THREE.PlaneGeometry(22,2.2),new THREE.MeshBasicMaterial({map:CT(signCanvas2('PHILADELPHIA MUSEUM OF ART','THE ROCKY STEPS',{bg:'#120c06',color:'#ffd9a0'})),toneMapped:false}),-100,3.4,-565); pma.rotation.y=Math.PI/2;
     // Rocky, arms up, at the foot of the steps
@@ -3419,6 +3472,16 @@ function buildCity(C){
     const houseM=new THREE.MeshStandardMaterial({color:0x22262e,roughness:.8}), roofM=new THREE.MeshStandardMaterial({color:0x14171c,roughness:.7});
     const HUES=[0xffffff,0xffe2a8,0x7fe8ff,0xff7ad0,0xffffff,0xa6ff9a,0xffd060,0xffffff,0x9fb4ff,0xff9a6a,0xffffff,0x7fe8ff];
     const outlines=new Map(); const lineM=c=>{ if(!outlines.has(c)) outlines.set(c,new THREE.MeshBasicMaterial({color:c,toneMapped:false})); return outlines.get(c); };
+    const BHV=['Boathouse_A','Boathouse_B','Boathouse_C','Boathouse_D'], BHW={Boathouse_A:34,Boathouse_B:36,Boathouse_C:40,Boathouse_D:36};
+    if(kitParts('Boathouse_A')){ const lists={}, cols={};
+      for(let i=0;i<12;i++){ const x=96+i*52, zc=-758, v=BHV[(i*3+(i>>2))%4], w=BHW[v], c=HUES[i];
+        (lists[v]=lists[v]||[]).push(new THREE.Matrix4().makeTranslation(x,0,zc)); (cols[v]=cols[v]||[]).push(c);
+        const r=glowSprite(c,9); r.position.set(x,5,zc+10); r.material.opacity=.55; S.add(r);
+        flat(x-w/2,x+w/2,-800,-774,-1.55,new THREE.MeshBasicMaterial({map:poolTex,color:c,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false})); }
+      BHV.forEach(v=>kitInst(S,v,PK,lists[v]||[],cols[v],'LED'));
+      const trees=[]; for(let x=70;x<=700;x+=9){ const R2=rng(x); trees.push(new THREE.Matrix4().compose(new THREE.Vector3(x+R2()*4,0,-770-R2()*2),new THREE.Quaternion().setFromAxisAngle(UP,R2()*6),new THREE.Vector3().setScalar(1.3+R2()*.6))); }
+      kitInst(S,'Broadleaf',kitMats(),trees); } // the dark tree line behind the row, as in every night photo
+    else
     for(let i=0;i<12;i++){ const x=96+i*52, w=34+(i%3)*4, h=6+(i%2)*2.4, d=16, zc=-758, c=HUES[i], L=lineM(c), rh=4.2+(i%2);
       boxM(w,h,d,houseM,x,h/2,zc);
       const roof=new THREE.CylinderGeometry(1,1,w,3,1); roof.rotateZ(Math.PI/2); const rf=mesh(roof,roofM,x,h+rh*.5,zc); rf.scale.set(1,rh,d*.58);
@@ -3624,6 +3687,7 @@ function buildCity(C){
   }
 
   // flush merged city geometry
+  if(trims.length) mkInst(new THREE.BoxGeometry(1,1,1),upLit(new THREE.MeshStandardMaterial({color:0x4d4a45,roughness:.8}),UPL),trims);
   Object.values(FAC).forEach(b=>{ if(!b.pos.length) return; const g=new THREE.BufferGeometry();
     g.setAttribute('position',new THREE.Float32BufferAttribute(b.pos,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(b.nor,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(b.uv,2));
     S.add(new THREE.Mesh(g,b.mat)); });
@@ -5014,9 +5078,11 @@ const cam=new THREE.PerspectiveCamera(60,1,.1,1600);
 function aspect(){ return innerWidth/innerHeight; }
 let composer=null, renderPass=null, bloomPass=null, gradePass=null, glowOn=true;
 /* final grade: radial speed blur, edge chromatic aberration, split-tone color grade and vignette (runs in linear space) */
-const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{value:0},uHit:{value:0},uWet:{value:0}},
+const GRADE_DEF={shadow:[.9,1,1.14],high:[1.1,1.02,.9],sat:1.12,vig:.42,grain:0}; // scenes override with userData.grade
+const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{value:0},uHit:{value:0},uWet:{value:0},
+  uShadow:{value:new THREE.Vector3(.9,1,1.14)},uHigh:{value:new THREE.Vector3(1.1,1.02,.9)},uSat:{value:1.12},uVig:{value:.42},uGrain:{value:0},uTime:{value:0}},
   vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader:`uniform sampler2D tDiffuse; uniform float uSpeed,uBoost,uHit,uWet; varying vec2 vUv;
+  fragmentShader:`uniform sampler2D tDiffuse; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime; uniform vec3 uShadow,uHigh; varying vec2 vUv;
   void main(){
     vec2 c=vUv-.5; float r=length(c);
     float bl=(uSpeed*.022+uBoost*.03)*smoothstep(.12,.75,r);
@@ -5026,11 +5092,13 @@ const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{val
     float ca=(.0035+uBoost*.006+uHit*.012)*r*r*4.;
     col.r=mix(col.r,texture2D(tDiffuse,vUv+c*ca).r,.85); col.b=mix(col.b,texture2D(tDiffuse,vUv-c*ca).b,.85);
     float l=dot(col,vec3(.2126,.7152,.0722));
-    vec3 shadowTint=mix(vec3(.9,1.,1.14),vec3(.86,.98,1.18),uWet), highTint=vec3(1.1,1.02,.9);
+    vec3 shadowTint=mix(uShadow,vec3(.86,.98,1.18),uWet), highTint=uHigh;
     col*=mix(shadowTint,highTint,smoothstep(.04,.55,l));
-    col=max(mix(vec3(l),col,1.12),0.);
+    col=max(mix(vec3(l),col,uSat),0.);
     col=col*(1.0+col*.06)/(1.0+col*.06*.5);
-    col*=1.-.42*smoothstep(.38,.92,r*1.2);
+    col*=1.-uVig*smoothstep(.38,.92,r*1.2);
+    float gn=fract(sin(dot(vUv*vec2(1733.,947.)+fract(uTime)*91.7,vec2(12.9898,78.233)))*43758.5453)-.5;
+    col+=gn*uGrain*(.35+.65*(1.-smoothstep(0.,.6,l)));
     gl_FragColor=vec4(col,1.);
   }`};
 try{
@@ -5061,7 +5129,9 @@ function draw(scene){
   if(scene.userData.dome) scene.userData.dome.position.copy(cam.position);
   if(gradePass){ const u=gradePass.uniforms, pl=mode==='race'&&player?player:null;
     u.uSpeed.value=lerp(u.uSpeed.value,pl?STAGE.blur[pl.stage||0]*.85:0,.06); u.uBoost.value=lerp(u.uBoost.value,pl&&pl.nosOn?1:0,.12);
-    u.uHit.value=Math.min(1,shake); u.uWet.value=LOOK.wet&&scene!==studio?1:0; }
+    u.uHit.value=Math.min(1,shake); u.uWet.value=LOOK.wet&&scene!==studio?1:0;
+    const gd=scene.userData.grade||GRADE_DEF; u.uShadow.value.fromArray(gd.shadow||GRADE_DEF.shadow); u.uHigh.value.fromArray(gd.high||GRADE_DEF.high);
+    u.uSat.value=gd.sat!==undefined?gd.sat:GRADE_DEF.sat; u.uVig.value=gd.vig!==undefined?gd.vig:GRADE_DEF.vig; u.uGrain.value=gd.grain||0; u.uTime.value=(u.uTime.value+.137)%1; }
   if(composer&&glowOn){ renderPass.scene=scene; const b=scene.userData.bloom||{strength:.5,radius:.4,threshold:.85};
     bloomPass.strength=b.strength; bloomPass.radius=b.radius; bloomPass.threshold=b.threshold; composer.render(); }
   else renderer.render(scene,cam);
@@ -6423,6 +6493,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=2'],['philly','models/philly_kit.glb?v=1'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

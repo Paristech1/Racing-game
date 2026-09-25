@@ -5262,7 +5262,7 @@ function stepRacer(r,dt,inp){
     r._nos=nitro;
   }
   // digital steering: build lock at a steady rate, but let go and counter-steer quicker so corrections feel crisp
-  r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*(Math.abs(steer)<Math.abs(r.steer)||steer*r.steer<0?17:11))):steer;
+  r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*(Math.abs(steer)<Math.abs(r.steer)||steer*r.steer<0?16:10))):steer;
   if(d.noBoost) nitro=false;
   const cap=d.vcap||VCAP;
   const nosVmax=d.nosVmax||1.22, nosV=nitro?nosVmax*(r.fxWisp>0?1.1:1):1;
@@ -5300,7 +5300,7 @@ function stepRacer(r,dt,inp){
   r.nosOn=nitro;
   ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','fxEcho','towT','fxTempest','mantisT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
   const ac=r.v*r.v*k*.5;
-  const latDamp=inp?2.55:3.2, vSteer=inp?16:18, steerMul=inp?1.08:1;
+  const latDamp=inp?2.7:3.2, vSteer=inp?17:18, steerMul=inp?1.05:1;
   const sa=r.steer*G*Math.min(1,r.v/vSteer)*steerMul;
   r.vx+=(sa+ac-r.vx*latDamp)*dt;
   r.x+=r.vx*dt;

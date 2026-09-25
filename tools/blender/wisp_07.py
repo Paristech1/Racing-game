@@ -7,12 +7,12 @@ car = Car('Wisp 07', paint=(.82, .86, .88), accent=(.35, 1, .95))
 Z0, Z1, WB, WR = -2.04, 2.02, 1.26, .35
 HW = [[-2.04, .86], [-1.94, .95], [-1.7, 1.01], [-1.26, 1.04], [-.8, .98], [-.3, .95], [.3, .95], [.8, .98], [1.26, 1.03], [1.6, 1.0], [1.85, .93], [2.02, .78]]
 YB = [[-2.04, .34], [-1.88, .21], [-1.6, .15], [1.6, .15], [1.86, .18], [2.02, .25]]
-YS = [[-2.04, .82], [-1.85, .86], [-1.26, .84], [-.6, .76], [.2, .72], [.9, .72], [1.26, .73], [1.7, .66], [2.02, .52]]
-YT = [[-2.04, .88], [-1.97, .95], [-1.85, .96], [-1.4, .95], [-.9, .9], [-.3, .85], [.3, .82], [.8, .78], [1.3, .72], [1.7, .64], [1.92, .56], [2.02, .5]]
+YS = [[-2.04, .82], [-1.85, .86], [-1.26, .84], [-.6, .76], [.2, .72], [.9, .72], [1.26, .72], [1.7, .62], [2.02, .46]]
+YT = [[-2.04, .88], [-1.97, .95], [-1.85, .96], [-1.4, .95], [-.9, .9], [-.3, .85], [.3, .82], [.8, .77], [1.3, .7], [1.7, .6], [1.92, .52], [2.02, .46]]
 car.build_body({'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT, 'sill': .09, 'Rx': .13, 'round_nose': .14, 'round_tail': .14,
     'swage': (lambda z: lerp(.58, .4, smooth(-1.0, .9, z)), lambda z: smooth(-1.1, -.85, z) * (1 - smooth(.7, .95, z)), .02),
     'dome': lambda x, z: .018 * smooth(.7, 1.0, z) * (1 - smooth(1.6, 1.9, z)) * math.exp(-((abs(x) - .3) / .1) ** 2),
-    'lean': lambda y, z: .05 * smooth(1.7, 2.02, z) * (car.h_of(y, z) - .5) - .05 * smooth(-1.8, -2.04, z) * (car.h_of(y, z) - .45)})
+    'lean': lambda y, z: -.06 * smooth(1.6, 2.02, z) * (car.h_of(y, z) - .5) - .05 * smooth(-1.8, -2.04, z) * (car.h_of(y, z) - .45)})
 ARCH_R = .39
 for sd in (1, -1):
     for zw in (WB, -WB): car.cyl_x(f'arch{sd}{zw}', WR, zw, ARCH_R, sd * .6, sd * 1.4)
@@ -29,7 +29,7 @@ def blade_pts(y, x0, x1, n=17, side='front'):
         x = lerp(x0, x1, k / (n - 1)); z = car.surf_front(x, y) if side == 'front' else car.surf_back(x, y)
         if z is not None: pts.append((x, y, z - (.004 if side == 'front' else -.004)))
     return pts
-UPPER = blade_pts(.55, -.84, .84)
+UPPER = blade_pts(.5, -.84, .84)
 car.lamp_recess('bladeslot', UPPER, .022, .022, .05, .2)
 for sd in (1, -1):   # door shut lines, hood lines, hatch line
     for z0, ln, kink in ((.56, -.1, 0), (-.74, .0, .05)):
@@ -67,14 +67,14 @@ for sd in (1, -1):
 lip = [(-.8, 1.62)] + [(math.sin(a) * .8, 1.82 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 20 for k in range(21)]] + [(.8, 1.62)]
 car.extrude_y('Lip', lip, .14, .158, 'CARBON')
 for k in range(5):
-    x = -.44 + k * .22; car.extrude_x(f'fin{k}', [(-1.72, .15), (-2.0, .15), (-2.0, .3), (-1.86, .28)], x - .007, x + .007, 'CARBON')
+    x = -.44 + k * .22; car.extrude_x(f'fin{k}', [(-1.6, .15), (-1.9, .15), (-1.9, .28), (-1.76, .27)], x - .007, x + .007, 'CARBON')
 # ---- swan-neck wing
 foil = [(-1.62, 1.22), (-1.7, 1.245), (-1.84, 1.25), (-1.96, 1.235), (-1.99, 1.22), (-1.84, 1.215), (-1.7, 1.212)]
-car.extrude_x('Wing', foil, -.8, .8, 'CARBON', smooth_=True)
+car.extrude_x('Wing', foil, -.72, .72, 'CARBON', smooth_=True)
 for sd in (1, -1):
-    car.box(f'plate{sd}', (.012, .16, .42), (sd * .805, 1.2, -1.8), 'CARBON')
+    car.box(f'plate{sd}', (.012, .1, .36), (sd * .725, 1.22, -1.8), 'CARBON')
     x = sd * .36; dy = car.surf_y(x, -1.74) or .95
-    car.tube(f'strut{sd}', [(x, dy - .01, -1.72), (x, 1.1, -1.76), (x, 1.31, -1.72), (x, 1.29, -1.66)], .02, 'CARBON', res=8)
+    car.tube(f'strut{sd}', [(x, dy - .01, -1.7), (x, 1.2, -1.78), (x, 1.265, -1.74)], .018, 'CARBON', res=8)
 # ---- mirrors, flush handles
 for sd in (1, -1):
     mz = .46; my = car.belt(mz) + .02; mx = car.C['cw'](mz)

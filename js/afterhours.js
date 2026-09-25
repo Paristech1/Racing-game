@@ -5046,7 +5046,18 @@ try{
   }
 }catch(e){ composer=null; }
 if(!composer){ const b=$('#glow'); if(b) b.style.display='none'; }
+/* dev hook, only with ?dev in the URL: pin the camera anywhere on a level for screenshots / look-dev. Never touched in normal play. */
+const DEV=/[?&]dev\b/.test(location.search)?{hold:null}:null;
+if(DEV) window.AHDEV={
+  state:()=>({mode,ev:EV&&EV.id,L:TR&&TR.L,wet:LOOK.wet}),
+  pick:id=>{ const i=EVENTS.findIndex(e=>e.id===id); if(i<0) return false; EVI=i; if(mode==='events') renderEvent(0,true); return true; },
+  dry:()=>setWeather(false),
+  cam:(p,l,fov)=>{ DEV.hold={p,l,fov}; },
+  track:(s,x,h,back,ahead,fov)=>{ const F=mkF(); frame(s-(back||0),F); const P=F.p.clone().addScaledVector(F.r,x||0); P.y+=h||2;
+    frame(s+(ahead||30),F); const Lk=F.p.clone(); Lk.y+=1; DEV.hold={p:P.toArray(),l:Lk.toArray(),fov}; return DEV.hold; },
+  free:()=>{ DEV.hold=null; }};
 function draw(scene){
+  if(DEV&&DEV.hold&&scene!==studio){ const H=DEV.hold; cam.position.fromArray(H.p); cam.lookAt(H.l[0],H.l[1],H.l[2]); if(H.fov&&cam.fov!==H.fov){ cam.fov=H.fov; cam.updateProjectionMatrix(); } }
   if(scene.userData.dome) scene.userData.dome.position.copy(cam.position);
   if(gradePass){ const u=gradePass.uniforms, pl=mode==='race'&&player?player:null;
     u.uSpeed.value=lerp(u.uSpeed.value,pl?STAGE.blur[pl.stage||0]*.85:0,.06); u.uBoost.value=lerp(u.uBoost.value,pl&&pl.nosOn?1:0,.12);

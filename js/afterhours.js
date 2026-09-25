@@ -2368,6 +2368,17 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
       const sh=clamp(.55+.45*(Y/(r*1.3)),.35,1)*(.85+R()*.3); col.push(.55*sh,.8*sh,.5*sh); }
     const ix=g.index?g.index.array:[...Array(p.count).keys()]; for(let i=0;i<ix.length;i++) idx.push(base+ix[i]); g.dispose(); });
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3)); g.setIndex(idx); return g; }
+/* ---- Roosevelt Blvd kit (Blender build, models/blvd_kit.glb): streetlight, guardrail, trees, guide sign ----
+   Modelled in Blender from street photos of the Boulevard; each asset is an Empty with its parts parented.
+   kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
+const KIT_CACHE={};
+function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
+  const src=(window.AH_MODELS||{}).blvd, root=src&&src.getObjectByName(name); if(!root) return (KIT_CACHE[name]=null);
+  src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
+  root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
+  return (KIT_CACHE[name]=parts); }
+function kitInst(S,name,mats,list){ const parts=kitParts(name); if(!parts||!list.length) return false;
+  parts.forEach(p=>{ const m=mats[p.key]; if(!m) return; const im=new THREE.InstancedMesh(p.geo,m,list.length); list.forEach((x,i)=>im.setMatrixAt(i,x)); S.add(im); }); return true; }
 function buildBlvd(){
   const R0=25, zS=800, zN=-800, z0=-40;
   const e1=z0-zN, arc=Math.PI*R0, wS=zS-zN, e2=zS-z0, total=e1+arc+wS+arc+e2, n=Math.round(total);
@@ -2484,9 +2495,15 @@ function buildBlvd(){
       pv.set(x,10,z); m4.compose(pv,new THREE.Quaternion(),one); arms.push(m4.clone());
       [x-3.6,x+3.6].forEach(hx=>{ pv.set(hx,9.85,z); m4.compose(pv,new THREE.Quaternion(),one); heads.push(m4.clone()); flarePos.push(hx,9.7,z);
         const gy=Math.abs(hx)<14?exY(z)+.04:.04; pv.set(hx,gy,z); m4.compose(pv,new THREE.Quaternion(),new THREE.Vector3(1,1,1)); pools.push(m4.clone()); }); }); }
-  mkInst(new THREE.CylinderGeometry(.14,.2,10,8),poleM,poles);
-  mkInst(new THREE.BoxGeometry(7.6,.14,.2),poleM,arms);
-  mkInst(new THREE.BoxGeometry(1.1,.22,.5),lampM,heads);
+  const galvM=new THREE.MeshStandardMaterial({color:0x9aa1aa,metalness:.85,roughness:.36,envMapIntensity:1.2});
+  const KM={GALV:galvM,LAMP:lampM,DARK:new THREE.MeshStandardMaterial({color:0x0c0d0f,metalness:.4,roughness:.5}),CONCRETE:new THREE.MeshStandardMaterial({color:0x8e867a,roughness:.9}),
+    BARK:new THREE.MeshStandardMaterial({color:0x2a2119,roughness:1}),LEAF:new THREE.MeshStandardMaterial({color:0x1f3d1f,roughness:.95,flatShading:true}),NEEDLE:new THREE.MeshStandardMaterial({color:0x13301d,roughness:.95,flatShading:true}),
+    SIGNBACK:new THREE.MeshStandardMaterial({color:0x7c838c,metalness:.7,roughness:.4})};
+  const kitLamps=poles.map(m=>m.clone().multiply(new THREE.Matrix4().makeTranslation(0,-5,0)));
+  if(!kitInst(S,'LampTwin',KM,kitLamps)){ // procedural fallback
+    mkInst(new THREE.CylinderGeometry(.14,.2,10,8),poleM,poles);
+    mkInst(new THREE.BoxGeometry(7.6,.14,.2),poleM,arms);
+    mkInst(new THREE.BoxGeometry(1.1,.22,.5),lampM,heads); }
   const poolGeo=new THREE.PlaneGeometry(16,16); poolGeo.rotateX(-Math.PI/2);
   mkInst(poolGeo,new THREE.MeshBasicMaterial({map:poolTex,color:0x6f86b0,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false}),pools);
   lampStreaks(S,pools); lampCones(S,heads);
@@ -2498,8 +2515,13 @@ function buildBlvd(){
   for(let z=ZMAX-29;z>ZMIN;z-=21){ if(inBand(z)) continue; [-1,1].forEach(sd=>{ const s=.8+R_()*.5;
     pv.set(sd*16.5,1.5,z); m4.compose(pv,new THREE.Quaternion(),one); trunks.push(m4.clone());
     pv.set(sd*16.5,4.3,z); m4.compose(pv,new THREE.Quaternion().setFromEuler(new THREE.Euler(R_(),R_()*3,0)),new THREE.Vector3(s*1.1,s,s*1.1)); crowns.push(m4.clone()); }); }
-  mkInst(new THREE.CylinderGeometry(.16,.22,3,6),new THREE.MeshStandardMaterial({color:0x1d1813,roughness:1}),trunks);
-  mkInst(leafyCrown(2.3,7),new THREE.MeshStandardMaterial({color:0x2a4a2c,roughness:.95,vertexColors:true}),crowns);
+  if(kitParts('Conifer')&&kitParts('Broadleaf')){ // Blender trees: tall conifers and shade trees, as on the medians in the photos
+    const con=[], brd=[]; trunks.forEach((t,i)=>{ const tz=new THREE.Vector3().setFromMatrixPosition(t).z, clash=Math.abs(((tz-(ZMAX-8))%42+42)%42)<5||Math.abs(((tz-(ZMAX-8))%42+42)%42)>37; // keep clear of the lamp poles
+      const s=.75+R_()*.45, m=t.clone().multiply(new THREE.Matrix4().makeTranslation(0,-1.5,clash?10:0)).multiply(new THREE.Matrix4().makeRotationY(R_()*6.28)).multiply(new THREE.Matrix4().makeScale(s,s*(.9+R_()*.25),s));
+      (i%3===1?brd:con).push(m); });
+    kitInst(S,'Conifer',KM,con); kitInst(S,'Broadleaf',KM,brd); }
+  else { mkInst(new THREE.CylinderGeometry(.16,.22,3,6),new THREE.MeshStandardMaterial({color:0x1d1813,roughness:1}),trunks);
+    mkInst(leafyCrown(2.3,7),new THREE.MeshStandardMaterial({color:0x2a4a2c,roughness:.95,vertexColors:true}),crowns); }
 
   // street dressing: parked cars in the lots, sodium lot lights, sidewalk furniture, shrubs on the medians
   { const spots=[], lamps=[], shrubs=[];
@@ -2515,6 +2537,13 @@ function buildBlvd(){
 
   // signs
   function faceRoad(mesh,sd){ mesh.rotation.y=-sd*Math.PI/2; return mesh; }
+  { // Blender W-beam guardrail along the sidewalk edge, corrugated face to the road
+    const gr=[]; segsAll.forEach(([za,zb])=>[-1,1].forEach(sd=>{ for(let z=za-2;z>zb+2;z-=4.04) gr.push(new THREE.Matrix4().makeTranslation(sd*35.3,0,z).multiply(new THREE.Matrix4().makeRotationY(sd>0?Math.PI:0))); }));
+    kitInst(S,'Guardrail',KM,gr);
+    // single-post green guide signs on the outer sidewalk, facing oncoming race traffic
+    [[1,140,'Cottman Av','NEXT LEFT'],[1,-560,'US 1 North','Trenton'],[-1,-140,'Harbison Av','1/2 MILE'],[-1,560,'US 1 South','Center City']].forEach(([sd,z,l1,l2])=>{
+      if(!kitParts('GuideSign')) return; const ft=CT(signCanvas2(l1,l2)); ft.flipY=false; const face=new THREE.MeshBasicMaterial({map:ft,toneMapped:false}); // glTF UV convention: no flipY
+      kitInst(S,'GuideSign',Object.assign({},KM,{SIGN:face}),[new THREE.Matrix4().makeTranslation(sd*34.8,0,z).multiply(new THREE.Matrix4().makeRotationY(sd>0?0:Math.PI))]); }); }
   function signPlane(text,w,h,x,y,z,sd,opts){ const mat=new THREE.MeshBasicMaterial({map:CT(signCanvas(text,opts)),toneMapped:false,transparent:!!opts.transparent});
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat); m.position.set(x,y,z); faceRoad(m,sd); S.add(m); return m; }
 
@@ -6278,5 +6307,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  new THREE.GLTFLoader().load('models/volcano_p1.glb?v=1',gl=>{ window.AH_MODELS.volcano=gl.scene; go(); },undefined,e=>{ console.warn('volcano_p1.glb failed, using the procedural Volcano',e); go(); });
+  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

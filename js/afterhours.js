@@ -622,8 +622,8 @@ const BODIES={
    cab:[[-1.25,.95],[-.7,1.2],[.1,1.24],[.7,1.0],[1.15,.72]],cabBase:[-1.25,.93,1.15,.7],w:2.06,cw:1.24,wr:.37,wb:1.5,tr:1.05,front:2.4,rear:2.5,headY:.48,tailY:.68,wingY:1.36,wingZ:-2.28},
  mantis:{pts:[[-2.24,.36],[-2.3,.74],[-2.12,.92],[-1.5,.98],[-.7,.98],[.2,.9],[1.0,.72],[1.6,.54],[2.1,.4],[2.2,.28]],base:.2, // longtail mid-engine
    cab:[[-1.2,.95],[-.7,1.2],[.05,1.26],[.6,1.04],[1.05,.74]],cabBase:[-1.2,.93,1.05,.72],w:1.96,cw:1.26,wr:.36,wb:1.36,tr:1.0,front:2.2,rear:2.3,headY:.5,tailY:.82,wingY:1.12,wingZ:-1.95},
- autobahn:{pts:[[-2.5,.42],[-2.56,.78],[-2.42,.94],[-1.8,.99],[-.6,1.0],[.5,.98],[1.4,.9],[2.1,.76],[2.48,.6],[2.52,.4]],base:.26, // four-door fastback
-   cab:[[-2.2,.96],[-1.3,1.3],[.2,1.42],[.95,1.18],[1.4,.94]],cabBase:[-2.2,.94,1.4,.93],w:1.98,cw:1.5,wr:.37,wb:1.5,tr:.9,front:2.52,rear:2.56,headY:.66,tailY:.86,wingY:1.08,wingZ:-2.35},
+ autobahn:{pts:[[-2.56,.46],[-2.62,.86],[-2.5,.98],[-1.8,1.0],[-.6,.95],[.55,.9],[1.5,.83],[2.15,.72],[2.38,.6],[2.42,.3]],base:.26, // four-door fastback, long hood (v2)
+   cab:[[-2.35,.99],[-1.3,1.29],[-.3,1.42],[.3,1.15],[.6,.9]],cabBase:[-2.35,.97,.6,.89],w:1.98,cw:1.46,wr:.37,wb:1.5,tr:.9,front:2.42,rear:2.62,headY:.63,tailY:.84,wingY:1.08,wingZ:-2.45},
  bell:{pts:[[-2.66,.34],[-2.72,.62],[-2.52,.84],[-1.7,.96],[-.7,.99],[.3,.92],[1.2,.76],[1.85,.58],[2.26,.42],[2.3,.3]],base:.2,
    cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:.94,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36},
  zephyr:{pts:[[-2.62,.22],[-2.68,.46],[-2.48,.6],[-1.6,.66],[-.5,.64],[.5,.56],[1.4,.42],[2.05,.3],[2.42,.22],[2.46,.16]],base:.12,
@@ -816,20 +816,24 @@ function volcanoShell(g,def,B,paint,glass,opts){
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.14,ay:ys-.1,yc:ys+.25,yf:ys+.25}; }};
 }
 
-/* ---- AUTOBAHN 63 (Blender build): an original four-door GT modelled in Blender (tools/blender/autobahn_63.py) ----
-   Taut body side with a crisp shoulder crease, a one-piece cabin with inset glass, cut panel gaps, recessed lamps and intakes.
+/* ---- AUTOBAHN 63 (Blender build, v2): an original four-door GT modelled in Blender (tools/blender/autobahn_63.py) ----
+   Proportioned from side-view refs of the class: long hood with the cowl behind the front axle, convex sides that swell over
+   both axles into wide hips, a low tumblehome glasshouse falling to a ducktail, gloss-black sills/valance, flush lower aero.
    Blender material names map onto the game's materials; the procedural autobahnShell stays as the fallback. */
+const PLATE_Z=-2.61, HEAD_Z=2.3, TAIL_Z=-2.64; // lamp glow / plate stations on the v2 body (provisional until the v2 GLB export lands)
 function autobahnGlbShell(g,def,B,paint,glass,opts){
   const parts=glbParts('autobahn'); if(!parts) return autobahnShell(g,def,B,paint,glass,opts);
   const K=carKit(g); rimPaint(paint,0x6f9dff,.12); paint.clearcoat=1; paint.clearcoatRoughness=.012; paint.roughness=Math.min(paint.roughness,.12);
   const satin=new THREE.MeshStandardMaterial({color:0x3c4047,metalness:.9,roughness:.32});
   const MATS={PAINT:paint,CARBON:K.carbon,GLASS:glass,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin};
   parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
-  { const pr=K.add(new THREE.PlaneGeometry(.5,.12),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'AUTOBAHN'),roughness:.5}),0,.55,-2.55); pr.rotation.y=Math.PI; }
-  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.32,sd*.64,.64,2.4); K.glow(0xff2030,.3,sd*.7,.84,-2.6); });
-  const HS=[[-2.56,.86],[-2.35,.98],[-1.95,1.03],[-1.5,1.045],[-1.0,1.015],[-.3,.975],[.5,.975],[1.1,.99],[1.5,1.0],[1.95,.985],[2.3,.93],[2.52,.8]],
-    YS=[[-2.56,.66],[-2.2,.73],[-1.55,.77],[-.9,.72],[0,.69],[.9,.68],[1.5,.68],[2.1,.64],[2.52,.56]], YB=[[-2.56,.36],[-2.35,.22],[-2.05,.19],[2.05,.19],[2.35,.22],[2.52,.3]];
-  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.09,ay:ys-.12,yc:ys+.22,yf:ys+.22}; }};
+  { const pr=K.add(new THREE.PlaneGeometry(.5,.12),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'AUTOBAHN'),roughness:.5}),0,.58,PLATE_Z); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.32,sd*.64,.63,HEAD_Z); K.glow(0xff2030,.3,sd*.66,.84,TAIL_Z); });
+  // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in autobahn_63.py)
+  const HS=[[-2.62,.76],[-2.52,.87],[-2.35,.95],[-2.0,1.0],[-1.55,1.03],[-1.1,.99],[-.5,.955],[.2,.945],[.75,.955],[1.1,.98],[1.5,.995],[1.85,.97],[2.12,.92],[2.3,.84],[2.42,.7]],
+    YS=[[-2.62,.82],[-2.4,.87],[-1.8,.9],[-1.35,.87],[-.7,.81],[.2,.78],[.9,.78],[1.4,.79],[1.8,.76],[2.1,.7],[2.32,.62],[2.42,.52]],
+    YB=[[-2.62,.46],[-2.45,.28],[-2.2,.17],[2.0,.165],[2.28,.2],[2.42,.27]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.085,ay:ys-.12,yc:ys+.2,yf:ys+.2}; }};
 }
 
 /* ---- Kage R: a chopped silver wedge, cab forward, black roof, amber spine ---- */

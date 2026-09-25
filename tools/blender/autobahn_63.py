@@ -241,7 +241,7 @@ gb = slot_of(body, 'GLOSSBLACK')
 for p in body.data.polygons:
     if p.material_index != 0: continue
     c = p.center; gx, gy, gz = abs(c.x), c.z, -c.y; yb = kf(YB, gz)
-    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4) or (gz < -2.5 and .74 < gy < .9 and gx < .86):
+    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4) or (gz < -2.5 and .76 < gy < .9 and gx < .8 and p.normal.y > .55):
         p.material_index = gb
 sharpen(body, 28)
 bvh = BV()
@@ -375,15 +375,19 @@ for sd in (1, -1):
 # ================================================================ REAR
 tl = []
 for k in range(-14, 15):                                                                            # full-width light bar
-    x = k / 14 * .88; y = .83 + .012 * (1 - (k / 14) ** 2); z = (surf_back(x, y) or -2.55) - .004; tl.append((x, y, z))
+    x = k / 14 * .78; y = .83 + .012 * (1 - (k / 14) ** 2); z = (surf_back(x, y) or -2.55) - .004; tl.append((x, y, z))
 tube('taillight', tl, .014, 'TAIL', res=4)
 for sd in (1, -1):
     x0, y0, z0 = tl[-1 if sd > 0 else 0]
-    ret = [(x0, y0, z0)] + [(sd * ((surf_side(y0 - .01 * i, z, sd) or .95) + .003), y0 - .01 * i, z) for i, z in enumerate((-2.52, -2.44, -2.34), 1)]
+    ret = [(x0, y0, z0)]
+    for i, xx in enumerate((.83, .87), 1):                      # wrap round the tail corner, hugging the surface
+        yy = y0 - .006 * i; ret.append((sd * xx, yy, (surf_back(sd * xx, yy) or z0) - .004))
+    for i, z in enumerate((-2.46, -2.38), 3): ret.append((sd * ((surf_side(y0 - .006 * i, z, sd) or .9) + .003), y0 - .006 * i, z))
     tube(f'tailret{sd}', ret, .012, 'TAIL', res=4)
     for ex in (.4, .56):                                                                            # quad round tailpipes in the diffuser
-        cyl_z(f'exh{sd}{ex}', sd * ex, .27, -2.44, -2.26, .046, 'CHROME', open_=True)
-        cyl_z(f'exhi{sd}{ex}', sd * ex, .27, -2.4, -2.38, .04, 'GAP')
+        zt = (surf_back(sd * ex, .34) or -2.4) - .01                 # tips sit flush with the valance above them
+        cyl_z(f'exh{sd}{ex}', sd * ex, .27, zt, zt + .18, .046, 'CHROME', open_=True)
+        cyl_z(f'exhi{sd}{ex}', sd * ex, .27, zt + .03, zt + .05, .04, 'GAP')
 for k in range(5):                                                                                  # diffuser strakes, inside the footprint
     x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.02, .17), (-2.3, .17), (-2.3, .28), (-2.2, .28)], x - .007, x + .007, 'CARBON')
 lipd = []                                                                                           # carbon ducktail lip

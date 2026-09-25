@@ -2209,7 +2209,7 @@ function buildTunnel(){
   const W=tr.W,H=tr.H, WR=W+1.4, WL=W+.3; // walls: the service walkway on the +r side pushes that wall out
   const S=new THREE.Scene();
   S.fog=new THREE.FogExp2(0x1a2029,.0052); S.background=new THREE.Color(0x0b0e13); S.environment=ENV.tunnel;
-  S.userData.bloom={strength:.62,radius:.45,threshold:.86};
+  S.userData.bloom={strength:.74,radius:.5,threshold:.84};
   // four-point rig: soft cool key from the strips overhead, faint fill, a rim from behind the cars, warm bounce off the road
   S.add(new THREE.HemisphereLight(0xcfdcf0,0x2a2218,.62));
   const key=new THREE.DirectionalLight(0xe8f0ff,.55); key.position.set(0,1,.15); S.add(key);
@@ -2234,7 +2234,7 @@ function buildTunnel(){
     for(let i=0;i<6000;i++){ const v=150+rr()*70|0; g.fillStyle=`rgb(${v},${v},${v})`; g.fillRect(rr()*w,rr()*h,1.3,1.3); }
     RU.forEach(u=>[-.055,.055].forEach(o=>{ const x=w*(u+o); const gr=g.createLinearGradient(x-10,0,x+10,0); gr.addColorStop(0,'rgba(40,40,40,0)'); gr.addColorStop(.5,'rgba(40,40,40,.85)'); gr.addColorStop(1,'rgba(40,40,40,0)'); g.fillStyle=gr; g.fillRect(x-10,0,20,h); }));
     g.fillStyle='#e0e0e0'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h); [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45)); }));
-  ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughnessMap:roadRough,roughness:.9,metalness:.12,envMapIntensity:1.15,side:THREE.DoubleSide}),24);
+  ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughnessMap:roadRough,roughness:.52,metalness:.22,envMapIntensity:1.3,color:0xa9aeb6,side:THREE.DoubleSide}),24); // damp: the strips smear across it
   // ---- walls: glazed white tile to 3.6 m with a harbor-blue band; painted concrete panels above; ribbed dark soffit ----
   // ribbon UVs: u runs up the wall (yA->yB), v along the tube every vScale metres
   const tileC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c4c9cf'; g.fillRect(0,0,w,h); const n=16, t=w/n;
@@ -2313,6 +2313,29 @@ function buildTunnel(){
   const dm=[]; for(let s=100;s<tr.L;s+=100) dm.push(s);
   dm.forEach(s=>{ frame(s,f,tr); orientQ(f,q,basis,nr); const m=new THREE.Mesh(new THREE.PlaneGeometry(.9,.5),new THREE.MeshBasicMaterial({map:CT(signCanvas(String(s),{w:128,h:64,bg:'#101418',color:'#dfe8f2',size:40}))}));
     m.position.copy(f.p).addScaledVector(f.r,WR-.07); m.position.y+=2.6; m.quaternion.copy(q); m.rotateY(Math.PI/2); S.add(m); });
+  // ---- atmosphere pass (threejs-materials/textures/postprocessing): wet road, light shafts, accent lines, dust ----
+  { // standing water: mirror-dark alpha blobs just above the asphalt, so the strips and tail lights reflect in patches
+    const blob=dataTex(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#000'; g.fillRect(0,0,w,h); const R=rng(77);
+      for(let k=0;k<9;k++){ const x=w*(.25+R()*.5), y=h*(.25+R()*.5), r=w*(.12+R()*.2), gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,'#fff'); gr.addColorStop(.7,'#bbb'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); } }));
+    blob.wrapS=blob.wrapT=THREE.ClampToEdgeWrapping; blob.repeat.set(1,1);
+    const pud=[], R=rng(4242); for(let s=18;s<tr.L-10;s+=17+R()*20){ const w=2+R()*3.5; place(pud,s,(R()-.5)*2*(W-1.4),.022,new THREE.Vector3(w,1,w*(1.2+R()))); }
+    inst(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({color:0x06080b,roughness:.03,metalness:.55,envMapIntensity:2.4,alphaMap:blob,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}),pud); }
+  { // light shafts: crossed, additive trapezoids under every strip, bright at the fitting and gone by the road
+    const shaftT=colTex(canvasTex(64,128,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'rgba(215,232,255,.95)'); gr.addColorStop(.35,'rgba(170,200,240,.35)'); gr.addColorStop(1,'rgba(120,150,200,0)');
+      g.fillStyle=gr; g.fillRect(0,0,w,h); g.globalCompositeOperation='destination-in'; const m=g.createLinearGradient(0,0,w,0); m.addColorStop(0,'rgba(0,0,0,0)'); m.addColorStop(.5,'#000'); m.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=m; g.fillRect(0,0,w,h); }));
+    shaftT.wrapS=shaftT.wrapT=THREE.ClampToEdgeWrapping; shaftT.repeat.set(1,1);
+    const sh=H-.5, geo=new THREE.PlaneGeometry(1,sh,1,1), P=geo.attributes.position; for(let i=0;i<P.count;i++){ const top=P.getY(i)>0; P.setX(i,P.getX(i)*(top?.5:3.2)); } // narrow at the lamp, wide on the road
+    const cross=geo.clone().rotateY(Math.PI/2), both=[geo,cross], shafts=[];
+    for(let s=0;s<tr.L;s+=13) [-3.4,3.4].forEach(x=>place(shafts,s,x,.3+sh/2));
+    const shaftM=new THREE.MeshBasicMaterial({map:shaftT,transparent:true,opacity:.17,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:true});
+    both.forEach(g=>{ const im=inst(g,shaftM,shafts); if(im) im.renderOrder=2; }); }
+  // harbor-blue accent lines where the walls meet the soffit, and a low cyan kerb line on the walkway
+  [-1,1].forEach(sd=>{ const o=sd*(sd>0?WR:WL); ribbon(tr,S,sd*(o*sd-.03),sd*(o*sd-.03),H-.14,H-.06,glowLine(0x3a9cff)); });
+  ribbon(tr,S,W+.31,W+.31,.2,.26,glowLine(0x48f0ff));
+  { // dust motes hanging in the strip light
+    const R=rng(909), pos=[]; for(let i=0;i<1800;i++){ frame(R()*tr.L,f,tr); const x=(R()-.5)*2*W, y=.6+R()*(H-1.2); pos.push(f.p.x+f.r.x*x,f.p.y+y,f.p.z+f.r.z*x); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    S.add(new THREE.Points(g,new THREE.PointsMaterial({map:glowTex,color:0xbfd6ff,size:.14,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false}))); }
   // ---- start gantry and grid ----
   frame(0,f,tr); orientQ(f,q,basis,nr);
   const gan=new THREE.Mesh(new THREE.BoxGeometry(2*W,.35,.35),new THREE.MeshBasicMaterial({color:0xff2a3a,toneMapped:false}));

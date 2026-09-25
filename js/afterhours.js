@@ -2392,7 +2392,7 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
    kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
 const KIT_CACHE={};
 function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
-  const src=(window.AH_MODELS||{}).blvd, root=src&&src.getObjectByName(name); if(!root) return (KIT_CACHE[name]=null);
+  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (KIT_CACHE[name]=null);
   src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
   root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
   return (KIT_CACHE[name]=parts); }
@@ -2413,7 +2413,14 @@ function kitMats(){ if(KIT_MATS) return KIT_MATS;
     PUMP:new THREE.MeshStandardMaterial({color:0x12151a,metalness:.4,roughness:.4}),SCREEN:new THREE.MeshBasicMaterial({color:0x8fd0ff,toneMapped:false}),
     BRICK:new THREE.MeshStandardMaterial({color:0x5a2a1e,roughness:.9}),STOREGLASS:new THREE.MeshBasicMaterial({color:0xffe6bf,toneMapped:false}),
     FASCIA:new THREE.MeshStandardMaterial({color:0x17181b,metalness:.2,roughness:.6}),PRECAST:new THREE.MeshStandardMaterial({color:0x9d9282,roughness:.85}),
-    ENTRY:new THREE.MeshBasicMaterial({color:0xd8ecff,toneMapped:false}),ROOF:new THREE.MeshStandardMaterial({color:0x0b0b0d,roughness:1})}; }
+    ENTRY:new THREE.MeshBasicMaterial({color:0xd8ecff,toneMapped:false}),ROOF:new THREE.MeshStandardMaterial({color:0x0b0b0d,roughness:1}),
+    SCHIST:new THREE.MeshStandardMaterial({color:0x4a4841,roughness:.95}),BUFF:new THREE.MeshStandardMaterial({color:0x9c8566,roughness:.85}),
+    LIMESTONE:new THREE.MeshStandardMaterial({color:0xa9a193,roughness:.8}),TRIM:new THREE.MeshStandardMaterial({color:0xd9d4c8,roughness:.6}),
+    SLATE:new THREE.MeshStandardMaterial({color:0x22262d,metalness:.15,roughness:.6}),WOOD:new THREE.MeshStandardMaterial({color:0x3a2618,roughness:.8}),
+    WINLIT:new THREE.MeshBasicMaterial({color:0xffc98a,toneMapped:false}),WINDARK:new THREE.MeshStandardMaterial({color:0x0a0d12,metalness:.6,roughness:.12}),
+    AWNING:new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85,side:THREE.DoubleSide})}; }
+// yaw that turns a kit asset (facade on local +x) to face direction (dx,dz)
+const kitYawTo=(dx,dz)=>Math.atan2(-dz,dx);
 const kitAt=(x,z,ry,s)=>{ const m=new THREE.Matrix4().makeTranslation(x,0,z); if(ry) m.multiply(new THREE.Matrix4().makeRotationY(ry)); if(s) m.multiply(new THREE.Matrix4().makeScale(s,s,s)); return m; };
 function buildBlvd(){
   const R0=25, zS=800, zN=-800, z0=-40;
@@ -4102,8 +4109,23 @@ function buildMtAiry(){
   ribbonF(tr,S,creekM,(k,p)=>inLin(p,k)?[W+13,p.y-5.4,W+25,p.y-5.4]:null,10);
 
   // ---- Germantown Ave: three-storey stone and brick shops tight to the sidewalk, lit shop windows, blade signs ----
+  const SHOPS=['CAFE','BOOKS','HARDWARE','PIZZA','TAVERN','BAKERY','VINTAGE','RECORDS','DELI','THEATRE','FLOWERS','BIKES','TACOS','WINE BAR'], SC=['#ffcf6a','#ff6fd8','#6fe3ff','#ff3b3b','#7dff9a','#f4f7ff'];
+  const MA_KIT=!!(kitParts('ShopSchist')&&kitParts('ShopBrick')&&kitParts('Theatre'));
+  if(MA_KIT){ // Blender kit: three-storey schist and brick shops tight to the sidewalk, the deco theatre halfway up the Avenue
+    const km=kitMats(), sch=[], brk=[], awC=[[],[]], AWC=[0x2d5a3a,0x7a1e22,0x1e3a5e,0x2a2a2e,0x6a4a1e,0x3c2a4a], sTh=sA*.52, bands=[];
+    const put=(s,sd,into,col)=>{ K.at(s,sd*(W+4.6)); const r=K.f.r, d={x:-sd*r.x,z:-sd*r.z}, c=pv.clone().addScaledVector(r,sd*6.5);
+      if(!K.clearOf(c,K.f.t,r,8.8,13,W+4.4)) return false; into.m.push(new THREE.Matrix4().makeTranslation(pv.x,K.f.p.y-.3,pv.z).multiply(new THREE.Matrix4().makeRotationY(kitYawTo(d.x,d.z)))); into.c.push(col); return {x:pv.x,y:K.f.p.y,z:pv.z,d}; };
+    const S1={m:[],c:[]}, S2={m:[],c:[]};
+    [-1,1].forEach(sd=>{ for(let s=24;s<sA-30;s+=9.2){ if(sd<0&&Math.abs(s-sTh)<16) continue; const col=AWC[K.R()*AWC.length|0], r=put(s,sd,K.R()<.55?S1:S2,col); if(r) bands.push(r); } });
+    kitInst(S,'ShopSchist',km,S1.m,S1.c,'AWNING'); kitInst(S,'ShopBrick',km,S2.m,S2.c,'AWNING');
+    { K.at(sTh,-(W+4.6)); const r=K.f.r, d={x:r.x,z:r.z}; kitInst(S,'Theatre',km,[new THREE.Matrix4().makeTranslation(pv.x,K.f.p.y-.3,pv.z).multiply(new THREE.Matrix4().makeRotationY(kitYawTo(d.x,d.z)))]);
+      const ry=Math.atan2(d.x,d.z), mp=pv.clone().addScaledVector(r,3.3); K.sign(signCanvas('SEDGWICK',{bg:'#0b0908',color:'#ffd89a',size:66,glow:18}),14,1.1,mp.x,K.f.p.y+4.15,mp.z,ry);
+      K.glow(0xffd9a0,14,mp.x,K.f.p.y+4.4,mp.z); }
+    bands.forEach((b,i)=>{ const nm=SHOPS[i%SHOPS.length], c=SC[i%SC.length]; const ry=Math.atan2(b.d.x,b.d.z);
+      K.sign(signCanvas(nm,{bg:'#0d0e10',color:c,size:48,glow:10}),6,.62,b.x+b.d.x*.24,b.y+3.4,b.z+b.d.z*.24,ry); }); }
+  else {
   K.frontage(20,sA-30,-1,{set:5,h:[8,13],dep:[12,16],len:[7,12],space:.15,styles:['stone','brick','brick']});
-  K.frontage(20,sA-30,1,{set:5,h:[8,13],dep:[12,16],len:[7,12],space:.15,styles:['stone','brick','stone']});
+  K.frontage(20,sA-30,1,{set:5,h:[8,13],dep:[12,16],len:[7,12],space:.15,styles:['stone','brick','stone']}); }
   const shopT=(em)=>CT(canvasTex(128,512,(g,w,h)=>{ g.fillStyle=em?'#000':'#16171a'; g.fillRect(0,0,w,h);
     const cols=['#ffe7c2','#dfeaff','#ffd9a0','#fff1d6'];
     for(let y=6,i=0;y<h-30;y+=64,i++){ const c=cols[i%4];
@@ -4112,8 +4134,7 @@ function buildMtAiry(){
       else { g.fillStyle='#0c1016'; g.fillRect(10,y,100,50); g.fillStyle='rgba(255,255,255,.07)'; g.fillRect(96,y,14,50); }
       g.fillStyle=em?'#000':'#2c2f36'; g.fillRect(10,y+24,100,3); g.fillRect(110,y,10,50); } }),true);
   const shopM=new THREE.MeshStandardMaterial({map:shopT(false),emissive:0xffffff,emissiveMap:shopT(true),emissiveIntensity:.8,roughness:.4,metalness:.1,side:THREE.DoubleSide});
-  [-1,1].forEach(sd=>ribbonF(tr,S,shopM,(k,p)=>inGtn(k)?[sd*(W+4.55),p.y+.35,sd*(W+4.55),p.y+3.8]:null,20));
-  const SHOPS=['CAFE','BOOKS','HARDWARE','PIZZA','TAVERN','BAKERY','VINTAGE','RECORDS','DELI','THEATRE','FLOWERS','BIKES','TACOS','WINE BAR'], SC=['#ffcf6a','#ff6fd8','#6fe3ff','#ff3b3b','#7dff9a','#f4f7ff'];
+  if(!MA_KIT) [-1,1].forEach(sd=>ribbonF(tr,S,shopM,(k,p)=>inGtn(k)?[sd*(W+4.55),p.y+.35,sd*(W+4.55),p.y+3.8]:null,20));
   for(let s=40,i=0;s<sA-40;s+=46,i++){ const sd=i%2?1:-1; K.at(s,sd*(W+3.6),4.6); const t=K.f.t;
     K.sign(signCanvas(SHOPS[i%SHOPS.length],{bg:'#07080a',color:SC[i%SC.length],size:54,glow:14}),2.6,.7,pv.x,pv.y,pv.z,Math.atan2(t.x,t.z));
     K.glow(new THREE.Color(SC[i%SC.length]).getHex(),2.4,pv.x,pv.y,pv.z); }
@@ -4127,7 +4148,11 @@ function buildMtAiry(){
   const slateM=new THREE.MeshStandardMaterial({color:0x2a2f36,roughness:.7,metalness:.15}), trimM2=new THREE.MeshStandardMaterial({color:0xd8d2c4,roughness:.7});
   const roofGeo=(()=>{ const sh=new THREE.Shape(); sh.moveTo(-.5,0); sh.lineTo(.5,0); sh.lineTo(0,.5); sh.lineTo(-.5,0); const g=new THREE.ExtrudeGeometry(sh,{depth:1,bevelEnabled:false}); g.translate(0,0,-.5); return g; })();
   const roofs=[], porchRoofs=[], porchPosts=[], chimneys=[], lamps=[];
+  const twins=[];
   const houses=(s0,s1,sd)=>{ for(let s=s0;s<s1;s+=15.5){ if(K.R()<.08) continue;
+      if(kitParts('StoneTwin')){ K.at(s,sd*(W+12.5),0); const r=K.f.r, t=K.f.t, d={x:-sd*r.x,z:-sd*r.z}, y0=K.f.p.y-.4;
+        twins.push(new THREE.Matrix4().makeTranslation(pv.x,y0,pv.z).multiply(new THREE.Matrix4().makeRotationY(kitYawTo(d.x,d.z))));
+        [-2.7,4.1].forEach(o=>{ if(K.R()<.8) lamps.push([pv.x+d.x*.5+t.x*o,y0+2.8,pv.z+d.z*.5+t.z*o]); }); continue; }
       K.at(s,sd*(W+16.5),0); const c=pv.clone(), t=K.f.t, yaw=Math.atan2(t.x,t.z), y0=K.f.p.y-.4, w=13, d=11, h=7.5+K.R()*1.5;
       K.obox(K.R()<.75?'stone':'brick',c.x,c.z,yaw,d,w,h,y0);
       const qy=new THREE.Quaternion().setFromAxisAngle(THREE.Object3D.DefaultUp,yaw);
@@ -4137,6 +4162,7 @@ function buildMtAiry(){
       const ch=c.clone().addScaledVector(K.f.t,(K.R()-.5)*w*.6); pv.set(ch.x,y0+h+3.4,ch.z); m4.compose(pv,qy,one); chimneys.push(m4.clone());
       if(K.R()<.8){ const lp=pc.clone().addScaledVector(K.f.r,sd*1.2); lamps.push([lp.x,y0+2.7,lp.z]); } } };
   [-1,1].forEach(sd=>{ houses(sA+50,sB-45,sd); houses(sC+45,L-70,sd); });
+  kitInst(S,'StoneTwin',kitMats(),twins);
   K.inst(roofGeo,slateM,roofs); K.inst(new THREE.BoxGeometry(1,1,1),slateM,porchRoofs);
   K.inst(new THREE.CylinderGeometry(.12,.12,3.2,6),trimM2,porchPosts); K.inst(new THREE.BoxGeometry(1,2.4,1),new THREE.MeshStandardMaterial({color:0x5a4a3e,roughness:.95}),chimneys);
   { const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.Float32BufferAttribute(lamps.flat(),3));
@@ -6365,6 +6391,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=1'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

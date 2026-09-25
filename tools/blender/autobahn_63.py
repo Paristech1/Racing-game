@@ -241,7 +241,7 @@ gb = slot_of(body, 'GLOSSBLACK')
 for p in body.data.polygons:
     if p.material_index != 0: continue
     c = p.center; gx, gy, gz = abs(c.x), c.z, -c.y; yb = kf(YB, gz)
-    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4) or (gz < -2.5 and .76 < gy < .9 and gx < .8 and p.normal.y > .55):
+    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4 and gx < .8) or (gz < -2.5 and .76 < gy < .9 and gx < .8 and p.normal.y > .55):
         p.material_index = gb
 sharpen(body, 28)
 bvh = BV()
@@ -325,6 +325,17 @@ for p in cabin.data.polygons:
     elif u < .53 and lerp(DLO_R0, DLO_R1, u / .53) < gz:
         p.material_index = 2 if -.72 < gz < -.62 else 1                              # side glass, black B-pillar
 sharpen(cabin, 32)
+def ring_pt(z, u, grow=.004):                        # point on the cabin surface at ring parameter u
+    half = cab_ring(z, grow); us = [ring_u(h) for h in range(len(half))]
+    for h in range(2, len(half) - 1):
+        if us[h] <= u <= us[h + 1]:
+            t = (u - us[h]) / max(us[h + 1] - us[h], 1e-6); return lerp(half[h][0], half[h + 1][0], t), lerp(half[h][1], half[h + 1][1], t)
+    return half[-1]
+for sd in (1, -1):   # A-pillar cover: a slim gloss-black blade along the pillar line, so the glass edge reads crisp
+    pts = []
+    for k in range(16):
+        u = .6 * k / 15; z = a_line(u); x, y = ring_pt(z, u); pts.append((sd * x, y, z))
+    tube(f'apillar{sd}', pts, .016, 'GLOSSBLACK', res=4)
 for sd in (1, -1):   # bright DLO surround: along the belt, over the door tops, into the C-pillar point
     tube(f'dlo_belt{sd}', [(sd * (cw_(z) + .003), belt(z) + .005, z) for z in [lerp(DLO_F, DLO_R0, k / 20) for k in range(21)]], .0065, 'CHROME', res=4)
     top = []

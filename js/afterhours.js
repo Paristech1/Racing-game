@@ -1,5 +1,5 @@
 /* AFTERHOURS — Issue 01. Street racing in three.js (r128, global build). */
-(function(){
+window.AFTERHOURS_BOOT=function(){
 'use strict';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -139,10 +139,10 @@ CARS.push(
   cam:{p:[4.2,1.05,-4.0],l:[0,.5,-.15],roll:.07,fov:31}}
 );
 CARS.push(
- {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,sculpt:'p1',lowPro:true,paint:0xffc20e,metal:.55,rough:.12,rim:0x1a1b1e,caliper:0x121314,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
+ {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,sculpt:'p1',lowPro:true,paint:0xffc20e,metal:.55,rough:.12,rim:0xf2f5f8,chrome:true,caliper:0xd42020,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
   top:112,acc:42,grip:34,nitro:1.52,mass:.46,nosVmax:1.4,nosAccMul:2.2,
   kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
-  caption:'Volcano yellow, a teardrop canopy and a snorkel on the roof. The wing stands up at speed and it still pulls.',
+  caption:'Volcano yellow over bare carbon, a visor canopy and a swan-neck wing. Modelled in Blender, bolted to the archive, and it still pulls.',
   specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.5S / THE FASTEST HYBRID IN THE ARCHIVE',
   rival:'Rival note: only the Zephyr is faster in a straight line. Beat this one in the corners or not at all.',
   note:'fastest\nhybrid here.', notePos:{l:'60%',t:'34%'},
@@ -766,6 +766,37 @@ function p1Shell(g,def,B,paint,glass){
       K.add(new THREE.BoxGeometry(.012,.16,.5),carbon,sd*.9,wy-.02,-2.1); }); }
   [[0xcfe6ff,1.0,.6,.53,1.98],[0xcfe6ff,1.0,-.6,.53,1.98],[0xff2030,.8,0,.82,-2.36]].forEach(a=>K.glow(a[0],a[1],a[2],a[3],a[4]));
   return T;
+}
+
+/* ---- Volcano P1 (Blender build): an original hypercar modelled in Blender and loaded as models/volcano_p1.glb ----
+   threejs-loaders: GLTFLoader (r128 examples/js global) runs before the game boots (see the bootstrap at the end of this file).
+   Each Blender material name maps onto the game's own materials, so the car keeps the clear-coat paint, fresnel rim,
+   carbon weave and blooming lamps the rest of the archive uses. Falls back to the procedural p1Shell if the file is missing. */
+let VOLCANO_PARTS=null; // [{geo, key}] baked once, cloned per car
+function volcanoParts(){ if(VOLCANO_PARTS) return VOLCANO_PARTS;
+  const src=(window.AH_MODELS||{}).volcano; if(!src) return null;
+  src.updateMatrixWorld(true); const parts=[];
+  src.traverse(o=>{ if(!o.isMesh) return; const g=o.geometry.clone().applyMatrix4(o.matrixWorld), key=(o.material&&o.material.name||'PAINT').split('.')[0];
+    if(key==='CARBON'){ // no UVs from Blender: box-project so the twill weave has something to sample (threejs-textures)
+      const P=g.attributes.position, N=g.attributes.normal, uv=new Float32Array(P.count*2);
+      for(let i=0;i<P.count;i++){ const nx=Math.abs(N.getX(i)), ny=Math.abs(N.getY(i)), nz=Math.abs(N.getZ(i)), x=P.getX(i), y=P.getY(i), z=P.getZ(i);
+        const [u,v]=nx>=ny&&nx>=nz?[z,y]:(ny>=nz?[x,z]:[x,y]); uv[i*2]=u*1.6; uv[i*2+1]=v*1.6; }
+      g.setAttribute('uv',new THREE.BufferAttribute(uv,2)); }
+    parts.push({geo:g,key}); });
+  return VOLCANO_PARTS=parts;
+}
+function volcanoShell(g,def,B,paint,glass,opts){
+  const parts=volcanoParts(); if(!parts) return p1Shell(g,def,B,paint,glass,opts);
+  const K=carKit(g); rimPaint(paint,def.rimGlow||0xffb040,.3);
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:glass,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:exhM,LENS:LENS_M};
+  parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
+  { const pr=K.add(new THREE.PlaneGeometry(.4,.1),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'P1'),roughness:.5}),0,.265,-2.345); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.95,sd*.66,.5,2.1); K.glow(0xff2030,.8,sd*.84,.66,-2.38); });
+  K.glow(0xff2030,.7,0,.74,-2.38);
+  // side-section sampler for the street vinyl: same curves as the Blender loft (HS / YS / YB keys)
+  const HS=[[-2.32,.93],[-2.1,1.05],[-1.6,1.12],[-1.2,1.1],[-.7,1.0],[-.1,.965],[.6,.985],[1.1,1.06],[1.5,1.08],[1.95,1.02],[2.26,.86]],
+    YS=[[-2.32,.58],[-1.6,.58],[-.9,.52],[0,.48],[.8,.48],[1.4,.5],[1.95,.44],[2.26,.36]], YB=[[-2.32,.3],[-2.12,.19],[-1.9,.165],[1.9,.165],[2.12,.2],[2.26,.27]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.14,ay:ys-.1,yc:ys+.25,yf:ys+.25}; }};
 }
 
 /* ---- Kage R: a chopped silver wedge, cab forward, black roof, amber spine ---- */
@@ -1782,7 +1813,7 @@ function zephyrShell(g,def,B,paint,glass){
   K.plate(def,.4,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:p1Shell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell,zephyr:zephyrShell};
+const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnShell,zephyr:zephyrShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -1804,7 +1835,7 @@ const STREET={
  overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan'},
  wisp:{wheel:'fan'},
  stratos:{wheel:'split'},
- volcano:{wheel:'spoke'},
+ volcano:{wheel:'forged'},
  hellbound:{wheel:'dish',camber:.03},
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
  mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
@@ -1886,6 +1917,7 @@ function streetStyle(g,def,B,cid,flank){
       const mesh=new THREE.Mesh(geo,vinylMat(cid,st,sd>0)); mesh.renderOrder=1; g.add(mesh); }); }
 }
 // rim designs; spin is the wheel's spinning group, side = +-1, rimM the rim material
+const WHEEL_GEO={}, FORGED_CHROME=new THREE.MeshStandardMaterial({color:0xf6f8fa,metalness:.88,roughness:.1,envMapIntensity:2.6});
 function wheelStyle(spin,side,style,rimM,def){
   const at=(o,x)=>{ o.position.x=side*x; spin.add(o); return o; };
   const spokes=(n,wd,x,len)=>{ for(let k=0;k<n;k++){ const s=new THREE.Mesh(new THREE.BoxGeometry(.03,len,wd),rimM); s.rotation.x=k*Math.PI/n; at(s,x); } };
@@ -1910,6 +1942,20 @@ function wheelStyle(spin,side,style,rimM,def){
     case 'star': // chunky off-road star: six wide spokes and exposed bolts
       spokes(3,.1,.16,.52); at(new THREE.Mesh(new THREE.RingGeometry(.24,.27,24),blackM),.162).rotation.y=side*Math.PI/2;
       for(let k=0;k<12;k++){ const a=k/12*Math.PI*2, nb=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.02,6),chromeTrimM); nb.rotation.z=Math.PI/2; nb.position.set(side*.165,Math.cos(a)*.255,Math.sin(a)*.255); spin.add(nb); } break;
+    case 'forged': { // forged split five-spoke in mirror chrome: each spoke forks into two bevelled blades out to a riveted polished lip
+      const key='forged', C=WHEEL_GEO[key]||(WHEEL_GEO[key]=(()=>{ const blades=[];
+        for(let k=0;k<5;k++){ const a=k/5*Math.PI*2; [-1,1].forEach(f=>{ const sh=new THREE.Shape(), P=(r,t)=>[-Math.sin(t)*r,Math.cos(t)*r]; // shape (x,y) -> wheel (z,y) after rotateY
+            const h0=a+f*.07, h1=a+f*.22, pts=[P(.075,h0-.06),P(.2,a+f*.14-.05),P(.272,h1-.042),P(.272,h1+.042),P(.2,a+f*.14+.05),P(.075,h0+.06)];
+            sh.moveTo(...pts[0]); sh.quadraticCurveTo(...pts[1],...pts[2]); sh.lineTo(...pts[3]); sh.quadraticCurveTo(...pts[4],...pts[5]); sh.lineTo(...pts[0]);
+            const g=new THREE.ExtrudeGeometry(sh,{depth:.03,bevelEnabled:true,bevelThickness:.008,bevelSize:.007,bevelSegments:2,curveSegments:8}); g.rotateY(Math.PI/2); blades.push(g); }); }
+        const rivet=new THREE.CylinderGeometry(.009,.009,.016,6); rivet.rotateZ(Math.PI/2);
+        return {blades,rivet,cap:new THREE.CylinderGeometry(.088,.098,.05,28).rotateZ(Math.PI/2),badge:new THREE.CircleGeometry(.045,20)}; })());
+      C.blades.forEach(g=>at(new THREE.Mesh(g,FORGED_CHROME),.128));
+      at(new THREE.Mesh(C.back||(C.back=new THREE.RingGeometry(.09,.29,32)),barrelM),.1).rotation.y=side*Math.PI/2; // dark barrel face so the chrome pops
+      at(new THREE.Mesh(C.cap,FORGED_CHROME),.172);
+      at(new THREE.Mesh(C.badge,blackM),.198).rotation.y=side*Math.PI/2;
+      for(let k=0;k<20;k++){ const a=k/20*Math.PI*2, r=new THREE.Mesh(C.rivet,FORGED_CHROME); r.position.set(side*.165,Math.cos(a)*.285,Math.sin(a)*.285); spin.add(r); }
+      break; }
     case 'aero': // aero cover: flat disc with five teardrop windows
       at(new THREE.Mesh(new THREE.CircleGeometry(.27,28),rimM),.15).rotation.y=side*Math.PI/2;
       for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, h=new THREE.Mesh(new THREE.CircleGeometry(.05,14),gapM); h.rotation.y=side*Math.PI/2;
@@ -2050,7 +2096,7 @@ function buildCar(def,opts){
     const side=Math.sign(x);
     const barrel=new THREE.Mesh(BARREL_GEO,barrelM); barrel.rotation.z=Math.PI/2; barrel.position.x=side*.05; spin.add(barrel);
     const rotor=new THREE.Mesh(ROTOR_GEO,[barrelM,rotorM,rotorM]); rotor.rotation.z=Math.PI/2; rotor.position.x=side*.02; spin.add(rotor);
-    const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc);
+    if((STREET[cid]||{}).wheel!=='forged'){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
     const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
     wheelStyle(spin,side,(STREET[cid]||{}).wheel,rimM,def);
     if(def.lowPro) spin.children.forEach(o=>{ if(o!==tire&&o!==barrel&&o!==rotor){ o.scale.y*=1.2; o.scale.z*=1.2; } }); // bigger rim inside the same tyre: thin sidewall
@@ -6202,4 +6248,11 @@ function loop(now){
   }
 }
 requestAnimationFrame(loop);
+};
+/* bootstrap: load the Blender-built models first (threejs-loaders), then start the game. Never blocks longer than 8s. */
+(function(){ let started=false; const go=()=>{ if(started) return; started=true; window.AFTERHOURS_BOOT(); };
+  window.AH_MODELS=window.AH_MODELS||{};
+  if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
+  setTimeout(go,8000);
+  new THREE.GLTFLoader().load('models/volcano_p1.glb?v=1',gl=>{ window.AH_MODELS.volcano=gl.scene; go(); },undefined,e=>{ console.warn('volcano_p1.glb failed, using the procedural Volcano',e); go(); });
 })();

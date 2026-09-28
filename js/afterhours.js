@@ -366,6 +366,7 @@ function hist(id){ const h=SAVE[id]||(SAVE[id]={runs:0,wins:0,hits:0,last:0}); i
    for, so wheels, tyres, poles, lamps, domes and arches read smooth up close. Intentionally faceted shapes (3-5 sided prisms,
    flat-shaded icosahedra) are left alone. Phones get a smaller multiplier. */
 const GEO_DETAIL=(matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700)?1.5:2;
+const CAR_BODY_DETAIL=(matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700)?2:3; // lofted shells only (sculptBody / sculptCanopy / loftGeo)
 { const up=(n,min,max)=>n>=6?Math.min(max,Math.max(min,Math.round(n*GEO_DETAIL))):n;
   const C=THREE.CylinderGeometry, Sp=THREE.SphereGeometry, T=THREE.TorusGeometry, Ci=THREE.CircleGeometry, Ri=THREE.RingGeometry, Co=THREE.ConeGeometry, La=THREE.LatheGeometry;
   THREE.CylinderGeometry=class extends C{ constructor(a,b,h,rs,hs,o,ts,tl){ super(a,b,h,up(rs===undefined?8:rs,12,96),hs,o,ts,tl); } };
@@ -659,7 +660,7 @@ function kfCR(keys,z){ // Catmull-Rom through [z,value] keys
 function refineSection(pts){ const out=[]; for(let i=0;i<pts.length;i++){ out.push(pts[i]); if(i===pts.length-1) break;
     const a=pts[Math.max(0,i-1)], b=pts[i], c=pts[i+1], d=pts[Math.min(pts.length-1,i+2)];
     out.push([(-a[0]+9*b[0]+9*c[0]-d[0])/16,(-a[1]+9*b[1]+9*c[1]-d[1])/16]); } return out; } // Catmull-Rom at t=.5
-function loftGeo(stations){ if(GEO_DETAIL>1&&stations.length&&stations[0].pts.length<24) stations=stations.map(st=>({z:st.z,pts:refineSection(st.pts)}));
+function loftGeo(stations){ if(CAR_BODY_DETAIL>1&&stations.length&&stations[0].pts.length<24) stations=stations.map(st=>({z:st.z,pts:refineSection(st.pts)}));
   const S=stations.length, m=stations[0].pts.length, n=2*(m-1), pos=[], uv=[], idx=[];
   const ring=st=>st.pts.concat(st.pts.slice(1,-1).reverse().map(([x,y])=>[-x,y]));
   stations.forEach((st,i)=>{ ring(st).forEach(([x,y],j)=>{ pos.push(x,y,st.z); uv.push(j/n,i/(S-1)); }); });
@@ -689,14 +690,14 @@ function rimPaint(paint,col,k){ // fresnel rim (threejs-shaders: onBeforeCompile
 function carKit(g){
   const K={carbon:carbonMat()};
   K.add=(geo,m,x,y,z)=>{ const o=new THREE.Mesh(geo,m); o.position.set(x||0,y||0,z||0); g.add(o); return o; };
-  K.tube=(pts,r,m,seg,rs)=>K.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2]))),seg||24,r,rs||6,false),m);
+  K.tube=(pts,r,m,seg,rs)=>K.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2]))),seg||36,r,rs||8,false),m);
   K.lens=(x,y,z,sx,sy,sz,rx,ry)=>{ const l=K.add(new THREE.SphereGeometry(1,18,10),LENS_M,x,y,z); l.scale.set(sx,sy,sz); l.rotation.set(rx||0,ry||0,0); return l; };
   K.glow=(c,s,x,y,z)=>{ const o=glowSprite(c,s); o.position.set(x,y,z); g.add(o); return o; };
   K.airfoil=(chord,thick,span,m)=>{ const af=new THREE.Shape(), c=chord, t=thick; af.moveTo(0,0); af.bezierCurveTo(.03*c,.9*t,.25*c,1.2*t,.52*c,t); af.bezierCurveTo(.76*c,.7*t,.93*c,.25*t,c,0);
     af.bezierCurveTo(.86*c,-.1*t,.5*c,-.22*t,.24*c,-.22*t); af.bezierCurveTo(.08*c,-.2*t,0,-.14*t,0,0);
-    const geo=new THREE.ExtrudeGeometry(af,{depth:span,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:2,curveSegments:10}); geo.translate(0,0,-span/2); return geo; };
+    const geo=new THREE.ExtrudeGeometry(af,{depth:span,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:3,curveSegments:16}); geo.translate(0,0,-span/2); return geo; };
   K.scoop=(len,h,m)=>{ const sh=new THREE.Shape(); sh.moveTo(0,0); sh.bezierCurveTo(.25*len,-.06*h,.72*len,.05*h,len,.45*h); sh.bezierCurveTo(1.04*len,.75*h,.9*len,h,.78*len,h);
-    sh.bezierCurveTo(.48*len,.85*h,.15*len,.45*h,0,0); return new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:true,bevelThickness:.01,bevelSize:.01,bevelSegments:2}); };
+    sh.bezierCurveTo(.48*len,.85*h,.15*len,.45*h,0,0); return new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:true,bevelThickness:.01,bevelSize:.01,bevelSegments:3,curveSegments:16}); };
   return K;
 }
 /* lofted body: half cross-sections swept along the car (threejs-geometry: custom BufferGeometry + computeVertexNormals) */
@@ -707,7 +708,7 @@ function sculptBody(g,S,paint,K){
     const yb=kfCR(S.ybK,z)+.03*tn*tn, hs=kfCR(S.hwS,z)*taper, hl=Math.min(kfCR(S.hwL,z)*taper,hs-.08), yc=kfCR(S.ycK,z);
     const ay=Math.max(arch(z),yb+.16), ys=Math.max(kfCR(S.ysK,z),ay+.05), yf=lerp(Math.max(kfCR(S.yfK,z),ys+.06),Math.max(yc+.03,ys+.04),tn), ht=hs-(S.inset||.15);
     return {yb,hs,hl,yc,ay,ys,yf,ht}; };
-  const st=[], NS=Math.round((S.NS||48)*GEO_DETAIL);
+  const st=[], NS=Math.round((S.NS||48)*CAR_BODY_DETAIL);
   for(let i=0;i<NS;i++){ const z=S.Z0+(S.Z1-S.Z0)*i/(NS-1), c=sec(z);
     st.push({z,pts:[[0,c.yb],[c.hl*.9,c.yb],[c.hl,c.yb+.05],[c.hl,c.ay],[c.hs*.985,Math.max(c.ys-.08,c.ay+.02)],[c.hs,c.ys],[c.hs-.05,c.ys+.07],[c.ht,c.yf],[c.ht*.5,(c.yf+c.yc)/2+.015],[0,c.yc]]}); }
   K.add(loftGeo(st),paint);
@@ -725,7 +726,7 @@ function sculptBody(g,S,paint,K){
 }
 /* teardrop / bubble canopy with an optional roof skin and black window trim */
 function sculptCanopy(g,C,T,glass,roofM,K){
-  const dome=(z0,z1,a0,sc,lift)=>{ const st=[], NC=Math.round(22*GEO_DETAIL); for(let i=0;i<NC;i++){ const z=z0+(z1-z0)*i/(NC-1), cw=kfCR(C.cwK,z)*sc, top=kfCR(C.htK,z)*(1+(sc-1)*.5)+lift, base=T.yc(z)-.03;
+  const dome=(z0,z1,a0,sc,lift)=>{ const st=[], NC=Math.round(22*CAR_BODY_DETAIL); for(let i=0;i<NC;i++){ const z=z0+(z1-z0)*i/(NC-1), cw=kfCR(C.cwK,z)*sc, top=kfCR(C.htK,z)*(1+(sc-1)*.5)+lift, base=T.yc(z)-.03;
       const pts=[[0,a0>0?base+(top-base)*.55:base],[cw*Math.cos(a0),a0>0?base+(top-base)*Math.sin(a0):base]];
       for(let k=1;k<=5;k++){ const a=a0+(Math.PI/2-a0)*k/6; pts.push([cw*Math.cos(a)*(1-(C.tumble||.06)*Math.sin(a)),base+(top-base)*Math.pow(Math.sin(a),C.pow||.8)]); }
       pts.push([0,top]); st.push({z,pts}); } return loftGeo(st); };
@@ -2033,7 +2034,9 @@ function buildCar(def,opts){
   } else g.add(new THREE.Mesh(bodyGeo,paint));
   const cb=B.cabBase;
   g.add(new THREE.Mesh(profileGeo(B.cab,[[cb[0],cb[1]],[cb[2],cb[3]],[cb[0],cb[1]]],B.cw,.1),glass));
-  const box=(w,h,d,m,x,y,z,ry)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);if(ry)b.rotation.y=ry;g.add(b);return b;};
+  const bevelBoxGeo=(w,h,d)=>{ const bv=Math.min(.012,w,h,d)*.22; const sh=new THREE.Shape(); sh.moveTo(-w/2,-h/2); sh.lineTo(w/2,-h/2); sh.lineTo(w/2,h/2); sh.lineTo(-w/2,h/2); sh.closePath();
+    const geo=new THREE.ExtrudeGeometry(sh,{depth:d,bevelEnabled:bv>.0008,bevelThickness:bv,bevelSize:bv*.9,bevelSegments:2,curveSegments:4}); geo.translate(0,0,-d/2); return geo; };
+  const box=(w,h,d,m,x,y,z,ry,bev)=>{ const b=new THREE.Mesh(bev?bevelBoxGeo(w,h,d):new THREE.BoxGeometry(w,h,d),m); b.position.set(x,y,z); if(ry)b.rotation.y=ry; g.add(b); return b; };
   // surface heights along the car (z): body deck and cabin roof, sampled from the same splines the extrusions use (+ bevel)
   const spl=p=>new THREE.SplineCurve(p.map(q=>new THREE.Vector2(q[0],q[1]))).getPoints(96);
   const lin=(p,z)=>{ let i=1; while(i<p.length-1&&(p[i].x<z||p[i].x<=p[i-1].x)) i++; const a=p[i-1], b=p[i], t=clamp((z-a.x)/((b.x-a.x)||1),0,1); return a.y+(b.y-a.y)*t; };
@@ -2047,20 +2050,20 @@ function buildCar(def,opts){
     box(.16,.07,1.0,m,x,y,z); [1,-1].forEach(e=>box(.16,.07,.38,m,x,y-.12,z+e*.62).rotation.x=e*.75); });
   const hw=B.w/2+.12, F=B.front, Rr=B.rear;
   if(!cut&&cid!=='bell'&&!(STREET[cid]||{}).vinyl){ box(.05,.2,.75,blackM,hw,B.base+.36,-.5); box(.05,.2,.75,blackM,-hw,B.base+.36,-.5); } // generic side intake, only where no vinyl runs // bell's intake sits inside its C-sweep
-  box(1.6,.2,.3,blackM,0,B.base+.08,-Rr+.1); box(2.0,.12,.5,blackM,0,B.base+.01,F-.26);
+  box(1.6,.2,.3,blackM,0,B.base+.08,-Rr+.1,0,true); box(2.0,.12,.5,blackM,0,B.base+.01,F-.26,0,true);
   const hx=B.w*.36;
   // headlight units: glossy housing, two projector lenses and an LED running-light strip
-  [1,-1].forEach(sd=>{ box(.56,.13,.12,lensM,sd*hx,B.headY,F-.17,sd*.38);
+  [1,-1].forEach(sd=>{ box(.56,.13,.12,lensM,sd*hx,B.headY,F-.17,sd*.38,true);
     [.1,-.1].forEach(o=>{ const l=new THREE.Mesh(new THREE.CircleGeometry(.045,16),headM); l.position.set(sd*hx+o*Math.cos(.38),B.headY-.005,F-.1+o*sd*Math.sin(.38)*-1); g.add(l); });
     box(.5,.018,.03,headM,sd*hx,B.headY+.075,F-.14,sd*.38); });
   // taillights: full-width bar plus two clusters, third brake light, reverse lights
   box(B.w*.95,.035,.05,tailM,0,B.tailY,-Rr-.03);
-  [1,-1].forEach(sd=>{ box(.46,.1,.05,lensM,sd*B.w*.33,B.tailY-.05,-Rr-.02); box(.4,.03,.02,tailM,sd*B.w*.33,B.tailY-.03,-Rr-.05); box(.4,.02,.02,tailM,sd*B.w*.33,B.tailY-.08,-Rr-.05);
+  [1,-1].forEach(sd=>{ box(.46,.1,.05,lensM,sd*B.w*.33,B.tailY-.05,-Rr-.02,0,true); box(.4,.03,.02,tailM,sd*B.w*.33,B.tailY-.03,-Rr-.05); box(.4,.02,.02,tailM,sd*B.w*.33,B.tailY-.08,-Rr-.05);
     box(.12,.04,.02,headM,sd*B.w*.16,B.base+.2,-Rr-.04); });
   if(def.widebody){ // bolt-on fender flares, hood vents, canards
     [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{ const fl=box(.24,.36,1.3,paint,sx*(B.w/2+.1),B.wr+.28,sz*B.wb); fl.rotation.x=sz*.04; });
     [.34,-.34].forEach(x=>{ const v=box(.36,.04,.5,blackM,x,.93,.95); v.rotation.x=.12; });
-    [1,-1].forEach(sx=>{ const c=box(.34,.03,.14,blackM,sx*(B.w/2-.05),B.headY-.18,B.front-.2); c.rotation.z=sx*.25; }); }
+    [1,-1].forEach(sx=>{ const c=box(.34,.03,.14,blackM,sx*(B.w/2-.05),B.headY-.18,B.front-.2,0,true); c.rotation.z=sx*.25; }); }
   if(def.classic){ // split rear window, chrome bumpers, side-exit pipes, fender vents
     const spine=box(.08,.035,.9,paint,0,1.12,-1.575); spine.rotation.x=-.47;
     const chr=new THREE.MeshStandardMaterial({color:0xdfe4ea,metalness:1,roughness:.08});
@@ -6493,6 +6496,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=1'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=2'],['philly','models/philly_kit.glb?v=1'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=1'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

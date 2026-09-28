@@ -247,30 +247,44 @@ sharpen(body, 28)
 bvh = BV()
 
 # ---------------- helpers for detail parts
-def tube(name, pts, r, m, res=6):
-    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 2; cu.resolution_u = res; cu.use_fill_caps = True
+def tube(name, pts, r, m, res=12):
+    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 3; cu.resolution_u = res; cu.use_fill_caps = True
     sp = cu.splines.new('NURBS'); sp.points.add(len(pts) - 1)
     for p, q in zip(sp.points, pts): p.co = (*G(*q), 1)
     sp.use_endpoint_u = True; sp.order_u = min(4, len(pts))
     ob = bpy.data.objects.new(name, cu); CAR.objects.link(ob); cu.materials.append(M[m])
     me = bpy.data.meshes.new_from_object(ob.evaluated_get(DG())); bpy.data.objects.remove(ob); bpy.data.curves.remove(cu)
     ob = link(bpy.data.objects.new(name, me)); me.shade_smooth(); return ob
-def box(name, size, pos, m, rot=(0, 0, 0)):
+def box(name, size, pos, m, rot=(0, 0, 0), bevel=0.):
     sx, sy, sz = size; x, y, z = pos
     bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
+    if bevel:
+        bmesh.ops.bevel(bm, geom=list(bm.edges), offset=bevel, segments=2, affect='EDGES', profile=.5)
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
     R = Matrix.Rotation(rot[2], 4, 'Z') @ Matrix.Rotation(rot[1], 4, 'Y') @ Matrix.Rotation(rot[0], 4, 'X')
     for v in me.vertices: g = R @ Vector((v.co.x * sx, v.co.z * sy, v.co.y * sz)); v.co = G(g.x, g.y, g.z) + G(x, y, z)
     ob = link(bpy.data.objects.new(name, me)); me.materials.append(M[m]); return ob
-def extrude_y(name, poly_xz, y0, y1, m):
+def extrude_y(name, poly_xz, y0, y1, m, bevel=0.):
     n = len(poly_xz); verts = [G(x, y0, z) for x, z in poly_xz] + [G(x, y1, z) for x, z in poly_xz]
     faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
-    ob = new_obj(name, verts, faces, m, False); fixn(ob); return ob
-def extrude_x(name, poly_zy, x0, x1, m):
+    ob = new_obj(name, verts, faces, m, False)
+    if bevel:
+        bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bmesh.ops.bevel(bm, geom=[e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6], offset=bevel, segments=2, affect='EDGES', profile=.5)
+        bm.to_mesh(ob.data); bm.free()
+    else: fixn(ob)
+    return ob
+def extrude_x(name, poly_zy, x0, x1, m, bevel=0.):
     n = len(poly_zy); verts = [G(x0, y, z) for z, y in poly_zy] + [G(x1, y, z) for z, y in poly_zy]
     faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
-    ob = new_obj(name, verts, faces, m, False); fixn(ob); return ob
-def cyl_z(name, x, y, z0, z1, r, m, seg=28, open_=False):
+    ob = new_obj(name, verts, faces, m, False)
+    if bevel:
+        bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bmesh.ops.bevel(bm, geom=[e for e in bm.edges if e.calc_face_angle(0) > .6], offset=bevel, segments=2, affect='EDGES', profile=.5)
+        bm.to_mesh(ob.data); bm.free()
+    else: fixn(ob)
+    return ob
+def cyl_z(name, x, y, z0, z1, r, m, seg=36, open_=False):
     verts = []
     for z in (z0, z1):
         for k in range(seg): a = 2 * math.pi * k / seg; verts.append(G(x + r * math.cos(a), y + r * math.sin(a), z))
@@ -351,7 +365,7 @@ for sd in (1, -1):
     tube(f'drlhook{sd}', [pts[-3], (pts[-1][0], pts[-1][1] - .03, pts[-1][2] - .02)], .005, 'HEAD')  # hook at the outer end
     tube(f'drl2{sd}', [(x, y - .014, z - .03) for x, y, z in pts[3:]], .004, 'HEAD')              # lower main-beam strip
     for k in range(4):                                                                              # dark lens cells
-        x, y, z = pts[3 + k * 2]; box(f'cell{sd}{k}', (.05, .018, .02), (x, y, z - .045), 'SATIN')
+        x, y, z = pts[3 + k * 2]; box(f'cell{sd}{k}', (.05, .018, .02), (x, y, z - .045), 'SATIN', bevel=.003)
     for k in range(3):                                                                              # angled fins in the corner intakes
         x = sd * lerp(.68, .82, k / 2); zc = surf_front(x, .32) or 2.3
         box(f'cfin{sd}{k}', (.01, .2, .12), (x, .32, zc - .07), 'CARBON', rot=(0, sd * .25, 0))
@@ -363,7 +377,7 @@ for k in range(7):
     x = -.42 + k * .14; zc = surf_front(x, .34) or 2.3
     box(f'mvane{k}', (.008, .27, .04), (x, .34, zc - .1), 'GLOSSBLACK')
 lip = [(-.88, 1.98)] + [(math.sin(a) * .88, 2.2 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 24 for k in range(25)]] + [(.88, 1.98)]
-extrude_y('Lip', lip, .16, .178, 'CARBON')
+extrude_y('Lip', lip, .16, .178, 'CARBON', bevel=.006)
 
 # ================================================================ FLANKS
 for sd in (1, -1):
@@ -407,7 +421,7 @@ for sd in (1, -1):
         cyl_z(f'exh{sd}{ex}', sd * ex, .27, zt, zt + .18, .046, 'CHROME', open_=True)
         cyl_z(f'exhi{sd}{ex}', sd * ex, .27, zt + .03, zt + .05, .04, 'GAP')
 for k in range(5):                                                                                  # diffuser strakes, inside the footprint
-    x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.02, .17), (-2.3, .17), (-2.3, .28), (-2.2, .28)], x - .007, x + .007, 'CARBON')
+    x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.02, .17), (-2.3, .17), (-2.3, .28), (-2.2, .28)], x - .007, x + .007, 'CARBON', bevel=.004)
 lipd = []                                                                                           # carbon ducktail lip
 for i in range(18):
     x = lerp(-.64, .64, i / 17); lipd.append((x, surf_y(x, -2.5) or .95))
@@ -417,7 +431,7 @@ for i in range(len(lipd) - 1):
     for j in range(4): a = 4 * i + j; b = 4 * i + (j + 1) % 4; faces.append((a, b, b + 4, a + 4))
 L = 4 * (len(lipd) - 1); faces += [(0, 1, 2, 3), (L + 3, L + 2, L + 1, L)]
 ob = new_obj('Ducktail', verts, faces, 'CARBON', False); fixn(ob)
-extrude_y('Floor', [(-.82, -2.15), (.82, -2.15), (.82, 2.0), (-.82, 2.0)], .15, .17, 'GLOSSBLACK')
+extrude_y('Floor', [(-.82, -2.15), (.82, -2.15), (.82, 2.0), (-.82, 2.0)], .15, .17, 'GLOSSBLACK', bevel=.004)
 
 objs = [o for o in CAR.objects if o.type == 'MESH']
 tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs)

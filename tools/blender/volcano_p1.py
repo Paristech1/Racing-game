@@ -216,9 +216,9 @@ sharpen(body)
 bvh_body = body_bvh()
 
 # ---------------------------------------------------------------- detail helpers
-def tube(name, pts, r, m, seg=10, res=6, smooth=True):
+def tube(name, pts, r, m, seg=10, res=12, smooth=True):
     """Catmull-Rom tube through game-space points."""
-    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 2; cu.resolution_u = res
+    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 3; cu.resolution_u = res
     cu.use_fill_caps = True
     sp = cu.splines.new('NURBS'); sp.points.add(len(pts) - 1)
     for p, q in zip(sp.points, pts): p.co = (*G(*q), 1)
@@ -229,10 +229,11 @@ def tube(name, pts, r, m, seg=10, res=6, smooth=True):
     if smooth: me.shade_smooth()
     return ob
 
-def box(name, size, pos, m, rot=(0, 0, 0)):
+def box(name, size, pos, m, rot=(0, 0, 0), bevel=0.):
     sx, sy, sz = size; x, y, z = pos
     bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.); bm.verts.ensure_lookup_table()
     for v in bm.verts: v.co = Vector((v.co.x * sx, v.co.z * sy, v.co.y * sz))   # local game axes
+    if bevel: bmesh.ops.bevel(bm, geom=list(bm.edges), offset=bevel, segments=2, affect='EDGES', profile=.5)
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
     ob = bpy.data.objects.new(name, me); scene.collection.objects.link(ob); me.materials.append(M[m])
     rx, ry, rz = rot
@@ -324,7 +325,7 @@ for sd in (1, -1):
     # canards on the nose corners
     for k, yy in enumerate((.29, .4)):
         zc = surf_front(sd * .88, yy) or 2.0
-        extrude_y(f'canard{sd}{k}', [(sd * .8, zc - .1), (sd * .95, zc - .2), (sd * .97, zc - .15), (sd * .83, zc - .02)], yy - .006, yy + .006, 'CARBON')
+        extrude_y(f'canard{sd}{k}', [(sd * .8, zc - .1), (sd * .95, zc - .2), (sd * .97, zc - .15), (sd * .83, zc - .02)], yy - .006, yy + .006, 'CARBON', bevel=.004)
     # slats inside the corner intakes
     for k in range(3):
         y = .24 + k * .04; zc = surf_front(sd * .68, y) or 2.1
@@ -332,7 +333,7 @@ for sd in (1, -1):
 # centre intake: three horizontal blades
 for k in range(3):
     y = .245 + k * .04; zc = surf_front(0, y) or 2.2
-    box(f'fslat{k}', (.78, .01, .14), (0, y, zc - .08), 'CARBON', rot=(.12, 0, 0))
+    box(f'fslat{k}', (.78, .01, .14), (0, y, zc - .08), 'CARBON', rot=(.12, 0, 0), bevel=.003)
 # splitter: a flat carbon blade with a lip, poking out ahead of the nose
 spl = [(-.96, 1.9)] + [(math.sin(a) * .98, 2.14 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 16 for k in range(17)]] + [(.96, 1.9)]
 extrude_y('Splitter', spl, .115, .145, 'CARBON', bevel=.008)
@@ -382,10 +383,10 @@ for sd in (1, -1):
 # mesh in the rear cavity: horizontal carbon bars
 for k in range(6): box(f'rbar{k}', (1.5, .012, .03), (0, .36 + k * .055, -2.22), 'CARBON')
 # diffuser: flat plate + vertical strakes
-extrude_y('DiffPlate', [(-.95, -2.36), (.95, -2.36), (.95, -1.9), (-.95, -1.9)], .14, .165, 'CARBON')
+extrude_y('DiffPlate', [(-.95, -2.36), (.95, -2.36), (.95, -1.9), (-.95, -1.9)], .14, .165, 'CARBON', bevel=.005)
 for k in range(7):
     x = -.72 + k * .24
-    extrude_x(f'diff{k}', [(-1.95, .165), (-2.4, .165), (-2.4, .33), (-2.2, .31)], x - .01, x + .01, 'CARBON')
+    extrude_x(f'diff{k}', [(-1.95, .165), (-2.4, .165), (-2.4, .33), (-2.2, .31)], x - .01, x + .01, 'CARBON', bevel=.004)
 
 # ---------------------------------------------------------------- swan-neck rear wing
 WY, WZ, SPAN = 1.12, -1.86, 1.9
@@ -398,14 +399,14 @@ bm = bmesh.new(); bm.from_mesh(wing.data)
 for f in bm.faces: f.smooth = abs(f.normal.x) < .9
 bm.to_mesh(wing.data); bm.free()
 for sd in (1, -1):
-    extrude_x(f'endplate{sd}', [(WZ + .08, WY - .2), (WZ - .56, WY - .22), (WZ - .56, WY + .08), (WZ - .1, WY + .05)], sd * (SPAN / 2), sd * (SPAN / 2 + .018), 'CARBON')
+    extrude_x(f'endplate{sd}', [(WZ + .08, WY - .2), (WZ - .56, WY - .22), (WZ - .56, WY + .08), (WZ - .1, WY + .05)], sd * (SPAN / 2), sd * (SPAN / 2 + .018), 'CARBON', bevel=.004)
     # swan neck: rises from the deck, arcs up and hooks onto the top of the wing
     x = sd * .34; zb = -1.62; yb = (surf_y(x, zb) or .86) - .02
     tube(f'swan{sd}', [(x, yb, zb), (x, yb + .14, zb - .08), (x, WY + .05, WZ - .1), (x, WY + .035, WZ - .2)], .02, 'CARBON', res=8)
     pass
 
 # ---------------------------------------------------------------- underside & arch liners (so nothing reads as a hole to the sky)
-extrude_y('Floor', [(-.86, -1.95), (.86, -1.95), (.86, 1.95), (-.86, 1.95)], .13, .17, 'GLOSSBLACK')
+extrude_y('Floor', [(-.86, -1.95), (.86, -1.95), (.86, 1.95), (-.86, 1.95)], .13, .17, 'GLOSSBLACK', bevel=.004)
 
 # ---------------------------------------------------------------- tidy + export
 for ob in scene.collection.objects:

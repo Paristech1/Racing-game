@@ -364,18 +364,21 @@ function hist(id){ const h=SAVE[id]||(SAVE[id]={runs:0,wins:0,hits:0,last:0}); i
 /* ---------------- GEOMETRY DETAIL ----------------
    Game-wide polygon upgrade (threejs-geometry): every round primitive is built with more segments than its call site asks
    for, so wheels, tyres, poles, lamps, domes and arches read smooth up close. Intentionally faceted shapes (3-5 sided prisms,
-   flat-shaded icosahedra) are left alone. Phones get a smaller multiplier. */
-const GEO_DETAIL=(matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700)?1.5:2;
-const CAR_BODY_DETAIL=(matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700)?2:3; // lofted shells only (sculptBody / sculptCanopy / loftGeo)
-{ const up=(n,min,max)=>n>=6?Math.min(max,Math.max(min,Math.round(n*GEO_DETAIL))):n;
+   flat-shaded icosahedra) are left alone. Phones get a smaller multiplier.
+   Two knobs: PRIM_DETAIL drives the primitive-segment override below (every track, prop and car primitive);
+   CAR_BODY_DETAIL drives only the lofted car shells, so car and level density move independently. */
+const PHONE_TIER=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700;
+const PRIM_DETAIL=PHONE_TIER?2:3;
+const CAR_BODY_DETAIL=PHONE_TIER?2:3; // lofted shells only (sculptBody / sculptCanopy / loftGeo)
+{ const up=(n,min,max)=>n>=6?Math.min(max,Math.max(min,Math.round(n*PRIM_DETAIL))):n;
   const C=THREE.CylinderGeometry, Sp=THREE.SphereGeometry, T=THREE.TorusGeometry, Ci=THREE.CircleGeometry, Ri=THREE.RingGeometry, Co=THREE.ConeGeometry, La=THREE.LatheGeometry;
-  THREE.CylinderGeometry=class extends C{ constructor(a,b,h,rs,hs,o,ts,tl){ super(a,b,h,up(rs===undefined?8:rs,12,96),hs,o,ts,tl); } };
-  THREE.ConeGeometry=class extends Co{ constructor(r,h,rs,hs,o,ts,tl){ super(r,h,up(rs===undefined?8:rs,12,96),hs,o,ts,tl); } };
+  THREE.CylinderGeometry=class extends C{ constructor(a,b,h,rs,hs,o,ts,tl){ super(a,b,h,up(rs===undefined?8:rs,12,144),hs,o,ts,tl); } };
+  THREE.ConeGeometry=class extends Co{ constructor(r,h,rs,hs,o,ts,tl){ super(r,h,up(rs===undefined?8:rs,12,144),hs,o,ts,tl); } };
   THREE.SphereGeometry=class extends Sp{ constructor(r,ws,hs,a,b,c,d){ super(r,up(ws===undefined?32:ws,12,96),up(hs===undefined?16:hs,8,64),a,b,c,d); } };
-  THREE.TorusGeometry=class extends T{ constructor(r,t,rs,ts,arc){ super(r,t,up(rs===undefined?8:rs,8,24),up(ts===undefined?6:ts,16,160),arc); } };
-  THREE.CircleGeometry=class extends Ci{ constructor(r,seg,a,b){ super(r,up(seg===undefined?8:seg,16,128),a,b); } };
-  THREE.RingGeometry=class extends Ri{ constructor(i,o,ts,ps,a,b){ super(i,o,up(ts===undefined?8:ts,16,128),ps,a,b); } };
-  THREE.LatheGeometry=class extends La{ constructor(pts,seg,a,b){ super(pts,up(seg===undefined?12:seg,16,96),a,b); } }; }
+  THREE.TorusGeometry=class extends T{ constructor(r,t,rs,ts,arc){ super(r,t,up(rs===undefined?8:rs,8,24),up(ts===undefined?6:ts,16,240),arc); } };
+  THREE.CircleGeometry=class extends Ci{ constructor(r,seg,a,b){ super(r,up(seg===undefined?8:seg,16,144),a,b); } };
+  THREE.RingGeometry=class extends Ri{ constructor(i,o,ts,ps,a,b){ super(i,o,up(ts===undefined?8:ts,16,144),ps,a,b); } };
+  THREE.LatheGeometry=class extends La{ constructor(pts,seg,a,b){ super(pts,up(seg===undefined?12:seg,16,128),a,b); } }; }
 /* ---------------- RENDERER ---------------- */
 const canvas=$('#gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
@@ -6496,6 +6499,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['blvd','models/blvd_kit.glb?v=2'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=1'],['mtairy','models/mtairy_kit.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

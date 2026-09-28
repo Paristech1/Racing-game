@@ -37,6 +37,19 @@ M = {'STONE': mat('STONE', (.78, .72, .6), 0, .75, (.35, .26, .15), .6), 'STONEH
      'LED': mat('LED', (1, 1, 1), 0, .3, (1, 1, 1), 8.), 'WOOD': mat('WOOD', (.13, .12, .12), 0, .8),
      'TRIM': mat('TRIM', (.75, .75, .72), 0, .6), 'STEEL': mat('STEEL', (.18, .36, .62), .6, .45)}
 
+SEG_DETAIL = 2.25   # round parts (columns, urns, statue, LED tubes) get this many times the segments they ask for;
+                    # deliberately faceted ones (sides=, n<=4 steel sections, the square/octagonal slate domes) are left alone
+BEVEL_MATS = {'STONE', 'STONEHI', 'GRANITE', 'SAND', 'WOOD', 'TRIM', 'SLATE', 'ROOFBLUE', 'STEEL'}   # windows, gaps, LEDs stay crisp
+def _bevel(verts, faces, off, seg=2):
+    """Bevel the hard edges of a closed polyhedron (game coords) with the same bmesh call as volcano_p1.py; returns (verts, faces)."""
+    bm = bmesh.new(); vs = [bm.verts.new(v) for v in verts]
+    for f in faces: bm.faces.new([vs[i] for i in f])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    es = [e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6]
+    if es: bmesh.ops.bevel(bm, geom=es, offset=off, segments=seg, affect='EDGES', profile=.5, clamp_overlap=True)
+    bm.verts.index_update(); V = [tuple(v.co) for v in bm.verts]; F = [tuple(v.index for v in f.verts) for f in bm.faces]; bm.free()
+    return V, F
+
 class Acc:
     """Collects geometry per material for one asset (game coords); build() turns it into Blender meshes under an Empty."""
     def __init__(self, name): self.name = name; self.g = {}
@@ -44,20 +57,30 @@ class Acc:
     def poly(self, m, verts, faces, smooth=False):
         b = self._buf(m); o = len(b['v']); b['v'] += [tuple(v) for v in verts]
         for f in faces: b['f'].append(tuple(o + i for i in f)); b['s'].append(smooth)
-    def box(self, m, cx, cy, cz, sx, sy, sz, ry=0.):
-        c, s = math.cos(ry), math.sin(ry); V = []
-        for dx, dy, dz in ((-1, -1, -1), (1, -1, -1), (1, 1, -1), (-1, 1, -1), (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1)):
-            x, z = dx * sx / 2, dz * sz / 2; V.append((cx + x * c + z * s, cy + dy * sy / 2, cz - x * s + z * c))
-        self.poly(m, V, [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (2, 3, 7, 6), (1, 2, 6, 5), (0, 4, 7, 3)])
-    def bx(self, m, x0, x1, y0, y1, z0, z1): self.box(m, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, x1 - x0, y1 - y0, z1 - z0)
+    def poly_bv(self, m, verts, faces, bevel, seg=2):   # a closed solid, bevelled when its material takes a bevel
+        if bevel > 0 and m in BEVEL_MATS: verts, faces = _bevel(verts, faces, bevel, seg)
+        self.poly(m, verts, faces)
+    def box(self, m, cx, cy, cz, sx, sy, sz, ry=0., bevel=None, seg=None):
+        # default: a one-segment chamfer sized to the part; pass bevel= / seg= for the big masses
+        if bevel is None: bevel = min(.06, .08 * min(sx, sy, sz))
+        if seg is None: seg = 2 if min(sx, sy, sz) >= .5 else 1   # rounded on trim you can read from the road, a chamfer on the fine stuff
+        bevel = min(bevel, .45 * min(sx, sy, sz))
+        V = [(dx * sx / 2, dy * sy / 2, dz * sz / 2) for dx, dy, dz in ((-1, -1, -1), (1, -1, -1), (1, 1, -1), (-1, 1, -1), (-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1))]
+        F = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (2, 3, 7, 6), (1, 2, 6, 5), (0, 4, 7, 3)]
+        if bevel > 0 and m in BEVEL_MATS: V, F = _bevel(V, F, bevel, seg)
+        c, s = math.cos(ry), math.sin(ry)
+        self.poly(m, [(cx + x * c + z * s, cy + y, cz - x * s + z * c) for x, y, z in V], F)
+    def bx(self, m, x0, x1, y0, y1, z0, z1, bevel=None, seg=None):
+        self.box(m, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, x1 - x0, y1 - y0, z1 - z0, bevel=bevel, seg=seg)
     def cyl(self, m, cx, y0, cz, r0, y1, r1=None, seg=16, cap=True, sides=None, rot=0.):
-        r1 = r0 if r1 is None else r1; n = sides or seg; V = []
+        r1 = r0 if r1 is None else r1; n = sides or round(seg * SEG_DETAIL); V = []
         for y, r in ((y0, r0), (y1, r1)):
             for k in range(n): a = TAU * k / n + rot; V.append((cx + r * math.cos(a), y, cz + r * math.sin(a)))
         F = [(k, (k + 1) % n, n + (k + 1) % n, n + k) for k in range(n)]
         self.poly(m, V, F, smooth=sides is None)
         if cap: self.poly(m, V, [tuple(range(n - 1, -1, -1)), tuple(range(n, 2 * n))])
     def lathe(self, m, cx, cz, prof, n=16, smooth=True, rot=0.):  # prof: [(r, y)] bottom -> top
+        if smooth: n = round(n * SEG_DETAIL)
         V = []
         for r, y in prof:
             for k in range(n): a = TAU * k / n + rot; V.append((cx + r * math.cos(a), y, cz + r * math.sin(a)))
@@ -65,27 +88,36 @@ class Acc:
         for i in range(len(prof) - 1):
             for k in range(n): a = i * n + k; b = i * n + (k + 1) % n; F.append((a, b, b + n, a + n))
         self.poly(m, V, F, smooth)
-    def prism_x(self, m, x0, x1, pts_zy):  # extrude a (z, y) polygon along x
+    def prism_x(self, m, x0, x1, pts_zy, bevel=.06):  # extrude a (z, y) polygon along x
         n = len(pts_zy); V = [(x0, y, z) for z, y in pts_zy] + [(x1, y, z) for z, y in pts_zy]
-        self.poly(m, V, [tuple(range(n - 1, -1, -1)), tuple(range(n, 2 * n))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)])
-    def prism_z(self, m, z0, z1, pts_xy):
+        self.poly_bv(m, V, [tuple(range(n - 1, -1, -1)), tuple(range(n, 2 * n))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)], min(bevel, .45 * abs(x1 - x0)))
+    def prism_z(self, m, z0, z1, pts_xy, bevel=.06):
         n = len(pts_xy); V = [(x, y, z0) for x, y in pts_xy] + [(x, y, z1) for x, y in pts_xy]
-        self.poly(m, V, [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, n + i, n + (i + 1) % n, (i + 1) % n) for i in range(n)])
+        self.poly_bv(m, V, [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, n + i, n + (i + 1) % n, (i + 1) % n) for i in range(n)], min(bevel, .45 * abs(z1 - z0)))
     def gable_x(self, m, x0, x1, z0, z1, y0, h, over=0.):  # roof with its ridge along x
         zc = (z0 + z1) / 2; self.prism_x(m, x0 - over, x1 + over, [(z0 - over, y0 - over * .6), (z1 + over, y0 - over * .6), (zc, y0 + h)])
     def gable_z(self, m, z0, z1, x0, x1, y0, h, over=0.):
         xc = (x0 + x1) / 2; self.prism_z(m, z0 - over, z1 + over, [(x0 - over, y0 - over * .6), (x1 + over, y0 - over * .6), (xc, y0 + h)])
-    def frustum(self, m, cx, cz, w0, d0, y0, w1, d1, y1):  # square-ish frustum (mansard / hip)
+    def frustum(self, m, cx, cz, w0, d0, y0, w1, d1, y1, bevel=.12):  # square-ish frustum (mansard / hip)
         V = [(cx - w0 / 2, y0, cz - d0 / 2), (cx + w0 / 2, y0, cz - d0 / 2), (cx + w0 / 2, y0, cz + d0 / 2), (cx - w0 / 2, y0, cz + d0 / 2),
              (cx - w1 / 2, y1, cz - d1 / 2), (cx + w1 / 2, y1, cz - d1 / 2), (cx + w1 / 2, y1, cz + d1 / 2), (cx - w1 / 2, y1, cz + d1 / 2)]
-        self.poly(m, V, [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7), (3, 2, 1, 0)])
+        self.poly_bv(m, V, [(0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7), (4, 5, 6, 7), (3, 2, 1, 0)], bevel)
     def tube(self, m, pts, r, n=6):  # polyline tube (LED lines, cables, rails)
+        if n > 4: n = round(n * SEG_DETAIL)
+        sq = n == 4   # square steel section: keep it square, but chamfer its four corners (8-sided, flat-shaded)
+        if sq:
+            cs = [(math.cos(TAU * k / 4), math.sin(TAU * k / 4)) for k in range(4)]; ring = []
+            for k in range(4):
+                (ax, ay), (px, py), (qx, qy) = cs[k], cs[k - 1], cs[(k + 1) % 4]
+                ring += [(ax + .14 * (px - ax), ay + .14 * (py - ay)), (ax + .14 * (qx - ax), ay + .14 * (qy - ay))]
+        else: ring = [(math.cos(TAU * k / n), math.sin(TAU * k / n)) for k in range(n)]
+        n = len(ring)
         for a, b in zip(pts[:-1], pts[1:]):
             A, B = Vector(a), Vector(b); d = B - A
             if d.length < 1e-6: continue
             t = d.normalized(); u = t.cross(Vector((0, 1, 0))) if abs(t.y) < .9 else t.cross(Vector((1, 0, 0))); u.normalize(); w = t.cross(u)
-            V = [tuple(P + (u * math.cos(TAU * k / n) + w * math.sin(TAU * k / n)) * r) for P in (A, B) for k in range(n)]
-            self.poly(m, V, [(k, (k + 1) % n, n + (k + 1) % n, n + k) for k in range(n)], smooth=True)
+            V = [tuple(P + (u * cx + w * cy) * r) for P in (A, B) for cx, cy in ring]
+            self.poly(m, V, [(k, (k + 1) % n, n + (k + 1) % n, n + k) for k in range(n)], smooth=not sq)
     def build(self, at=(0, 0, 0)):
         root = bpy.data.objects.new(self.name, None); KIT.objects.link(root); root.location = G(*at); out = []
         for m, b in self.g.items():
@@ -101,9 +133,9 @@ objs = []
 # corner pavilions with domed mansards, a pavilion with an arched portal on every face, and the tower rising from the centre:
 # pilastered shaft, clock stage with corner columns, colonnaded drum, ogee dome, lantern and the statue on top.
 A = Acc('CityHall'); HW = 42
-A.bx('GRANITE', -HW - .4, HW + .4, 0, 6, -HW - .4, HW + .4)
+A.bx('GRANITE', -HW - .4, HW + .4, 0, 6, -HW - .4, HW + .4, bevel=.3, seg=2)
 for y in (1.5, 3, 4.5): A.bx('GAP', -HW - .45, HW + .45, y - .06, y + .06, -HW - .45, HW + .45)   # rustication joints
-A.bx('STONE', -HW + 1, HW - 1, 6, 30, -HW + 1, HW - 1)
+A.bx('STONE', -HW + 1, HW - 1, 6, 30, -HW + 1, HW - 1, bevel=.3, seg=2)
 def facade(face_len, place):  # place(u, y, depth_out, width, height, mat) on one face
     bays = int(face_len // 5)
     for i in range(bays + 1):
@@ -130,7 +162,7 @@ for fc in 'NSEW':                                                               
         A.box('STONEHI', x, 33.2, z, 2.6, 4.2, 2.6, ry); A.box('WIN', x + (.0 if fc in 'NS' else (1.32 if fc == 'E' else -1.32)), 33, z + ((-1.32 if fc == 'N' else 1.32) if fc in 'NS' else 0), 1.3 if fc in 'NS' else .05, 2.4, .05 if fc in 'NS' else 1.3)
         A.box('SLATE', x, 36, z, 3.2, 1.6, 3.2, ry + math.pi / 4)
 def pavilion(acc, cx, cz, w, top, dome_h):
-    acc.bx('STONE', cx - w / 2, cx + w / 2, 6, top, cz - w / 2, cz + w / 2)
+    acc.bx('STONE', cx - w / 2, cx + w / 2, 6, top, cz - w / 2, cz + w / 2, bevel=.25, seg=2)
     for fc in 'NSEW':
         def pl(u, y, d, ww, h, m, fc=fc):
             if fc == 'N': acc.box(m, cx + u, y, cz - w / 2 - d / 2 + .02, ww, h, d)
@@ -157,7 +189,7 @@ for fc in 'NSEW':   # centre pavilions with the portals
     else:
         x = cx + (12.02 if fc == 'E' else -12.02); A.prism_x('GAP', x - .3, x + .3, [(z, y + 6) for z, y in arch])
 # ---- the tower
-A.bx('STONE', -13, 13, 30, 72, -13, 13)
+A.bx('STONE', -13, 13, 30, 72, -13, 13, bevel=.25, seg=2)
 for fc in 'NSEW':
     pl = on_face(A, fc, 13)
     for u in (-12.3, -6.5, 6.5, 12.3): pl(u, 51, .8, 1.4, 42, 'STONEHI')                               # corner + inner pilasters
@@ -165,7 +197,7 @@ for fc in 'NSEW':
         for y in (42, 52, 62): pl(u, y, .06, 1.8, 5.5, 'WIN')                                            # tall arched windows
     for y in (47, 57, 67): pl(0, y, .5, 13, .5, 'STONEHI')
     pl(0, 71.4, 1.2, 28.4, 1.4, 'STONEHI')                                                               # shaft cornice
-A.bx('STONE', -11.5, 11.5, 72, 97, -11.5, 11.5)                                                          # clock stage
+A.bx('STONE', -11.5, 11.5, 72, 97, -11.5, 11.5, bevel=.25, seg=2)                                                          # clock stage
 for sx in (-1, 1):
     for sz in (-1, 1):
         A.cyl('STONEHI', sx * 11.2, 72, sz * 11.2, 1.5, 97, 1.3, seg=12)                                # corner columns
@@ -198,7 +230,7 @@ objs += A.build()
 B = Acc('ArtMuseum')
 def temple(acc, x_front, zc, width, depth, h, ncol, roof_h):
     x_back = x_front - depth
-    acc.bx('SAND', x_back, x_front - 5, 0, h, zc - width / 2, zc + width / 2)                                          # cella
+    acc.bx('SAND', x_back, x_front - 5, 0, h, zc - width / 2, zc + width / 2, bevel=.25, seg=2)                                          # cella
     acc.bx('SAND', x_front - 6, x_front + .6, 0, .9, zc - width / 2 - .4, zc + width / 2 + .4)                        # stylobate
     for i in range(ncol):
         z = zc - width / 2 + 1.4 + i * (width - 2.8) / (ncol - 1)
@@ -214,11 +246,11 @@ def temple(acc, x_front, zc, width, depth, h, ncol, roof_h):
         z = zc - width / 2 + 1.4 + i * (width - 2.8) / (ncol - 1)
         if i % 2: acc.box('WIN', x_front - 5.02, 3.4, z, .06, 5.2, 2.2)
 temple(B, 30, 0, 36, 60, 15, 8, 6.5)
-B.bx('SAND', -30, 22, 0, 13.5, -38, 38)                                                                   # main block behind the portico
+B.bx('SAND', -30, 22, 0, 13.5, -38, 38, bevel=.25, seg=2)                                                                   # main block behind the portico
 B.bx('STONEHI', -30.5, 22.5, 13.5, 14.4, -38.5, 38.5)
 for sz in (-1, 1):
     zc = sz * 52
-    B.bx('SAND', -30, 30, 0, 12.5, zc - 13, zc + 13); B.bx('STONEHI', -30.5, 30.5, 12.5, 13.3, zc - 13.5, zc + 13.5)   # wing
+    B.bx('SAND', -30, 30, 0, 12.5, zc - 13, zc + 13, bevel=.25, seg=2); B.bx('STONEHI', -30.5, 30.5, 12.5, 13.3, zc - 13.5, zc + 13.5)   # wing
     B.gable_x('ROOFBLUE', -30.5, 30.5, zc - 13, zc + 13, 13.3, 4.2, over=.5)
     temple(B, 44, zc, 20, 16, 12.5, 6, 4.4)                                                               # the wing's own portico
     for i in range(6):   # pilasters and blind windows on the courtyard-facing side
@@ -235,7 +267,7 @@ def led_gable_z(acc, x0, x1, zf, y0, h):  # LED outline of a gable end facing +z
     acc.tube('LED', [(x0, y0, zf), ((x0 + x1) / 2, y0 + h, zf), (x1, y0, zf)], .08)
 def boathouse(name, w, d, wall, roof_h, kind):
     H = Acc(name); x0, x1, z0, z1 = -w / 2, w / 2, -d / 2, d / 2
-    H.bx('WOOD', x0, x1, 0, wall, z0, z1)
+    H.bx('WOOD', x0, x1, 0, wall, z0, z1, bevel=.12, seg=2)
     for i in range(int(w // 1.2)):                                                                        # battens
         x = x0 + .6 + i * 1.2; H.box('TRIM', x, wall / 2, z1 + .05, .12, wall - .2, .1)
     H.bx('TRIM', x0 - .1, x1 + .1, wall / 2 - .15, wall / 2 + .15, z0 - .1, z1 + .1)                      # belt course
@@ -257,7 +289,7 @@ def boathouse(name, w, d, wall, roof_h, kind):
         H.prism_z('WOOD', z1 - .01, z1 + .3, [(x0, wall), (x1 - 7, wall), ((x0 + x1 - 7) / 2, wall + roof_h * 1.4)])
         led_gable_z(H, x0 - .5, x1 - 6.5, z1 + .8, wall - .3, roof_h * 1.4 + .4)
         H.box('WIN', (x0 + x1 - 7) / 2, wall + roof_h * .45, z1 + .35, 2.6, 2.2, .06)
-        H.bx('WOOD', x1 - 7, x1, wall, wall + 5, z1 - 7, z1)
+        H.bx('WOOD', x1 - 7, x1, wall, wall + 5, z1 - 7, z1, bevel=.1, seg=2)
         H.frustum('SLATE', x1 - 3.5, z1 - 3.5, 7.8, 7.8, wall + 5, .3, .3, wall + 5 + roof_h * 1.3)
         for (xa, za) in ((x1 - 7.4, z1 + .4), (x1 + .4, z1 + .4), (x1 + .4, z1 - 7.4), (x1 - 7.4, z1 - 7.4)):
             H.tube('LED', [(xa, wall + 5, za), (x1 - 3.5, wall + 5 + roof_h * 1.3 + .3, z1 - 3.5)], .08)
@@ -322,7 +354,7 @@ for y, h, panel in ((24, 2.4, False), (60, 3.2, True), (85, 3.2, True), (104, 3.
 for (ya, yb) in ((60, 85), (85, 104)):   # the big X between the upper portals
     for sz in (-1, 1): T.tube('STEEL', [(0, ya, -sz * (LZ - 3)), (0, yb, sz * (LZ - 3))], .5, n=4)
 for sz in (-1, 1):
-    T.box('STEEL', 0, 110, sz * LZ, 6.4, 3.4, 8.4); T.box('STEEL', 0, 112.2, sz * LZ, 3.2, 1.4, 5.2)                 # saddles
+    T.box('STEEL', 0, 110, sz * LZ, 6.4, 3.4, 8.4, bevel=.15, seg=2); T.box('STEEL', 0, 112.2, sz * LZ, 3.2, 1.4, 5.2)                 # saddles
     T.bx('GRANITE', -4.2, 4.2, -1.2, 0, sz * LZ - 5.2, sz * LZ + 5.2)                                                  # leg footing
 objs += T.build()
 

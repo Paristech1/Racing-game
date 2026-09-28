@@ -43,12 +43,19 @@ def add(name, bm, m, a, smooth=False):
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); me.materials.append(MATS[m])
     if smooth: me.shade_smooth()
     ob = bpy.data.objects.new(name, me); scene.collection.objects.link(ob); ob.parent = root(a); return ob
-def box(sx, sy, sz, gx=0, gy=0, gz=0):  # game-space size (x, y, z) and centre
+def bevel_bm(bm, off, seg=2):   # round every hard edge (same call as volcano_p1.py) so corners catch the night rig's highlights
+    es = [e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6]
+    if es and off > 0: bmesh.ops.bevel(bm, geom=es, offset=off, segments=seg, affect='EDGES', profile=.5, clamp_overlap=True)
+    return bm
+def box(sx, sy, sz, gx=0, gy=0, gz=0, bevel=0., seg=2):  # game-space size (x, y, z) and centre
     bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
     for v in bm.verts: v.co = Vector((v.co.x * sx, v.co.y * sz, v.co.z * sy)) + G(gx, gy, gz)
-    return bm
-def B(a, name, m, sx, sy, sz, gx, gy, gz): return add(name, box(sx, sy, sz, gx, gy, gz), m, a)
-def cylv(r, h, gx, gy, gz, seg=20):
+    return bevel_bm(bm, min(bevel, .45 * min(sx, sy, sz)), seg)
+TRIM_BV = {'SCHIST', 'BRICK', 'BUFF', 'LIMESTONE', 'TRIM', 'WOOD'}   # masonry and trim get a small chamfer by default; glass, lamps, fascia stay crisp
+def B(a, name, m, sx, sy, sz, gx, gy, gz, bevel=None, seg=1):
+    if bevel is None: bevel = .03 if m in TRIM_BV else 0.
+    return add(name, box(sx, sy, sz, gx, gy, gz, bevel, seg), m, a)
+def cylv(r, h, gx, gy, gz, seg=36):
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r, radius2=r, depth=h)
     for v in bm.verts: v.co = v.co + G(gx, gy + h / 2, gz)
     return bm
@@ -74,45 +81,45 @@ def window(a, tag, x, y, z, w=1.05, h=1.7, lit=True, lintel='LIMESTONE'):
 # ---------------- three-storey Germantown Ave shop (facade material varies)
 def shop(a, wall):
     Wd, D, H = 9., 13., 11.
-    B(a, 'body', wall, D, H, Wd, -D / 2, H / 2, 0)
+    B(a, 'body', wall, D, H, Wd, -D / 2, H / 2, 0, bevel=.15, seg=2)
     B(a, 'glass', 'STOREGLASS', .06, 2.7, 6.4, .03, 1.75, .6)
     B(a, 'door', 'WOOD', .08, 2.5, 1.2, .02, 1.25, -3.3)
     for z in (-4.25, 4.25, -2.5): B(a, f'pier{z}', 'LIMESTONE', .3, 3.4, .5, .12, 1.7, z)
     B(a, 'kick', 'LIMESTONE', .16, .4, 6.4, .06, .2, .6)
     B(a, 'band', 'FASCIA', .22, .8, Wd, .1, 3.7, 0)                                         # sign band (the game paints a name here)
-    aw = prism_z([(0, 3.2), (1.5, 2.55), (1.5, 2.3), (0, 3.05)], -3.6, 4.1); add('awn', aw, 'AWNING', a)
+    aw = prism_z([(0, 3.2), (1.5, 2.55), (1.5, 2.3), (0, 3.05)], -3.6, 4.1); add('awn', bevel_bm(aw, .03), 'AWNING', a)
     for fl, y in enumerate((5.6, 8.6)):
         for k, z in enumerate((-2.9, 0, 2.9)): window(a, f'f{fl}{k}', 0, y, z, lit=random.random() < .55)
     B(a, 'belt', 'LIMESTONE', .2, .18, Wd, .08, 4.2, 0)
-    B(a, 'cornice', 'TRIM', .55, .35, Wd + .2, .2, H - .3, 0)
+    B(a, 'cornice', 'TRIM', .55, .35, Wd + .2, .2, H - .3, 0, bevel=.05, seg=2)
     for z in [-4.2 + k * .7 for k in range(13)]: B(a, f'dent{z}', 'TRIM', .2, .16, .2, .45, H - .56, z)   # dentils under the cornice
-    B(a, 'parapet', wall, .4, .6, Wd, -.2, H + .3, 0); B(a, 'cope', 'LIMESTONE', .5, .12, Wd + .05, -.2, H + .64, 0)
+    B(a, 'parapet', wall, .4, .6, Wd, -.2, H + .3, 0, bevel=.05, seg=2); B(a, 'cope', 'LIMESTONE', .5, .12, Wd + .05, -.2, H + .64, 0)
     B(a, 'roof', 'SLATE', D, .05, Wd, -D / 2, H + .02, 0)
 shop('ShopSchist', 'SCHIST'); shop('ShopBrick', 'BRICK')
 
 # ---------------- Art Deco theatre (1920s playhouse): buff brick, stepped parapet with vertical fins, triangular marquee
 A = 'Theatre'; Wd, D, H = 24., 30., 12.5
-B(A, 'body', 'BUFF', D, H, Wd, -D / 2, H / 2, 0)
-for z, h in ((-7.5, 3.2), (-3.5, 4.2), (0, 5.2), (3.5, 4.2), (7.5, 3.2)): B(A, f'step{z}', 'BUFF', .6, h, 3.2, -.1, H + h / 2 - 1, z)   # stepped deco parapet
-for z in (-9.5, -5.5, -1.6, 1.6, 5.5, 9.5): B(A, f'fin{z}', 'LIMESTONE', .5, 9.5, .5, .2, 7.8, z)                                         # vertical fins
+B(A, 'body', 'BUFF', D, H, Wd, -D / 2, H / 2, 0, bevel=.18, seg=2)
+for z, h in ((-7.5, 3.2), (-3.5, 4.2), (0, 5.2), (3.5, 4.2), (7.5, 3.2)): B(A, f'step{z}', 'BUFF', .6, h, 3.2, -.1, H + h / 2 - 1, z, bevel=.06, seg=2)   # stepped deco parapet
+for z in (-9.5, -5.5, -1.6, 1.6, 5.5, 9.5): B(A, f'fin{z}', 'LIMESTONE', .5, 9.5, .5, .2, 7.8, z, bevel=.06, seg=2)                                         # vertical fins
 B(A, 'lobby', 'STOREGLASS', .06, 2.8, 12, .03, 1.5, 0)
 for z in (-6.8, 6.8): B(A, f'box{z}', 'DARK', .12, 2.2, 2.2, .06, 1.6, z)                                                                   # poster cases
-add('marq', prism_z([(0, 3.3), (3.2, 3.6), (3.2, 5.3), (0, 5.6)], -8, 8), 'FASCIA', A)                                                      # marquee body
+add('marq', bevel_bm(prism_z([(0, 3.3), (3.2, 3.6), (3.2, 5.3), (0, 5.6)], -8, 8), .06), 'FASCIA', A)                                                      # marquee body
 for y in (3.55, 5.35):
     for z in [-7.6 + k * .4 for k in range(39)]: B(A, f'bulb{y}{z}', 'LAMP', .1, .1, .1, 3.25, y, z)                                       # chaser bulbs
 B(A, 'marqface', 'STOREGLASS', .04, 1.3, 15, 3.24, 4.45, 0)                                                                                 # the lit letter board
-add('blade', prism_x([(-.35, 6.5), (.35, 6.5), (.35, 14.5), (-.35, 14.5)], .2, 2.4), 'FASCIA', A)                                           # vertical blade sign
+add('blade', bevel_bm(prism_x([(-.35, 6.5), (.35, 6.5), (.35, 14.5), (-.35, 14.5)], .2, 2.4), .05), 'FASCIA', A)                                           # vertical blade sign
 for y in [6.9 + k * .8 for k in range(10)]:
     for x in (.3, 2.3): B(A, f'bb{y}{x}', 'LAMP', .08, .08, .08, x, y, .38); B(A, f'bb2{y}{x}', 'LAMP', .08, .08, .08, x, y, -.38)
 B(A, 'roof', 'SLATE', D, .05, Wd, -D / 2, H + .02, 0)
 
 # ---------------- gray-stone twin: schist walls, steep slate roof along the street, two front cross gables, dormer, porch
 A = 'StoneTwin'; Wd, D, H = 13., 11., 7.
-B(A, 'body', 'SCHIST', D, H, Wd, -D / 2, H / 2, 0)
-add('roof', prism_z([(-D - .5, H), (.5, H), (-D / 2, H + 5.2)], -Wd / 2 - .3, Wd / 2 + .3), 'SLATE', A)
+B(A, 'body', 'SCHIST', D, H, Wd, -D / 2, H / 2, 0, bevel=.15, seg=2)
+add('roof', bevel_bm(prism_z([(-D - .5, H), (.5, H), (-D / 2, H + 5.2)], -Wd / 2 - .3, Wd / 2 + .3), .08), 'SLATE', A)
 for z in (-3.4, 3.4):                                                                   # front cross gables (one per house of the pair)
-    add(f'gab{z}', prism_x([(z - 2.2, H - .2), (z + 2.2, H - .2), (z, H + 3.6)], -2.2, .15), 'SCHIST', A)
-    add(f'gabr{z}', prism_x([(z - 2.6, H - .3), (z + 2.6, H - .3), (z, H + 3.95)], -2.6, .5), 'SLATE', A)
+    add(f'gab{z}', bevel_bm(prism_x([(z - 2.2, H - .2), (z + 2.2, H - .2), (z, H + 3.6)], -2.2, .15), .05), 'SCHIST', A)
+    add(f'gabr{z}', bevel_bm(prism_x([(z - 2.6, H - .3), (z + 2.6, H - .3), (z, H + 3.95)], -2.6, .5), .06), 'SLATE', A)
     B(A, f'gabw{z}', 'WINLIT' if random.random() < .5 else 'WINDARK', .06, 1.4, .9, .17, H + 1.2, z)
     B(A, f'gabt{z}', 'TRIM', .1, .12, 4.4, .2, H - .1, z)
     for k, zz in enumerate((z - 1.3, z + 1.3)): window(A, f'up{z}{k}', 0, 5.2, zz, w=.95, h=1.6, lit=random.random() < .45, lintel='TRIM')
@@ -120,9 +127,9 @@ for z in (-3.4, 3.4):                                                           
     B(A, f'door{z}', 'WOOD', .08, 2.3, 1.05, .03, 1.35, z + 1.4)
     B(A, f'fan{z}', 'WINLIT', .06, .3, 1.05, .03, 2.65, z + 1.4)
 B(A, 'party', 'SCHIST', .6, 1.2, .5, .1, H + 3.6, 0)                                    # chimneys at the party wall and ends
-for z in (0, -5.8, 5.8): B(A, f'chim{z}', 'BRICK', .9, 2.6, .9, -D / 2, H + 4.6, z)
+for z in (0, -5.8, 5.8): B(A, f'chim{z}', 'BRICK', .9, 2.6, .9, -D / 2, H + 4.6, z, bevel=.06, seg=2)
 B(A, 'porchfl', 'WOOD', 2.8, .3, Wd - .4, 1.4, .55, 0); B(A, 'porchst', 'LIMESTONE', 2.9, .4, Wd - .3, 1.45, .2, 0)
-add('porchroof', prism_z([(0, 3.25), (2.9, 3.0), (2.9, 3.15), (0, 3.55)], -Wd / 2 + .2, Wd / 2 - .2), 'SLATE', A)
+add('porchroof', bevel_bm(prism_z([(0, 3.25), (2.9, 3.0), (2.9, 3.15), (0, 3.55)], -Wd / 2 + .2, Wd / 2 - .2), .04), 'SLATE', A)
 B(A, 'porchbeam', 'TRIM', .25, .3, Wd - .4, 2.7, 2.9, 0)
 for z in (-6., -2.2, 2.2, 6.): add(f'col{z}', cylv(.14, 2.3, 2.65, .7, z), 'TRIM', A)
 for z in (-4.1, 4.1): B(A, f'rail{z}', 'TRIM', .08, .08, 3.2, 2.7, 1.55, z); B(A, f'bal{z}', 'TRIM', .05, .8, 3.2, 2.7, 1.1, z)

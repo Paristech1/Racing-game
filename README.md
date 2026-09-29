@@ -178,6 +178,15 @@ Each persona bends differently. Wildcard and Bruiser go all-in quickly, and The 
 - **Speed stages:** headlight beams, beam cones, speed streaks, taillight trails and speed blur stay calm when you're cruising. They step up at about 90, 130 and 160 mph, and one more stage while boosting. A 4-pip meter under the speedometer shows the stage, turning amber and then red.
 - **Light and atmosphere:** volumetric cones under streetlights, headlight beams and road throw from every car, taillight trails at speed, exhaust flames while boosting, and a night-sky dome with stars, a moon and clouds lit by the city.
 
+## Frame rate
+
+The game targets a locked 60 fps:
+- **Dynamic resolution:** the render scale follows the frame time. When frames run long, it steps down (to 0.7× at the lowest). After a few seconds of clean 60 fps it steps back up, reaching 1.5× on high-DPI screens when the GPU has room. Bloom stays at screen-pixel size, so the glow doesn't change as the scale moves.
+- **Fewer draw calls:** each Blender kit asset is merged into one mesh per material, and long layouts (parked cars, guardrail, trees) are instanced in tiles. Traffic tires and race-car wheel parts are also merged. The Roosevelt Blvd board went from about 3,000 draw calls a frame to about 1,500.
+- **Culling:** instanced props are culled by where their instances actually are, and anything past the point where the fog is fully opaque isn't drawn.
+- **Cheaper post:** gamma is folded into the grade pass, and the speed blur takes one texture sample when you're not moving fast.
+- **No mid-race hitches:** all of the race's shaders compile at the start line. The HUD only touches the DOM when a value changes. While racing, the film grain comes from the grade shader rather than a blended CSS layer.
+
 ## Sculpted cars and city detail
 
 The Kage R, Overload 3K and Volcano P1 are built the way the [threejs-skills](https://github.com/CloudAI-X/threejs-skills) pack recommends:

@@ -371,19 +371,41 @@ const PHONE_TIER=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,s
 const PRIM_DETAIL=PHONE_TIER?2:3;
 const CAR_BODY_DETAIL=PHONE_TIER?2:3; // lofted shells only (sculptBody / sculptCanopy / loftGeo)
 { const up=(n,min,max)=>n>=6?Math.min(max,Math.max(min,Math.round(n*PRIM_DETAIL))):n;
+  // perf: caps trimmed (144 -> 64 round segments etc.). Past ~64 segments a cylinder edge is sub-pixel at race distance,
+  // so this keeps the smooth look while cutting the vertex load on wheels, poles, arches and domes by up to half.
   const C=THREE.CylinderGeometry, Sp=THREE.SphereGeometry, T=THREE.TorusGeometry, Ci=THREE.CircleGeometry, Ri=THREE.RingGeometry, Co=THREE.ConeGeometry, La=THREE.LatheGeometry;
-  THREE.CylinderGeometry=class extends C{ constructor(a,b,h,rs,hs,o,ts,tl){ super(a,b,h,up(rs===undefined?8:rs,12,144),hs,o,ts,tl); } };
-  THREE.ConeGeometry=class extends Co{ constructor(r,h,rs,hs,o,ts,tl){ super(r,h,up(rs===undefined?8:rs,12,144),hs,o,ts,tl); } };
-  THREE.SphereGeometry=class extends Sp{ constructor(r,ws,hs,a,b,c,d){ super(r,up(ws===undefined?32:ws,12,96),up(hs===undefined?16:hs,8,64),a,b,c,d); } };
-  THREE.TorusGeometry=class extends T{ constructor(r,t,rs,ts,arc){ super(r,t,up(rs===undefined?8:rs,8,24),up(ts===undefined?6:ts,16,240),arc); } };
-  THREE.CircleGeometry=class extends Ci{ constructor(r,seg,a,b){ super(r,up(seg===undefined?8:seg,16,144),a,b); } };
-  THREE.RingGeometry=class extends Ri{ constructor(i,o,ts,ps,a,b){ super(i,o,up(ts===undefined?8:ts,16,144),ps,a,b); } };
-  THREE.LatheGeometry=class extends La{ constructor(pts,seg,a,b){ super(pts,up(seg===undefined?12:seg,16,128),a,b); } }; }
+  THREE.CylinderGeometry=class extends C{ constructor(a,b,h,rs,hs,o,ts,tl){ super(a,b,h,up(rs===undefined?8:rs,12,64),hs,o,ts,tl); } };
+  THREE.ConeGeometry=class extends Co{ constructor(r,h,rs,hs,o,ts,tl){ super(r,h,up(rs===undefined?8:rs,12,64),hs,o,ts,tl); } };
+  THREE.SphereGeometry=class extends Sp{ constructor(r,ws,hs,a,b,c,d){ super(r,up(ws===undefined?32:ws,12,64),up(hs===undefined?16:hs,8,40),a,b,c,d); } };
+  THREE.TorusGeometry=class extends T{ constructor(r,t,rs,ts,arc){ super(r,t,up(rs===undefined?8:rs,8,20),up(ts===undefined?6:ts,16,128),arc); } };
+  THREE.CircleGeometry=class extends Ci{ constructor(r,seg,a,b){ super(r,up(seg===undefined?8:seg,16,64),a,b); } };
+  THREE.RingGeometry=class extends Ri{ constructor(i,o,ts,ps,a,b){ super(i,o,up(ts===undefined?8:ts,16,64),ps,a,b); } };
+  THREE.LatheGeometry=class extends La{ constructor(pts,seg,a,b){ super(pts,up(seg===undefined?12:seg,16,64),a,b); } }; }
+/* ---------------- CULLING (perf) ----------------
+   Two fixes to what the renderer skips each frame, both inside Frustum.intersectsObject so no game code changes:
+   1. InstancedMesh: r128 tests only the base geometry at the mesh origin, so a row of lamps is kept or dropped as a
+      whole depending on where 0,0,0 is. We test a sphere around the instances themselves (cached until they move).
+   2. Fog distance: anything whose material is fogged and sits entirely past the view depth where the scene fog is
+      ~99.9% opaque is invisible anyway, so it is not drawn. Fog-exempt things (sky, moon, skyline glow) are never touched. */
+const CULL={far:Infinity,x:0,y:0,z:0,fx:0,fy:0,fz:-1};
+{ const F=THREE.Frustum.prototype, sp=new THREE.Sphere(), m4=new THREE.Matrix4(), v=new THREE.Vector3(), box=new THREE.Box3();
+  const fogged=m=>Array.isArray(m)?m.every(x=>x&&x.fog):!!(m&&m.fog);
+  F.intersectsObject=function(o){ const g=o.geometry; if(g.boundingSphere===null) g.computeBoundingSphere();
+    if(o.isInstancedMesh){ let c=o.userData._ib;
+      if(!c||c.v!==o.instanceMatrix.version||c.n!==o.count||c.g!==g){ box.makeEmpty(); let sc=1;
+        for(let i=0;i<o.count;i++){ o.getMatrixAt(i,m4); box.expandByPoint(v.setFromMatrixPosition(m4)); sc=Math.max(sc,m4.getMaxScaleOnAxis()); }
+        const s=new THREE.Sphere(); if(o.count) box.getBoundingSphere(s); s.radius+=(g.boundingSphere.radius+g.boundingSphere.center.length())*sc; // conservative: any rotation of the part fits
+        c=o.userData._ib={v:o.instanceMatrix.version,n:o.count,g,s}; }
+      sp.copy(c.s).applyMatrix4(o.matrixWorld); }
+    else sp.copy(g.boundingSphere).applyMatrix4(o.matrixWorld);
+    if(CULL.far<Infinity&&fogged(o.material)){ // fog runs on view depth, so test the sphere's depth along the camera's forward axis
+      const dep=(sp.center.x-CULL.x)*CULL.fx+(sp.center.y-CULL.y)*CULL.fy+(sp.center.z-CULL.z)*CULL.fz; if(dep-sp.radius>CULL.far) return false; }
+    return this.intersectsSphere(sp); }; }
 /* ---------------- RENDERER ---------------- */
 const canvas=$('#gl');
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
 const PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700; // phones get a lighter pipeline
-renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,PHONE?1.4:2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1)); // render scale; the frame pacer (below) moves it with the frame time
 // if iOS resets the GPU, come back cleanly instead of sitting on a frozen frame
 canvas.addEventListener('webglcontextlost',e=>{ e.preventDefault(); const d=document.getElementById('ldsub'); if(d) d.textContent='Graphics were reset by the phone. Reloading.'; setTimeout(()=>location.reload(),1200); });
 // surface script errors on screen so a stuck load can be reported
@@ -636,6 +658,16 @@ const BODIES={
 const bronzeM=()=>new THREE.MeshStandardMaterial({color:0x8a5a2b,metalness:1,roughness:.25});
 /* Fold a group's direct child meshes into one mesh per material (transforms baked in). A detailed car is
    ~140 small parts; drawn one by one that stalls phone GPUs, merged it's a couple dozen draw calls. */
+/* Split a group's multi-material child meshes into one mesh per material group, so mergeByMaterial can fold them in. */
+function splitMulti(group){
+  group.children.slice().forEach(o=>{ if(!o.isMesh||o.isInstancedMesh||!Array.isArray(o.material)||o.children.length||!o.geometry.groups.length) return;
+    const G=o.geometry, byMat=new Map();
+    G.groups.forEach(gr=>{ const m=o.material[gr.materialIndex]; if(!m) return; if(!byMat.has(m)) byMat.set(m,[]); const L=byMat.get(m);
+      for(let i=gr.start;i<gr.start+gr.count;i++) L.push(G.index?G.index.getX(i):i); });
+    byMat.forEach((ix,m)=>{ const g=new THREE.BufferGeometry(); for(const k in G.attributes) g.setAttribute(k,G.attributes[k]); g.setIndex(ix);
+      const part=new THREE.Mesh(g,m); part.position.copy(o.position); part.quaternion.copy(o.quaternion); part.scale.copy(o.scale); part.renderOrder=o.renderOrder; group.add(part); });
+    group.remove(o); });
+}
 function mergeByMaterial(group){
   const buckets=new Map();
   group.children.slice().forEach(o=>{ if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material)||o.children.length) return;
@@ -2152,12 +2184,13 @@ function buildCar(def,opts){
     const cam=(STREET[cid]||{}).camber; if(cam) holder.rotation.z=side*cam; // stance: tops of the wheels tucked in
     wheels.push(spin); if(i<2) steers.push(holder);
   });
-  mergeByMaterial(g); wheels.forEach(mergeByMaterial);
+  mergeByMaterial(g); wheels.forEach(w=>{ splitMulti(w); mergeByMaterial(w); }); // perf: tire/rotor material groups fold in with the rest of the wheel
   return {group:g,wheels,steers,paint,def};
 }
 // everyday traffic car: boxy, generic
 const trafficBodyGeo=new THREE.BoxGeometry(1.86,.72,4.5), trafficCabGeo=new THREE.BoxGeometry(1.62,.58,2.3), trafficWheelGeo=new THREE.CylinderGeometry(.34,.34,.26,14);
 const trafficGlassM=new THREE.MeshStandardMaterial({color:0x07090d,metalness:.9,roughness:.15});
+let TRAFFIC_WHEELS_GEO=null;
 function buildTrafficCar(color){
   const g=new THREE.Group();
   const m=new THREE.MeshStandardMaterial({color,metalness:.55,roughness:.35});
@@ -2166,10 +2199,11 @@ function buildTrafficCar(color){
   const hl=new THREE.Mesh(new THREE.BoxGeometry(1.5,.12,.05),headM); hl.position.set(0,.72,2.26); g.add(hl);
   const tl=new THREE.Mesh(new THREE.BoxGeometry(1.6,.1,.05),tailM); tl.position.set(0,.8,-2.26); g.add(tl);
   [[.6,.75,2.3,0xdfe9ff,1.3],[-.6,.75,2.3,0xdfe9ff,1.3],[.62,.8,-2.32,0xff2030,.9],[-.62,.8,-2.32,0xff2030,.9]].forEach(a=>{ const s=glowSprite(a[3],a[4]); s.position.set(a[0],a[1],a[2]); g.add(s); });
-  const wheels=[];
-  [[.9,1.45],[-.9,1.45],[.9,-1.45],[-.9,-1.45]].forEach(([x,z])=>{ const w=new THREE.Mesh(trafficWheelGeo,tireM); w.rotation.z=Math.PI/2; w.position.set(x,.34,z); g.add(w); wheels.push(w); });
+  // perf: the four plain tires are one mesh (a spinning untextured cylinder looks the same standing still): 1 draw call, not 4
+  if(!TRAFFIC_WHEELS_GEO) TRAFFIC_WHEELS_GEO=mergeGeos([[.9,1.45],[-.9,1.45],[.9,-1.45],[-.9,-1.45]].map(([x,z])=>trafficWheelGeo.clone().rotateZ(Math.PI/2).translate(x,.34,z)));
+  g.add(new THREE.Mesh(TRAFFIC_WHEELS_GEO,tireM));
   g.add(shadowPlane(2.7,5.6)); rigLights(g,null,true);
-  return {group:g,wheels};
+  return {group:g,wheels:[]};
 }
 
 /* ---------------- TRACKS ---------------- */
@@ -2224,7 +2258,7 @@ function instPlace(S,geo,mat,list,colors){ if(!list.length) return null; const i
 function parkedCars(S,spots,seed){ const R=rng(seed||7), cols=spots.map(()=>PARK_COLS[R()*PARK_COLS.length|0]);
   if(kitParts('ParkSedan')&&kitParts('ParkSUV')){ const sed=[], suv=[], cs=[], cu=[];
     spots.forEach((o,i)=>{ const m=kitAt(o.x,o.z,o.ry||0); if(R()<.3){ suv.push(m); cu.push(cols[i]); } else { sed.push(m); cs.push(cols[i]); } });
-    kitInst(S,'ParkSedan',kitMats(),sed,cs,'CARPAINT'); kitInst(S,'ParkSUV',kitMats(),suv,cu,'CARPAINT'); return; }
+    const LODP={far:160,keys:['CARPAINT','CARGLASS']}; kitInst(S,'ParkSedan',kitMats(),sed,cs,'CARPAINT',LODP); kitInst(S,'ParkSUV',kitMats(),suv,cu,'CARPAINT',LODP); return; }
   const body=new THREE.BoxGeometry(1.8,.62,4.4); body.translate(0,.62,0);
   const cab=new THREE.CylinderGeometry(.62,.8,.5,4,1); cab.rotateY(Math.PI/4); cab.scale(1.2,1,2.3); cab.translate(0,1.18,-.25);
   instPlace(S,body,new THREE.MeshStandardMaterial({color:0xffffff,metalness:.55,roughness:.32,envMapIntensity:1.1}),spots,cols);
@@ -2422,10 +2456,37 @@ function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
   const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (KIT_CACHE[name]=null);
   src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
   root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
-  return (KIT_CACHE[name]=parts); }
-function kitInst(S,name,mats,list,colors,colorKey){ const parts=kitParts(name); if(!parts||!list.length) return false;
-  parts.forEach(p=>{ const m=mats[p.key]; if(!m) return; const im=new THREE.InstancedMesh(p.geo,m,list.length); list.forEach((x,i)=>im.setMatrixAt(i,x));
-    if(colors&&p.key===colorKey){ const c=new THREE.Color(); colors.forEach((h,i)=>im.setColorAt(i,c.setHex(h))); im.instanceColor.needsUpdate=true; } S.add(im); }); return true; }
+  // perf: fold every part that shares a material slot into one geometry, so an asset costs one draw call per material
+  // instead of one per Blender object (a gas station was ~150 draw calls, a parked car ~20)
+  const byKey=new Map(); parts.forEach(p=>{ if(!byKey.has(p.key)) byKey.set(p.key,[]); byKey.get(p.key).push(p.geo); });
+  const merged=[]; byKey.forEach((geos,key)=>merged.push({geo:geos.length>1?mergeGeos(geos):geos[0],key}));
+  return (KIT_CACHE[name]=merged); }
+/* Merge BufferGeometries into one indexed geometry (position/normal/uv, plus color when every part has it). */
+function mergeGeos(geos){ let nv=0, ni=0; const hasC=geos.every(g=>g.attributes.color&&g.attributes.color.itemSize===3);
+  geos.forEach(g=>{ if(!g.attributes.normal) g.computeVertexNormals(); const c=g.attributes.position.count; nv+=c; ni+=g.index?g.index.count:c; });
+  const pos=new Float32Array(nv*3), nor=new Float32Array(nv*3), uv=new Float32Array(nv*2), col=hasC?new Float32Array(nv*3):null, idx=nv>65535?new Uint32Array(ni):new Uint16Array(ni);
+  let v=0, k=0; const rd=(a,i,j)=>j===0?a.getX(i):j===1?a.getY(i):a.getZ(i);
+  geos.forEach(g=>{ const P=g.attributes.position, N=g.attributes.normal, U=g.attributes.uv, C=g.attributes.color, c=P.count;
+    for(let i=0;i<c;i++){ for(let j=0;j<3;j++){ pos[(v+i)*3+j]=rd(P,i,j); nor[(v+i)*3+j]=rd(N,i,j); if(col) col[(v+i)*3+j]=rd(C,i,j); } if(U){ uv[(v+i)*2]=U.getX(i); uv[(v+i)*2+1]=U.getY(i); } }
+    if(g.index){ const I=g.index; for(let i=0;i<I.count;i++) idx[k++]=I.getX(i)+v; } else for(let i=0;i<c;i++) idx[k++]=i+v;
+    v+=c; g.dispose(); });
+  const out=new THREE.BufferGeometry(); out.setAttribute('position',new THREE.BufferAttribute(pos,3)); out.setAttribute('normal',new THREE.BufferAttribute(nor,3)); out.setAttribute('uv',new THREE.BufferAttribute(uv,2));
+  if(col) out.setAttribute('color',new THREE.BufferAttribute(col,3)); out.setIndex(new THREE.BufferAttribute(idx,1)); out.computeBoundingSphere(); return out; }
+function kitInst(S,name,mats,list,colors,colorKey,lod){ const parts=kitParts(name); if(!parts||!list.length) return false;
+  // perf: long layouts (parked cars, guardrail, trees) split into tiles so off-screen / fogged-out tiles are culled.
+  // With `lod` ({far, keys}) each tile is a THREE.LOD: past `far` meters only the listed material parts are drawn
+  // (a parked car keeps its body and glass; tires, trim and lenses drop out where they'd be a pixel or two anyway).
+  const tiles=kitTiles(list,lod?80:220), v=new THREE.Vector3();
+  const build=(ix,keys,parent)=>parts.forEach(p=>{ const m=mats[p.key]; if(!m||(keys&&!keys.includes(p.key))) return; const im=new THREE.InstancedMesh(p.geo,m,ix.length); ix.forEach((j,i)=>im.setMatrixAt(i,list[j]));
+    if(colors&&p.key===colorKey){ const c=new THREE.Color(); ix.forEach((j,i)=>im.setColorAt(i,c.setHex(colors[j]))); im.instanceColor.needsUpdate=true; } parent.add(im); });
+  tiles.forEach(ix=>{ if(!lod){ build(ix,null,S); return; }
+    const ctr=new THREE.Vector3(); ix.forEach(j=>ctr.add(v.setFromMatrixPosition(list[j]))); ctr.divideScalar(ix.length);
+    const L=new THREE.LOD(); L.position.copy(ctr); const near=new THREE.Group(), far=new THREE.Group(); near.position.copy(ctr).negate(); far.position.copy(near.position);
+    build(ix,null,near); build(ix,lod.keys,far); L.addLevel(near,0); L.addLevel(far,lod.far); S.add(L); });
+  return true; }
+function kitTiles(list,T){ T=T||220; if(list.length<40) return [list.map((_,i)=>i)];
+  const v=new THREE.Vector3(), cells=new Map(); list.forEach((m,i)=>{ v.setFromMatrixPosition(m); const k=Math.floor(v.x/T)+','+Math.floor(v.z/T); if(!cells.has(k)) cells.set(k,[]); cells.get(k).push(i); });
+  return [...cells.values()]; }
 /* ---- Philly Classic landmark kit (Blender build, models/philly_kit.glb): City Hall, the Art Museum, four Boathouse Row
    variants, a Ben Franklin Bridge tower. Material names from tools/blender/philly_kit.py map onto these (threejs-materials):
    warm uplit stone, slate mansards that pick up the env map, lit windows and LED lines that bloom (unlit, toneMapped off). */
@@ -3681,7 +3742,7 @@ function buildCity(C){
       for(let i=0;i<tr.N;i+=step) [-1,1].forEach(sd=>{ if(R()>.72) return; const p=tr.pts[i], r=tr.R[i], off=sd*(W+1.3+R()*2.6), h=.85+R()*.25;
         const o={x:p.x+r.x*off,y:p.y+.16,z:p.z+r.z*off,ry:R()*6,s:1,sy:h}; ppl.push(o); heads.push({x:o.x,y:o.y+1.62*h,z:o.z}); cols.push(CL[R()*CL.length|0]); });
       instPlace(S,new THREE.CylinderGeometry(.2,.17,1.5,6).translate(0,.75,0),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85}),ppl,cols);
-      instPlace(S,new THREE.SphereGeometry(.13,8,6),new THREE.MeshStandardMaterial({color:0x6a4a3a,roughness:.8}),heads);
+      instPlace(S,new THREE.IcosahedronGeometry(.13,1),new THREE.MeshStandardMaterial({color:0x6a4a3a,roughness:.8}),heads); // perf: 80-tri heads (thousands of them), not 860
       const NF=160, fp=new Float32Array(NF*3), fc=new Float32Array(NF*3), fsrc=[]; for(let i=0;i<NF;i++){ const h=heads[R()*heads.length|0]; fsrc.push(h); fp.set([h.x,h.y+.35,h.z],i*3); }
       const fg=new THREE.BufferGeometry(); fg.setAttribute('position',new THREE.BufferAttribute(fp,3)); fg.setAttribute('color',new THREE.BufferAttribute(fc,3));
       const fl=new THREE.Points(fg,new THREE.PointsMaterial({map:glowTex,size:2.2,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); fl.frustumCulled=false; S.add(fl);
@@ -4404,7 +4465,8 @@ function buildKensington(){
   // ---- the freight crossing on Lehigh Ave, and the rail yard inside the loop ----
   const XS=K.sNear(640,-320), railM=new THREE.MeshStandardMaterial({color:0x8a8e94,metalness:1,roughness:.3}), tieM=new THREE.MeshStandardMaterial({color:0x2a2018,roughness:1});
   [638.3,641.7].forEach(x=>K.box(.14,.14,1400,railM,x,.08,-420));
-  for(let z=-1100;z<280;z+=1.4) if(Math.abs(z+320)>W+.6) K.box(4.2,.12,.3,tieM,640,.04,z);
+  { const ties=[]; for(let z=-1100;z<280;z+=1.4) if(Math.abs(z+320)>W+.6) ties.push(new THREE.Matrix4().makeTranslation(640,.04,z)); // one instanced draw instead of ~860 boxes
+    const im=new THREE.InstancedMesh(new THREE.BoxGeometry(4.2,.12,.3),tieM,ties.length); ties.forEach((m,i)=>im.setMatrixAt(i,m)); im.frustumCulled=false; S.add(im); }
   [647,655].forEach(x=>[-.8,.8].forEach(o=>K.box(.14,.14,290,railM,x+o,.08,-160)));
   const FRC=[0x5a2a1a,0x2a3a4a,0x4a4a1a,0x6a3a1a,0x1a3a2a];
   for(let k=0;k<11;k++){ const x=[647,655][k%2], z=-280+k*24; if(z>-40) break; K.box(3.1,3.8,14.4,new THREE.MeshStandardMaterial({color:FRC[k%5],roughness:.8,metalness:.3}),x,2.2,z); }
@@ -5092,9 +5154,9 @@ const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{val
   void main(){
     vec2 c=vUv-.5; float r=length(c);
     float bl=(uSpeed*.022+uBoost*.03)*smoothstep(.12,.75,r);
-    vec3 col=vec3(0.);
-    for(int i=0;i<8;i++){ float t=float(i)/7.; col+=texture2D(tDiffuse,vUv-c*bl*t).rgb; }
-    col/=8.;
+    vec3 col;
+    if(bl<.0004) col=texture2D(tDiffuse,vUv).rgb; // perf: no speed blur, one tap instead of eight
+    else { col=vec3(0.); for(int i=0;i<8;i++){ float t=float(i)/7.; col+=texture2D(tDiffuse,vUv-c*bl*t).rgb; } col/=8.; }
     float ca=(.0035+uBoost*.006+uHit*.012)*r*r*4.;
     col.r=mix(col.r,texture2D(tDiffuse,vUv+c*ca).r,.85); col.b=mix(col.b,texture2D(tDiffuse,vUv-c*ca).b,.85);
     float l=dot(col,vec3(.2126,.7152,.0722));
@@ -5105,7 +5167,7 @@ const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{val
     col*=1.-uVig*smoothstep(.38,.92,r*1.2);
     float gn=fract(sin(dot(vUv*vec2(1733.,947.)+fract(uTime)*91.7,vec2(12.9898,78.233)))*43758.5453)-.5;
     col+=gn*uGrain*(.35+.65*(1.-smoothstep(0.,.6,l)));
-    gl_FragColor=vec4(col,1.);
+    gl_FragColor=LinearTosRGB(vec4(col,1.)); // perf: gamma folded in here, one full-screen pass fewer
   }`};
 try{
   if(THREE.EffectComposer&&THREE.RenderPass&&THREE.UnrealBloomPass&&THREE.ShaderPass&&THREE.GammaCorrectionShader){
@@ -5115,11 +5177,12 @@ try{
     composer=new THREE.EffectComposer(renderer,rt);
     renderPass=new THREE.RenderPass(studio,cam); composer.addPass(renderPass);
     bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.8,.45,.8); composer.addPass(bloomPass);
-    gradePass=new THREE.ShaderPass(GRADE_SHADER); composer.addPass(gradePass);
-    composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
+    { const bs=bloomPass.setSize.bind(bloomPass); bloomPass.setSize=()=>bs(innerWidth,innerHeight); } // bloom stays at screen-pixel size whatever the render scale, so the glow never changes width
+    gradePass=new THREE.ShaderPass(GRADE_SHADER); composer.addPass(gradePass); // last pass: grades, then encodes to sRGB on screen
   }
 }catch(e){ composer=null; }
 if(!composer){ const b=$('#glow'); if(b) b.style.display='none'; }
+else composer.setPixelRatio(renderer.getPixelRatio()); // with a custom (MSAA) target the composer ignores the renderer's ratio; keep them in step so the pacer drives both
 /* dev hook, only with ?dev in the URL: pin the camera anywhere on a level for screenshots / look-dev. Never touched in normal play. */
 const DEV=/[?&]dev\b/.test(location.search)?{hold:null}:null;
 if(DEV) window.AHDEV={
@@ -5130,20 +5193,44 @@ if(DEV) window.AHDEV={
   track:(s,x,h,back,ahead,fov)=>{ const F=mkF(); frame(s-(back||0),F); const P=F.p.clone().addScaledVector(F.r,x||0); P.y+=h||2;
     frame(s+(ahead||30),F); const Lk=F.p.clone(); Lk.y+=1; DEV.hold={p:P.toArray(),l:Lk.toArray(),fov}; return DEV.hold; },
   free:()=>{ DEV.hold=null; }};
+const CULL_V=new THREE.Vector3(); let DRAW_RACING=false;
 function draw(scene){
   if(DEV&&DEV.hold&&scene!==studio){ const H=DEV.hold; cam.position.fromArray(H.p); cam.lookAt(H.l[0],H.l[1],H.l[2]); if(H.fov&&cam.fov!==H.fov){ cam.fov=H.fov; cam.updateProjectionMatrix(); } }
   if(scene.userData.dome) scene.userData.dome.position.copy(cam.position);
+  { const f=scene.fog; CULL.far=!f?Infinity:f.isFogExp2?(f.density>0?2.6/f.density:Infinity):f.far; cam.getWorldPosition(CULL_V); CULL.x=CULL_V.x; CULL.y=CULL_V.y; CULL.z=CULL_V.z; cam.getWorldDirection(CULL_V); CULL.fx=CULL_V.x; CULL.fy=CULL_V.y; CULL.fz=CULL_V.z; }
+  const racing=mode==='race'&&!!composer&&glowOn; if(racing!==DRAW_RACING){ DRAW_RACING=racing; document.body.classList.toggle('racing',racing); } // CSS grain off while racing, shader grain instead
   if(gradePass){ const u=gradePass.uniforms, pl=mode==='race'&&player?player:null;
     u.uSpeed.value=lerp(u.uSpeed.value,pl?STAGE.blur[pl.stage||0]*.85:0,.06); u.uBoost.value=lerp(u.uBoost.value,pl&&pl.nosOn?1:0,.12);
     u.uHit.value=Math.min(1,shake); u.uWet.value=LOOK.wet&&scene!==studio?1:0;
     const gd=scene.userData.grade||GRADE_DEF; u.uShadow.value.fromArray(gd.shadow||GRADE_DEF.shadow); u.uHigh.value.fromArray(gd.high||GRADE_DEF.high);
-    u.uSat.value=gd.sat!==undefined?gd.sat:GRADE_DEF.sat; u.uVig.value=gd.vig!==undefined?gd.vig:GRADE_DEF.vig; u.uGrain.value=gd.grain||0; u.uTime.value=(u.uTime.value+.137)%1; }
+    u.uSat.value=gd.sat!==undefined?gd.sat:GRADE_DEF.sat; u.uVig.value=gd.vig!==undefined?gd.vig:GRADE_DEF.vig; u.uGrain.value=Math.max(gd.grain||0,DRAW_RACING?.022:0); u.uTime.value=(u.uTime.value+.137)%1; }
   if(composer&&glowOn){ renderPass.scene=scene; const b=scene.userData.bloom||{strength:.5,radius:.4,threshold:.85};
     bloomPass.strength=b.strength; bloomPass.radius=b.radius; bloomPass.threshold=b.threshold; composer.render(); }
   else renderer.render(scene,cam);
 }
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); if(composer) composer.setSize(innerWidth,innerHeight); cam.aspect=aspect(); cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
+/* ---------------- FRAME PACER (perf) ----------------
+   Dynamic resolution: the render scale follows the frame time so the game holds 60 fps on whatever GPU it lands on.
+   If frames run long (under ~55 fps) for half a second the pixel ratio steps down; after 4 s of clean 60 fps it steps
+   back up (to 1.5x on high-DPI screens when the GPU has room). A step up that immediately causes drops becomes a ceiling for 2 min,
+   so it never see-saws. Loading, boot and tab switches (huge gaps) are ignored. */
+const PR_MAX=PHONE?Math.min(window.devicePixelRatio||1,1):Math.min(window.devicePixelRatio||1,1.5), PR_MIN=Math.min(PR_MAX,PHONE?.6:.7);
+const PACE={ema:16.7,over:0,hold:0,ceil:PR_MAX,ceilT:0,lastUp:-1e9,clock:0};
+function setPR(pr){ pr=Math.round(clamp(pr,PR_MIN,PACE.ceil)*20)/20; if(Math.abs(pr-renderer.getPixelRatio())<.01) return false;
+  renderer.setPixelRatio(pr); if(composer&&composer.setPixelRatio) composer.setPixelRatio(pr); resize(); return true; }
+function pace(ms){ if(!(ms>0)||ms>250||document.hidden){ PACE.over=PACE.hold=0; return; }
+  PACE.clock+=ms; PACE.ema+=(ms-PACE.ema)*.1; const pr=renderer.getPixelRatio();
+  if(PACE.ceil<PR_MAX&&PACE.clock-PACE.ceilT>120000) PACE.ceil=PR_MAX;
+  if(PACE.ema>18.2){ PACE.hold=0; PACE.over+=ms;
+    if(PACE.over>500){ PACE.over=0; if(PACE.clock-PACE.lastUp<3000){ PACE.ceil=Math.max(PR_MIN,pr-.05); PACE.ceilT=PACE.clock; }
+      if(setPR(pr*.85)) PACE.ema=16.7; } }
+  else { PACE.over=Math.max(0,PACE.over-ms*.5);
+    if(PACE.ema<17.3){ PACE.hold+=ms; if(PACE.hold>4000){ PACE.hold=0; if(pr<PACE.ceil&&setPR(pr+.1)) PACE.lastUp=PACE.clock; } } else PACE.hold=0; } }
+if(DEV) window.AHDEV.pace=()=>({pr:renderer.getPixelRatio(),ema:+PACE.ema.toFixed(2),ceil:PACE.ceil,max:PR_MAX});
+// HUD writes only when the value changes: no per-frame DOM churn (style recalcs and garbage) while racing
+function setT(el,t){ if(el.textContent!==t) el.textContent=t; }
+function setH(el,h){ if(el._h===h&&el.innerHTML===el._s) return; el.innerHTML=h; el._h=h; el._s=el.innerHTML; }
 function hfovToV(h){ return THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(h)/2)/cam.aspect)); }
 
 /* ---------------- AUDIO ---------------- */
@@ -6116,6 +6203,7 @@ function startRace(){
   if(EV.knockout||TAG){ ghostData=null; endGhost(); } else { loadGhost(); spawnGhost(); } ghostRec=[]; ghostAcc=0; camFlashes=0;
   document.body.classList.toggle('tagmode',!!TAG); $('#hTag').className='tagbox'; camTag.t=0;
   tapeReset(); KO=null; LOOK.lightsOut=false; applyLights(); if(EV.knockout) koStart();
+  try{ renderer.compile(RS,cam); }catch(e){} // perf: build every shader for this grid and track now, not as each car or prop first comes into view mid-race
   mode='race'; show('hud'); countdown=3.6; raceT=0; finishHold=0; slowmo=1; camSnap=true; shake=0;
   $('#hGhost').textContent=''; $('#hMsg').textContent='3'; sfx.beep(false); flash(.9);
 }
@@ -6411,7 +6499,9 @@ function stepPhysics(sdt,inp){
 }
 function loop(now){
   requestAnimationFrame(loop);
-  let dt=Math.min(.033,(now-last)/1000); last=now;
+  const rawMs=now-last;
+  let dt=Math.min(.033,rawMs/1000); last=now;
+  if(mode!=='boot'&&mode!=='loading') pace(rawMs);
   modeT+=dt; ghostT+=dt;
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('#hToast').style.opacity=0; }
 
@@ -6451,14 +6541,14 @@ function loop(now){
     if(mode==='race'){
       if(ghostCar&&ghostData){ const g=ghostState(raceT);
         if(g){ ghostCar.group.visible=true; poseAt(ghostCar.group,g.dist,g.x,g.yaw,0); ghostCar.wheels.forEach(w=>w.rotation.x+=player.v*sdt/.37);
-          if(countdown<=0&&!player.finished){ const gap=(g.dist-player.dist)/Math.max(player.v,15); const el=$('#hGhost'); el.textContent=gap>0?`Ghost ahead ${gap.toFixed(1)}s`:`Ghost behind ${(-gap).toFixed(1)}s`; el.classList.toggle('ahead',gap<=0); } }
+          if(countdown<=0&&!player.finished){ const gap=(g.dist-player.dist)/Math.max(player.v,15); const el=$('#hGhost'); setT(el,gap>0?`Ghost ahead ${gap.toFixed(1)}s`:`Ghost behind ${(-gap).toFixed(1)}s`); el.classList.toggle('ahead',gap<=0); } }
         else ghostCar.group.visible=false; }
       const focus=EV.knockout&&player.out?(koLeader()||player):player;
       updateFx(sdt,focus); chaseCam(dt,focus,player.out?null:inp);
       if(countdown>0&&EV.introCrane&&focus===player) craneIntro(player);
       if(EV.knockout&&KO&&KO.bannerT>0){ KO.bannerT-=dt; if(KO.bannerT<=0) $('#hRound').className='round'; }
       const place=standings().indexOf(player)+1, nOn=EV.knockout?koActive().length:racers.length;
-      $('#hPos').innerHTML=`${place}<small>/${nOn}</small>`;
+      setH($('#hPos'),`${place}<small>/${nOn}</small>`);
       const danger=EV.knockout&&KO&&!KO.done&&!player.out&&countdown<=0&&place>=nOn-(koMod('double')?1:0);
       $('#hPos').classList.toggle('danger',!!danger);
       if(danger&&KO.warned!==KO.round){ KO.warned=KO.round; toast('You\'re in the knockout zone. Get out of last.'); }
@@ -6470,24 +6560,24 @@ function loop(now){
         el.innerHTML=m?`<span>PARTNER · ${esc(m.def.name)}</span><b>${m.finished?'finished':(gap>=0?'+':'−')+Math.abs(Math.round(gap))+' m'}</b><em>${m.finished?'anchor leg':!ready?`tag in ${Math.ceil(TAG.cd-raceT)}s`:hot?'HOT TAG · T':'cold tag · T'}</em>`:''; }
       else if(boardT<=0){ boardT=.25; tapeWatchStandings(); const st=standings(); $('#hBoard').innerHTML=st.map((r,i)=>`<li class="${r.isP?'me':''}${r.out?' out':''}"><b>${i+1}</b>${r.isP?'YOU':esc(r.def.tag)}${r.out?'':(EV.knockout&&KO&&!KO.done&&countdown<=0&&i>=nOn-(koMod('double')?2:1)?'<em class="m-ko">KO</em>':(!r.isP&&r.mood&&countdown<=0?`<em class="m-${r.mood.mood}">${MOOD_TAG[r.mood.mood]}</em>`:''))}</li>`).join(''); }
       if(EV.knockout&&KO){
-        if(KO.done) $('#hLap').textContent='Tournament over';
-        else if(koUsesSectors()) $('#hLap').textContent=`Round ${KO.round} / Sector ${KO.round} · ${nOn} left`;
-        else $('#hLap').textContent=`Round ${KO.round} · ${nOn} left`;
-        $('#hGhost').textContent=KO.done?'':KO.mod.name;
+        if(KO.done) setT($('#hLap'),'Tournament over');
+        else if(koUsesSectors()) setT($('#hLap'),`Round ${KO.round} / Sector ${KO.round} · ${nOn} left`);
+        else setT($('#hLap'),`Round ${KO.round} · ${nOn} left`);
+        setT($('#hGhost'),KO.done?'':KO.mod.name);
       }
-      else $('#hLap').textContent=`Lap ${clamp(Math.floor(Math.max(0,player.dist)/TR.L)+1,1,laps())} of ${laps()}`;
-      $('#hTime').textContent=fmt(raceT);
-      $('#hSpd').textContent=Math.round(player.v*2.237);
+      else setT($('#hLap'),`Lap ${clamp(Math.floor(Math.max(0,player.dist)/TR.L)+1,1,laps())} of ${laps()}`);
+      setT($('#hTime'),fmt(raceT));
+      setT($('#hSpd'),String(Math.round(player.v*2.237)));
       { const st=player.stage||0, el=$('#hStg'); if(el.dataset.s!==String(st)){ el.dataset.s=st; el.className='stg s'+st; [...el.children].forEach((c,i)=>c.classList.toggle('on',i<st)); $('#hSpd').className='s'+st; } }
-      $('#hNos').style.width=Math.min(100,player.nitro*100)+'%'; $('#hNos').classList.toggle('over',player.nitro>1.001);
+      { const nw=Math.min(100,Math.round(player.nitro*1000)/10)+'%', nb=$('#hNos'); if(nb.style.width!==nw) nb.style.width=nw; nb.classList.toggle('over',player.nitro>1.001); }
       const nt=nextTurn(player), tw=$('#hTurn');
-      if(nt&&countdown<=0){ tw.className='turn on '+(nt.dir>0?'l':'r'); tw.innerHTML=`<i>${nt.dir>0?'‹‹‹':'›››'}</i><span>${nt.d>0?Math.round(nt.d)+' m':'now'}</span>`; } else tw.className='turn';
+      if(nt&&countdown<=0){ const tc='turn on '+(nt.dir>0?'l':'r'); if(tw.className!==tc) tw.className=tc; setH(tw,`<i>${nt.dir>0?'‹‹‹':'›››'}</i><span>${nt.d>0?Math.round(nt.d)+' m':'now'}</span>`); } else if(tw.className!=='turn') tw.className='turn';
       const fx=[], FN=player.fxName||{}, FXL=[['fxLong','long','#b28cff'],['fxOver','over','#ffb020'],['fxSling','sling','#ff3b4a'],['fxShield','shield','#7dff9a'],['fxGrip','grip','#4f7bff'],['fxRegen','refill','#5fe6ff'],['fxNosMul','refill','#5fe6ff'],['towT','sling','#ff3b4a']];
       FXL.forEach(([k,n,c])=>{ if(player[k]>0) fx.push(`<b style="color:${c}">${esc((k==='fxNosMul'?'Supercharged':k==='towT'?'Tow':FN[n])||PU_TYPES[n].label)} ${Math.ceil(player[k])}s</b>`); });
       if(player.nitro>1.001) fx.push(`<b style="color:#ffe08a">Overflow ${Math.round(player.nitro*100)}%</b>`);
       if(TAG&&player.teamDraft>raceT) fx.push('<b style="color:#f4f7ff">Team draft</b>');
       if(player.airT>.15) fx.push(`<b style="color:#9fd3ff">Air ${player.airT.toFixed(1)}s</b>`);
-      $('#hFx').innerHTML=fx.join('');
+      setH($('#hFx'),fx.join(''));
       draw(RS);
     }
   }

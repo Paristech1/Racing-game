@@ -1,11 +1,11 @@
-"""AFTERHOURS — HALCYON E2, built in Blender on carlib.py from a four-view reference sheet (docs: tools/blender/README.md).
+"""AFTERHOURS — KAGE R, built in Blender on carlib.py from a four-view reference sheet (docs: tools/blender/README.md).
 An original electric hypercar: pearl-white body over a black teardrop canopy, front fenders standing proud of a low
 hood valley with vertical LED blades set into their noses, a deep sculpted scallop through each door that feeds a dark
 intake ahead of the rear haunch, and two venturi tunnels through the tail outlined in red light. Low integrated blade
 wing between the haunches, black louvered engine cover, full-width finned diffuser.
-Wheels (BODIES.halcyon): x +-.98, z +-1.4, r .35.
+Wheels (BODIES.kage): x +-.98, z +-1.4, r .35.
 Live (MCP) or headless (pip bpy): exec carlib.py, then this file in the same namespace."""
-car = Car('Halcyon E2', paint=(.86, .87, .88), accent=(1, .05, .06))
+car = Car('Kage R', paint=(.86, .87, .88), accent=(1, .05, .06))
 Z0, Z1, WB, WR = -1.96, 2.52, 1.4, .35
 HW = [[-1.96, .94], [-1.86, 1.0], [-1.6, 1.02], [-1.3, 1.02], [-.95, .98], [-.55, .92], [-.1, .88], [.5, .88], [1.0, .95], [1.4, .985],
       [1.85, .97], [2.15, .92], [2.38, .82], [2.52, .66]]

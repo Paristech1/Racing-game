@@ -126,7 +126,7 @@ Your car's class adds a twist. **Heavy** cars (Richmond, Dune-R, Sovereign, Gran
 
 ## Cars
 
-Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Hikari 91 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1 · Zephyr 960 · Halcyon E2
+Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Hikari 91 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1 · Zephyr 960
 
 - **Bell 76:** blue and gold, the highest top speed and the biggest boost in the game. Built for the bridge.
 - **Passyunk R:** a light hot hatch with the most grip and acceleration.
@@ -134,11 +134,10 @@ Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sover
 - **Zenkai 37:** a red widebody coupe with fender flares, a bolted wing, hood vents and six-spoke wheels.
 - **Hikari 91:** a satin-violet fastback drift build with lime brush slashes down the doors and rear quarters. It has pop-up lamps flipped up, flat bolt-on over-fenders, a carbon splitter and skirts, dark six-spoke wheels with heavy camber, round tail lamps in black bezels, a body-color hatch wing and violet underglow. It has the best grip in the archive and top speed just under the Volcano P1. Rivals only bring it on a boss night.
 - **Split 63:** a black split-window restomod with chrome bumpers, side-exit pipes and red-lipped wheels.
-- **Kage R:** a chopped silver wedge with a wide cab-forward greenhouse and a black roof, crossed nose to tail by an amber spine. It has slit LED headlights, NACA haunch scoops, a louvered deck and a ducktail airfoil.
+- **Kage R:** a pearl-white electric hypercar modeled in Blender from a four-view sheet. Pod front fenders stand over a low hood valley with vertical LED blades in their noses, and a black teardrop canopy sits between them. A scallop is carved through each door, from a black air-curtain slot behind the front wheel back to a dark intake in the rear fender. Two venturi tunnels run through the tail, each ringed in red light, over a finned diffuser, with a low blade wing bridging the rear fenders.
 - **Overload 3K:** a 3,000 hp quad-motor electric hypercar with a sculpted body: pontoon fenders, a tinted bubble canopy, a lit dorsal fin, and cyan light blades across the nose and along the rockers. It has camera pods for mirrors, a glowing diffuser and a swan-neck airfoil wing. The most powerful car in the game. Rivals only bring it now and then (you'll get a warning), but it's always in the Gauntlet.
 - **Zephyr 960:** a green-and-teal featherweight dart with a smooth one-piece wedge nose and a full-width light bar. The lightest car in the archive, the hardest launch, and a 960 mph top speed, but the last stretch to that top speed comes slowly without boost. Boost comes back very slowly. Rivals only bring it on a boss night.
 - **Volcano P1:** a Volcano-yellow hybrid hypercar modeled on the McLaren P1, with its own sculpted body. The body is lofted from cross-sections, so it has tumblehome, a pinched waist, bulging haunches and fender peaks. It has a teardrop glass canopy with a body-colored roof and snorkel, tube-built light signatures (the smile intake, boomerang LEDs and a C-shaped tail light), and a raked carbon side scoop. At the back: a real airfoil-section active wing, a twill carbon-fiber splitter, louvers and diffuser, center-exit exhausts, and a fresnel rim on the paint so the shape reads at night. It has the highest top speed of the regular hypercars, flat out and on boost. The Zephyr 960 is faster. Like the Overload, rivals only bring it on a boss night.
-- **Halcyon E2:** a pearl-white electric hypercar modeled in Blender from a four-view sheet. Pod front fenders stand over a low hood valley with vertical LED blades in their noses; a black teardrop canopy sits between them. A scallop is carved through each door, from a black air-curtain slot behind the front wheel back to a dark intake in the haunch wall. At the back, two venturi tunnels run through the tail, each ringed in red light, over a finned diffuser, with a low blade wing bridging the haunches. Nimble class: big grip and a strong launch.
 
 Every car has metallic-flake paint under a clear coat, and details down to the wheels:
 - LED running lights and projector headlights, taillight clusters and a third brake light.
@@ -191,7 +190,7 @@ The game targets a locked 60 fps:
 
 ## Sculpted cars and city detail
 
-The Kage R, Overload 3K and Volcano P1 are built the way the [threejs-skills](https://github.com/CloudAI-X/threejs-skills) pack recommends:
+The Overload 3K and Volcano P1 are built the way the [threejs-skills](https://github.com/CloudAI-X/threejs-skills) pack recommends:
 - **Bodies** are lofted from dozens of cross-sections (custom BufferGeometry).
 - **Light signatures** are tubes swept along curves.
 - **Wings and scoops** are extruded airfoil and teardrop shapes.

@@ -204,7 +204,7 @@ CARS.push(
   cam:{p:[4.6,.95,4.4],l:[0,.6,.3],roll:-.05,fov:32}}
 );
 CARS.push(
- {id:'halcyon',sculpt:'halcyon',name:'HALCYON E2',body:'halcyon',lowPro:true,paint:0xeef0f2,metal:.3,rough:.12,rim:0x0d0e10,caliper:0x16171a,wing:false,spokes:10,world:'flash',
+ {id:'halcyon',sculpt:'halcyon',name:'HALCYON E2',body:'halcyon',lowPro:true,paint:0xe3e6e9,metal:.3,rough:.12,rim:0x0d0e10,caliper:0x16171a,wing:false,spokes:10,world:'flash',
   top:104,acc:36,grip:33,nitro:1.4,mass:.95,
   kick:'Electric hypercar',loc:'Spring Garden St Bridge',when:'Quiet hours, 01:50',
   caption:'Pearl white over a black teardrop canopy, a scallop cut through each door, and two tunnels straight through the tail, ringed in red. Modeled in Blender off a four-view sheet. You hear the tires, never the car.',
@@ -907,8 +907,8 @@ function halcyonShell(g,def,B,paint,glass,opts){
   const K=carKit(g); rimPaint(paint,0x9cc6ff,.1); paint.clearcoat=1; paint.clearcoatRoughness=.01; paint.roughness=Math.min(paint.roughness,.12);
   const MATS={PAINT:paint,CARBON:K.carbon,GLASS:glass,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M};
   parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
-  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.5,sd*.8,.57,2.12); K.glow(0xff2030,.45,sd*.6,.6,-1.99); }); // lamp stations measured off the GLB
-  K.glow(0xff2030,.28,0,.24,-1.94);
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.5,sd*.8,.57,2.12); K.glow(0xff2030,.16,sd*.82,.58,-2.0); }); // lamp stations measured off the GLB; tail glow kept small so the tunnels stay black inside a thin red ring
+  K.glow(0xff2030,.12,0,.24,-1.95);
   // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in halcyon_e2.py)
   const HS=[[-1.96,.94],[-1.86,1.0],[-1.6,1.02],[-1.3,1.02],[-.95,.98],[-.55,.92],[-.1,.88],[.5,.88],[1.0,.95],[1.4,.985],[1.85,.97],[2.15,.92],[2.38,.82],[2.52,.66]],
     YS=[[-1.96,.6],[-1.4,.58],[-.9,.62],[-.55,.7],[0,.72],[.6,.72],[.95,.66],[1.4,.5],[2.0,.44],[2.35,.4],[2.52,.37]],

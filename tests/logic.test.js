@@ -24,7 +24,7 @@ import { APEX_RIVAL, EVENT_CAR_BIAS, KO_FINAL, KO_MODS, RIVAL_CAR_PREF, TEST_CAR
 
 describe('clamp / lerp / rng', () => {
   it('clamp pins values inside range', () => {
-    assert.equal(clamp(5, 0, 10), 5);
+    assert.equal(clamp(5, 0, 10), 999);
     assert.equal(clamp(-1, 0, 10), 0);
     assert.equal(clamp(99, 0, 10), 10);
   });

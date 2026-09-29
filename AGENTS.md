@@ -32,6 +32,7 @@ Before changing 3D code, read **`afterhours-threejs`** and the most relevant `th
 
 ## Testing
 
+0. **Unit tests:** `npm test` (Node built-in test runner; pure logic in `js/logic.mjs`, specs in `tests/`).
 1. Serve locally (`python3 -m http.server 8080`).
 2. Hard-refresh or bump `?v=` on script/css in `index.html` after JS/CSS changes.
 3. For track/event work: open event picker, load the new event, confirm no console errors and correct headline/lap loading text.

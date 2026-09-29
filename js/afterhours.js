@@ -699,9 +699,11 @@ function mergeByMaterial(group){
    airfoil wing, splitter and intakes, a CanvasTexture carbon weave under a clear coat, and a fresnel rim injected
    into the physical paint with onBeforeCompile so the silhouette still reads at night. */
 function kfCR(keys,z){ // Catmull-Rom through [z,value] keys
+  if(keys.length===1) return keys[0][1];
   let i=0; while(i<keys.length-2&&z>keys[i+1][0]) i++;
-  const p0=keys[Math.max(0,i-1)],p1=keys[i],p2=keys[i+1],p3=keys[Math.min(keys.length-1,i+2)];
-  const t=clamp((z-p1[0])/(p2[0]-p1[0]),0,1), t2=t*t, t3=t2*t;
+  const p0=keys[Math.max(0,i-1)],p1=keys[i],p2=keys[Math.min(i+1,keys.length-1)],p3=keys[Math.min(keys.length-1,i+2)];
+  const dz=p2[0]-p1[0]; if(Math.abs(dz)<1e-12) return p1[1];
+  const t=clamp((z-p1[0])/dz,0,1), t2=t*t, t3=t2*t;
   return .5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3);
 }
 // sweep a half cross-section (bottom-center → top-center, mirrored) through stations along z; capped ends
@@ -6098,9 +6100,9 @@ function readInput(){
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id)); }
 function flash(strength){ const f=$('#flash'); f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0;
   canvas.classList.add('blur'); requestAnimationFrame(()=>requestAnimationFrame(()=>canvas.classList.remove('blur'))); }
-function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
+function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const q=Math.round(t*10)/10; let m=Math.floor(q/60), s=Math.round((q-m*60)*10)/10; if(s>=60){ m+=1; s=0; } return m+':'+(s<10?'0':'')+s.toFixed(1); }
 let toastT=0; function toast(s){ const t=$('#hToast'); t.textContent=s; t.style.opacity=1; toastT=1.8; }
-function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function animIn(list,dir){ list.forEach(([s,c])=>{ const e=$(s); e.style.setProperty('--dx',(dir*40)+'px'); e.classList.remove('enter','d1','d2','d3'); void e.offsetWidth; e.classList.add('enter'); if(c) e.classList.add(c); }); }
 const handArrow='<svg width="70" height="34" viewBox="0 0 70 34" fill="none" stroke="#fbf6ea" stroke-width="2.4" stroke-linecap="round"><path d="M4 4 C 20 26, 40 30, 62 22"/><path d="M52 14 L63 22 L51 29"/></svg>';
 
@@ -6424,7 +6426,11 @@ function drawKoScreen(){ const S=EV.koScreen; if(!S||!KO) return; const g=S.canv
   g.textAlign='right'; g.fillStyle='#f4f7ff'; g.font='900 72px "Arial Narrow",Arial,sans-serif'; g.fillText(String(act.length),490,100); g.font='700 20px "Arial Narrow",Arial,sans-serif'; g.fillText('CARS LEFT',490,124);
   if(last){ g.fillStyle='#ff4a3d'; g.font='800 22px "Arial Narrow",Arial,sans-serif'; g.fillText(`OUT: ${last.isP?'YOU':last.def.tag}`,490,170); }
   S.tex.needsUpdate=true; }
-function koPick(n){ if(n===2) return KO_FINAL; const pool=KO_MODS.filter(m=>m.id!==KO.lastId&&(!m.min||n>=m.min)&&!(KO.round===1&&(m.id==='double'||m.id==='bomb'))); return pool[Math.floor(Math.random()*pool.length)]; }
+function koPick(n){ if(n===2) return KO_FINAL;
+  let pool=KO_MODS.filter(m=>m.id!==KO.lastId&&(!m.min||n>=m.min)&&!(KO.round===1&&(m.id==='double'||m.id==='bomb')));
+  if(!pool.length) pool=KO_MODS.filter(m=>(!m.min||n>=m.min)&&!(KO.round===1&&(m.id==='double'||m.id==='bomb')));
+  if(!pool.length) pool=KO_MODS;
+  return pool[Math.floor(Math.random()*pool.length)]; }
 function koRound(first){
   if(KO.mod&&KO.mod.off) KO.mod.off();
   const act=koActive(); act.forEach(r=>r.koTop=1); hideCrown(); KO.leader=null;

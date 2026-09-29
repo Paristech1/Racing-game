@@ -278,18 +278,18 @@ const RIVAL_CAR_PREF={
  wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour','wisp']}
 };
 let RIVAL_BOSS=false;
+function rivalChassisEligible(c){ if(c.outlaw) return false; if((c.id==='overload'||c.id==='volcano'||c.id==='zephyr'||c.id==='hikari')&&!RIVAL_BOSS) return false; return true; }
 function buildRivalForEvent(rival,eventId,taken){
  const eb=EVENT_CAR_BIAS[eventId]||EVENT_CAR_BIAS.tunnel, rp=RIVAL_CAR_PREF[rival.id]||{};
  let best=null, bestSc=-1e9;
  for(const c of CARS){
   if(taken.includes(c.id)) continue;
-  if(c.outlaw) continue; // the 500-800 mph cars are player-only
-  if((c.id==='overload'||c.id==='volcano'||c.id==='zephyr'||c.id==='hikari')&&!RIVAL_BOSS) continue; // the 3,000 hp car, the Volcano and the 960 only show up on a rival's grid now and then
+  if(!rivalChassisEligible(c)) continue;
   const pref=rp.ids&&rp.ids.includes(c.id)?9:0;
   const sc=c.grip*(eb.gripW||1)*(rp.gripW||1)+c.top*(eb.topW||1)*(rp.topW||1)+c.nitro*18*(eb.nitroW||1)*(rp.nitroW||1)+pref+Math.random()*4;
   if(sc>bestSc){ bestSc=sc; best=c; }
  }
- const base=best||CARS.find(c=>!taken.includes(c.id))||CARS[0];
+ const base=best||CARS.find(c=>!taken.includes(c.id)&&rivalChassisEligible(c))||CARS.find(rivalChassisEligible)||CARS[0];
  taken.push(base.id);
  return Object.assign({},base,{id:rival.id,chassisId:base.id,tag:rival.tag,color:rival.color,car:base.name,P:rival.P,mass:(rival.P.mass||1)*(base.mass||1),rivalNote:base.rival});
 }

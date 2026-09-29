@@ -47,23 +47,23 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - Back across the Delaware on a 16 m-high I-95 viaduct with lit parapets.
   - Up Broad St past City Hall and the golden, uplit Art Museum, with Rocky at the foot of the steps, to the Boulevard U-turn.
 
-- **Event 10: Mt Airy Run.** Northwest Philly, 3 laps of a 2.7 km loop with real hills. Up the Belgian-block cobbles and trolley rails of Germantown Ave between lit shops, along W Mt Airy Ave past the stone twins (porches lit, slate roofs, street trees), then down the S-bends of Lincoln Drive through the Wissahickon gorge, beside a schist wall, a wooden fence and the creek, with fireflies in the woods. The Drive passes under the Walnut Lane Bridge's concrete arch, then climbs back up Johnson St. Speed bumps and potholes on every leg.
+- **Event 09: Mt Airy Run.** Northwest Philly, 3 laps of a 2.7 km loop with real hills. Up the Belgian-block cobbles and trolley rails of Germantown Ave between lit shops, along W Mt Airy Ave past the stone twins (porches lit, slate roofs, street trees), then down the S-bends of Lincoln Drive through the Wissahickon gorge, beside a schist wall, a wooden fence and the creek, with fireflies in the woods. The Drive passes under the Walnut Lane Bridge's concrete arch, then climbs back up Johnson St. Speed bumps and potholes on every leg.
 
-- **Event 11: Game Night.** The South Philly Sports Complex with every team in town, 2 laps of 2.9 km. Down Broad St past FDR Park and the subway entrance, then through the Zamboni tunnel under the arena, where there's ice on the road and your grip halves. Pattison Ave runs between the football stadium and the ballpark under a live Jumbotron with the standings, and Packer Ave runs past the tailgate lots.
+- **Event 10: Game Night.** The South Philly Sports Complex with every team in town, 2 laps of 2.9 km. Down Broad St past FDR Park and the subway entrance, then through the Zamboni tunnel under the arena, where there's ice on the road and your grip halves. Pattison Ave runs between the football stadium and the ballpark under a live Jumbotron with the standings, and Packer Ave runs past the tailgate lots.
   - **Crowd Roar pads** in each team's colors (Birds, Phils, Sixers, Flyers, Union). Each pad covers one lane, so you pick your team. Driving over one gives you a burst of speed and boost, and it's bigger the further back you are.
   - The ballpark sets off fireworks and swings its neon Liberty Bell every time the lead changes.
 
-- **Event 12: Manayunk Wall.** 3 laps, 2.7 km. Flat out down Main St beside the canal and under the Manayunk Bridge, then straight up The Wall (a 32 m climb), along the Manayunk Ave ridge and down Green Lane. The hills are real on this track:
+- **Event 11: Manayunk Wall.** 3 laps, 2.7 km. Flat out down Main St beside the canal and under the Manayunk Bridge, then straight up The Wall (a 32 m climb), along the Manayunk Ave ridge and down Green Lane. The hills are real on this track:
   - Climbs slow you down.
   - The crests throw you in the air. There's no steering or throttle until you land, and a hard landing costs speed.
   - Air time longer than half a second refills some boost.
 
-- **Event 13: Under the El.** Kensington, 3 laps, 2.8 km, with live traffic.
+- **Event 12: Under the El.** Kensington, 3 laps, 2.8 km, with live traffic.
   - On Kensington Ave the Market-Frankford El runs overhead, and its steel columns run down the middle of the road. Pick a side: hitting a column costs 40% of your speed. El trains rumble overhead and throw sparks.
   - On Lehigh Ave the freight gates come down every 40 seconds and a train rolls through to the rail yard. Get through before the arms drop (clipping them costs speed), or wait at the gate for the train to pass. Rivals time the gates too.
   - Then down Aramingo Ave and back along Allegheny Ave.
 
-- **Event 14: First Light.** Kelly Drive and MLK Drive, 3 laps of the 3.6 km river loop. The race starts at 5:40 AM in the dark, and the sun comes up as it runs out:
+- **Event 13: First Light.** Kelly Drive and MLK Drive, 3 laps of the 3.6 km river loop. The race starts at 5:40 AM in the dark, and the sun comes up as it runs out:
   - The sky goes from blue hour to pink to gold on the last lap. The street lights and the Boathouse Row outlines switch off at sunrise, and the fog lifts off the river while rowing crews head upstream.
   - The city wakes up with you: no traffic on lap 1, early commuters on lap 2, rush hour on lap 3.
 

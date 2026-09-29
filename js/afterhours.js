@@ -142,7 +142,7 @@ CARS.push(
  {id:'volcano',name:'VOLCANO P1',body:'p1',p1:true,sculpt:'p1',lowPro:true,paint:0xffc20e,metal:.55,rough:.12,rim:0xf2f5f8,chrome:true,caliper:0xd42020,wing:true,spokes:10,world:'flash',plate:'P1 GTR',
   top:112,acc:42,grip:34,nitro:1.52,mass:.46,nosVmax:1.4,nosAccMul:2.2,
   kick:'Hybrid hypercar',loc:'Columbus Blvd, Pier 40',when:'Saturday, 03:13',
-  caption:'Volcano yellow over bare carbon, a visor canopy and a swan-neck wing. Modelled in Blender, bolted to the archive, and it still pulls.',
+  caption:'Volcano yellow over bare carbon, a visor canopy and a swan-neck wing. Modeled in Blender, bolted to the archive, and it still pulls.',
   specs:'3.8L TWIN-TURBO V8 + E-MOTOR / 1,350 HP / 0–60 IN 1.5S / THE FASTEST HYBRID IN THE ARCHIVE',
   rival:'Rival note: only the Zephyr is faster in a straight line. Beat this one in the corners or not at all.',
   note:'fastest\nhybrid here.', notePos:{l:'60%',t:'34%'},
@@ -2873,7 +2873,7 @@ function signCanvas2(l1,l2,o){ o=o||{}; return canvasTex(512,160,(g,w,h)=>{ g.fi
   g.strokeStyle=o.color||'#f4f7f2'; g.lineWidth=4; g.strokeRect(8,8,w-16,h-16); g.fillStyle=o.color||'#f4f7f2'; g.textAlign='center'; g.textBaseline='middle';
   g.font='800 58px "Arial Narrow",Arial,sans-serif'; g.fillText(l1,w/2,58,w*.9); g.font='700 36px "Arial Narrow",Arial,sans-serif'; g.fillText(l2,w/2,116,w*.9); }); }
 
-// Harbor Line tunnel under the Delaware (Event 04): ramps down on the Philly side, back up in Camden
+// Harbor Line tunnel under the Delaware (Event 01): ramps down on the Philly side, back up in Camden
 const TUN={down:[820,1000],up:[1780,1960],depth:28};
 function tunnelY(x){ const sm=(a,b)=>{ const t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
   return -TUN.depth*sm(TUN.down[0],TUN.down[1])*(1-sm(TUN.up[0],TUN.up[1])); }
@@ -3828,7 +3828,7 @@ function sceneKit(o){
 function loopPts(ctrl,yf){ const c=new THREE.CatmullRomCurve3(ctrl.map(p=>new THREE.Vector3(p[0],0,p[1])),true,'centripetal'), N=Math.round(c.getLength());
   return c.getSpacedPoints(N).slice(0,N).map(p=>{ p.y=yf?yf(p.x,p.z):0; return p; }); }
 
-/* ---- Event 11: Game Night, the South Philly Sports Complex ----
+/* ---- Event 10: Game Night, the South Philly Sports Complex ----
    Broad St south, Zinkoff Blvd through the arena's ice tunnel, 11th St, Pattison Ave between the football
    stadium and the ballpark (live Jumbotron overhead), Darien St, then Packer Ave past the tailgate lots.
    Every team in town has a Crowd Roar pad in its colors; the ballpark fires off the fireworks on a lead change. */
@@ -3870,7 +3870,7 @@ function buildGameNight(){
   const K=sceneKit({bg:0x0a1020,fog:0x141a2a,fogD:.0021,hemi:.75,bloom:{strength:1,radius:.55,threshold:.68},seed:1948}), S=K.S, V=(x,z)=>new THREE.Vector2(x,z);
   const tr=K.track(resample3(filletPath(V(0,-240),[[0,340,30],[450,340,30],[450,90,28],[820,90,28],[820,-310,30],[360,-310,24],[290,-240,24]].map(([x,z,r])=>[V(x,z),r]),1),()=>0),7,6), W=tr.W;
   K.flat(-700,1500,-900,1000,-.03,new THREE.MeshStandardMaterial({color:0x0c0e12,roughness:.95,metalness:.05}));
-  K.road({tex:{center:'rgba(255,196,60,.85)'}}); K.start('EVENT 11 · GAME NIGHT');
+  K.road({tex:{center:'rgba(255,196,60,.85)'}}); K.start('EVENT 10 · GAME NIGHT');
   K.skyline({cx:360,cz:-1010,sx:300,sz:110,n:34,h:[40,240],seed:1682}); // Center City, straight up Broad St
   const lit=K.lights({every:30,color:0xf2f6ff,pool:0x8fa2c8});
   const lotM=new THREE.MeshStandardMaterial({color:0x1b1e24,roughness:.8}), concrete=new THREE.MeshStandardMaterial({color:0x6c7078,roughness:.9,side:THREE.DoubleSide});
@@ -4052,7 +4052,7 @@ function buildGameNight(){
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],pads,surf:[{s0:K.sNear(176,340),s1:K.sNear(294,340),grip:.5,name:'ice'}]};
 }
 
-/* ---- Event 12: Manayunk Wall ----
+/* ---- Event 11: Manayunk Wall ----
    Main St along the canal, then straight up The Wall (Levering St, ~11%), over the crest at the top and along
    the Manayunk Ave ridge, down Green Lane and back to Main St. Hills are real here: climbs slow you, and the
    crests throw you in the air (no steering, no throttle until you land; big air refills some boost). */
@@ -4080,7 +4080,7 @@ function buildManayunk(){
   K.road({tex:{},skirt:new THREE.MeshStandardMaterial({color:0x151a14,roughness:1,side:THREE.DoubleSide}),walk:0x48443c});
   ribbonF(tr,S,water,(k,p)=>k*tr.ds<mainEnd?[W+6.2,p.y-1.1,W+11,p.y-1.1]:null); // the Manayunk Canal, just past the towpath
   ribbonF(tr,S,new THREE.MeshStandardMaterial({color:0x5a5448,roughness:.95,side:THREE.DoubleSide}),(k,p)=>k*tr.ds<mainEnd?[W+11,p.y-1.1,W+11,p.y+.2]:null);
-  K.start('EVENT 12 · MANAYUNK WALL');
+  K.start('EVENT 11 · MANAYUNK WALL');
   K.lights({every:34,color:0xffd2a0,pool:0xb08a58,pole:0x1f2226});
   // Main St: three- and four-story shops on the hill side, stone mills across the canal
   K.frontage(20,mainEnd-30,-1,{set:5.2,h:[9,15],dep:[12,18],len:[10,18],styles:['brick','stone','brick']});
@@ -4124,7 +4124,7 @@ function buildManayunk(){
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],slopeG:1.5,airtime:true};
 }
 
-/* ---- Event 10: Mt Airy Run, Northwest Philly (≈2.6 km / lap) ----
+/* ---- Event 09: Mt Airy Run, Northwest Philly (≈2.6 km / lap) ----
    Built on the shared scene kit, the way the threejs-skills pack recommends for a big static night scene:
    one lofted road ribbon, instanced houses/trees/props, merged facades, canvas textures for cobbles, schist and
    shopfronts, and no real-time point lights (lamps, porches and fireflies are baked glow sprites and light pools).
@@ -4307,7 +4307,7 @@ function buildMtAiry(){
   const lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.BufferAttribute(lp,3)); lg.setAttribute('color',new THREE.BufferAttribute(lc,3));
   const leaves=new THREE.Points(lg,new THREE.PointsMaterial({map:leafT,size:.32,vertexColors:true,transparent:true,alphaTest:.3})); leaves.frustumCulled=false; S.add(leaves);
 
-  K.start('EVENT 10 · MT AIRY RUN');
+  K.start('EVENT 09 · MT AIRY RUN');
   K.gantry(90,'GERMANTOWN AVE','MT AIRY · CHESTNUT HILL  ↑',{bg:'#0f5a32'});
   K.gantry(sA+80,'W MT AIRY AVE','LINCOLN DR  →',{bg:'#0f5a32'});
   K.gantry(sB+60,'LINCOLN DRIVE','WISSAHICKON · S-CURVES',{bg:'#2a1c06',color:'#ffd9a0'});
@@ -4328,7 +4328,7 @@ function buildMtAiry(){
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],roadHazards,slopeG:1.1,legS:{sA,sB,sC}};
 }
 
-/* ---- Event 13: Under the El, Kensington ----
+/* ---- Event 12: Under the El, Kensington ----
    Kensington Ave runs under the Market-Frankford El, with the steel columns down the middle of the road: pick a
    side and stay out of the posts. El trains rumble overhead. Then Lehigh Ave over the freight line (the gates
    come down every forty seconds and a train rolls into the yard), down Aramingo Ave and back along Allegheny. */
@@ -4341,7 +4341,7 @@ function buildKensington(){
   const elP=(u,lat)=>new THREE.Vector3(EL.a[0]+d.x*u+side.x*lat,0,EL.a[1]+d.z*u+side.z*lat);
   K.flat(-900,1300,-1000,900,-.03,new THREE.MeshStandardMaterial({color:0x0d0c0b,roughness:.95}));
   K.road({tex:{center:'rgba(255,196,60,.85)'},walk:0x3a3833,studs:false}); // the El columns stand on the center line
-  K.start('EVENT 13 · UNDER THE EL');
+  K.start('EVENT 12 · UNDER THE EL');
   K.lights({every:30,color:0xffc07a,pool:0xb07a3a,skip:p=>onEl(p)});
   // ---- the El: deck, girders, columns at the curbs and down the median, sodium lamps hung underneath ----
   const steel=new THREE.MeshStandardMaterial({color:0x2f4a44,metalness:.6,roughness:.5}), rust=new THREE.MeshStandardMaterial({color:0x4a3526,metalness:.4,roughness:.8});
@@ -4448,7 +4448,7 @@ function buildKensington(){
     resetTraffic(){ xt=Math.random()*14; [.12,.3,.46,.64,.82].forEach((u,i)=>{ const o=obst[i]; o.dist=u*tr.L; o.x=i%2?3.6:-3.6; o.v=o.v0=11+Math.random()*4; }); }};
 }
 
-/* ---- Event 14: First Light, Kelly Drive and MLK Drive ----
+/* ---- Event 13: First Light, Kelly Drive and MLK Drive ----
    Three laps of the river loop, starting at 5:40 in the morning. The sky comes up as the race runs out: blue
    hour, pink, then the sun over the river on the last lap, and the street lights click off. River fog lifts,
    crews row out from Boathouse Row, and the city wakes up: no traffic on lap one, a few cars on lap two, rush hour on lap three. */
@@ -4481,7 +4481,7 @@ function buildFirstLight(){
   for(let s=0;s<tr.L;s+=7){ frame(s,K.f,tr); if(!bridge(K.f.p)||K.f.p.z>0) continue; orientQ(K.f,K.q,K.basis,K.nr);
     [-1,1].forEach(sd=>{ const b=K.f.p.clone().addScaledVector(K.f.r,sd*(W+.8)); const post=K.box(.35,6,.35,truss,b.x,b.y+3,b.z); post.quaternion.copy(K.q);
       const br=K.box(.25,7.6,.25,truss,b.x,b.y+3,b.z); br.quaternion.copy(K.q); br.rotateX(((s/7)|0)%2?.72:-.72); const top=K.box(.4,.4,7,truss,b.x,b.y+6,b.z); top.quaternion.copy(K.q); }); }
-  K.start('EVENT 14 · FIRST LIGHT');
+  K.start('EVENT 13 · FIRST LIGHT');
   const lit=K.lights({every:34,color:0xffe0b0,pool:0xb09070,skip:bridge});
   // ---- sky: our own dome so the whole thing can brighten; stars fade, the sun comes up in the east ----
   const domeG=new THREE.SphereGeometry(1400,48,24), dc=new Float32Array(domeG.attributes.position.count*3); domeG.setAttribute('color',new THREE.BufferAttribute(dc,3));
@@ -4595,23 +4595,23 @@ const EVENTS=[
    caption:'Three laps through the landmarks: down Roosevelt Blvd, along Kelly Drive past the lights of Boathouse Row, over the Ben Franklin Bridge, past the South Philly stadium, back across the Delaware on the I-95 viaduct, then up Broad Street past City Hall and the Rocky Steps. Every car in the archive starts on the same grid.',
    specs:'8.8 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
    note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'},
-  {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 10',loc:'Northwest Philly',when:'Germantown Ave, Mt Airy Ave, Lincoln Dr',
+  {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 09',loc:'Northwest Philly',when:'Germantown Ave, Mt Airy Ave, Lincoln Dr',
    caption:'Three laps of Northwest Philly: up the cobbles and trolley rails of Germantown Ave past the lit shops, along W Mt Airy Ave under the stone twins and street trees, then down the S-bends of Lincoln Drive through the Wissahickon gorge, under the Walnut Lane Bridge, and back up Johnson St. Speed bumps and potholes punish anyone still on the gas.',
    specs:'2.7 KM LOOP / 3 LAPS / 7 CARS / COBBLES & TROLLEY RAILS / GORGE S-BENDS / BUMPS & POTHOLES',
    note:'bumps.\npotholes.\nreal life.',load:'Mt Airy Run. Germantown and Lincoln Dr. Mind the asphalt.'},
-  {id:'gamenight',build:buildGameNight,open:true,laps:2,name:'Game Night',kick:'Event 11',loc:'South Philly',when:'The Sports Complex, every team in town',
+  {id:'gamenight',build:buildGameNight,open:true,laps:2,name:'Game Night',kick:'Event 10',loc:'South Philly',when:'The Sports Complex, every team in town',
    caption:'Two laps of the Sports Complex with every team in town. Down Broad St, through the Zamboni tunnel under the arena (ice on the road), then Pattison Ave under a live Jumbotron. Every team has Crowd Roar pads in its colors, and a lead change sets off the fireworks.',
    specs:'2.9 KM LOOP / 2 LAPS / 7 CARS / CROWD ROAR PADS / ICE TUNNEL / LIVE JUMBOTRON',
    note:'ride the\ncrowd.',load:'Game Night at the Sports Complex. Ride the crowd, mind the ice.'},
-  {id:'manayunk',build:buildManayunk,open:true,laps:3,name:'Manayunk Wall',kick:'Event 12',loc:'Northwest Philly',when:'Main St, The Wall, Green Lane',
+  {id:'manayunk',build:buildManayunk,open:true,laps:3,name:'Manayunk Wall',kick:'Event 11',loc:'Northwest Philly',when:'Main St, The Wall, Green Lane',
    caption:'Three laps of Manayunk: flat out down Main St beside the canal, then straight up The Wall. Climbs cost you speed, and the crests on the ridge throw you in the air. No steering until you land, and big air refills some boost.',
    specs:'2.7 KM LOOP / 3 LAPS / 7 CARS / 32 M CLIMB / CRESTS & AIR TIME',
    note:'land it\nstraight.',load:'Manayunk Wall. Climb it flat out and land it straight.'},
-  {id:'el',build:buildKensington,open:true,laps:3,name:'Under the El',kick:'Event 13',loc:'Kensington',when:'Kensington Ave, Lehigh Ave, Aramingo Ave',
+  {id:'el',build:buildKensington,open:true,laps:3,name:'Under the El',kick:'Event 12',loc:'Kensington',when:'Kensington Ave, Lehigh Ave, Aramingo Ave',
    caption:'Three laps under the Market-Frankford El. The steel columns run down the middle of Kensington Ave, so pick a side and stay off the posts. On Lehigh Ave the freight gates come down every forty seconds. Beat the gates or wait for the train.',
    specs:'2.8 KM LOOP / 3 LAPS / 7 CARS / LIVE TRAFFIC / MEDIAN COLUMNS / FREIGHT CROSSING',
    note:'beat the\ngates.',load:'Under the El. Stay off the posts, beat the gates.'},
-  {id:'firstlight',build:buildFirstLight,open:true,laps:3,name:'First Light',kick:'Event 14',loc:'Kelly & MLK Drive',when:'Starts 5:40 AM, sunrise on the last lap',
+  {id:'firstlight',build:buildFirstLight,open:true,laps:3,name:'First Light',kick:'Event 13',loc:'Kelly & MLK Drive',when:'Starts 5:40 AM, sunrise on the last lap',
    caption:'Three laps of Kelly Drive and MLK Drive, starting in the dark. The sun comes up as the race runs out, the street lights click off and the fog lifts off the river. The city wakes up too: no traffic on lap one, rush hour by lap three.',
    specs:'3.6 KM LOOP / 3 LAPS / 7 CARS / SUNRISE DURING THE RACE / TRAFFIC BUILDS EVERY LAP',
    note:'get it done\nbefore rush\nhour.',load:'First Light. Kelly Drive at dawn, beat the rush hour.'}

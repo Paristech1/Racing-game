@@ -662,7 +662,7 @@ const BODIES={
  bell:{pts:[[-2.66,.34],[-2.72,.62],[-2.52,.84],[-1.7,.96],[-.7,.99],[.3,.92],[1.2,.76],[1.85,.58],[2.26,.42],[2.3,.3]],base:.2,
    cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:.94,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36},
  hikari:{pts:[[-2.2,.4],[-2.26,.74],[-2.12,.9],[-1.6,.94],[-.8,.96],[.2,.9],[1.1,.8],[1.8,.68],[2.2,.52],[2.26,.38]],base:.22, // fastback drift coupe (sculpted; pts/cab are the fallback profile)
-   cab:[[-2.0,.9],[-1.2,1.18],[-.3,1.28],[.35,1.14],[.74,.86]],cabBase:[-2.0,.88,.74,.84],w:1.84,cw:1.3,wr:.35,wb:1.36,tr:.9,front:2.08,rear:2.24,headY:.66,tailY:.76,wingY:1.3,wingZ:-2.0},
+   cab:[[-2.0,.9],[-1.2,1.18],[-.3,1.28],[.35,1.14],[.74,.86]],cabBase:[-2.0,.88,.74,.84],w:1.84,cw:1.3,wr:.375,wb:1.36,tr:.89,front:2.3,rear:2.24,headY:.66,tailY:.76,wingY:1.3,wingZ:-2.0},
  kage:{pts:[[-1.96,.2],[-2.0,.6],[-1.9,.86],[-1.2,.93],[-.4,.9],[.4,.76],[1.3,.8],[1.9,.66],[2.4,.45],[2.52,.2]],base:.12, // Kage R: EV hypercar, venturi tunnels (Blender build; pts/cab are the fallback profile)
    cab:[[-1.0,.92],[-.5,1.0],[.1,1.07],[.8,.98],[1.4,.8]],cabBase:[-1.0,.9,1.4,.78],w:2.02,cw:1.28,wr:.35,wb:1.4,tr:.9,front:2.52,rear:1.96,headY:.57,tailY:.62,wingY:.95,wingZ:-1.78},
  zephyr:{pts:[[-2.62,.22],[-2.68,.46],[-2.48,.6],[-1.6,.66],[-.5,.64],[.5,.56],[1.4,.42],[2.05,.3],[2.42,.22],[2.46,.16]],base:.12,
@@ -1718,13 +1718,13 @@ function hikariShell(g,def,B,paint,glass){
   const lime=new THREE.MeshStandardMaterial({color:0x8ff21e,roughness:.35,metalness:.1}), amber=new THREE.MeshBasicMaterial({color:0xffa028,toneMapped:false});
   const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
   // proportions of a late-80s fastback: long, narrow, low nose that climbs to the cowl, straight beltline, hatch to the tail
-  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:64,inset:.1,taper:.1,
-    hwS:[[-R,.84],[-1.9,.88],[-WB,.9],[-.8,.86],[0,.85],[.7,.87],[WB,.95],[1.75,.93],[F,.88]], // front flares are part of the shell, rolled into the bumper
-    ysK:[[-R,.76],[-WB,.78],[-.5,.76],[.4,.75],[WB,.72],[1.75,.65],[F,.56]],
-    yfK:[[-R,.88],[-1.8,.9],[-WB,.89],[-.4,.86],[.4,.84],[WB,.77],[1.75,.71],[F,.64]],
-    ycK:[[-R,.88],[-1.85,.9],[-1.4,.89],[-.4,.86],[.4,.84],[WB,.78],[1.75,.72],[F,.65]],
-    hwL:[[-R,.82],[-WB,.87],[0,.84],[WB,.93],[F,.86]], // flat door skin, not a pinched waist
-    ybK:[[-R,.3],[-1.9,.2],[1.8,.2],[F,.24]]},paint,K);
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:64,inset:.1,taper:.05,
+    hwS:[[-R,.84],[-1.9,.88],[-WB,.9],[-.8,.86],[0,.85],[.6,.87],[WB,.9],[1.9,.95],[F,.96]], // front flares are part of the shell, rolled into the bumper
+    ysK:[[-R,.76],[-WB,.78],[-.5,.76],[.4,.75],[WB,.72],[1.9,.62],[F,.5]],
+    yfK:[[-R,.88],[-1.8,.9],[-WB,.89],[-.4,.86],[.4,.84],[WB,.78],[1.9,.68],[F,.58]],
+    ycK:[[-R,.88],[-1.85,.9],[-1.4,.89],[-.4,.86],[.4,.84],[WB,.78],[1.9,.68],[F,.58]],
+    hwL:[[-R,.82],[-WB,.87],[0,.84],[WB,.87],[F,.86]], // flat door skin, not a pinched waist
+    ybK:[[-R,.3],[-1.9,.2],[1.95,.2],[F,.24]]},paint,K);
   const C={z0:-2.05,z1:.98,tumble:.14,pow:.3,cwK:[[-2.05,.46],[-1.75,.64],[-1.1,.73],[-.3,.74],[.4,.71],[.98,.52]],htK:[[-2.05,1.0],[-1.65,1.15],[-1.0,1.35],[-.35,1.42],[.15,1.4],[.55,1.2],[.98,.88]],roof:[-1.25,.32],roofA:.62}; // long raked screen from the cowl, tall flat roof
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
   // greenhouse: a point on the glass at angle a (0 = sill, pi/2 = crown) and station z, lifted off the glass
@@ -1740,9 +1740,7 @@ function hikariShell(g,def,B,paint,glass){
     band(sd,(u,v)=>[lerp(.0,.06,u),lerp(-.8,-1.3,v)],GLOSS_BLACK,2,8);                                 // quarter window base trim
   });
   // bolt-on over-fenders: flat slab panels with an arch cut, bolted flush to the flank
-  [1,-1].forEach(sd=>{ const zw=WB, c=T.sec(zw), ar=WR+.04; // front: black lower trim sweeping up the front of the arch from the bumper corner
-    K.add(surfGeo((u,v)=>{ const t=Math.PI*lerp(-.06,.42,v), r=ar+lerp(.05,.16,u)*(1-.5*v)+.06*(1-v), z=zw+Math.cos(t)*r; return [sd*(Math.max(T.sec(Math.min(z,F-.02)).hs+.02,1.02)+.04*(1-v)),WR+Math.sin(t)*r,z]; },3,20,sd<0),GLOSS_BLACK); });
-  [1,-1].forEach(sd=>[-WB].forEach(zw=>{ const zs=sd>0?-1:1, c=T.sec(zw), x0=c.hl-.06, x1=.98, front=zw>0, lf=front?.7:.62, lr=front?.62:.84, yt=Math.max(c.ys-.04,WR*2+.14), yb0=c.yb+.1;
+  [1,-1].forEach(sd=>[WB,-WB].forEach(zw=>{ const zs=sd>0?-1:1, c=T.sec(zw), x0=c.hl-.06, x1=.98, front=zw>0, lf=front?.7:.62, lr=front?.62:.84, yt=front?WR*2+.14:Math.max(c.ys-.04,WR*2+.14), yb0=c.yb+.1;
     const sh=new THREE.Shape(), P=(dz,y)=>[zs*dz,y];
     const ar=WR+.04, xa=Math.sqrt(ar*ar-(yb0-WR)*(yb0-WR)), a0=Math.asin((yb0-WR)/ar); // U-shaped panel: the arch is cut out of the outline itself
     if(front){ sh.moveTo(...P(lf,yb0)); sh.lineTo(...P(lf-.02,yt-.18)); sh.quadraticCurveTo(...P(lf-.1,yt-.06),...P(lf-.4,yt)); } // the nose end drops with the hood
@@ -1753,11 +1751,13 @@ function hikariShell(g,def,B,paint,glass){
     const m=new THREE.Mesh(geo,paint); m.position.set(sd*x0,0,zw); g.add(m);
     const fx=sd*(x1+.072);
     for(let k=0;k<7;k++){ const a=Math.PI*(.15+.7*k/6); K.add(new THREE.SphereGeometry(.011,6,4),gapM,fx,WR+Math.sin(a)*(ar+.07),zw-Math.cos(a)*(ar+.07)); } // flush bolts, dark
-    { const vg=new THREE.ShapeGeometry(sh,16); vg.rotateY(sd*Math.PI/2); const P2=vg.attributes.position, uv=vg.attributes.uv, y0=c.yb+.1, y1=c.ys+.06; // the stripes carry across the rear over-fender
+    if(front){ // black lower trim sweeping up the front of the arch from the bumper corner (flat on the panel face)
+      K.add(surfGeo((u,v)=>{ const t=Math.PI*lerp(-.06,.42,v), r=ar+lerp(.05,.16,u)*(1-.5*v)+.06*(1-v); return [fx+sd*(.004+.05*(1-v)),WR+Math.sin(t)*r,zw+Math.cos(t)*r]; },3,20,sd<0),GLOSS_BLACK); }
+    else { const vg=new THREE.ShapeGeometry(sh,16); vg.rotateY(sd*Math.PI/2); const P2=vg.attributes.position, uv=vg.attributes.uv, y0=c.yb+.1, y1=c.ys+.06; // the stripes carry across the rear over-fender
       for(let i=0;i<P2.count;i++) uv.setXY(i,(zw+P2.getZ(i)-HIKARI_VZ[0])/(HIKARI_VZ[1]-HIKARI_VZ[0]),(P2.getY(i)-y0)/(y1-y0));
       const vm=new THREE.Mesh(vg,hikariVinylMat(true)); vm.position.set(sd*(x1+.074),0,zw); vm.renderOrder=1; g.add(vm); } }));
   // pop-up headlamps, flipped up at the front corners of the hood: painted pods, black bezel, one big clear rectangular lamp
-  [1,-1].forEach(sd=>{ const x=sd*.56, z=F-.4, y=T.top(x,z)-.03;
+  [1,-1].forEach(sd=>{ const x=sd*.6, z=F-.38, y=T.top(x,z)-.02;
     K.add(new THREE.BoxGeometry(.5,.012,.38),gapM,x,y+.004,z-.02); // the pocket they rise out of
     { const ws=new THREE.Shape(); ws.moveTo(.13,0); ws.lineTo(.13,.2); ws.lineTo(.05,.215); ws.lineTo(-.24,.03); ws.lineTo(-.24,0); ws.lineTo(.13,0); // pop-up wedge: tall lamp face, lid sloping back into the hood
       const wg=new THREE.ExtrudeGeometry(ws,{depth:.46,bevelEnabled:true,bevelThickness:.012,bevelSize:.01,bevelSegments:2}); wg.translate(0,0,-.23); wg.rotateY(-Math.PI/2); K.add(wg,paint,x,y,z-.013); }

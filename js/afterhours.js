@@ -5196,9 +5196,18 @@ const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xa
 rain.frustumCulled=false; rain.visible=false; fxGroup.add(rain);
 const rainLast=new THREE.Vector3(), rainVel=new THREE.Vector3(); let rainReady=false;
 function inTunnel(){ if(EV.id==='tunnel') return true; const r=player||racers[0]; return !!r&&frame(r.dist,F2).p.y<-6; }
+function rainFxOn(){ return LOOK.wet&&(mode==='race'||mode==='loading'||mode==='events')&&!inTunnel(); }
+function muteRainAudio(){
+  if(rainGain&&AC){ const t=AC.currentTime; rainGain.gain.cancelScheduledValues(t); rainGain.gain.setValueAtTime(0,t); }
+}
+function endRaceFx(){ setWeather(false); rain.visible=false; rainReady=false; muteRainAudio(); }
 function updateRain(dt){
-  const show=LOOK.wet&&(mode==='race'||mode==='loading'||mode==='events')&&!inTunnel(); rain.visible=show;
-  if(rainGain) rainGain.gain.setTargetAtTime(show&&soundOn?.07:0,AC.currentTime,.3);
+  const show=rainFxOn(); rain.visible=show;
+  if(rainGain&&AC){
+    const t=AC.currentTime;
+    if(!show){ muteRainAudio(); }
+    else rainGain.gain.setTargetAtTime(soundOn?.07:0,t,.3);
+  }
   if(!show){ rainReady=false; return; }
   const c=cam.position; rainVel.subVectors(c,rainLast).divideScalar(Math.max(dt,1e-3)); rainLast.copy(c);
   if(!rainReady){ rainReady=true; rainVel.set(0,0,0); for(let i=0;i<RN;i++){ rainP[i*3]=c.x+(Math.random()-.5)*64; rainP[i*3+1]=c.y-6+Math.random()*24; rainP[i*3+2]=c.z+(Math.random()-.5)*64; } }
@@ -6051,7 +6060,6 @@ function updateFx(dt,focus){ if(skDirty){ skGeo.attributes.position.needsUpdate=
   if(swT>0){ swT-=dt; const k=1-Math.max(0,swT)/.7; swRing.scale.setScalar(1+k*34); swRing.material.opacity=Math.max(0,swT/.7)*.9; } else { swT=0; swRing.material.opacity=0; }
   if(boltT>0){ boltT-=dt; bolt.material.opacity=Math.max(0,boltT/.45)*(Math.random()<.7?1:.3); bolt.scale.x=bolt.scale.z=.6+Math.random()*.8; } else bolt.material.opacity=0;
   smokes.forEach(o=>{ if(o.life<=0) return; o.life-=dt; o.s.scale.multiplyScalar(1+dt*2.2); o.s.material.opacity=Math.max(0,o.life*.5); o.s.position.y+=dt*.6; if(o.life<=0) o.s.visible=false; });
-  updateRain(dt);
   if(!focus) return;
   const {m4,q,sc,p,b,nr}=FX, W=TR.W, H=TR.H;
   const stg=focus.stage||0, len=clamp(focus.v*.07,.3,7)*STAGE.len[stg]; slMesh.material.opacity=STAGE.lines[stg]*(EV.open?.7:1);
@@ -6196,7 +6204,10 @@ function renderGauntlet(){
 }
 function openGauntlet(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='gauntlet'; show('gauntlet'); renderGauntlet(); setupAttract(CARS[sel]); }
 function startGauntlet(){ tagPick=null; bindKoTrack(koMapI); startLoading(); }
-function backToArchive(){ TAG=null; engine(0,false); screech(0); mode='select'; show('select'); flash(.9); sfx.shutter(); renderPage(0); }
+function backToArchive(){
+  if(mode==='race'||mode==='results'||mode==='highlight'||mode==='loading') endRaceFx();
+  TAG=null; engine(0,false); screech(0); mode='select'; show('select'); flash(.9); sfx.shutter(); renderPage(0);
+}
 $('#prev').onclick=()=>turn(-1); $('#next').onclick=()=>turn(1);
 $('#specBtn').onclick=()=>sheetOpen?closeSheet():openSheet(); $('#shClose').onclick=closeSheet;
 $('#shPrev').onclick=()=>turn(-1); $('#shNext').onclick=()=>turn(1);
@@ -6344,6 +6355,7 @@ function startRace(){
   $('#hGhost').textContent=''; $('#hMsg').textContent='3'; sfx.beep(false); flash(.9);
 }
 function finishRace(){
+  endRaceFx();
   mode='results'; show('results'); sfx.shutter(); flash(1); engine(0,false); screech(0);
   if(EV.knockout){ finishKnockout(); return; }
   if(TAG){ finishTagTeam(); return; }
@@ -6637,6 +6649,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const rawMs=now-last;
   let dt=Math.min(.033,rawMs/1000); last=now;
+  updateRain(dt); // keep rain audio in sync when leaving race (select/results/highlight never call updateFx)
   if(mode!=='boot'&&mode!=='loading') pace(rawMs);
   modeT+=dt; ghostT+=dt;
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('#hToast').style.opacity=0; }

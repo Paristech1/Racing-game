@@ -43,6 +43,20 @@ describe('clamp / lerp / rng', () => {
     assert.deepEqual(seqA, seqB);
     assert.ok(seqA.every(v => v >= 0 && v < 1));
   });
+
+  it('different seeds produce different sequences', () => {
+    const seq = n => {
+      const r = rng(n);
+      return [r(), r(), r(), r()];
+    };
+    assert.notDeepEqual(seq(1), seq(2));
+  });
+
+  it('seed 0 is not a constant stream', () => {
+    const r = rng(0);
+    const vals = [r(), r(), r(), r(), r()];
+    assert.ok(new Set(vals).size > 1, 'rng(0) should vary across calls');
+  });
 });
 
 describe('fmt / esc', () => {
@@ -71,6 +85,24 @@ describe('lapsForEvent / histRecord', () => {
     const h = histRecord(save, 'kage');
     assert.equal(h.bestBy.tunnel, 42.5);
     assert.equal(save.kage, h);
+  });
+
+  it('does not overwrite an existing bestBy entry', () => {
+    const save = { tunnel: { runs: 2, bestBy: { tunnel: 40.1, blvd: 55 } } };
+    const h = histRecord(save, 'tunnel');
+    assert.equal(h.bestBy.tunnel, 40.1);
+    assert.equal(h.bestBy.blvd, 55);
+  });
+
+  it('creates default stats for a brand-new id', () => {
+    const save = {};
+    const h = histRecord(save, 'newid');
+    assert.equal(h.runs, 0);
+    assert.equal(h.wins, 0);
+    assert.equal(h.hits, 0);
+    assert.equal(h.last, 0);
+    assert.deepEqual(h.bestBy, {});
+    assert.equal(save.newid, h);
   });
 });
 
@@ -120,6 +152,70 @@ describe('buildRivalForEvent', () => {
     assert.equal(r.tag, 'APEX');
     assert.ok(r.chassisId === 'vanta' || r.chassisId === 'kage');
   });
+
+  it('rivalBoss allows boss-only chassis like zephyr', () => {
+    const taken = [];
+    const cars = [
+      { id: 'kage', name: 'KAGE', grip: 30, top: 90, nitro: 1, mass: 1, rival: 'note' },
+      { id: 'zephyr', name: 'ZEPHYR', grip: 31, top: 429, nitro: 1.45, mass: 0.22, rival: 'note' },
+    ];
+    const r = buildRivalForEvent(
+      APEX_RIVAL,
+      'tunnel',
+      taken,
+      cars,
+      EVENT_CAR_BIAS,
+      RIVAL_CAR_PREF,
+      { rivalBoss: true, random: () => 0 }
+    );
+    assert.equal(r.chassisId, 'zephyr');
+  });
+
+  it('preferred car ids win ties on score', () => {
+    const twinA = { id: 'plain', name: 'PLAIN', grip: 30, top: 90, nitro: 1, mass: 1, rival: 'note' };
+    const twinB = { id: 'vanta', name: 'VANTA', grip: 30, top: 90, nitro: 1, mass: 1, rival: 'note' };
+    const taken = [];
+    const r = buildRivalForEvent(
+      APEX_RIVAL,
+      'tunnel',
+      taken,
+      [twinA, twinB],
+      EVENT_CAR_BIAS,
+      RIVAL_CAR_PREF,
+      { random: () => 0 }
+    );
+    assert.equal(r.chassisId, 'vanta');
+  });
+
+  it('pushes chosen chassis id onto taken', () => {
+    const taken = ['kage'];
+    buildRivalForEvent(
+      APEX_RIVAL,
+      'tunnel',
+      taken,
+      TEST_CARS.filter(c => !c.outlaw && c.id !== 'zephyr'),
+      EVENT_CAR_BIAS,
+      RIVAL_CAR_PREF,
+      { random: () => 0 }
+    );
+    assert.equal(taken.length, 2);
+    assert.ok(taken.includes('kage'));
+    assert.notEqual(taken[1], 'kage');
+  });
+
+  it('mass is rival P.mass times chassis mass', () => {
+    const taken = [];
+    const r = buildRivalForEvent(
+      { ...APEX_RIVAL, P: { ...APEX_RIVAL.P, mass: 2 } },
+      'tunnel',
+      taken,
+      [{ id: 'zephyr', name: 'ZEPHYR', grip: 31, top: 429, nitro: 1.45, mass: 0.5, rival: 'note' }],
+      EVENT_CAR_BIAS,
+      RIVAL_CAR_PREF,
+      { rivalBoss: true, random: () => 0 }
+    );
+    assert.equal(r.mass, 1);
+  });
 });
 
 describe('scorePickup', () => {
@@ -143,6 +239,45 @@ describe('scorePickup', () => {
   it('wraps distance along track length', () => {
     const ahead = scorePickup(racer, { cd: 0, s: 10, x: 0, type: 'long' }, P, 195, 200);
     assert.ok(ahead > -999);
+  });
+
+  it('rejects lastOnly and lastTwo pickups', () => {
+    const base = { cd: 0, s: 30, x: 0, type: 'long' };
+    assert.equal(scorePickup(racer, { ...base, lastOnly: true }, P, 0, 200), -999);
+    assert.equal(scorePickup(racer, { ...base, lastTwo: true }, P, 0, 200), -999);
+  });
+
+  it('enforces along-track distance window (5–72 m)', () => {
+    const base = { cd: 0, x: 0, type: 'long' };
+    assert.equal(scorePickup(racer, { ...base, s: 4.9 }, P, 0, 200), -999);
+    assert.ok(scorePickup(racer, { ...base, s: 5 }, P, 0, 200) > -999);
+    assert.ok(scorePickup(racer, { ...base, s: 72 }, P, 0, 200) > -999);
+    assert.equal(scorePickup(racer, { ...base, s: 72.1 }, P, 0, 200), -999);
+  });
+
+  it('penalizes refill when nitro is already high', () => {
+    const p = { cd: 0, s: 30, x: 0, type: 'refill' };
+    const low = { ...racer, nitro: 0.5 };
+    const high = { ...racer, nitro: 0.9 };
+    const lowSc = scorePickup(low, p, P, 0, 200);
+    const highSc = scorePickup(high, p, P, 0, 200);
+    assert.equal(lowSc - highSc, 9);
+  });
+
+  it('apex loses value when far off the racing line', () => {
+    const apexRacer = { def: { id: 'apex', chassisId: 'kage' }, x: 0, nitro: 0.5 };
+    const wildRacer = { def: { id: 'wild', chassisId: 'kage' }, x: 0, nitro: 0.5 };
+    const pu = { cd: 0, s: 30, x: 4, type: 'long' };
+    const apexSc = scorePickup(apexRacer, pu, P, 0, 200);
+    const wildSc = scorePickup(wildRacer, pu, P, 0, 200);
+    assert.equal(wildSc - apexSc, 5);
+  });
+
+  it('wildcard persona gets a flat +2 bonus', () => {
+    const wild = { def: { id: 'wild', chassisId: 'kage' }, x: 0, nitro: 0.5 };
+    const apex = { def: { id: 'apex', chassisId: 'kage' }, x: 0, nitro: 0.5 };
+    const pu = { cd: 0, s: 30, x: 0, type: 'long' };
+    assert.equal(scorePickup(wild, pu, P, 0, 200) - scorePickup(apex, pu, P, 0, 200), 2);
   });
 });
 
@@ -179,6 +314,33 @@ describe('makeTrack / frame', () => {
     frame(tr.L - 5, b, tr);
     assert.ok(Math.abs(a.p.x - b.p.x) < 0.01);
   });
+
+  it('curvature sign follows loop direction (CCW left / CW right)', () => {
+    const N = 32;
+    const R = 50;
+    const ccw = [];
+    for (let i = 0; i < N; i++) {
+      const t = (-i / N) * 2 * Math.PI;
+      ccw.push(new Vec3(R * Math.cos(t), 0, R * Math.sin(t)));
+    }
+    const cw = [...ccw].reverse();
+    const trCCW = makeTrack(ccw, 12, 0);
+    const trCW = makeTrack(cw, 12, 0);
+    const sumK = tr => tr.K.reduce((s, k) => s + k, 0);
+    assert.ok(sumK(trCCW) > 0);
+    assert.ok(sumK(trCW) < 0);
+  });
+
+  it('wraps multi-lap distance (e.g. 3.5 laps)', () => {
+    const pts = [new Vec3(0, 0, 0), new Vec3(50, 0, 0), new Vec3(50, 0, 50), new Vec3(0, 0, 50)];
+    const tr = makeTrack(pts, 12, 0);
+    const half = mkFrame();
+    const many = mkFrame();
+    frame(0.5 * tr.L, half, tr);
+    frame(3.5 * tr.L, many, tr);
+    assert.ok(Math.abs(half.p.x - many.p.x) < 0.05);
+    assert.ok(Math.abs(half.p.z - many.p.z) < 0.05);
+  });
 });
 
 describe('knockout helpers', () => {
@@ -186,11 +348,18 @@ describe('knockout helpers', () => {
     assert.equal(koUsesSectors({ knockout: true }, 3000), true);
     assert.equal(koUsesSectors({ knockout: true }, 2000), false);
     assert.equal(koUsesSectors({ knockout: false }, 9000), false);
+    assert.equal(koUsesSectors({ knockout: true }, 2500), false);
+    assert.equal(koUsesSectors({ knockout: true }, 2501), true);
   });
 
   it('koCheckpoint splits long maps into eleven sectors', () => {
     assert.equal(koCheckpoint(3, 3300, true), 900);
     assert.equal(koCheckpoint(2, 1200, false), 2400);
+  });
+
+  it('koCheckpoint supports half-round marks for Time Bomb', () => {
+    assert.equal(koCheckpoint(2.5, 3300, true), 750);
+    assert.equal(koCheckpoint(1.5, 1000, false), 1500);
   });
 
   it('koPick returns final duel for two cars', () => {

@@ -1,5 +1,5 @@
 """AFTERHOURS — Mt Airy kit, built in Blender (bpy). Game coords: x right, y up, z forward. Blender: (x, -z, y).
-Assets (Empty + parented parts), facades face +x, origin = front-centre at grade:
+Assets (Empty + parented parts), facades face +x, origin = front-center at grade:
   ShopSchist, ShopBrick  — three-storey Germantown Ave mixed-use, 9 m wide
   Theatre                — 1920s Art Deco playhouse with marquee, 24 m wide
   StoneTwin              — gray Wissahickon-schist twin, slate roof, cross gables, full-width porch, 13 m wide
@@ -47,7 +47,7 @@ def bevel_bm(bm, off, seg=2):   # round every hard edge (same call as volcano_p1
     es = [e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6]
     if es and off > 0: bmesh.ops.bevel(bm, geom=es, offset=off, segments=seg, affect='EDGES', profile=.5, clamp_overlap=True)
     return bm
-def box(sx, sy, sz, gx=0, gy=0, gz=0, bevel=0., seg=2):  # game-space size (x, y, z) and centre
+def box(sx, sy, sz, gx=0, gy=0, gz=0, bevel=0., seg=2):  # game-space size (x, y, z) and center
     bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
     for v in bm.verts: v.co = Vector((v.co.x * sx, v.co.y * sz, v.co.z * sy)) + G(gx, gy, gz)
     return bevel_bm(bm, min(bevel, .45 * min(sx, sy, sz)), seg)

@@ -363,7 +363,7 @@ function hist(id){ const h=SAVE[id]||(SAVE[id]={runs:0,wins:0,hits:0,last:0}); i
 
 /* ---------------- GEOMETRY DETAIL ----------------
    Game-wide polygon upgrade (threejs-geometry): every round primitive is built with more segments than its call site asks
-   for, so wheels, tyres, poles, lamps, domes and arches read smooth up close. Intentionally faceted shapes (3-5 sided prisms,
+   for, so wheels, tires, poles, lamps, domes and arches read smooth up close. Intentionally faceted shapes (3-5 sided prisms,
    flat-shaded icosahedra) are left alone. Phones get a smaller multiplier.
    Two knobs: PRIM_DETAIL drives the primitive-segment override below (every track, prop and car primitive);
    CAR_BODY_DETAIL drives only the lofted car shells, so car and level density move independently. */
@@ -754,7 +754,7 @@ function p1Shell(g,def,B,paint,glass){
   const top=sculptCanopy(g,{z0:-1.55,z1:.98,cwK:[[-1.55,.2],[-1.25,.52],[-.6,.64],[.1,.63],[.6,.52],[.98,.26]],htK:[[-1.55,.9],[-1.15,1.08],[-.55,1.19],[0,1.18],[.5,1.02],[.98,.74]],roof:[-1.3,.3]},T,glass,paint,K);
   const snork=[]; for(let i=0;i<10;i++){ const z=-.95+.6*i/9, t=top(z)*1.01+.012, h=.025+.075*(i/9); snork.push({z,pts:[[0,t-.02],[.09,t-.02],[.1,t+h*.6],[.06,t+h],[0,t+h+.01]]}); }
   K.add(loftGeo(snork),paint); K.add(new THREE.PlaneGeometry(.15,.07),gapM,0,top(-.35)*1.01+.07,-.345);
-  const hy=T.top(.6,1.9)-.5; // lamps ride on the bonnet surface
+  const hy=T.top(.6,1.9)-.5; // lamps ride on the hood surface
   [1,-1].forEach(sd=>{
     K.tube([[sd*.4,.52+hy,2.02],[sd*.6,.555+hy,1.95],[sd*.75,.53+hy,1.86],[sd*.82,.45+hy,1.8]],.034,GLOSS_BLACK,20); // recess
     K.tube([[sd*.42,.545+hy,2.01],[sd*.6,.58+hy,1.945],[sd*.74,.555+hy,1.855],[sd*.8,.48+hy,1.81]],.014,headM,20); // boomerang LED
@@ -789,7 +789,7 @@ function p1Shell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Volcano P1 (Blender build): an original hypercar modelled in Blender and loaded as models/volcano_p1.glb ----
+/* ---- Volcano P1 (Blender build): an original hypercar modeled in Blender and loaded as models/volcano_p1.glb ----
    threejs-loaders: GLTFLoader (r128 examples/js global) runs before the game boots (see the bootstrap at the end of this file).
    Each Blender material name maps onto the game's own materials, so the car keeps the clear-coat paint, fresnel rim,
    carbon weave and blooming lamps the rest of the archive uses. Falls back to the procedural p1Shell if the file is missing. */
@@ -820,7 +820,7 @@ function volcanoShell(g,def,B,paint,glass,opts){
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.14,ay:ys-.1,yc:ys+.25,yf:ys+.25}; }};
 }
 
-/* ---- AUTOBAHN 63 (Blender build, v2): an original four-door GT modelled in Blender (tools/blender/autobahn_63.py) ----
+/* ---- AUTOBAHN 63 (Blender build, v2): an original four-door GT modeled in Blender (tools/blender/autobahn_63.py) ----
    Proportioned from side-view refs of the class: long hood with the cowl behind the front axle, convex sides that swell over
    both axles into wide hips, a low tumblehome glasshouse falling to a ducktail, gloss-black sills/valance, flush lower aero.
    Blender material names map onto the game's materials; the procedural autobahnShell stays as the fallback. */
@@ -872,12 +872,12 @@ function kageShell(g,def,B,paint,glass){
     const t=K.add(new THREE.CylinderGeometry(.065,.072,.2,18,1,true),exhM,sd*.36,.3,-2.52); t.rotation.x=Math.PI/2;
     K.add(new THREE.CircleGeometry(.06,18),gapM,sd*.36,.3,-2.44).rotation.y=Math.PI;
   });
-  // full-width tail bar over a louvred black rear panel
+  // full-width tail bar over a louvered black rear panel
   K.add(new THREE.BoxGeometry(1.64,.26,.03),GLOSS_BLACK,0,.55,-2.505);
   for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(1.56,.012,.02),carbon,0,.46+i*.045,-2.525);
   K.tube([[-.84,.66,-2.47],[-.4,.68,-2.515],[0,.68,-2.52],[.4,.68,-2.515],[.84,.66,-2.47]],.022,tailM,24);
   K.glow(0xff2030,1.1,.62,.67,-2.56); K.glow(0xff2030,1.1,-.62,.67,-2.56);
-  // engine-deck louvres behind the cab, bonnet vents, splitter, diffuser
+  // engine-deck louvers behind the cab, hood vents, splitter, diffuser
   for(let i=0;i<8;i++){ const z=-1.2-i*.12; K.add(new THREE.BoxGeometry(.9,.014,.05),GLOSS_BLACK,0,T.yc(z)+.01,z).rotation.x=-.1; }
   [1,-1].forEach(sd=>{ const v=K.add(new THREE.BoxGeometry(.24,.012,.34),gapM,sd*.32,T.yc(1.35)+.02,1.35); v.rotation.x=.12; });
   { const sp=new THREE.Shape(); sp.moveTo(-.86,1.9); sp.quadraticCurveTo(-.84,2.34,0,2.4); sp.quadraticCurveTo(.84,2.34,.86,1.9); sp.lineTo(-.86,1.9);
@@ -1025,7 +1025,7 @@ function tempestaShell(g,def,B,paint,glass){
     ybK:[[-R,.28],[-2.2,.17],[2.1,.17],[F,.24]]},paint,K);
   const C={z0:-1.25,z1:1.2,tumble:.1,pow:.7,cwK:[[-1.25,.3],[-.9,.58],[-.2,.66],[.5,.6],[.95,.42],[1.2,.2]],htK:[[-1.25,.9],[-.8,1.1],[-.2,1.18],[.4,1.12],[.9,.9],[1.2,.66]],roof:[-.95,.5],roofA:.9};
   sculptCanopy(g,C,T,glass,GLOSS_BLACK,K); outlawKit(K,T,C);
-  // black hood and engine cover over the red body; carbon louvres in the cover
+  // black hood and engine cover over the red body; carbon louvers in the cover
   K.top(-.52,.52,1.22,F-.14,GLOSS_BLACK,.005,24);
   K.top(-.5,.5,-2.3,-1.3,GLOSS_BLACK,.005,14);
   for(let i=0;i<7;i++){ const z=-2.2+i*.13; K.add(new THREE.BoxGeometry(.8,.012,.05),carbon,0,T.top(0,z)+.012,z).rotation.x=-.1; }
@@ -1094,7 +1094,7 @@ function mantisShell(g,def,B,paint,glass){
     K.glow(0xff2030,.8,sd*.7,.84,-R-.06); });
   K.top(-.62,.62,F-.3,F-.17,GLOSS_BLACK,.007,4);
   K.splitter(.9,F-.35,F+.02,.22);
-  // engine-deck louvres, raised longtail air-brake
+  // engine-deck louvers, raised longtail air-brake
   for(let i=0;i<6;i++){ const z=-1.9+i*.11; K.add(new THREE.BoxGeometry(.86,.012,.05),GLOSS_BLACK,0,T.top(0,z)+.01,z).rotation.x=-.1; }
   { const w=K.add(K.airfoil(.44,.05,1.78),paint,0,T.top(0,-2.12)+.12,-2.02); w.rotation.y=Math.PI/2; w.rotation.z=.42;
     [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.03,.14,.1),GLOSS_BLACK,sd*.5,T.top(sd*.5,-2.12)+.06,-2.12)); }
@@ -1108,7 +1108,7 @@ function mantisShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Autobahn 63: four-door GT fastback after the GT 63 S reference photos. Panamericana grille with a big centre
+/* ---- Autobahn 63: four-door GT fastback after the GT 63 S reference photos. Panamericana grille with a big center
    star, slim swept headlamps, twin power domes, A-wing front apron, long fastback glasshouse with a chrome surround that
    ends in a point, pronounced rear haunches, slim tail lamps, quad trapezoid exhausts. The finish follows the
    blender-skills product-polish recipe: flat material values, no noisy normal maps, a clear coat over satin paint. ---- */
@@ -1129,8 +1129,8 @@ function autobahnShell(g,def,B,paint,glass){
   const bump=(fn,z0,z1,m)=>K.add(bandGeo(fn,z0,z1,24,8),m); // raised panel that meets the surface at its edges
   // twin power domes on the hood
   [1,-1].forEach(sd=>bump((u,z)=>{ const x=sd*lerp(.1,.36,u), e=Math.sin(Math.PI*clamp((z-1.3)/(F-.3-1.3),0,1)); return [x,T.top(x,z)+.028*Math.sin(Math.PI*u)*Math.sqrt(e)]; },1.3,F-.3,paint));
-  // front face (the loft's nose cap): wide low grille in a black surround, vertical slats, centre roundel;
-  // big black corner intakes split from a full-width lower intake by body-colour fangs; black lip under it all
+  // front face (the loft's nose cap): wide low grille in a black surround, vertical slats, center roundel;
+  // big black corner intakes split from a full-width lower intake by body-color fangs; black lip under it all
   { const z=F+.006, shp=pts=>{ const s=new THREE.Shape(); pts.forEach(([x,y],i)=>i?s.lineTo(x,y):s.moveTo(x,y)); return new THREE.ShapeGeometry(s); };
     const gT=.665, gB=.435, hwT=.37, hwB=.42;
     K.add(shp([[-hwB-.03,gB-.03],[hwB+.03,gB-.03],[hwT+.03,gT+.025],[-hwT-.03,gT+.025]]),GLOSS_BLACK,0,0,z);
@@ -1178,8 +1178,8 @@ function autobahnShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Noctis GT: front-engine V12 grand tourer. Very long hood with a centre bulge and side vents, cab pushed back,
-   fastback roof into a short Kamm tail, wide hips, chrome grille, red beltline, triple centre exhaust.
+/* ---- Noctis GT: front-engine V12 grand tourer. Very long hood with a center bulge and side vents, cab pushed back,
+   fastback roof into a short Kamm tail, wide hips, chrome grille, red beltline, triple center exhaust.
    Finish per the product-polish recipe: deep black under a mirror clear coat, flat values, no flake map. ---- */
 function noctisShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xb070ff,.22);
@@ -1196,7 +1196,7 @@ function noctisShell(g,def,B,paint,glass){
   const C={z0:-1.68,z1:.62,tumble:.12,pow:.6,cwK:[[-1.68,.3],[-1.3,.56],[-.7,.64],[0,.64],[.4,.56],[.62,.4]],htK:[[-1.68,.9],[-1.2,1.12],[-.6,1.25],[-.05,1.26],[.35,1.1],[.62,.9]],roof:[-1.35,.2],roofA:.92};
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
   const bump=(fn,z0,z1,m)=>K.add(bandGeo(fn,z0,z1,24,8),m);
-  // long centre power bulge on the hood, fender vents behind the front wheels
+  // long center power bulge on the hood, fender vents behind the front wheels
   bump((u,z)=>{ const x=lerp(-.34,.34,u), e=Math.sin(Math.PI*clamp((z-.8)/(F-.35-.8),0,1)); return [x,T.top(x,z)+.035*Math.sin(Math.PI*u)*Math.sqrt(e)]; },.8,F-.35,paint);
   [1,-1].forEach(sd=>{ for(let i=0;i<3;i++){ const z=1.06-i*.13, s=T.sec(z); K.add(new THREE.BoxGeometry(.012,.04,.09),chromeTrimM,sd*(s.hs+.008),s.ys-.04,z); } });
   // front face: wide chrome-framed grille with horizontal bars, slim swept lamps, corner intakes, black lip
@@ -1217,7 +1217,7 @@ function noctisShell(g,def,B,paint,glass){
     // tail: round twin lamps each side set into the Kamm tail
     [.52,.76].forEach(x=>{ const l=K.add(new THREE.CircleGeometry(.07,24),tailM,sd*x,.72,-R-.01); l.rotation.y=Math.PI; K.add(new THREE.TorusGeometry(.075,.01,6,24),chromeTrimM,sd*x,.72,-R-.012); });
     K.glow(0xff2030,.8,sd*.64,.72,-R-.07); });
-  // rear: red bar between the lamps, black diffuser, triple centre exhaust, ducktail
+  // rear: red bar between the lamps, black diffuser, triple center exhaust, ducktail
   K.tube([[-.4,.72,-R-.012],[.4,.72,-R-.012]],.01,red,6);
   K.add(new THREE.PlaneGeometry(1.5,.2),GLOSS_BLACK,0,.34,-R-.01).rotation.y=Math.PI;
   for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(.02,.16,.36),GLOSS_BLACK,-.36+i*.18,.28,-R+.14);
@@ -1246,7 +1246,7 @@ function vantaShell(g,def,B,paint,glass){
   // shark fin from the cockpit to the tail
   { const fs=new THREE.Shape(); fs.moveTo(0,0); fs.lineTo(2.3,0); fs.quadraticCurveTo(1.0,.12,0,.34); fs.lineTo(0,0);
     const f=K.add(new THREE.ExtrudeGeometry(fs,{depth:.028,bevelEnabled:true,bevelThickness:.006,bevelSize:.006,bevelSegments:2}),paint,-.014,T.yc(-2.7)+.01,-2.72); f.rotation.y=-Math.PI/2; }
-  // black engine cover band with louvres, cyan fin edge
+  // black engine cover band with louvers, cyan fin edge
   K.top(-.42,.42,-2.3,-.6,GLOSS_BLACK,.006,20);
   for(let i=0;i<8;i++){ const z=-.9-i*.14; K.add(new THREE.BoxGeometry(.7,.012,.05),carbon,0,T.top(0,z)+.014,z).rotation.x=-.1; }
   K.tube([[0,T.yc(-2.7)+.35,-2.7],[0,T.yc(-1.6)+.2,-1.6],[0,kfCR(C.htK,-.35)+.02,-.4]],.009,cyan,20);
@@ -1274,8 +1274,8 @@ function vantaShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Kern RS: rear-engine GT. Raised front fenders with round lamps, low bonnet between them, teardrop roof that
-   slopes into a long engine lid with a louvred grille, wide rear hips, full-width light bar, swan-neck wing.
+/* ---- Kern RS: rear-engine GT. Raised front fenders with round lamps, low hood between them, teardrop roof that
+   slopes into a long engine lid with a louvered grille, wide rear hips, full-width light bar, swan-neck wing.
    Keeps the studio X-ray cutaway: the rear third turns into a clear shell over the flat-six. ---- */
 function kernShell(g,def,B,paint,glass,opts){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xd8b04a,.16);
@@ -1291,7 +1291,7 @@ function kernShell(g,def,B,paint,glass,opts){
     ybK:[[-R,.34],[-2.0,.22],[2.0,.22],[F,.26]]},paint,K);
   const C={z0:-1.7,z1:1.12,tumble:.16,pow:.55,cwK:[[-1.7,.3],[-1.2,.56],[-.5,.64],[.3,.64],[.8,.58],[1.12,.46]],htK:[[-1.7,.98],[-1.2,1.15],[-.5,1.34],[.1,1.38],[.7,1.2],[1.12,.94]],roof:[-1.3,.45],roofA:.92};
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
-  // twin gold stripes over bonnet, roof and engine lid
+  // twin gold stripes over hood, roof and engine lid
   [.16,-.16].forEach(x=>{ K.top(x-.06,x+.06,C.z1-.05,F-.1,gold,.006,20); K.roof(x-.06,x+.06,C.z0+.1,C.z1-.1,gold,.024,20); K.top(x-.06,x+.06,-R+.1,C.z0+.05,gold,.006,12); });
   // engine-lid grille
   for(let i=0;i<7;i++){ const z=-1.78-i*.06; K.add(new THREE.BoxGeometry(.52,.012,.03),GLOSS_BLACK,0,T.top(0,z)+.012,z).rotation.x=-.25; }
@@ -1305,7 +1305,7 @@ function kernShell(g,def,B,paint,glass,opts){
     K.shut(sd,.95); K.mirror(sd,.82,paint); K.sill(sd,-WB+WR+.2,WB-WR-.2,.03,.14,carbon);
     const ci=T.sec(-.62), it=K.add(K.scoop(.6,.22),GLOSS_BLACK,sd>0?ci.hs-.02:-(ci.hs+.04),ci.ys-.2,-.66); it.rotation.y=Math.PI/2;
     const pts=[]; for(let i=0;i<=10;i++){ const z=lerp(-1.6,1.7,i/10), c=T.sec(z); pts.push([sd*(c.hs+.006),c.ys-.05,z]); } K.tube(pts,.005,gold,24); });
-  // front: black intakes and splitter; rear: full-width light bar, black diffuser, centre twin exhaust, swan wing
+  // front: black intakes and splitter; rear: full-width light bar, black diffuser, center twin exhaust, swan wing
   K.add(new THREE.PlaneGeometry(1.1,.14),GLOSS_BLACK,0,.34,F+.008);
   [1,-1].forEach(sd=>K.add(new THREE.PlaneGeometry(.26,.12),gapM,sd*.64,.32,F-.02));
   K.splitter(.86,F-.3,F+.03,.18);
@@ -1334,7 +1334,7 @@ function kernShell(g,def,B,paint,glass,opts){
   return T;
 }
 
-/* ---- Dune-R: rally-raid performance SUV. Tall slab-sided body with a sharp shoulder line, flat bonnet with a
+/* ---- Dune-R: rally-raid performance SUV. Tall slab-sided body with a sharp shoulder line, flat hood with a
    power dome, upright glasshouse with a gently sloped tail, black arch cladding, skid plates front and rear,
    roof rack with a four-lamp bar, snorkel, spare on the tailgate. ---- */
 function duneShell(g,def,B,paint,glass){
@@ -1352,7 +1352,7 @@ function duneShell(g,def,B,paint,glass){
     ybK:[[-R,.62],[-2.0,.5],[2.0,.5],[F,.6]]},paint,K);
   const C={z0:-2.12,z1:1.45,tumble:.08,pow:.3,cwK:[[-2.12,.7],[-1.8,.8],[-.6,.84],[.5,.84],[1.1,.8],[1.45,.72]],htK:[[-2.12,1.46],[-1.8,1.86],[-1.0,1.96],[.3,1.97],[.95,1.9],[1.45,1.4]],roof:[-1.9,1.0],roofA:.9};
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
-  // power dome on the bonnet
+  // power dome on the hood
   K.add(bandGeo((u,z)=>{ const x=lerp(-.4,.4,u), e=Math.sin(Math.PI*clamp((z-1.55)/(F-.25-1.55),0,1)); return [x,T.top(x,z)+.03*Math.sin(Math.PI*u)*Math.sqrt(e)]; },1.55,F-.25,20,8),paint);
   // arch cladding: a thick black eyebrow over each wheel, plus clad sills
   [1,-1].forEach(sd=>[WB,-WB].forEach(zw=>{ const pts=[]; for(let i=0;i<=14;i++){ const a=Math.PI*(.1+.8*i/14), z=zw-Math.cos(a)*(WR+.16), c=T.sec(z); pts.push([sd*(c.hs+.03),WR+Math.sin(a)*(WR+.16),z]); } K.tube(pts,.05,clad,24,6); }));
@@ -1391,7 +1391,7 @@ function duneShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Sovereign: V12 chauffeur saloon. Three-box: long flat bonnet, tall upright glasshouse with a formal
+/* ---- Sovereign: V12 chauffeur sedan. Three-box: long flat hood, tall upright glasshouse with a formal
    C-pillar, short flat boot, tall chrome grille with a mascot, chrome everywhere, rear-hinged coach doors. ---- */
 function sovereignShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x9fb4d8,.14);
@@ -1406,13 +1406,13 @@ function sovereignShell(g,def,B,paint,glass){
     ybK:[[-R,.34],[-2.2,.26],[2.2,.26],[F,.32]]},paint,K);
   const C={z0:-1.62,z1:1.2,tumble:.12,pow:.34,cwK:[[-1.62,.62],[-1.45,.72],[-.6,.76],[.4,.76],[.95,.72],[1.2,.62]],htK:[[-1.62,1.14],[-1.42,1.52],[-.8,1.62],[.3,1.62],[.85,1.54],[1.2,1.12]],roof:[-1.45,.9],roofA:.92};
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
-  // formal chrome: grille, mascot, bonnet strake, window surround, beltline, coach doors
+  // formal chrome: grille, mascot, hood strake, window surround, beltline, coach doors
   { const z=F+.006, gT=1.0, gB=.52, hw=.3;
     K.add(new THREE.BoxGeometry(hw*2+.08,gT-gB+.08,.08),chromeTrimM,0,(gT+gB)/2,F-.02);
     K.add(new THREE.PlaneGeometry(hw*2,gT-gB),gapM,0,(gT+gB)/2,z+.02);
     for(let i=0;i<11;i++) K.add(new THREE.BoxGeometry(.016,gT-gB-.02,.02),chromeTrimM,-hw+.03+i*(hw*2-.06)/10,(gT+gB)/2,z+.03);
     K.add(new THREE.BoxGeometry(.03,.14,.08),chromeTrimM,0,gT+.1,F-.08).rotation.x=-.35; // mascot
-    K.tube([[0,T.top(0,1.3)+.012,1.3],[0,T.top(0,F-.2)+.012,F-.2]],.012,chromeTrimM,8); // bonnet strake
+    K.tube([[0,T.top(0,1.3)+.012,1.3],[0,T.top(0,F-.2)+.012,F-.2]],.012,chromeTrimM,8); // hood strake
     K.add(new THREE.BoxGeometry(1.5,.03,.05),chromeTrimM,0,.46,z+.01); }
   [1,-1].forEach(sd=>{
     // slim lamps either side of the grille, lower intakes
@@ -1434,9 +1434,9 @@ function sovereignShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Gran Four: four-door sport liftback. Raised front fenders carrying 4-point LED lamps, low bonnet between them,
+/* ---- Gran Four: four-door sport liftback. Raised front fenders carrying 4-point LED lamps, low hood between them,
    long glasshouse sloping into a liftback with a full-width light bar, strong rear shoulders, pop-up spoiler,
-   matte stealth grey with yellow accents. ---- */
+   matte stealth gray with yellow accents. ---- */
 function granfourShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffd878,.1);
   paint.clearcoat=0; paint.roughness=.55; paint.envMapIntensity=.55; paint.color.multiplyScalar(.8); // matte wrap: no coat, soft reflections
@@ -1467,7 +1467,7 @@ function granfourShell(g,def,B,paint,glass){
     K.mirror(sd,1.0,paint);
     // rear: quad exhaust, oval pairs
     [.42,.58].forEach(x2=>K.pipe(sd*x2,.38,-R-.05,.05)); });
-  // front: centre intake, yellow splitter lip
+  // front: center intake, yellow splitter lip
   K.add(new THREE.PlaneGeometry(.64,.14),GLOSS_BLACK,0,.36,F+.006);
   K.splitter(.9,F-.3,F+.03,.2); K.add(new THREE.BoxGeometry(1.5,.02,.03),yel,0,.21,F+.02);
   // rear: full-width light bar across the liftback, black diffuser, pop-up ducktail
@@ -1501,7 +1501,7 @@ function bellShell(g,def,B,paint,glass){
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
   // navy tail section behind the C-sweep
   K.top(-.9,.9,-R+.06,-1.35,navy,.004,20);
-  // gold dorsal spine from the bonnet over the roof to the tail
+  // gold dorsal spine from the hood over the roof to the tail
   { const pts=[]; for(let i=0;i<=30;i++){ const z=lerp(F-.5,-R+.2,i/30); let y=T.top(0,z)+.012; if(z>C.z0+.05&&z<C.z1-.05) y=Math.max(y,canopyY(C,T,0,z)+.022); pts.push([0,y,z]); } K.tube(pts,.016,gold,80,5); }
   [1,-1].forEach(sd=>{
     // gold C-sweep: an arc around the door, closing over a carbon side intake
@@ -1530,8 +1530,8 @@ function bellShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Passyunk R: hot hatch. Short two-box body, near-vertical tailgate, blistered box arches, short bonnet with a
-   scoop, honeycomb grille with a red line, roof spoiler, black roof, twin white stripes, triple centre exhaust. ---- */
+/* ---- Passyunk R: hot hatch. Short two-box body, near-vertical tailgate, blistered box arches, short hood with a
+   scoop, honeycomb grille with a red line, roof spoiler, black roof, twin white stripes, triple center exhaust. ---- */
 function passyunkShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xff8080,.14);
   paint.clearcoat=1; paint.clearcoatRoughness=.02;
@@ -1548,9 +1548,9 @@ function passyunkShell(g,def,B,paint,glass){
   sculptCanopy(g,C,T,glass,GLOSS_BLACK,K); outlawKit(K,T,C);
   // box arch blisters: a flat-topped flare over each wheel
   [1,-1].forEach(sd=>[WB,-WB].forEach(zw=>{ const pts=[]; for(let i=0;i<=12;i++){ const a=Math.PI*(.12+.76*i/12), z=zw-Math.cos(a)*(WR+.14), c=T.sec(z); pts.push([sd*(c.hs+.02),WR+Math.sin(a)*(WR+.12),z]); } K.tube(pts,.04,paint,20,6); }));
-  // twin white stripes over bonnet, roof and tailgate top
+  // twin white stripes over hood, roof and tailgate top
   [.13,-.13].forEach(x=>{ K.top(x-.055,x+.055,C.z1-.02,F-.08,white,.006,16); K.roof(x-.055,x+.055,C.z0+.08,C.z1-.06,white,.024,16); });
-  // bonnet scoop
+  // hood scoop
   { const y=T.top(0,1.45); K.add(new THREE.BoxGeometry(.4,.06,.28),GLOSS_BLACK,0,y+.03,1.45); K.add(new THREE.PlaneGeometry(.32,.035),gapM,0,y+.04,1.592); }
   // front: honeycomb grille with a red pinline, round-cornered lamps, big lower intake, splitter
   { const z=F+.006, hc=new THREE.MeshBasicMaterial({map:CT(canvasTex(256,64,(c,w,h)=>{ c.fillStyle='#050506'; c.fillRect(0,0,w,h); c.strokeStyle='#2a2d33'; c.lineWidth=2;
@@ -1562,7 +1562,7 @@ function passyunkShell(g,def,B,paint,glass){
     for(let i=0;i<3;i++){ const z=WB-WR-.24, s=T.sec(z); K.add(new THREE.BoxGeometry(.012,.025,.16),GLOSS_BLACK,sd*(s.hs+.02),s.ys-.06-i*.06,z); }
     // tail: tall lamps at the corners of the tailgate
     K.add(new THREE.BoxGeometry(.2,.16,.02),tailM,sd*.66,.98,-R-.012); K.glow(0xff2030,.9,sd*.66,.98,-R-.07); });
-  // roof spoiler with endplates, black rear bumper insert, diffuser, triple centre exhaust
+  // roof spoiler with endplates, black rear bumper insert, diffuser, triple center exhaust
   { const y=kfCR(C.htK,-1.8); const w=K.add(new THREE.BoxGeometry(1.24,.035,.3),GLOSS_BLACK,0,y+.005,-1.92); w.rotation.x=.18;
     [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.03,.07,.3),GLOSS_BLACK,sd*.62,y-.02,-1.92)); }
   K.add(new THREE.PlaneGeometry(1.5,.18),GLOSS_BLACK,0,.44,-R-.008).rotation.y=Math.PI;
@@ -1606,7 +1606,7 @@ function richmondShell(g,def,B,paint,glass){
   [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.06,.8,.06),steel,sd*.78,1.62,bz1-.08)); K.add(new THREE.BoxGeometry(1.62,.06,.06),steel,0,2.02,bz1-.08);
   [-.4,-.2,0,.2,.4].forEach(x=>K.add(new THREE.BoxGeometry(.08,.035,.05),amber,x,2.07,.3));
   K.add(new THREE.BoxGeometry(1.5,.07,.14),GLOSS_BLACK,0,2.1,.7); K.add(new THREE.BoxGeometry(1.44,.04,.02),headM,0,2.1,.775); [-.5,0,.5].forEach(x=>K.glow(0xeaf4ff,.8,x,2.1,.82));
-  // power bulge on the bonnet with a black intake
+  // power bulge on the hood with a black intake
   K.add(bandGeo((u,z)=>{ const x=lerp(-.44,.44,u), e=Math.sin(Math.PI*clamp((z-1.25)/(F-.2-1.25),0,1)); return [x,T.top(x,z)+.07*Math.sin(Math.PI*u)*Math.sqrt(e)]; },1.25,F-.2,20,8),paint);
   K.add(new THREE.BoxGeometry(.36,.08,.2),GLOSS_BLACK,0,T.top(0,1.5)+.09,1.5);
   // front: huge grille with steel bars, stacked lamps, steel bumper, orange tow hooks
@@ -1628,8 +1628,8 @@ function richmondShell(g,def,B,paint,glass){
 }
 
 /* ---- Zenkai 37: JDM widebody coupe. Long nose, cab set back, short fastback deck, bolt-on riveted over-fenders,
-   carbon bonnet with vents, "37" door roundels, windshield banner, vortex generators, big GT wing, quad round tails,
-   titanium centre exit. ---- */
+   carbon hood with vents, "37" door roundels, windshield banner, vortex generators, big GT wing, quad round tails,
+   titanium center exit. ---- */
 function zenkaiShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xff7070,.16);
   paint.clearcoat=1; paint.clearcoatRoughness=.02;
@@ -1646,7 +1646,7 @@ function zenkaiShell(g,def,B,paint,glass){
   // bolt-on over-fenders with rivets
   [1,-1].forEach(sd=>[WB,-WB].forEach(zw=>{ const pts=[]; for(let i=0;i<=14;i++){ const a=Math.PI*(.08+.84*i/14), z=zw-Math.cos(a)*(WR+.2), c=T.sec(z); pts.push([sd*(c.hs+.06),WR+Math.sin(a)*(WR+.14),z]); } K.tube(pts,.07,paint,24,8);
     for(let k=1;k<14;k+=2){ const p=pts[k]; K.add(new THREE.SphereGeometry(.014,6,4),chromeTrimM,p[0]+sd*.06,p[1],p[2]); } }));
-  // carbon bonnet with vents, carbon lip, tow strap
+  // carbon hood with vents, carbon lip, tow strap
   K.top(-.62,.62,.9,F-.12,carbon,.006,20);
   [.3,-.3].forEach(x=>{ for(let i=0;i<5;i++){ const z=1.3+i*.07; K.add(new THREE.BoxGeometry(.3,.01,.03),gapM,x,T.top(x,z)+.012,z); } });
   K.splitter(.86,F-.3,F-.04,.16);
@@ -1666,7 +1666,7 @@ function zenkaiShell(g,def,B,paint,glass){
     ban.rotation.x=-Math.PI/2+Math.atan2(y0-y1,.12); }
   // vortex generators on the roof's trailing edge
   for(let i=0;i<7;i++){ const x=-.42+i*.14; K.add(new THREE.BoxGeometry(.012,.05,.1),carbon,x,canopyY(C,T,x,-1.3)+.04,-1.3); }
-  // rear: black panel, diffuser, titanium centre exit, big GT wing on swan necks
+  // rear: black panel, diffuser, titanium center exit, big GT wing on swan necks
   K.add(new THREE.PlaneGeometry(1.5,.2),GLOSS_BLACK,0,.44,-R-.01).rotation.y=Math.PI;
   for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(.02,.2,.5),carbon,-.6+i*.2,.24,-R+.22);
   { const ti=new THREE.MeshStandardMaterial({color:0x6a7fb8,metalness:1,roughness:.22}), ex=K.add(new THREE.CylinderGeometry(.1,.11,.22,18,1,true),ti,0,.36,-R-.06); ex.rotation.x=Math.PI/2; K.add(new THREE.CircleGeometry(.09,18),gapM,0,.36,-R+.01).rotation.y=Math.PI; }
@@ -1678,7 +1678,7 @@ function zenkaiShell(g,def,B,paint,glass){
 }
 
 /* ---- Split 63: '63-style split-window restomod. Long pointed nose with a knife-edge beltline, hidden-lamp slits, fastback
-   roof split down the middle by a spine, boattail deck, chrome bumperettes, side-exit pipes, stinger bonnet bulge. ---- */
+   roof split down the middle by a spine, boattail deck, chrome bumperettes, side-exit pipes, stinger hood bulge. ---- */
 function splitShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xff6a50,.14);
   paint.clearcoat=1; paint.clearcoatRoughness=.01;
@@ -1693,9 +1693,9 @@ function splitShell(g,def,B,paint,glass){
     ybK:[[-R,.3],[-1.9,.22],[2.0,.22],[F,.26]]},paint,K);
   const C={z0:-1.95,z1:.22,tumble:.1,pow:.6,cwK:[[-1.95,.2],[-1.6,.46],[-1.0,.58],[-.4,.6],[0,.56],[.22,.42]],htK:[[-1.95,.86],[-1.5,1.08],[-.9,1.24],[-.4,1.26],[0,1.14],[.22,.9]],roof:[-1.2,-.1],roofA:.95};
   sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
-  // the split: a body-colour spine down the rear window
+  // the split: a body-color spine down the rear window
   { const pts=[]; for(let i=0;i<=12;i++){ const z=lerp(-1.9,-1.15,i/12); pts.push([0,canopyY(C,T,0,z)+.012,z]); } K.tube(pts,.032,paint,24,6); }
-  // stinger bulge down the bonnet with chrome spears, knife-edge beltline
+  // stinger bulge down the hood with chrome spears, knife-edge beltline
   K.add(bandGeo((u,z)=>{ const x=lerp(-.22,.22,u), e=Math.sin(Math.PI*clamp((z-.5)/(F-.35-.5),0,1)); return [x,T.top(x,z)+.03*Math.sin(Math.PI*u)*Math.sqrt(e)]; },.5,F-.35,24,8),paint);
   [1,-1].forEach(sd=>{ K.tube([K.P(sd*.21,.9,.04),K.P(sd*.21,1.4,.05)],.008,chromeTrimM,6);
     const bl=[]; for(let i=0;i<=14;i++){ const z=lerp(-R+.1,F-.1,i/14), c=T.sec(z); bl.push([sd*(c.hs+.006),c.ys,z]); } K.tube(bl,.006,chromeTrimM,30);
@@ -1722,7 +1722,7 @@ function splitShell(g,def,B,paint,glass){
   return T;
 }
 
-/* ---- Stratos V: clean mid-engine hypercar. Long flat low bonnet, crisp straight shoulder, mid-set canopy, flat high
+/* ---- Stratos V: clean mid-engine hypercar. Long flat low hood, crisp straight shoulder, mid-set canopy, flat high
    deck into a Kamm tail with a full-width light bar, straight side intake, tidy swan-neck wing. ---- */
 function stratosShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffb070,.14);
@@ -1738,10 +1738,10 @@ function stratosShell(g,def,B,paint,glass){
     ybK:[[-R,.28],[-2.3,.18],[2.1,.18],[F,.24]]},paint,K);
   const C={z0:-1.0,z1:1.1,tumble:.08,pow:.68,cwK:[[-1.0,.3],[-.6,.56],[0,.64],[.6,.6],[.95,.44],[1.1,.24]],htK:[[-1.0,.98],[-.55,1.17],[0,1.23],[.55,1.14],[.95,.93],[1.1,.8]],roof:[-.7,.4],roofA:.9};
   sculptCanopy(g,C,T,glass,GLOSS_BLACK,K); outlawKit(K,T,C);
-  // engine deck: black louvred panel behind the cabin
+  // engine deck: black louvered panel behind the cabin
   K.top(-.46,.46,-2.3,-1.06,GLOSS_BLACK,.005,16);
   for(let i=0;i<8;i++){ const z=-1.16-i*.13; K.add(new THREE.BoxGeometry(.8,.012,.05),carbon,0,T.top(0,z)+.012,z).rotation.x=-.08; }
-  // bonnet: two narrow black vents
+  // hood: two narrow black vents
   [1,-1].forEach(sd=>K.top(sd*.14,sd*.32,1.45,1.95,GLOSS_BLACK,.006,6));
   [1,-1].forEach(sd=>{
     // slim LED headlamps: a straight bar and a short return, under a flush clear cover
@@ -1757,7 +1757,7 @@ function stratosShell(g,def,B,paint,glass){
   // front: wide black lower intake and splitter
   K.add(new THREE.PlaneGeometry(1.3,.16),GLOSS_BLACK,0,.34,F+.006);
   K.splitter(.9,F-.3,F-.02,.18);
-  // rear: black mesh panel, twin centre exhausts, diffuser
+  // rear: black mesh panel, twin center exhausts, diffuser
   K.add(new THREE.PlaneGeometry(1.7,.44),gapM,0,.6,-R-.008).rotation.y=Math.PI;
   for(let i=0;i<7;i++) K.add(new THREE.BoxGeometry(1.66,.01,.02),carbon,0,.42+i*.06,-R-.015);
   [-.14,.14].forEach(x=>K.pipe(x,.62,-R-.05,.07));
@@ -1841,7 +1841,7 @@ function zephyrShell(g,def,B,paint,glass){
     const it=K.add(K.scoop(.7,.28),carbon,sd>0?.72:-.78,.28,-.2); it.rotation.y=Math.PI/2;
     K.mirror(sd,.55,carbon);
   });
-  K.top(-.03,.03,.9,F-.12,blade,.008,18); // thin centre blade down the hood to the nose
+  K.top(-.03,.03,.9,F-.12,blade,.008,18); // thin center blade down the hood to the nose
   { const c=T.sec(F), lb=[]; for(let i=0;i<=12;i++){ const x=lerp(-.84,.84,i/12)*c.hl; lb.push([x,c.yb+.16,F+.03-.04*x*x]); } K.tube(lb,.013,blade,24); // full-width light bar across the nose face
     K.glow(def.accent||0x14e0c8,.5,0,c.yb+.16,F+.05); }
   K.splitter(.72,F-.28,F+.02,.14);
@@ -1858,7 +1858,7 @@ const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkai
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
-   glow: underglow colour. Only the street-meet tuners run it (Noctis, Passyunk, Zenkai); on a hypercar, a classic or a
+   glow: underglow color. Only the street-meet tuners run it (Noctis, Passyunk, Zenkai); on a hypercar, a classic or a
    work truck it reads as a costume. */
 const STREET={
  kage:{vinyl:'slash',vc:'#101114',wheel:'split',camber:.04},
@@ -1920,7 +1920,7 @@ function vinylMat(key,st,frontLeft){ const k=key+'|'+frontLeft; if(VINYL_CACHE[k
   const V=VINYLS[st.vinyl], tex=CT(canvasTex(512,128,(g,w,h)=>{ if(V.dir&&!frontLeft){ g.translate(w,0); g.scale(-1,1); } V.draw(g,w,h,st.vc||'#fff',st.text||''); }));
   return VINYL_CACHE[k]=new THREE.MeshStandardMaterial({map:tex,transparent:true,alphaTest:.05,roughness:.32,metalness:.1,polygonOffset:true,polygonOffsetFactor:-2,depthWrite:false}); }
 /* underglow as a real LED kit reads at night: strips hidden under the sills throw a soft pool that hugs the car's
-   footprint, brightest right under the sill line and dying out within a metre past the body; the middle stays
+   footprint, brightest right under the sill line and dying out within a meter past the body; the middle stays
    dark (the car is in the way), so the contact shadow still grounds it. Baked into a texture per body shape rather
    than real lights (threejs-lighting: limit light count, bake where you can), tone-mapped so it never blows the bloom. */
 const UG_TEX={}, UG_MAT={}, UG_STRIP={};
@@ -2143,7 +2143,7 @@ function buildCar(def,opts){
     if((STREET[cid]||{}).wheel!=='forged'){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
     const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
     wheelStyle(spin,side,(STREET[cid]||{}).wheel,rimM,def);
-    if(def.lowPro) spin.children.forEach(o=>{ if(o!==tire&&o!==barrel&&o!==rotor){ o.scale.y*=1.2; o.scale.z*=1.2; } }); // bigger rim inside the same tyre: thin sidewall
+    if(def.lowPro) spin.children.forEach(o=>{ if(o!==tire&&o!==barrel&&o!==rotor){ o.scale.y*=1.2; o.scale.z*=1.2; } }); // bigger rim inside the same tire: thin sidewall
     const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,12),calM); hub.rotation.z=Math.PI/2; hub.position.x=side*.17; spin.add(hub);
     for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, nut=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.03,6),chromeTrimM); nut.rotation.z=Math.PI/2; nut.position.set(side*.165,Math.cos(a)*.085,Math.sin(a)*.085); spin.add(nut); }
     const cal=new THREE.Mesh(new THREE.BoxGeometry(.07,.2,.18),calM); cal.position.set(side*.06,.14*sc,-.06); holder.add(cal);
@@ -2264,7 +2264,7 @@ function buildTunnel(){
   const dataTex=(c,rx,ry)=>{ const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; }; // linear: bump/roughness
   const colTex=(c,rx,ry)=>{ const t=CT(c,true); t.anisotropy=8; t.repeat.set(rx||1,ry||1); return t; };                                        // sRGB: albedo/emissive
   // ---- road: fresh asphalt, lane lines, no bump (product-polish: noisy normals on a glossy surface = dotty glints) ----
-  // painted asphalt: aggregate, polished tyre tracks in each lane, oil drips down the lane centres, patches, cracks,
+  // painted asphalt: aggregate, polished tire tracks in each lane, oil drips down the lane centres, patches, cracks,
   // expansion joints. The roughness map shares the UVs, so the tracks read glossy and mirror the strip lights.
   const RU=[.19,.5,.81], rr=rng(1101);
   const roadTex=CT(canvasTex(256,512,(g,w,h)=>{
@@ -2283,7 +2283,7 @@ function buildTunnel(){
     g.fillStyle='#e0e0e0'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h); [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.45)); }));
   ribbon(tr,S,-W-.3,W+.3,.01,.01,new THREE.MeshStandardMaterial({map:roadTex,roughnessMap:roadRough,roughness:.52,metalness:.22,envMapIntensity:1.3,color:0xa9aeb6,side:THREE.DoubleSide}),24); // damp: the strips smear across it
   // ---- walls: glazed white tile to 3.6 m with a harbor-blue band; painted concrete panels above; ribbed dark soffit ----
-  // ribbon UVs: u runs up the wall (yA->yB), v along the tube every vScale metres
+  // ribbon UVs: u runs up the wall (yA->yB), v along the tube every vScale meters
   const tileC=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#c4c9cf'; g.fillRect(0,0,w,h); const n=16, t=w/n;
     for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const v=196+((i*37+j*53)%9); g.fillStyle=`rgb(${v},${v+3},${v+7})`; g.fillRect(i*t+1,j*t+1,t-2,t-2); }
     g.fillStyle='#1f5f8e'; g.fillRect(w*.24,0,t*1.2,h); g.fillStyle='#2a7ab0'; g.fillRect(w*.24+t*1.4,0,t*.35,h);                       // blue band, up the u axis
@@ -2302,13 +2302,13 @@ function buildTunnel(){
   const railM=new THREE.MeshStandardMaterial({color:0xc9ced6,metalness:.85,roughness:.3,side:THREE.DoubleSide});
   const glowLine=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false,side:THREE.DoubleSide});
   [-1,1].forEach(sd=>{ const o=sd*(sd>0?WR:WL);
-    ribbon(tr,S,o,o,0,.35,barrierM);                  // kerb / plinth
+    ribbon(tr,S,o,o,0,.35,barrierM);                  // curb / plinth
     ribbon(tr,S,o,o,.35,3.6,tileM,3.3);               // glazed tile
     ribbon(tr,S,o,o,3.6,H,panelM,12);                 // painted panels
     ribbon(tr,S,sd*(o*sd-.02),sd*(o*sd-.02),3.58,3.66,glowLine(0x9fd0ff)); // wall-wash line at the tile cap
     ribbon(tr,S,sd*(o*sd-.35),sd*(o*sd-.02),H-1.05,H-1.05,barrierM);      // cable tray
   });
-  // the service walkway: raised kerb, walking surface, a handrail on the wall
+  // the service walkway: raised curb, walking surface, a handrail on the wall
   ribbon(tr,S,W+.3,W+.3,0,.3,curbTopM); ribbon(tr,S,W+.3,WR,.3,.3,curbTopM);
   ribbon(tr,S,WR-.08,WR-.08,1.02,1.08,railM);
   { const g=new THREE.MeshStandardMaterial({map:colTex(soffitC,1,1),roughness:.9,side:THREE.DoubleSide}); g.map.repeat.set(1,1); ribbon(tr,S,-WL,WR,H,H,g,8); }
@@ -2376,7 +2376,7 @@ function buildTunnel(){
     for(let s=0;s<tr.L;s+=13) [-3.4,3.4].forEach(x=>place(shafts,s,x,.3+sh/2));
     const shaftM=new THREE.MeshBasicMaterial({map:shaftT,transparent:true,opacity:.17,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:true});
     both.forEach(g=>{ const im=inst(g,shaftM,shafts); if(im) im.renderOrder=2; }); }
-  // harbor-blue accent lines where the walls meet the soffit, and a low cyan kerb line on the walkway
+  // harbor-blue accent lines where the walls meet the soffit, and a low cyan curb line on the walkway
   [-1,1].forEach(sd=>{ const o=sd*(sd>0?WR:WL); ribbon(tr,S,sd*(o*sd-.03),sd*(o*sd-.03),H-.14,H-.06,glowLine(0x3a9cff)); });
   ribbon(tr,S,W+.31,W+.31,.2,.26,glowLine(0x48f0ff));
   { // dust motes hanging in the strip light
@@ -2406,7 +2406,7 @@ function signCanvas(text,opts){ opts=opts||{}; const w=opts.w||512, h=opts.h||96
     if(opts.border){ g.shadowBlur=0; g.strokeStyle=opts.color||'#fff'; g.lineWidth=4; g.strokeRect(6,6,w-12,h-12); } }); }
 /* ---- Event 02: Roosevelt Blvd, Tyson Av to Cottman Av ---- */
 function rng(seed){ let s=seed>>>0; return ()=>{ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
-/* a leafy crown: three merged blobs, noisy radius, darker underside via vertex colours */
+/* a leafy crown: three merged blobs, noisy radius, darker underside via vertex colors */
 function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25,.2,.7],[-.45,.3,-.25,.72],[.1,.55,-.4,.6]], pos=[], col=[], idx=[];
   const nrm=[]; parts.forEach(([ox,oy,oz,k])=>{ const g=new THREE.IcosahedronGeometry(r*k,det===undefined?2:det), p=g.attributes.position, base=pos.length/3;
     for(let i=0;i<p.count;i++){ const x=p.getX(i),y=p.getY(i),z=p.getZ(i), n=1+.14*Math.sin(x*3.1+z*2.3)*Math.cos(y*2.7), X=x*n+ox*r, Y=y*n*.82+oy*r, Z=z*n+oz*r; pos.push(X,Y,Z);
@@ -2415,7 +2415,7 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
     const ix=g.index?g.index.array:[...Array(p.count).keys()]; for(let i=0;i<ix.length;i++) idx.push(base+ix[i]); g.dispose(); });
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(col,3)); g.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3)); g.setIndex(idx); return g; }
 /* ---- Roosevelt Blvd kit (Blender build, models/blvd_kit.glb): streetlight, guardrail, trees, guide sign ----
-   Modelled in Blender from street photos of the Boulevard; each asset is an Empty with its parts parented.
+   Modeled in Blender from street photos of the Boulevard; each asset is an Empty with its parts parented.
    kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
 const KIT_CACHE={};
 function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
@@ -2840,9 +2840,9 @@ function ribbonF(tr,S,mat,fn,vScale){
   const m=new THREE.Mesh(g,mat); S.add(m); return m;
 }
 // night facades: 512 px = 32 m, 8 floors x 8 bays, lit windows in a matching emissive map
-/* building facades: one 512px tile = 32 m, so 16 bays of 2 m and 10 floors of 3.2 m. Colour map carries masonry,
+/* building facades: one 512px tile = 32 m, so 16 bays of 2 m and 10 floors of 3.2 m. Color map carries masonry,
    sills, mullions and blinds; the emissive map lights about a third of the rooms with warm or cool interiors that fade
-   toward the ceiling (threejs-textures: CanvasTexture colour + emissive pair, RepeatWrapping). */
+   toward the ceiling (threejs-textures: CanvasTexture color + emissive pair, RepeatWrapping). */
 function facadeTex(style){
   const P={glass:{bg:'#0e1622',win:'#1c2a3e',lit:['#dfe9ff','#cfe0ff','#fff1d6'],p:.3,bays:16,fl:10},
            brick:{bg:'#43291f',win:'#161110',lit:['#ffd79a','#ffc57a','#ffe6bf'],p:.3,bays:12,fl:10},
@@ -3103,14 +3103,14 @@ function buildCity(C){
     for(let i=0;i<6000;i++){ const v=18+Math.random()*28; g.fillStyle=`rgba(${v},${v+2},${v+6},.65)`; g.fillRect(Math.random()*w,Math.random()*h,1.6,1.6); }
     g.fillStyle='rgba(232,234,238,.85)'; g.fillRect(w*.03,0,4,h); g.fillRect(w*.97-4,0,4,h);
     g.fillStyle='rgba(232,234,238,.75)'; [.34,.66].forEach(u=>g.fillRect(w*u-2,0,4,h*.4));
-    [.19,.5,.81].forEach(u=>[-.055,.055].forEach(o=>{ const x=w*(u+o), gr=g.createLinearGradient(x-9,0,x+9,0); gr.addColorStop(0,'rgba(6,7,9,0)'); gr.addColorStop(.5,'rgba(6,7,9,.5)'); gr.addColorStop(1,'rgba(6,7,9,0)'); g.fillStyle=gr; g.fillRect(x-9,0,18,h); })); // tyre tracks
+    [.19,.5,.81].forEach(u=>[-.055,.055].forEach(o=>{ const x=w*(u+o), gr=g.createLinearGradient(x-9,0,x+9,0); gr.addColorStop(0,'rgba(6,7,9,0)'); gr.addColorStop(.5,'rgba(6,7,9,.5)'); gr.addColorStop(1,'rgba(6,7,9,0)'); g.fillStyle=gr; g.fillRect(x-9,0,18,h); })); // tire tracks
     [[.06,.12,.3,.14],[.56,.6,.26,.1]].forEach(([u,v,du,dv])=>{ g.fillStyle='rgba(36,39,44,.75)'; g.fillRect(w*u,h*v,w*du,h*dv); g.strokeStyle='rgba(8,9,11,.85)'; g.lineWidth=1.5; g.strokeRect(w*u,h*v,w*du,h*dv); }); // patches
     [[.5,.35],[.19,.82]].forEach(([u,v])=>{ g.fillStyle='#0c0d10'; g.beginPath(); g.arc(w*u,h*v,11,0,7); g.fill(); g.strokeStyle='#3a3e45'; g.lineWidth=2; g.stroke(); g.strokeStyle='#23262b'; g.lineWidth=1; for(let k=-8;k<=8;k+=4){ g.beginPath(); g.moveTo(w*u-8,h*v+k); g.lineTo(w*u+8,h*v+k); g.stroke(); } }); // manhole covers
     g.fillStyle='rgba(0,0,0,.14)'; for(let i=0;i<5;i++) g.fillRect(w*(.18+i*.15),0,12,h); }),true);
   const roadMat=wetRoad(new THREE.MeshStandardMaterial({map:roadTex,roughness:.45,metalness:.15,side:THREE.DoubleSide}));
   ribbon(tr,S,-W-.3,W+.3,.01,.01,roadMat,24);
   roadStuds(tr,S,[.34,.66].map(u=>-W-.3+(2*W+.6)*u),0x9098a4,9);
-  // sidewalks: 1.4 m concrete slabs with joints, a strip of brick pavers at the kerb, weathering; granite kerb
+  // sidewalks: 1.4 m concrete slabs with joints, a strip of brick pavers at the curb, weathering; granite curb
   const walkT=CT(canvasTex(128,256,(g,w,h)=>{ g.fillStyle='#4a4d54'; g.fillRect(0,0,w,h); const R=rng(71);
     for(let i=0;i<2600;i++){ const v=60+R()*30|0; g.fillStyle=`rgba(${v},${v+2},${v+6},.45)`; g.fillRect(R()*w,R()*h,1.5,1.5); }
     g.fillStyle='#3a2a24'; g.fillRect(0,0,w*.16,h); g.fillStyle='#24190f'; for(let y=0;y<h;y+=10){ g.fillRect(0,y,w*.16,1.5); g.fillRect(((y/10)%2)*w*.08,y,1.5,10); }
@@ -3834,9 +3834,9 @@ function loopPts(ctrl,yf){ const c=new THREE.CatmullRomCurve3(ctrl.map(p=>new TH
    Every team in town has a Crowd Roar pad in its colors; the ballpark fires off the fireworks on a lead change. */
 const SPORTS={birds:{css:'#18b3a6',c:0x18b3a6,chant:'GO BIRDS'},phils:{css:'#e81828',c:0xe81828,chant:'RING THE BELL'},sixers:{css:'#1d6fd6',c:0x1d6fd6,chant:'TRUST THE PROCESS'},
   flyers:{css:'#f74902',c:0xf74902,chant:'LET\'S GO FLYERS'},union:{css:'#d8bf7a',c:0xd8bf7a,chant:'DOOP DOOP DOOP'}};
-// real team palettes for the buildings (SPORTS.*.c stays the bright pad / firework colour)
+// real team palettes for the buildings (SPORTS.*.c stays the bright pad / firework color)
 const TEAM_PAL={sixers:['#006bb6','#ed174c','#ffffff'],flyers:['#f74902','#0b0b0d','#ffffff'],birds:['#004c54','#a5acaf','#0b0b0d'],phils:['#e81828','#002d72','#ffffff']};
-/* stadium marks: close to each club's look (colours, shapes, lettering style) without copying the actual logos */
+/* stadium marks: close to each club's look (colors, shapes, lettering style) without copying the actual logos */
 const EMBLEM_CACHE={};
 function teamEmblem(team){ if(EMBLEM_CACHE[team]) return EMBLEM_CACHE[team]; const P=TEAM_PAL[team];
   return EMBLEM_CACHE[team]=canvasTex(256,256,(g,w,h)=>{ g.fillStyle='#05070a'; g.fillRect(0,0,w,h); const cx=w/2, cy=h/2;
@@ -4165,7 +4165,7 @@ function buildMtAiry(){
   tg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tg.computeVertexNormals();
   K.mesh(tg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),0,0,0);
 
-  // ---- road: yellow double centre line, sidewalks except along Lincoln Drive ----
+  // ---- road: yellow double center line, sidewalks except along Lincoln Drive ----
   const grassT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#1b2a17'; g.fillRect(0,0,w,h);
     for(let i=0;i<5000;i++){ const v=Math.random(); g.fillStyle=v<.5?'rgba(40,62,30,.7)':v<.8?'rgba(22,36,18,.7)':'rgba(62,78,40,.55)'; g.fillRect(Math.random()*w,Math.random()*h,1,2+Math.random()*2); } }),true);
   K.road({tex:{center:'rgba(255,205,60,.85)'},walk:0x5a554c,curb:0x7a7e84,skip:inLin});
@@ -4300,7 +4300,7 @@ function buildMtAiry(){
   const mistT=CT(canvasTex(256,128,(g,w,h)=>{ const R=rng(88); for(let i=0;i<40;i++){ const x=R()*w, y=h*.35+R()*h*.4, r=20+R()*50, gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,'rgba(200,215,235,.22)'); gr.addColorStop(1,'rgba(200,215,235,0)'); g.fillStyle=gr; g.fillRect(x-r,y-r,2*r,2*r); } }));
   const mistM=new THREE.MeshBasicMaterial({map:mistT,transparent:true,depthWrite:false,opacity:.75,side:THREE.DoubleSide}), mists=[];
   for(let s=sB+20;s<sC-20;s+=38){ [1,1.6].forEach((k,j)=>{ K.at(s+j*19,(W+10)*k,1.2+j*1.4); const m=new THREE.Mesh(new THREE.PlaneGeometry(60,9),mistM); m.position.copy(pv); m.rotation.y=Math.atan2(K.f.t.x,K.f.t.z)+Math.PI/2; S.add(m); mists.push({m,x:pv.x,ph:K.R()*6}); }); }
-  // falling leaves around the player: an autumn swirl recentred on the car, warm colours, normal blending so they read against light
+  // falling leaves around the player: an autumn swirl recentered on the car, warm colors, normal blending so they read against light
   const NL=220, lp=new Float32Array(NL*3), lv=new Float32Array(NL*3), lc=new Float32Array(NL*3), LC=[[.62,.26,.08],[.78,.44,.1],[.52,.12,.06],[.7,.58,.16],[.36,.2,.08]];
   for(let i=0;i<NL;i++){ lp.set([(K.R()-.5)*70,K.R()*14,(K.R()-.5)*70],i*3); lv.set([(K.R()-.5)*1.2,-.6-K.R()*.8,(K.R()-.5)*1.2],i*3); lc.set(LC[K.R()*LC.length|0],i*3); }
   const leafT=CT(canvasTex(32,32,(g,w,h)=>{ g.fillStyle='#fff'; g.beginPath(); g.ellipse(16,16,13,7,.6,0,7); g.fill(); }));

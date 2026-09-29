@@ -160,7 +160,7 @@ def car(asset, L, W, H, belt, hood, roofL, roofZ, ride=.16, wr=.34, wb=1.38, suv
         bot = ride + .12 * (1 - e)
         st.append([(0, bot, z), (hw * .92, bot, z), (hw, bot + .12, z), (hw, top - .1, z), (hw * .93, top, z), (0, top + .02, z), (-hw * .93, top, z), (-hw, top - .1, z), (-hw, bot + .12, z), (-hw * .92, bot, z)])
     bodyo = add_mesh(asset + '_body', loft_bm(st), 'CARPAINT', asset)
-    cuts = []                                                    # wheel arches: boolean cylinders so the tyres show
+    cuts = []                                                    # wheel arches: boolean cylinders so the tires show
     for zw in (wb, -wb):
         cb = cyl(wr + .06, wr + .06, W + .4, 40); xform(cb, Matrix.Translation((0, 0, -(W + .4) / 2))); xform(cb, Matrix.Rotation(math.pi / 2, 4, 'Y')); xform(cb, Matrix.Translation(G(0, wr, zw)))
         me = bpy.data.meshes.new('cut'); cb.to_mesh(me); cb.free(); co_ = bpy.data.objects.new('cut', me); scene.collection.objects.link(co_); cuts.append(co_)

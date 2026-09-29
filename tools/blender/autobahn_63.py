@@ -97,7 +97,7 @@ YB = [[-2.62, .46], [-2.45, .28], [-2.2, .17], [2.0, .165], [2.28, .2], [2.42, .
 YS = [[-2.62, .82], [-2.4, .87], [-1.8, .9], [-1.35, .87], [-.7, .81], [.2, .78], [.9, .78], [1.4, .79], [1.8, .76],
       [2.1, .7], [2.32, .62], [2.42, .52]]                                                                # shoulder: fender crown + haunch
 YT = [[-2.62, .88], [-2.52, .985], [-2.35, .995], [-1.8, 1.0], [-1.0, .97], [0, .925], [.55, .895], [1.0, .87], [1.5, .83],
-      [1.9, .78], [2.15, .72], [2.32, .65], [2.42, .56]]                                                  # hood / deck centre
+      [1.9, .78], [2.15, .72], [2.32, .65], [2.42, .56]]                                                  # hood / deck center
 def dome(x, z):  # twin hood power domes
     w = smooth(.62, .95, z) * (1 - smooth(1.85, 2.2, z))
     return .03 * w * math.exp(-((abs(x) - .33) / .11) ** 2)
@@ -325,7 +325,7 @@ NR = len(cab[0]); NH = NR // 2 + 1                  # ring size / half-ring size
 def ring_u(jj):                                      # 0 at the belt -> .55 at the roof rail -> 1 on the centreline
     h = jj if jj < NH else NR - jj
     return clamp((h - 2) / 14 * .55, 0, .55) if h <= 16 else .55 + (h - 16) / (NH - 1 - 16) * .45
-def a_line(u): return lerp(DLO_F, -.06, clamp(u / .6, 0, 1))   # A-pillar centre line in (u, z)
+def a_line(u): return lerp(DLO_F, -.06, clamp(u / .6, 0, 1))   # A-pillar center line in (u, z)
 for p in cabin.data.polygons:
     js = sorted({v % NR for v in p.vertices})
     if len(js) != 2: continue                        # end caps stay paint

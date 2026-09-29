@@ -85,7 +85,7 @@ HS  = [[-2.32, .93], [-2.1, 1.05], [-1.6, 1.12], [-1.2, 1.1], [-.7, 1.0], [-.1, 
 YS  = [[-2.32, .58], [-1.6, .58], [-.9, .52], [0, .48], [.8, .48], [1.4, .5], [1.95, .44], [2.26, .36]]                                               # width-line height
 YB  = [[-2.32, .3], [-2.12, .19], [-1.9, .165], [1.9, .165], [2.12, .2], [2.26, .27]]                                                                  # underside
 YF  = [[-2.32, .8], [-1.9, .88], [-1.36, .9], [-.9, .82], [-.3, .74], [.4, .72], [.95, .78], [1.36, .82], [1.8, .72], [2.1, .58], [2.26, .46]]            # fender crown
-YD  = [[-2.32, .78], [-1.8, .82], [-1.2, .82], [-.4, .78], [.4, .72], [1.0, .64], [1.5, .56], [1.9, .48], [2.1, .43], [2.26, .39]]                      # centre deck / bonnet
+YD  = [[-2.32, .78], [-1.8, .82], [-1.2, .82], [-.4, .78], [.4, .72], [1.0, .64], [1.5, .56], [1.9, .48], [2.1, .43], [2.26, .39]]                      # center deck / hood
 XF  = .8    # fender crown sits at 76% of the half-width
 def section(z):
     hs = kf(HS, z); ys = kf(YS, z); yb = kf(YB, z); yf = max(kf(YF, z), ys + .1); yd = min(kf(YD, z), yf - .02); hl = hs - .14
@@ -137,12 +137,12 @@ for sd in (1, -1):
     # front corner intakes below the lamps
     prism(f'fcorner{sd}', [(2.4, .36), (1.9, .36), (1.9, .21), (2.4, .21)], sd * .5, sd * .86)
 
-# centre front intake (trapezoid in plan, cut through the nose)
+# center front intake (trapezoid in plan, cut through the nose)
 prism('fcentre', [(2.4, .345), (1.95, .345), (1.95, .215), (2.4, .215)], -.4, .4)
 # rear recess: the tail becomes a dark cavity holding the exhausts and the mesh
 prism('rearcav', [(-2.2, .66), (-2.6, .66), (-2.6, .33), (-2.2, .33)], -.78, .78)
 
-# bonnet vents + headlamp recesses follow the surface: sample it first
+# hood vents + headlamp recesses follow the surface: sample it first
 bvh_body = None
 def body_bvh():
     dg = bpy.context.evaluated_depsgraph_get(); return BVHTree.FromObject(body, dg)
@@ -176,7 +176,7 @@ def surface_patch(name, corners_xz, depth, lift=.25, m='GAP', n=10):
     return cutter(ob, m)
 
 for sd in (1, -1):
-    # twin bonnet extractor vents, raked outwards
+    # twin hood extractor vents, raked outwards
     surface_patch(f'vent{sd}', [(sd * .16, 1.68), (sd * .42, 1.62), (sd * .5, 1.12), (sd * .22, 1.18)], .045, m='GLOSSBLACK')
 
 def lamp_path(sd):  # headlamp: a blade along the top of the fender nose, turning down into a fang at the inner end
@@ -298,7 +298,7 @@ roof_ob = loft('Roof', roof, 'CARBON')
 for sd in (1, -1):
     tube(f'dlo{sd}', [(sd * kf(CW, z) * .99, kf(YD, z) - .045 + .03, z) for z in [-1.1 + 2.05 * k / 14 for k in range(15)]], .014, 'GLOSSBLACK', res=4)
 
-# spine fin: runs off the back of the roof and down the engine cover to the tail — in body colour
+# spine fin: runs off the back of the roof and down the engine cover to the tail — in body color
 fin = []
 for i in range(34):
     z = -.75 - 1.52 * i / 33; s = surf_y(0, z) if z < -1.28 else kf(CH, z) + .004
@@ -307,7 +307,7 @@ for i in range(34):
     fin.append([G(0, s - .03, z), G(.017, s - .03, z), G(.013, s + h * .75, z), G(0, s + h, z), G(-.013, s + h * .75, z), G(-.017, s - .03, z)])
 loft('Fin', fin, 'PAINT')
 
-# engine-cover louvres either side of the fin
+# engine-cover louvers either side of the fin
 for sd in (1, -1):
     for k in range(7):
         z = -1.42 - k * .075; x0, x1 = .06, .52
@@ -330,7 +330,7 @@ for sd in (1, -1):
     for k in range(3):
         y = .24 + k * .04; zc = surf_front(sd * .68, y) or 2.1
         box(f'cslat{sd}{k}', (.34, .008, .12), (sd * .68, y, zc - .07), 'GLOSSBLACK')
-# centre intake: three horizontal blades
+# center intake: three horizontal blades
 for k in range(3):
     y = .245 + k * .04; zc = surf_front(0, y) or 2.2
     box(f'fslat{k}', (.78, .01, .14), (0, y, zc - .08), 'CARBON', rot=(.12, 0, 0), bevel=.003)
@@ -353,7 +353,7 @@ for sd in (1, -1):
         z = -.42 - .52 * i / 11; y = lerp(.52, .54, i / 11); x = (surf_side(.66, z, sd) or 1.0) - .02
         st.append([G(sd * (x - .2), y - .012, z), G(sd * (x + .005), y - .012, z), G(sd * (x + .005), y + .012, z), G(sd * (x - .2), y + .012, z)])
     loft(f'Strake{sd}', st, 'CARBON', smooth=False)
-    # mirror: carbon stalk from the door top, body-colour pod
+    # mirror: carbon stalk from the door top, body-color pod
     mz = .5; my = kf(YD, mz) + .02; mx = kf(CW, mz) + .06
     tube(f'mstalk{sd}', [(sd * (mx - .05), my - .03, mz + .04), (sd * (mx + .06), my + .01, mz), (sd * (mx + .12), my + .03, mz - .02)], .012, 'CARBON', res=4)
     bm = bmesh.new(); bmesh.ops.create_uvsphere(bm, u_segments=20, v_segments=12, radius=1.)
@@ -373,7 +373,7 @@ for sd in (1, -1):
         x = sd * .11 * k; y = (surf_y(x, -2.29) or yT) - .045; pts.append((x, y, -2.335))
     pts += [(sd * .9, (surf_y(sd * .9, -2.29) or yT) - .1, -2.335), (sd * .88, .52, -2.335)]
     tube(f'tail{sd}', pts, .016, 'TAIL', res=6)
-    # exhausts: big round pair at the centre of the cavity
+    # exhausts: big round pair at the center of the cavity
     for ex in (.13,):
         bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=32, radius1=.075, radius2=.082, depth=.3)
         me = bpy.data.meshes.new(f'exh{sd}'); bm.to_mesh(me); bm.free(); o = bpy.data.objects.new(f'exh{sd}', me); scene.collection.objects.link(o)

@@ -1,5 +1,5 @@
 """AFTERHOURS — Philly Classic landmark kit, built in Blender (bpy): City Hall, the Art Museum, four Boathouse Row
-variants and a Ben Franklin Bridge tower. Modelled from night photos of each landmark.
+variants and a Ben Franklin Bridge tower. Modeled from night photos of each landmark.
 Coordinates are game space (x right, y up, z forward), mapped to Blender with G(x, y, z) = (x, -z, y).
 Every asset is an Empty named after it; under it sits one mesh per material (`<Asset>_<MAT>`), so the game instances
 each landmark with a handful of draw calls. Material names are the contract with js/afterhours.js (PHILLY_KIT_MATS).
@@ -130,7 +130,7 @@ class Acc:
 objs = []
 # ====================================================================================== CITY HALL
 # Footprint 84 x 84 (the game's lot at Broad & Market). Granite base, four storeys of pilastered stone under a slate mansard,
-# corner pavilions with domed mansards, a pavilion with an arched portal on every face, and the tower rising from the centre:
+# corner pavilions with domed mansards, a pavilion with an arched portal on every face, and the tower rising from the center:
 # pilastered shaft, clock stage with corner columns, colonnaded drum, ogee dome, lantern and the statue on top.
 A = Acc('CityHall'); HW = 42
 A.bx('GRANITE', -HW - .4, HW + .4, 0, 6, -HW - .4, HW + .4, bevel=.3, seg=2)
@@ -179,7 +179,7 @@ def pavilion(acc, cx, cz, w, top, dome_h):
     acc.cyl('STONEHI', cx, top + dome_h, cz, 1.0, top + dome_h + 2.4, .7, seg=8); acc.cyl('GOLD', cx, top + dome_h + 2.4, cz, .25, top + dome_h + 4.2, .05, seg=6)
 for sx in (-1, 1):
     for sz in (-1, 1): pavilion(A, sx * (HW - 9), sz * (HW - 9), 18, 42, 10)
-for fc in 'NSEW':   # centre pavilions with the portals
+for fc in 'NSEW':   # center pavilions with the portals
     cx, cz = {'N': (0, -HW + 3), 'S': (0, HW - 3), 'E': (HW - 3, 0), 'W': (-HW + 3, 0)}[fc]
     pavilion(A, cx, cz, 24, 44, 11)
     # arched portal: dark arch with a lit passage inside, set into the pavilion face
@@ -224,7 +224,7 @@ A.tube('BRONZE', [(-.4, 141.9, 0), (-.55, 140.2, .1)], .16)
 objs += A.build()
 
 # ====================================================================================== ART MUSEUM
-# Local origin: centre of the terrace at the top of the steps, front facing +x (the game's steps climb west from Broad).
+# Local origin: center of the terrace at the top of the steps, front facing +x (the game's steps climb west from Broad).
 # A temple front of eight columns under a pediment and a blue-tiled gable, flanked by two wings that reach forward round
 # the courtyard, each ending in its own pedimented portico.
 B = Acc('ArtMuseum')
@@ -256,11 +256,11 @@ for sz in (-1, 1):
     for i in range(6):   # pilasters and blind windows on the courtyard-facing side
         x = -24 + i * 9; z = zc - sz * 13.05
         B.box('STONEHI', x, 6.2, z, .9, 12.4, .5); B.box('WIN' if i % 2 else 'GAP', x + 4.5, 5, z - sz * .02, 2.2, 3.8, .06)
-    B.bx('SAND', 22, 30, 0, 12.5, sz * 38 - (13 if sz < 0 else 0), sz * 38 + (13 if sz > 0 else 0))     # link to the centre block
+    B.bx('SAND', 22, 30, 0, 12.5, sz * 38 - (13 if sz < 0 else 0), sz * 38 + (13 if sz > 0 else 0))     # link to the center block
 objs += B.build()
 
 # ====================================================================================== BOATHOUSE ROW (4 variants)
-# Local origin: footprint centre at the waterline, road side facing +z. Board-and-batten Victorian boathouses with steep
+# Local origin: footprint center at the waterline, road side facing +z. Board-and-batten Victorian boathouses with steep
 # gables, cross gables, a turret, dormers and porches. Every roof edge, eave and corner carries an LED line (LED material,
 # tinted per instance in the game).
 def led_gable_z(acc, x0, x1, zf, y0, h):  # LED outline of a gable end facing +z
@@ -323,7 +323,7 @@ for nm, w, d, wall, rh, kind in (('Boathouse_A', 34, 16, 6.5, 5.2, 'A'), ('Boath
     objs += boathouse(nm, w, d, wall, rh, kind)
 
 # ====================================================================================== BEN FRANKLIN BRIDGE TOWER
-# Local origin: tower centre on the pier top; legs under both cables (z = +-35). Each leg is a riveted lattice column
+# Local origin: tower center on the pier top; legs under both cables (z = +-35). Each leg is a riveted lattice column
 # (four corner posts, struts every 6 m, X-bracing on every face); four portal frames tie the legs together, the top
 # two with lattice panels, and a saddle cap carries the cable over each leg.
 T = Acc('BFBTower'); LZ = 35.

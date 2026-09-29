@@ -699,9 +699,11 @@ function mergeByMaterial(group){
    airfoil wing, splitter and intakes, a CanvasTexture carbon weave under a clear coat, and a fresnel rim injected
    into the physical paint with onBeforeCompile so the silhouette still reads at night. */
 function kfCR(keys,z){ // Catmull-Rom through [z,value] keys
+  if(keys.length===1) return keys[0][1];
   let i=0; while(i<keys.length-2&&z>keys[i+1][0]) i++;
-  const p0=keys[Math.max(0,i-1)],p1=keys[i],p2=keys[i+1],p3=keys[Math.min(keys.length-1,i+2)];
-  const t=clamp((z-p1[0])/(p2[0]-p1[0]),0,1), t2=t*t, t3=t2*t;
+  const p0=keys[Math.max(0,i-1)],p1=keys[i],p2=keys[Math.min(i+1,keys.length-1)],p3=keys[Math.min(keys.length-1,i+2)];
+  const dz=p2[0]-p1[0]; if(Math.abs(dz)<1e-12) return p1[1];
+  const t=clamp((z-p1[0])/dz,0,1), t2=t*t, t3=t2*t;
   return .5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3);
 }
 // sweep a half cross-section (bottom-center → top-center, mirrored) through stations along z; capped ends
@@ -5196,9 +5198,18 @@ const rain=new THREE.LineSegments(rainGeo,new THREE.LineBasicMaterial({color:0xa
 rain.frustumCulled=false; rain.visible=false; fxGroup.add(rain);
 const rainLast=new THREE.Vector3(), rainVel=new THREE.Vector3(); let rainReady=false;
 function inTunnel(){ if(EV.id==='tunnel') return true; const r=player||racers[0]; return !!r&&frame(r.dist,F2).p.y<-6; }
+function rainFxOn(){ return LOOK.wet&&(mode==='race'||mode==='loading'||mode==='events')&&!inTunnel(); }
+function muteRainAudio(){
+  if(rainGain&&AC){ const t=AC.currentTime; rainGain.gain.cancelScheduledValues(t); rainGain.gain.setValueAtTime(0,t); }
+}
+function endRaceFx(){ setWeather(false); rain.visible=false; rainReady=false; muteRainAudio(); }
 function updateRain(dt){
-  const show=LOOK.wet&&(mode==='race'||mode==='loading'||mode==='events')&&!inTunnel(); rain.visible=show;
-  if(rainGain) rainGain.gain.setTargetAtTime(show&&soundOn?.07:0,AC.currentTime,.3);
+  const show=rainFxOn(); rain.visible=show;
+  if(rainGain&&AC){
+    const t=AC.currentTime;
+    if(!show){ muteRainAudio(); }
+    else rainGain.gain.setTargetAtTime(soundOn?.07:0,t,.3);
+  }
   if(!show){ rainReady=false; return; }
   const c=cam.position; rainVel.subVectors(c,rainLast).divideScalar(Math.max(dt,1e-3)); rainLast.copy(c);
   if(!rainReady){ rainReady=true; rainVel.set(0,0,0); for(let i=0;i<RN;i++){ rainP[i*3]=c.x+(Math.random()-.5)*64; rainP[i*3+1]=c.y-6+Math.random()*24; rainP[i*3+2]=c.z+(Math.random()-.5)*64; } }
@@ -6051,7 +6062,6 @@ function updateFx(dt,focus){ if(skDirty){ skGeo.attributes.position.needsUpdate=
   if(swT>0){ swT-=dt; const k=1-Math.max(0,swT)/.7; swRing.scale.setScalar(1+k*34); swRing.material.opacity=Math.max(0,swT/.7)*.9; } else { swT=0; swRing.material.opacity=0; }
   if(boltT>0){ boltT-=dt; bolt.material.opacity=Math.max(0,boltT/.45)*(Math.random()<.7?1:.3); bolt.scale.x=bolt.scale.z=.6+Math.random()*.8; } else bolt.material.opacity=0;
   smokes.forEach(o=>{ if(o.life<=0) return; o.life-=dt; o.s.scale.multiplyScalar(1+dt*2.2); o.s.material.opacity=Math.max(0,o.life*.5); o.s.position.y+=dt*.6; if(o.life<=0) o.s.visible=false; });
-  updateRain(dt);
   if(!focus) return;
   const {m4,q,sc,p,b,nr}=FX, W=TR.W, H=TR.H;
   const stg=focus.stage||0, len=clamp(focus.v*.07,.3,7)*STAGE.len[stg]; slMesh.material.opacity=STAGE.lines[stg]*(EV.open?.7:1);
@@ -6090,9 +6100,9 @@ function readInput(){
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id)); }
 function flash(strength){ const f=$('#flash'); f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0;
   canvas.classList.add('blur'); requestAnimationFrame(()=>requestAnimationFrame(()=>canvas.classList.remove('blur'))); }
-function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
+function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const q=Math.round(t*10)/10; let m=Math.floor(q/60), s=Math.round((q-m*60)*10)/10; if(s>=60){ m+=1; s=0; } return m+':'+(s<10?'0':'')+s.toFixed(1); }
 let toastT=0; function toast(s){ const t=$('#hToast'); t.textContent=s; t.style.opacity=1; toastT=1.8; }
-function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function animIn(list,dir){ list.forEach(([s,c])=>{ const e=$(s); e.style.setProperty('--dx',(dir*40)+'px'); e.classList.remove('enter','d1','d2','d3'); void e.offsetWidth; e.classList.add('enter'); if(c) e.classList.add(c); }); }
 const handArrow='<svg width="70" height="34" viewBox="0 0 70 34" fill="none" stroke="#fbf6ea" stroke-width="2.4" stroke-linecap="round"><path d="M4 4 C 20 26, 40 30, 62 22"/><path d="M52 14 L63 22 L51 29"/></svg>';
 
@@ -6196,7 +6206,10 @@ function renderGauntlet(){
 }
 function openGauntlet(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='gauntlet'; show('gauntlet'); renderGauntlet(); setupAttract(CARS[sel]); }
 function startGauntlet(){ tagPick=null; bindKoTrack(koMapI); startLoading(); }
-function backToArchive(){ TAG=null; engine(0,false); screech(0); mode='select'; show('select'); flash(.9); sfx.shutter(); renderPage(0); }
+function backToArchive(){
+  if(mode==='race'||mode==='results'||mode==='highlight'||mode==='loading') endRaceFx();
+  TAG=null; engine(0,false); screech(0); mode='select'; show('select'); flash(.9); sfx.shutter(); renderPage(0);
+}
 $('#prev').onclick=()=>turn(-1); $('#next').onclick=()=>turn(1);
 $('#specBtn').onclick=()=>sheetOpen?closeSheet():openSheet(); $('#shClose').onclick=closeSheet;
 $('#shPrev').onclick=()=>turn(-1); $('#shNext').onclick=()=>turn(1);
@@ -6344,6 +6357,7 @@ function startRace(){
   $('#hGhost').textContent=''; $('#hMsg').textContent='3'; sfx.beep(false); flash(.9);
 }
 function finishRace(){
+  endRaceFx();
   mode='results'; show('results'); sfx.shutter(); flash(1); engine(0,false); screech(0);
   if(EV.knockout){ finishKnockout(); return; }
   if(TAG){ finishTagTeam(); return; }
@@ -6412,7 +6426,11 @@ function drawKoScreen(){ const S=EV.koScreen; if(!S||!KO) return; const g=S.canv
   g.textAlign='right'; g.fillStyle='#f4f7ff'; g.font='900 72px "Arial Narrow",Arial,sans-serif'; g.fillText(String(act.length),490,100); g.font='700 20px "Arial Narrow",Arial,sans-serif'; g.fillText('CARS LEFT',490,124);
   if(last){ g.fillStyle='#ff4a3d'; g.font='800 22px "Arial Narrow",Arial,sans-serif'; g.fillText(`OUT: ${last.isP?'YOU':last.def.tag}`,490,170); }
   S.tex.needsUpdate=true; }
-function koPick(n){ if(n===2) return KO_FINAL; const pool=KO_MODS.filter(m=>m.id!==KO.lastId&&(!m.min||n>=m.min)&&!(KO.round===1&&(m.id==='double'||m.id==='bomb'))); return pool[Math.floor(Math.random()*pool.length)]; }
+function koPick(n){ if(n===2) return KO_FINAL;
+  let pool=KO_MODS.filter(m=>m.id!==KO.lastId&&(!m.min||n>=m.min)&&!(KO.round===1&&(m.id==='double'||m.id==='bomb')));
+  if(!pool.length) pool=KO_MODS.filter(m=>(!m.min||n>=m.min)&&!(KO.round===1&&(m.id==='double'||m.id==='bomb')));
+  if(!pool.length) pool=KO_MODS;
+  return pool[Math.floor(Math.random()*pool.length)]; }
 function koRound(first){
   if(KO.mod&&KO.mod.off) KO.mod.off();
   const act=koActive(); act.forEach(r=>r.koTop=1); hideCrown(); KO.leader=null;
@@ -6637,6 +6655,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const rawMs=now-last;
   let dt=Math.min(.033,rawMs/1000); last=now;
+  updateRain(dt); // keep rain audio in sync when leaving race (select/results/highlight never call updateFx)
   if(mode!=='boot'&&mode!=='loading') pace(rawMs);
   modeT+=dt; ghostT+=dt;
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('#hToast').style.opacity=0; }

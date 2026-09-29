@@ -203,6 +203,16 @@ CARS.push(
   note:'don\'t touch\nanything.', notePos:{l:'58%',t:'34%'},
   cam:{p:[4.6,.95,4.4],l:[0,.6,.3],roll:-.05,fov:32}}
 );
+CARS.push(
+ {id:'halcyon',sculpt:'halcyon',name:'HALCYON E2',body:'halcyon',lowPro:true,paint:0xeef0f2,metal:.3,rough:.12,rim:0x0d0e10,caliper:0x16171a,wing:false,spokes:10,world:'flash',
+  top:104,acc:36,grip:33,nitro:1.4,mass:.95,
+  kick:'Electric hypercar',loc:'Spring Garden St Bridge',when:'Quiet hours, 01:50',
+  caption:'Pearl white over a black teardrop canopy, a scallop cut through each door, and two tunnels straight through the tail, ringed in red. Modeled in Blender off a four-view sheet. You hear the tires, never the car.',
+  specs:'QUAD E-MOTOR / 1,940 HP / VENTURI TUNNELS / 0–60 IN 1.9S',
+  rival:'Rival note: it makes no sound. Check your mirrors, then check them again.',
+  note:'no noise.\nno warning.', notePos:{l:'58%',t:'33%'},
+  cam:{p:[-4.6,1.05,-4.1],l:[0,.45,-.25],roll:.06,fov:31}}
+);
 // full spec sheets (slide-up panel)
 const SHEETS={
  kage:{engine:'4.0L flat-plane V8, twin-turbo',power:'1,040 hp',torque:'780 lb-ft',zero:'2.3 s',vmax:'221 mph',weight:'3,120 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
@@ -226,6 +236,7 @@ const SHEETS={
  autobahn:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'830 hp',torque:'1,030 lb-ft',zero:'2.9 s',vmax:'800 mph',weight:'4,650 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
  stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'},
  hikari:{engine:'2.4L stroked turbo inline-four, built',power:'1,020 hp',torque:'760 lb-ft',zero:'2.0 s',vmax:'286 mph',weight:'2,480 lb',drive:'Rear-wheel drive, welded diff',gearbox:'6-speed sequential'},
+ halcyon:{engine:'Four e-motors, carbon tub, 70 kWh pack',power:'1,940 hp',torque:'1,210 lb-ft',zero:'1.9 s',vmax:'217 mph',weight:'3,700 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed, one per axle'},
  zephyr:{engine:'Twin axial-flux e-motors, carbon monocoque',power:'1,640 hp',torque:'1,280 lb-ft',zero:'1.1 s',vmax:'960 mph',weight:'1,180 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
@@ -665,6 +676,8 @@ const BODIES={
    cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:.94,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36},
  hikari:{pts:[[-2.2,.4],[-2.26,.74],[-2.12,.9],[-1.6,.94],[-.8,.96],[.2,.9],[1.1,.8],[1.8,.68],[2.2,.52],[2.26,.38]],base:.22, // fastback drift coupe (sculpted; pts/cab are the fallback profile)
    cab:[[-2.0,.9],[-1.2,1.18],[-.3,1.28],[.35,1.14],[.74,.86]],cabBase:[-2.0,.88,.74,.84],w:2.0,cw:1.3,wr:.36,wb:1.34,tr:1.0,front:2.26,rear:2.2,headY:.7,tailY:.77,wingY:1.3,wingZ:-2.0},
+ halcyon:{pts:[[-1.96,.2],[-2.0,.6],[-1.9,.86],[-1.2,.93],[-.4,.9],[.4,.76],[1.3,.8],[1.9,.66],[2.4,.45],[2.52,.2]],base:.12, // EV hypercar, venturi tunnels (Blender build; pts/cab are the fallback profile)
+   cab:[[-1.0,.92],[-.5,1.0],[.1,1.07],[.8,.98],[1.4,.8]],cabBase:[-1.0,.9,1.4,.78],w:2.02,cw:1.28,wr:.35,wb:1.4,tr:.9,front:2.52,rear:1.96,headY:.57,tailY:.62,wingY:.95,wingZ:-1.78},
  zephyr:{pts:[[-2.62,.22],[-2.68,.46],[-2.48,.6],[-1.6,.66],[-.5,.64],[.5,.56],[1.4,.42],[2.05,.3],[2.42,.22],[2.46,.16]],base:.12,
    cab:[[-.7,.62],[-.15,.9],[.45,.94],[.9,.74],[1.15,.5]],cabBase:[-.7,.6,1.15,.48],w:1.72,cw:1.05,wr:.33,wb:1.48,tr:.9,front:2.46,rear:2.68,headY:.38,tailY:.52,wingY:1.02,wingZ:-2.32,swan:true}
 };
@@ -883,6 +896,24 @@ function autobahnGlbShell(g,def,B,paint,glass,opts){
     YS=[[-2.62,.82],[-2.4,.87],[-1.8,.9],[-1.35,.87],[-.7,.81],[.2,.78],[.9,.78],[1.4,.79],[1.8,.76],[2.1,.7],[2.32,.62],[2.42,.52]],
     YB=[[-2.62,.46],[-2.45,.28],[-2.2,.17],[2.0,.165],[2.28,.2],[2.42,.27]];
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.085,ay:ys-.12,yc:ys+.2,yf:ys+.2}; }};
+}
+
+/* ---- HALCYON E2 (Blender build): an original electric hypercar modeled in Blender (tools/blender/halcyon_e2.py) ----
+   From a four-view sheet: pod front fenders over a low hood valley with vertical LED blades, a black teardrop canopy,
+   a scallop carved through each door into a dark haunch intake, and two venturi tunnels through the tail ringed in red.
+   Blender material names map onto the game's materials; the procedural p1Shell stays as the fallback. */
+function halcyonShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('halcyon'); if(!parts) return p1Shell(g,def,B,paint,glass,opts);
+  const K=carKit(g); rimPaint(paint,0x9cc6ff,.1); paint.clearcoat=1; paint.clearcoatRoughness=.01; paint.roughness=Math.min(paint.roughness,.12);
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:glass,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M};
+  parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.5,sd*.8,.57,2.12); K.glow(0xff2030,.45,sd*.6,.6,-1.99); }); // lamp stations measured off the GLB
+  K.glow(0xff2030,.28,0,.24,-1.94);
+  // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in halcyon_e2.py)
+  const HS=[[-1.96,.94],[-1.86,1.0],[-1.6,1.02],[-1.3,1.02],[-.95,.98],[-.55,.92],[-.1,.88],[.5,.88],[1.0,.95],[1.4,.985],[1.85,.97],[2.15,.92],[2.38,.82],[2.52,.66]],
+    YS=[[-1.96,.6],[-1.4,.58],[-.9,.62],[-.55,.7],[0,.72],[.6,.72],[.95,.66],[1.4,.5],[2.0,.44],[2.35,.4],[2.52,.37]],
+    YB=[[-1.96,.2],[-1.84,.12],[-1.6,.1],[2.0,.1],[2.3,.14],[2.52,.18]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.1,ay:ys-.12,yc:ys+.02,yf:ys+.02}; }};
 }
 
 /* ---- Kage R: a chopped silver wedge, cab forward, black roof, amber spine ---- */
@@ -2000,7 +2031,7 @@ function zephyrShell(g,def,B,paint,glass){
   K.plate(def,.4,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
+const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell,halcyon:halcyonShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -2028,6 +2059,7 @@ const STREET={
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
  mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
  autobahn:{wheel:'forged',camber:.03},
+ halcyon:{wheel:'twin',camber:.02},
  zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
 };
 const VINYLS={
@@ -6725,6 +6757,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2'],['halcyon','models/halcyon_e2.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

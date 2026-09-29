@@ -6093,12 +6093,22 @@ $('#mus').textContent=musicOn?'Music on':'Music off';
 $('#mus').onclick=()=>{ musicOn=!musicOn; SAVE.musicOff=!musicOn; persist(); $('#mus').textContent=musicOn?'Music on':'Music off'; };
 $('#glow').onclick=()=>{ glowOn=!glowOn; $('#glow').textContent=glowOn?'Glow on':'Glow off'; };
 $('#tap').onclick=()=>{ if(bootReady) enter(); };
-$('#quit').onclick=()=>{ endGhost(); backToArchive(); };
-$('#rBack').onclick=()=>backToArchive();
-$('#rAgain').onclick=()=>startLoading();
-$('#rSkip').onclick=()=>{ reportSkip=true; showResultsClassic(true); };
-$('#rView').onclick=()=>{ reportSkip=false; showResultsClassic(false); };
-$('#rWatch').onclick=()=>{ const b=$('#rHiList button'); if(b) b.click(); else showResultsClassic(true); };
+function bindTap(id,fn){ // fires on pointerup so a canvas swipe can't swallow the tap; click still covers keyboard (Enter/Space)
+  const el=$(id); let tapT=0;
+  el.addEventListener('pointerdown',e=>{ if(e.button!==0) return; e.stopPropagation(); });
+  el.addEventListener('pointerup',e=>{
+    if(e.button!==0) return;
+    e.preventDefault(); e.stopPropagation();
+    tapT=performance.now(); fn();
+  });
+  el.addEventListener('click',e=>{ e.stopPropagation(); if(performance.now()-tapT>600) fn(); });
+}
+bindTap('#quit',()=>{ endGhost(); hiCars.forEach(c=>{ if(c.group.parent) c.group.parent.remove(c.group); }); hiCars=[]; hiPlay=null; backToArchive(); });
+bindTap('#rBack',()=>backToArchive());
+bindTap('#rAgain',()=>startLoading());
+bindTap('#rSkip',()=>{ reportSkip=true; showResultsClassic(true); });
+bindTap('#rView',()=>{ reportSkip=false; showResultsClassic(false); });
+bindTap('#rWatch',()=>{ const b=$('#rHiList button'); if(b) b.click(); else showResultsClassic(true); });
 let sx=null, sy=0, swipeEl=null;
 ['#events'].forEach(id=>{ const el=$(id); el.style.pointerEvents='auto';
   el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; sx=e.clientX; sy=e.clientY; swipeEl=id; }); });
@@ -6108,7 +6118,7 @@ addEventListener('pointerup',e=>{ if(sx===null) return; const dx=e.clientX-sx, d
 let studioPtr=null;
 function studioPtrTarget(e){
   if(sheetOpen||mode!=='select'&&mode!=='results') return false;
-  if(e.target.closest('button')) return false;
+  if(e.target.closest('button,.actions,.magact,.foot')) return false;
   const t=e.target;
   if(mode==='select') return t===canvas||t.id==='sStage'||!!t.closest('#select');
   return t===canvas||!!t.closest('#results');

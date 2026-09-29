@@ -126,12 +126,13 @@ Your car's class adds a twist. **Heavy** cars (Richmond, Dune-R, Sovereign, Gran
 
 ## Cars
 
-Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1 · Zephyr 960
+Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Hikari 91 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1 · Zephyr 960
 
 - **Bell 76:** blue and gold, the highest top speed and the biggest boost in the game. Built for the bridge.
 - **Passyunk R:** a light hot hatch with the most grip and acceleration.
 - **Richmond:** the heaviest vehicle, a pickup truck that shoves everything else out of the way.
 - **Zenkai 37:** a red widebody coupe with fender flares, a bolted wing, hood vents and six-spoke wheels.
+- **Hikari 91:** a satin-violet fastback drift build with lime brush slashes down the doors and rear quarters. It has pop-up lamps flipped up, flat bolt-on over-fenders, a carbon splitter and skirts, dark six-spoke wheels with heavy camber, round tail lamps in black bezels, a body-color hatch wing and violet underglow. It has the best grip in the archive and top speed just under the Volcano P1. Rivals only bring it on a boss night.
 - **Split 63:** a black split-window restomod with chrome bumpers, side-exit pipes and red-lipped wheels.
 - **Kage R:** a chopped silver wedge with a wide cab-forward greenhouse and a black roof, crossed nose to tail by an amber spine. It has slit LED headlights, NACA haunch scoops, a louvered deck and a ducktail airfoil.
 - **Overload 3K:** a 3,000 hp quad-motor electric hypercar with a sculpted body: pontoon fenders, a tinted bubble canopy, a lit dorsal fin, and cyan light blades across the nose and along the rockers. It has camera pods for mirrors, a glowing diffuser and a swan-neck airfoil wing. The most powerful car in the game. Rivals only bring it now and then (you'll get a warning), but it's always in the Gauntlet.

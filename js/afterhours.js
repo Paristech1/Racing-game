@@ -7,11 +7,11 @@ const lerp=(a,b,t)=>a+(b-a)*t;
 
 /* ---------------- DATA ---------------- */
 const CARS=[
- {id:'kage',name:'KAGE R',body:'kage',sculpt:'kage',paint:0xc8d2dc,metal:.92,rough:.22,rim:0x1a1c20,caliper:0xffc21a,wing:true,world:'ice',
+ {id:'kage',name:'KAGE R',body:'kage',sculpt:'kage',lowPro:true,paint:0xe3e6e9,metal:.3,rough:.12,rim:0x0d0e10,caliper:0x16171a,wing:false,spokes:10,world:'ice',
   top:90,acc:22,grip:30,nitro:1.0,
   kick:'Specimen 01',loc:'Harbor Line',when:'Tunnel 7, 03:12',
   caption:'Found under a tarp on level B3. The owner never came back for it.',
-  specs:'FLAT-PLANE V8 / TWIN-TURBO / 1,040 HP / 0–60 IN 2.3S',
+  specs:'QUAD E-MOTOR / 1,940 HP / VENTURI TUNNELS / 0–60 IN 1.9S',
   rival:'Rival note: the white one takes turn four flat. Don\'t follow it in.',
   note:'brakes late.\nway too late.', notePos:{l:'54%',t:'36%'},
   cam:{p:[3.9,0.5,4.7],l:[0,0.62,0.2],roll:.16,fov:34}},
@@ -203,19 +203,9 @@ CARS.push(
   note:'don\'t touch\nanything.', notePos:{l:'58%',t:'34%'},
   cam:{p:[4.6,.95,4.4],l:[0,.6,.3],roll:-.05,fov:32}}
 );
-CARS.push(
- {id:'halcyon',sculpt:'halcyon',name:'HALCYON E2',body:'halcyon',lowPro:true,paint:0xe3e6e9,metal:.3,rough:.12,rim:0x0d0e10,caliper:0x16171a,wing:false,spokes:10,world:'flash',
-  top:104,acc:36,grip:33,nitro:1.4,mass:.95,
-  kick:'Electric hypercar',loc:'Spring Garden St Bridge',when:'Quiet hours, 01:50',
-  caption:'Pearl white over a black teardrop canopy, a scallop cut through each door, and two tunnels straight through the tail, ringed in red. Modeled in Blender off a four-view sheet. You hear the tires, never the car.',
-  specs:'QUAD E-MOTOR / 1,940 HP / VENTURI TUNNELS / 0–60 IN 1.9S',
-  rival:'Rival note: it makes no sound. Check your mirrors, then check them again.',
-  note:'no noise.\nno warning.', notePos:{l:'58%',t:'33%'},
-  cam:{p:[-4.6,1.05,-4.1],l:[0,.45,-.25],roll:.06,fov:31}}
-);
 // full spec sheets (slide-up panel)
 const SHEETS={
- kage:{engine:'4.0L flat-plane V8, twin-turbo',power:'1,040 hp',torque:'780 lb-ft',zero:'2.3 s',vmax:'221 mph',weight:'3,120 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
+ kage:{engine:'Four e-motors, carbon tub, 70 kWh pack',power:'1,940 hp',torque:'1,210 lb-ft',zero:'1.9 s',vmax:'217 mph',weight:'3,700 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed, one per axle'},
  noctis:{engine:'6.5L naturally aspirated V12',power:'820 hp',torque:'560 lb-ft',zero:'2.9 s',vmax:'212 mph',weight:'3,480 lb',drive:'Rear-wheel drive',gearbox:'6-speed manual, steel clutch'},
  vanta:{engine:'3.0L V6 + two e-motors',power:'960 hp',torque:'740 lb-ft',zero:'2.4 s',vmax:'205 mph',weight:'2,980 lb',drive:'All-wheel drive',gearbox:'8-speed sequential'},
  kern:{engine:'3.8L flat-six + front e-axle',power:'880 hp',torque:'690 lb-ft',zero:'2.5 s',vmax:'208 mph',weight:'3,250 lb',drive:'All-wheel drive (electric front)',gearbox:'8-speed dual-clutch'},
@@ -236,7 +226,6 @@ const SHEETS={
  autobahn:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'830 hp',torque:'1,030 lb-ft',zero:'2.9 s',vmax:'800 mph',weight:'4,650 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
  stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'},
  hikari:{engine:'2.4L stroked turbo inline-four, built',power:'1,020 hp',torque:'760 lb-ft',zero:'2.0 s',vmax:'286 mph',weight:'2,480 lb',drive:'Rear-wheel drive, welded diff',gearbox:'6-speed sequential'},
- halcyon:{engine:'Four e-motors, carbon tub, 70 kWh pack',power:'1,940 hp',torque:'1,210 lb-ft',zero:'1.9 s',vmax:'217 mph',weight:'3,700 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed, one per axle'},
  zephyr:{engine:'Twin axial-flux e-motors, carbon monocoque',power:'1,640 hp',torque:'1,280 lb-ft',zero:'1.1 s',vmax:'960 mph',weight:'1,180 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
@@ -656,8 +645,6 @@ const BODIES={
    cab:[[-1.55,.96],[-1.0,1.16],[-.2,1.22],[.5,1.02],[.98,.7]],cabBase:[-1.55,.94,.98,.68],w:2.0,cw:1.22,wr:.36,wb:1.36,tr:1.0,front:2.22,rear:2.3,headY:.5,tailY:.76,wingY:1.14,wingZ:-1.95},
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
    cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:.92,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3},
- kage:{pts:[[-2.42,.3],[-2.5,.56],[-2.28,.74],[-1.65,.84],[-.85,.86],[.35,.8],[1.25,.64],[1.95,.48],[2.28,.36],[2.32,.26]],base:.18,
-   cab:[[-.95,.82],[-.35,1.06],[.4,1.1],[.9,.9],[1.18,.68]],cabBase:[-.95,.8,1.18,.66],w:1.94,cw:1.2,wr:.36,wb:1.42,tr:1.02,front:2.32,rear:2.5,headY:.48,tailY:.68,wingY:.98,wingZ:-2.18},
  noctis:{pts:[[-2.12,.34],[-2.2,.68],[-2.02,.86],[-1.3,.94],[-.35,.96],[.55,.92],[1.4,.8],[2.1,.64],[2.5,.48],[2.54,.34]],base:.22,
    cab:[[-1.62,.92],[-1.08,1.26],[-.15,1.32],[.4,1.08],[.72,.88]],cabBase:[-1.62,.9,.72,.86],w:1.98,cw:1.4,wr:.37,wb:1.5,tr:.9,front:2.54,rear:2.2,headY:.6,tailY:.8,wingY:1.16,wingZ:-1.9},
  vanta:{pts:[[-2.72,.26],[-2.78,.48],[-2.55,.62],[-1.75,.7],[-.75,.72],[.25,.66],[1.2,.5],[1.9,.36],[2.32,.28],[2.36,.22]],base:.14,
@@ -676,7 +663,7 @@ const BODIES={
    cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:.94,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36},
  hikari:{pts:[[-2.2,.4],[-2.26,.74],[-2.12,.9],[-1.6,.94],[-.8,.96],[.2,.9],[1.1,.8],[1.8,.68],[2.2,.52],[2.26,.38]],base:.22, // fastback drift coupe (sculpted; pts/cab are the fallback profile)
    cab:[[-2.0,.9],[-1.2,1.18],[-.3,1.28],[.35,1.14],[.74,.86]],cabBase:[-2.0,.88,.74,.84],w:2.0,cw:1.3,wr:.36,wb:1.34,tr:1.0,front:2.26,rear:2.2,headY:.7,tailY:.77,wingY:1.3,wingZ:-2.0},
- halcyon:{pts:[[-1.96,.2],[-2.0,.6],[-1.9,.86],[-1.2,.93],[-.4,.9],[.4,.76],[1.3,.8],[1.9,.66],[2.4,.45],[2.52,.2]],base:.12, // EV hypercar, venturi tunnels (Blender build; pts/cab are the fallback profile)
+ kage:{pts:[[-1.96,.2],[-2.0,.6],[-1.9,.86],[-1.2,.93],[-.4,.9],[.4,.76],[1.3,.8],[1.9,.66],[2.4,.45],[2.52,.2]],base:.12, // Kage R: EV hypercar, venturi tunnels (Blender build; pts/cab are the fallback profile)
    cab:[[-1.0,.92],[-.5,1.0],[.1,1.07],[.8,.98],[1.4,.8]],cabBase:[-1.0,.9,1.4,.78],w:2.02,cw:1.28,wr:.35,wb:1.4,tr:.9,front:2.52,rear:1.96,headY:.57,tailY:.62,wingY:.95,wingZ:-1.78},
  zephyr:{pts:[[-2.62,.22],[-2.68,.46],[-2.48,.6],[-1.6,.66],[-.5,.64],[.5,.56],[1.4,.42],[2.05,.3],[2.42,.22],[2.46,.16]],base:.12,
    cab:[[-.7,.62],[-.15,.9],[.45,.94],[.9,.74],[1.15,.5]],cabBase:[-.7,.6,1.15,.48],w:1.72,cw:1.05,wr:.33,wb:1.48,tr:.9,front:2.46,rear:2.68,headY:.38,tailY:.52,wingY:1.02,wingZ:-2.32,swan:true}
@@ -898,72 +885,22 @@ function autobahnGlbShell(g,def,B,paint,glass,opts){
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.085,ay:ys-.12,yc:ys+.2,yf:ys+.2}; }};
 }
 
-/* ---- HALCYON E2 (Blender build): an original electric hypercar modeled in Blender (tools/blender/halcyon_e2.py) ----
+/* ---- Kage R (Blender build): an electric hypercar modeled in Blender (tools/blender/kage_r.py) ----
    From a four-view sheet: pod front fenders over a low hood valley with vertical LED blades, a black teardrop canopy,
    a scallop carved through each door into a dark haunch intake, and two venturi tunnels through the tail ringed in red.
    Blender material names map onto the game's materials; the procedural p1Shell stays as the fallback. */
-function halcyonShell(g,def,B,paint,glass,opts){
-  const parts=glbParts('halcyon'); if(!parts) return p1Shell(g,def,B,paint,glass,opts);
+function kageShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('kage'); if(!parts) return p1Shell(g,def,B,paint,glass,opts);
   const K=carKit(g); rimPaint(paint,0x9cc6ff,.1); paint.clearcoat=1; paint.clearcoatRoughness=.01; paint.roughness=Math.min(paint.roughness,.12);
   const MATS={PAINT:paint,CARBON:K.carbon,GLASS:glass,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M};
   parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
   [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.5,sd*.8,.57,2.12); K.glow(0xff2030,.16,sd*.82,.58,-2.0); }); // lamp stations measured off the GLB; tail glow kept small so the tunnels stay black inside a thin red ring
   K.glow(0xff2030,.12,0,.24,-1.95);
-  // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in halcyon_e2.py)
+  // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in kage_r.py)
   const HS=[[-1.96,.94],[-1.86,1.0],[-1.6,1.02],[-1.3,1.02],[-.95,.98],[-.55,.92],[-.1,.88],[.5,.88],[1.0,.95],[1.4,.985],[1.85,.97],[2.15,.92],[2.38,.82],[2.52,.66]],
     YS=[[-1.96,.6],[-1.4,.58],[-.9,.62],[-.55,.7],[0,.72],[.6,.72],[.95,.66],[1.4,.5],[2.0,.44],[2.35,.4],[2.52,.37]],
     YB=[[-1.96,.2],[-1.84,.12],[-1.6,.1],[2.0,.1],[2.3,.14],[2.52,.18]];
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.1,ay:ys-.12,yc:ys+.02,yf:ys+.02}; }};
-}
-
-/* ---- Kage R: a chopped silver wedge, cab forward, black roof, amber spine ---- */
-function kageShell(g,def,B,paint,glass){
-  const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x9fd3ff,.28);
-  const amber=new THREE.MeshStandardMaterial({color:0xffc21a,emissive:0x6a4200,emissiveIntensity:.6,roughness:.3,metalness:.4});
-  const WB=B.wb, WR=B.wr;
-  const T=sculptBody(g,{Z0:-2.5,Z1:2.32,WB,WR,NS:48,inset:.1,
-    hwS:[[-2.5,.88],[-2.1,.99],[-1.42,1.05],[-.7,.97],[0,.94],[.8,.95],[1.42,.98],[1.9,.93],[2.32,.84]],
-    ysK:[[-2.5,.6],[-1.42,.64],[0,.58],[1.42,.52],[2.1,.44],[2.32,.34]],
-    yfK:[[-2.5,.72],[-1.6,.79],[-.9,.8],[0,.77],[1.0,.74],[1.5,.68],[1.95,.52],[2.32,.37]],
-    ycK:[[-2.5,.71],[-1.6,.79],[-.9,.81],[0,.76],[1.0,.72],[1.5,.66],[1.95,.5],[2.32,.36]],
-    hwL:[[-2.5,.82],[-1.42,.76],[-.7,.88],[0,.9],[.7,.88],[1.42,.76],[2.32,.8]],
-    ybK:[[-2.5,.26],[-2.2,.17],[2.1,.16],[2.32,.22]]},paint,K);
-  paint.roughness=.16;
-  const top=sculptCanopy(g,{z0:-1.05,z1:1.24,tumble:.16,pow:.62,cwK:[[-1.05,.36],[-.8,.68],[-.1,.76],[.6,.72],[1.0,.56],[1.24,.28]],htK:[[-1.05,.84],[-.7,1.02],[-.1,1.08],[.5,1.02],[.95,.84],[1.24,.66]],roof:[-.85,.55],roofA:.9},T,glass,GLOSS_BLACK,K);
-  // amber spine: runs nose to tail over the black roof
-  { const pts=[]; for(let i=0;i<=40;i++){ const z=2.28-4.72*i/40; let y=T.yc(z)+.012; if(z>-.85&&z<.55) y=Math.max(y,top(z)*1.01+.02); pts.push([0,y,z]); } K.tube(pts,.028,amber,90,5); }
-  [1,-1].forEach(sd=>{
-    // slit LED headlights with a clear cover, set into the wedge nose
-    K.add(new THREE.BoxGeometry(.5,.05,.14),lensM,sd*.58,.44,2.12).rotation.y=sd*.2;
-    K.tube([[sd*.34,.455,2.2],[sd*.58,.46,2.14],[sd*.8,.45,2.02]],.014,headM,16);
-    K.lens(sd*.58,.45,2.13,.3,.04,.1,0,sd*.2);
-    K.glow(0xcfe6ff,.9,sd*.6,.46,2.24);
-    // NACA side scoops on the haunches, mirrors, door shut line
-    const it=K.add(K.scoop(.9,.3),GLOSS_BLACK,sd>0?.93:-.99,.4,-.5); it.rotation.y=Math.PI/2;
-    const ms=K.add(new THREE.BoxGeometry(.05,.03,.14),GLOSS_BLACK,sd*.72,.78,.72); ms.rotation.z=sd*-.3;
-    const mp=K.add(new THREE.SphereGeometry(1,14,10),paint,sd*.82,.82,.7); mp.scale.set(.1,.055,.08);
-    K.tube([[sd*.945,.24,.9],[sd*.96,.5,.88],[sd*.95,.64,.84],[sd*.66,.8,.7]],.006,gapM,14);
-    K.tube([[sd*.97,.24,-.25],[sd*.985,.52,-.24]],.006,gapM,6);
-    // twin exhausts in the rear valance
-    const t=K.add(new THREE.CylinderGeometry(.065,.072,.2,18,1,true),exhM,sd*.36,.3,-2.52); t.rotation.x=Math.PI/2;
-    K.add(new THREE.CircleGeometry(.06,18),gapM,sd*.36,.3,-2.44).rotation.y=Math.PI;
-  });
-  // full-width tail bar over a louvered black rear panel
-  K.add(new THREE.BoxGeometry(1.64,.26,.03),GLOSS_BLACK,0,.55,-2.505);
-  for(let i=0;i<5;i++) K.add(new THREE.BoxGeometry(1.56,.012,.02),carbon,0,.46+i*.045,-2.525);
-  K.tube([[-.84,.66,-2.47],[-.4,.68,-2.515],[0,.68,-2.52],[.4,.68,-2.515],[.84,.66,-2.47]],.022,tailM,24);
-  K.glow(0xff2030,1.1,.62,.67,-2.56); K.glow(0xff2030,1.1,-.62,.67,-2.56);
-  // engine-deck louvers behind the cab, hood vents, splitter, diffuser
-  for(let i=0;i<8;i++){ const z=-1.2-i*.12; K.add(new THREE.BoxGeometry(.9,.014,.05),GLOSS_BLACK,0,T.yc(z)+.01,z).rotation.x=-.1; }
-  [1,-1].forEach(sd=>{ const v=K.add(new THREE.BoxGeometry(.24,.012,.34),gapM,sd*.32,T.yc(1.35)+.02,1.35); v.rotation.x=.12; });
-  { const sp=new THREE.Shape(); sp.moveTo(-.86,1.9); sp.quadraticCurveTo(-.84,2.34,0,2.4); sp.quadraticCurveTo(.84,2.34,.86,1.9); sp.lineTo(-.86,1.9);
-    const m=K.add(new THREE.ExtrudeGeometry(sp,{depth:.03,bevelEnabled:false}),carbon,0,.15,0); m.rotation.x=Math.PI/2; }
-  for(let i=0;i<6;i++) K.add(new THREE.BoxGeometry(.02,.14,.46),carbon,-.5+i*.2,.22,-2.28);
-  { const pr=K.add(new THREE.PlaneGeometry(.42,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'KAGE R'),roughness:.5}),0,.4,-2.53); pr.rotation.y=Math.PI; }
-  // ducktail wing on short struts
-  { const w=K.add(K.airfoil(.42,.05,1.7),paint,0,.98,-2.0); w.rotation.y=Math.PI/2; w.rotation.z=.08;
-    [1,-1].forEach(sd=>{ K.add(new THREE.BoxGeometry(.04,.2,.14),GLOSS_BLACK,sd*.55,.86,-2.14); K.add(new THREE.BoxGeometry(.012,.14,.44),GLOSS_BLACK,sd*.86,.98,-2.2); }); }
-  return T;
 }
 
 /* ---- Overload 3K: quad-motor EV hypercar, pontoon fenders, bubble canopy, dorsal fin, cyan light blades ---- */
@@ -2031,14 +1968,14 @@ function zephyrShell(g,def,B,paint,glass){
   K.plate(def,.4,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell,halcyon:halcyonShell};
+const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
    glow: underglow color. Only the street-meet tuners run it (Noctis, Passyunk, Zenkai); on a hypercar, a classic or a
    work truck it reads as a costume. */
 const STREET={
- kage:{vinyl:'slash',vc:'#101114',wheel:'split',camber:.04},
+ kage:{wheel:'twin',camber:.02},
  noctis:{glow:0x9b4dff,vinyl:'script',vc:'#c9ced6',text:'Noctis',wheel:'mesh'},
  vanta:{wheel:'aero'},
  kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh'},
@@ -2059,7 +1996,6 @@ const STREET={
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
  mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
  autobahn:{wheel:'forged',camber:.03},
- halcyon:{wheel:'twin',camber:.02},
  zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
 };
 const VINYLS={
@@ -2268,14 +2204,6 @@ function buildCar(def,opts){
     [1,-1].forEach(sd=>{ box(.02,.02,B.wb*2-.6,acc,sd*(B.w/2+.14),B.base+.1,0); const it=box(.06,.26,.7,trimM,sd*(B.w/2+.1),B.base+.42,-.85); it.rotation.y=sd*.12; });
     [1,-1].forEach(sd=>{ const s=glowSprite(def.accent||0x2fe6ff,.7); s.position.set(sd*(B.w/2+.14),B.base+.1,1); g.add(s); }); }
   if(def.lightbar){ box(1.5,.08,.16,headM,0,2.06,.28); [-.55,0,.55].forEach(x=>{ const s=glowSprite(0xeaf4ff,.9); s.position.set(x,2.07,.4); g.add(s); }); }
-  if(cid==='kage'){ // chopped silver coupe: amber spine follows the deck, black roof, rear haunches
-    const amber=new THREE.MeshStandardMaterial({color:0xffc21a,roughness:.32,metalness:.4});
-    box(.16,.03,B.front+B.rear-1.1,amber,0,B.base+.22,.1);
-    box(B.cw*.9,.03,Math.abs(B.cabBase[2]-B.cabBase[0])-.15,blackM,0,B.cab[2][1]+.02,(B.cabBase[0]+B.cabBase[2])/2);
-    box(1.05,.04,.16,amber,0,B.headY-.06,F-.2);
-    [1,-1].forEach(sd=>box(.16,.22,.85,paint,sd*(B.w/2+.02),B.base+.32,-1.15));
-    paint.clearcoat=1; paint.clearcoatRoughness=.02;
-  }
   if(cid==='overload'){ // quad-motor prototype: carbon aero, cyan fin edge and tail bar, NACA ducts, nose flaps, "3K" roof mark, cyan hub rings (in the wheel loop)
     const acc=new THREE.MeshBasicMaterial({color:def.accent,toneMapped:false});
     box(B.w*.96,.03,.34,carbonM,0,B.base,F-.1); strip(0,B.cw*.5,cb[0]+.15,cb[2]-.25,carbonM,6,roofY);
@@ -6757,6 +6685,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2'],['halcyon','models/halcyon_e2.glb?v=1']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

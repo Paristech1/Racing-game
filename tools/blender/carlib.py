@@ -82,7 +82,7 @@ class Car:
 
     # ---------------------------------------------------------------- body
     def build_body(self, P):
-        """P: Z0 Z1 HW YB YS YT, optional dome(x,z), lean(y,z,P), swage=(yl_fn, w_fn, depth[, sigma]), feature (bool), sill (tuck depth),
+        """P: Z0 Z1 HW YB YS YT, optional dome(x,z), lean(y,z,P), swage=(yl_fn, w_fn, depth[, sigma]), feature (bool, or fn(z) -> step depth), sill (tuck depth),
         Rx (shoulder radius, number or fn(z)), tumble (upper-side tumble-in, number or fn(z)), nose/tail rounding."""
         self.P = P; Z0, Z1 = P['Z0'], P['Z1']; HW, YB, YS, YT = P['HW'], P['YB'], P['YS'], P['YT']
         dome = P.get('dome', lambda x, z: 0.); tuck = P.get('sill', .085); Rx0 = P.get('Rx', .15); tumble = P.get('tumble', .045)
@@ -97,7 +97,7 @@ class Car:
             for k in range(1, nl + 1):
                 t = k / nl; y = lerp(yb + .1, yw, t); half.append((hs - tuck * (1 - t) ** 2.2 - dl * wl * math.exp(-((y - yl) / sig) ** 2), y))
             for t in ((.22, .44, .5, .56, .78, 1.) if RES == 1 else (.11, .22, .33, .44, .5, .56, .67, .78, .89, 1.)):
-                half.append((hs - tb * t ** 1.7 - (.007 if (feat and t > .5) else 0), lerp(yw, ys, t)))
+                half.append((hs - tb * t ** 1.7 - ((feat(z) if callable(feat) else .007) if (feat and t > .5) else 0), lerp(yw, ys, t)))
             ns = 6 * RES
             for k in range(1, ns + 1):
                 a = k / ns * math.pi / 2; half.append((x0 - Rx * (1 - math.cos(a)), ys + Ry * math.sin(a)))

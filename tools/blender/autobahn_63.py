@@ -19,38 +19,35 @@ def mk(name, col, metal=0., rough=.5, emit=None, strength=4.):
 car.M['INTERIOR'] = mk('INTERIOR', (.012, .012, .014), 0., .7)
 car.M['LENS'].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.018, .004, .005, 1)   # smoked lens
 car.M['TAILW'] = mk('TAILW', (1., .86, .86), 0., .3, emit=(1., .8, .8), strength=9.)          # white-hot LED slashes in the tail clusters
+car.M['GRILLE'] = mk('GRILLE', (.012, .013, .015), .2, .55)                                    # dark satin grille mesh
 car.M['REFLECT'] = mk('REFLECT', (.5, .02, .02), 0., .3)                                   # red bumper reflectors (unlit)
 pb = car.M['PAINT'].node_tree.nodes['Principled BSDF']; pb.inputs['Metallic'].default_value = .8; pb.inputs['Roughness'].default_value = .14
 
 # ---------------------------------------------------------------- body
-# Proportions: Mercedes-AMG GT 63 4-Door (5.05 m long, 2.95 m wheelbase, 1.44 m tall, 1.95 m wide, 1.67 m track), with the
-# side profile traced off Paris's blue side-view photo: a short tall nose, the cowl ~.6 m behind the front axle, a high
-# belt that rises toward the tail, a long roof falling in one arc to a high tail. Sculpted per Paris's notes and the
-# rear / stance references: coke-bottle plan, fender crowns standing above a hood valley, a deep scallop down the doors,
-# round tumbling sides, and a turtleback deck that rolls down over the tail between the haunches.
-Z0, Z1, WB, WR = -2.62, 2.43, 1.475, .36
-HW = [[-2.62, .74], [-2.52, .87], [-2.35, .945], [-2.0, .972], [-1.5, .977], [-1.0, .955], [-.4, .925], [.3, .92], [.9, .94],
-      [1.475, .962], [1.95, .945], [2.2, .905], [2.35, .84], [2.43, .72]]
-YB = [[-2.62, .24], [-2.5, .19], [-2.25, .17], [2.05, .17], [2.3, .22], [2.43, .3]]
-YS = [[-2.62, .8], [-2.5, .93], [-2.2, 1.02], [-1.6, 1.03], [-1.0, .99], [0, .955], [.9, .945], [1.475, .925], [2.0, .86],
-      [2.28, .74], [2.43, .62]]
-YT = [[-2.62, .84], [-2.54, 1.0], [-2.42, 1.09], [-2.2, 1.12], [-1.6, 1.1], [-1.0, 1.06], [0, 1.03], [.6, 1.045], [1.0, 1.035],
-      [1.475, 1.0], [1.8, .97], [2.1, .91], [2.3, .8], [2.43, .68]]
+# Proportions: Mercedes-AMG GT 63 4-Door (5.05 m long, 2.95 m wheelbase, 1.44 m tall, 1.95 m wide). Every height key
+# below is TRACED off Paris's blue AMG side photo (silhouette extracted from the image, scaled by the wheels; see the
+# trace notes in the commit): fender crowns ~1.03 at the cowl, a high belt that climbs from 1.0 to 1.14 toward the tail,
+# a thin glasshouse whose roof peaks behind the B-pillar and falls in one long arc to a deck at ~1.1, then a short tail
+# that rolls over and down to the bumper. Coke-bottle plan, hood domes, a door scallop, round haunches.
+Z0, Z1, WB, WR = -2.6, 2.455, 1.475, .36
+HW = [[-2.6, .8], [-2.54, .88], [-2.4, .94], [-2.0, .975], [-1.5, .977], [-1.0, .955], [-.4, .925], [.3, .92], [.9, .94],
+      [1.475, .962], [1.9, .945], [2.1, .92], [2.25, .87], [2.36, .8], [2.425, .7], [2.455, .58]]   # nose rounds off hard in plan
+YB = [[-2.6, .4], [-2.55, .27], [-2.4, .17], [2.2, .18], [2.39, .21], [2.455, .28]]
+YT = [[-2.6, .76], [-2.57, .84], [-2.5, .92], [-2.42, 1.0], [-2.33, 1.05], [-2.2, 1.1], [-1.6, 1.11], [-1.0, 1.08], [-.3, 1.055],
+      [.5, 1.04], [.95, 1.03], [1.32, 1.02], [1.65, 1.0], [1.95, .96], [2.11, .915], [2.26, .85], [2.39, .78], [2.455, .67]]
+YS = [[-2.6, .6], [-2.55, .69], [-2.47, .79], [-2.38, .89], [-2.2, .96], [-1.9, 1.02], [-1.6, 1.04], [-1.0, 1.02], [-.3, .995], [.5, .985],
+      [.95, .98], [1.475, .96], [1.95, .915], [2.2, .86], [2.38, .77], [2.455, .64]]
 def dome(x, z):
-    """hood: a valley between the fender crowns, with a raised centre panel that narrows to a V at the grille;
-    deck: a rounded turtleback, lower between the haunches"""
-    a = abs(x); hz = smooth(.95, 1.25, z) * (1 - smooth(2.1, 2.36, z))
-    valley = -.03 * hz * (1 - smooth(.42, .7, a))
-    w = lerp(.3, .17, smooth(1.0, 2.2, z))
-    panel = .026 * hz * (1 - smooth(w - .02, w + .015, a))
-    turtle = -.03 * smooth(-1.6, -2.0, z) * (1 - smooth(.3, .75, a)) * (1 - smooth(-2.4, -2.55, z))
-    return valley + panel + turtle
+    """hood: two low power domes either side of a shallow centre, fading out before the grille"""
+    a = abs(x); hz = smooth(.95, 1.3, z) * (1 - smooth(2.0, 2.3, z))
+    return .022 * hz * math.exp(-((a - .3) / .14) ** 2) - .01 * hz * (1 - smooth(.1, .25, a))
 car.build_body({'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT, 'sill': .06, 'NS': 460 if DETAIL else 170, 'res': 2 if DETAIL else 1,
-    'Rx': lambda z: lerp(.14, .24, smooth(-1.0, -1.8, z)) * (1 - .3 * smooth(-2.35, -2.55, z)),
-    'tumble': lambda z: .06 + .05 * smooth(-.9, -1.6, z) + .025 * smooth(.9, 1.4, z) * (1 - smooth(1.8, 2.2, z)),
-    'round_nose': .12, 'round_tail': .24, 'bulge_at': .5, 'dome': dome,
-    'swage': (lambda z: lerp(.52, .44, smooth(-1.3, 1.0, z)), lambda z: smooth(-1.3, -1.0, z) * (1 - smooth(.85, 1.02, z)), .042, .09),
-    'lean': lambda y, z: .05 * smooth(2.1, 2.43, z) * (car.h_of(y, z) - .5) - .08 * smooth(-2.3, -2.62, z) * (car.h_of(y, z) - .45)})
+    'Rx': lambda z: lerp(.13, .2, smooth(-1.0, -1.8, z)),
+    'tumble': lambda z: .085 + .04 * smooth(-.9, -1.6, z) + .025 * smooth(.9, 1.4, z) * (1 - smooth(1.8, 2.2, z)),
+    'round_nose': .26, 'round_tail': .16, 'bulge_at': .5, 'dome': dome,
+    'feature': lambda z: .013 * smooth(-2.4, -2.1, z) * (1 - smooth(1.95, 2.25, z)),   # crisp flank line, faded out before the tail and nose
+    'swage': (lambda z: lerp(.52, .44, smooth(-1.3, 1.0, z)), lambda z: smooth(-1.35, -1.0, z) * (1 - smooth(.8, 1.0, z)), .06, .1),
+    'lean': lambda y, z: .07 * smooth(2.15, 2.455, z) * (car.h_of(y, z) - .45) - .05 * smooth(-2.35, -2.6, z) * (car.h_of(y, z) - .5)})
 SKIN0 = bpy.data.objects.new('Skin0', car.body.data.copy()); car.scene.collection.objects.link(SKIN0)   # uncut skin, for normals
 def skin_normals():
     """exact booleans leave sliver triangles round every cut; copy each paint loop's normal from the uncut skin so the
@@ -69,7 +66,7 @@ for sd in (1, -1):
     car.cyl_x(f'archF{sd}', WR, WB, ARCH_R, sd * .6, sd * 1.4)
     car.cyl_x(f'archR{sd}', WR, -WB, ARCH_R, sd * .6, sd * 1.4)
 car.apply_cuts()
-car.sharpen(car.body, 28); car.bvh = car.BV()
+car.sharpen(car.body, 55); car.bvh = car.BV()
 car.arch_liners(WB, WR, ARCH_R, x0=.52, x1=.9)   # stays inside the skin
 
 # ---------------------------------------------------------------- helpers for this build
@@ -130,7 +127,7 @@ for sd in (1, -1):
 CLUSTER = [(.5, .952), (.83, .972), (.865, .95), (.86, .885), (.57, .878), (.5, .925)]   # wedge: pointed inboard, wraps the corner
 pocket('tailbar', [(-.52, .945), (.52, .945), (.52, .927), (-.52, .927)], .02, back=True, per=10)
 for sd in (1, -1):
-    pocket(f'tail{sd}', [(sd * x, y) for x, y in CLUSTER], .03, back=True, per=6)
+    pass   # (no pocket: the cluster lens sits on the skin, so the wrap-round corner stays clean)
 pocket('plate', Car.rounded(0, .79, .52, .13, .015), .045, back=True, per=3)
 # ---- shut lines: hood, four doors, deck lid, fuel door
 for sd in (1, -1):
@@ -155,22 +152,21 @@ for sd in (1, -1):
 pts = [(x, (car.surf_y(x, -2.0) or 1.0), -2.0) for x in [lerp(-.7, .7, k / 16) for k in range(17)]]
 car.strip_cut('deckF', pts, .003, .012, axis='across')
 car.apply_cuts()
-car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: gz > 2.2 and gy < .2)                          # chin under the mouth
-car.recolor('CARBON', lambda gx, gy, gz, n: gz < -2.1 and n[2] < -.15 and gy < .44 - .06 * (gx / .95) ** 4)   # carbon lower tail / diffuser surround
-car.sharpen(car.body, 30); car.bvh = car.BV()
+car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: gz > 2.2 and gy < .2)
+car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: -1.05 < gz < 1.08 and gy < .27 and abs(n[0]) > .3)   # dark rocker panel between the arches                          # chin under the mouth
+car.sharpen(car.body, 55); car.bvh = car.BV()
 
 
 # ---------------------------------------------------------------- cabin: low fastback glasshouse, frameless doors
 # roof: one continuous arc, no flat section - the crown sits over the B-pillar and the line falls away at a steadily
 # increasing rate into the tail (|dz|^1.55), so the fastback reads as a single aerodynamic curve
-def roof_y(z):
-    zp = -.15
-    return 1.443 - (.089 * (zp - z) ** 1.55 if z < zp else .345 * (z - zp) ** 1.6)
-CH = [[z, roof_y(z)] for z in [lerp(-2.3, .92, k / 24) for k in range(25)]]
-car.build_cabin({'CZ0': -2.3, 'CZ1': .92, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.72, .5, -1.62, -1.34), 'rear_glass': -1.62, 'dlo_trim': 'CHROME',
-    'pillars': [(-.43, -.35), (-1.0, -.95)], 'apillar_r': .015,
-    'cw': lambda z: kf(HW, z) - .19 - .1 * smooth(-1.6, -2.3, z) - .07 * smooth(.55, .92, z),
-    'rw': lambda z: kf(HW, z) - .39 - .1 * smooth(-1.5, -2.3, z) - .09 * smooth(.3, .92, z)})
+CH = [[-2.16, 1.08], [-2.035, 1.115], [-1.856, 1.178], [-1.587, 1.261], [-1.355, 1.329], [-1.149, 1.381], [-.943, 1.415],
+      [-.738, 1.436], [-.5, 1.444], [-.257, 1.436], [-.05, 1.41], [.12, 1.37], [.3, 1.31], [.47, 1.24], [.64, 1.165], [.8, 1.095], [.92, 1.04]]   # traced roofline
+def roof_y(z): return kf(CH, z)
+car.build_cabin({'CZ0': -2.16, 'CZ1': .92, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.67, .58, -1.62, -1.39), 'rear_glass': -1.45, 'dlo_trim': 'CHROME',
+    'pillars': [(-.44, -.37), (-1.08, -1.02)], 'apillar_r': .015,
+    'cw': lambda z: kf(HW, z) - .2 - .1 * smooth(-1.6, -2.16, z) - .07 * smooth(.55, .92, z),
+    'rw': lambda z: kf(HW, z) - .4 - .1 * smooth(-1.5, -2.16, z) - .09 * smooth(.3, .92, z)})
 
 # ---------------------------------------------------------------- front details
 for sd in (1, -1):
@@ -211,7 +207,7 @@ while y < .6:
             mf += [(b + j, b + (j + 1) % 4, b + 4 + (j + 1) % 4, b + 4 + j) for j in range(4)] + [(b + 8 + j, b + 8 + (j + 1) % 4, b + (j + 1) % 4, b + j) for j in range(4)]
         x += cell
     y += cell * .3
-car.new_obj('mdiamond', mv, mf, 'GLOSSBLACK', False)
+car.new_obj('mdiamond', mv, mf, 'GRILLE', False)
 # splitter: a thin carbon blade standing proud of the chin, swept up at the ends
 SPL = [(-.9, 2.0)] + [(math.sin(a) * .9, 2.24 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 40 for k in range(41)]] + [(.9, 2.0)]
 bevel_obj(car.extrude_y('Splitter', SPL, .12, .14, 'CARBON'), .004)
@@ -229,8 +225,8 @@ for sd in (1, -1):
         car.tube(f'ventbk{sd}', pts, .016, 'GLOSSBLACK', res=4)
         car.tube(f'ventbl{sd}', [(p[0] + sd * .006, p[1], p[2]) for p in pts[1:-1]], .004, 'CHROME', res=4)
     # flush handles
-    for z in (.3, -.72):
-        y = kf(YS, z) - .055; x = car.surf_side(y, z, sd)
+    for z in (-.15, -1.06):
+        y = kf(YS, z) - .09; x = car.surf_side(y, z, sd)
         if x: car.box(f'handle{sd}{z}', (.008, .016, .2), (sd * (x + .002), y, z), 'SATIN')
     # carbon sill blade with a chrome strip along its lower edge
     sill = []
@@ -240,7 +236,7 @@ for sd in (1, -1):
     car.loft(f'Sill{sd}', sill, 'CARBON', smooth_=False)
     car.tube(f'sillChrome{sd}', [(sd * ((car.surf_side(.26, zz, sd) or .9) + .028), .172, zz) for zz in [lerp(-1.0, 1.03, k / 20) for k in range(21)]], .0045, 'CHROME', res=4)
     # mirrors: blade stalk off the door, paint cap
-    mz = .58; my = car.belt(mz) + .02; mx = car.C['cw'](mz)
+    mz = .4; my = car.belt(mz) + .02; mx = car.C['cw'](mz)
     car.tube(f'mstalk{sd}', [(sd * (mx - .02), my - .015, mz), (sd * (mx + .06), my + .01, mz - .03), (sd * (mx + .1), my + .03, mz - .05)], .011, 'GLOSSBLACK', res=4)
     b = bmesh.new(); bmesh.ops.create_uvsphere(b, u_segments=32, v_segments=16, radius=1.)
     for v in b.verts:
@@ -252,15 +248,15 @@ for sd in (1, -1):
 
 # ---------------------------------------------------------------- tail
 def tailpt(x, y, off=.012):   # a point on the rounded tail, standing `off` proud of it
-    return (x, y, BZ(x, y) + off)
+    return (x, y, BZ(x, y) - off)
 for sd in (1, -1):
     # corner cluster (taillight reference): a row of white-hot slashes that grow taller toward the corner and lean outward,
     # a row of small red slashes beneath them, a red outline round the wedge, a smoked lens behind it all. Every piece is
     # a panel laid on the tail surface (not a box), so the cluster follows the body as it wraps round the corner.
     def panel(name, poly, m, off):
         n = len(poly); cx = sum(p[0] for p in poly) / n; cy = sum(p[1] for p in poly) / n
-        ring = [(sd * x, y, BZ(sd * x, y) + off) for x, y in poly]; ctr = (sd * cx, cy, BZ(sd * cx, cy) + off)
-        verts = [G(*q) for q in ring] + [G(*ctr)] + [G(q[0], q[1], q[2] - .003) for q in ring]
+        ring = [(sd * x, y, BZ(sd * x, y) - off) for x, y in poly]; ctr = (sd * cx, cy, BZ(sd * cx, cy) - off)
+        verts = [G(*q) for q in ring] + [G(*ctr)] + [G(q[0], q[1], q[2] + .003) for q in ring]
         faces = [(n, i, (i + 1) % n) if sd > 0 else (n, (i + 1) % n, i) for i in range(n)]
         faces += [(i, n + 1 + i, n + 1 + (i + 1) % n, (i + 1) % n) if sd > 0 else (i, (i + 1) % n, n + 1 + (i + 1) % n, n + 1 + i) for i in range(n)]
         ob = car.new_obj(name, verts, faces, m, False); return ob
@@ -275,19 +271,21 @@ for sd in (1, -1):
     car.tube(f'tframe{sd}', [tailpt(sd * x, y, .011) for x, y in out], .0028, 'TAIL', res=3)
     panel(f'tlens{sd}', CLUSTER, 'LENS', .006)
     # red reflectors either side of the plate, low on the bumper
-    x, y = .6, .5; car.box(f'refl{sd}', (.2, .02, .012), (sd * x, y, BZ(sd * x, y) + .006), 'REFLECT')
+    x, y = .6, .5; car.box(f'refl{sd}', (.2, .02, .012), (sd * x, y, BZ(sd * x, y) - .002), 'REFLECT')
     # twin round tailpipes per side in the carbon diffuser
     for x in (.46, .59):
         y = .33; zt = BZ(sd * x, y)
-        car.cyl(f'exh{sd}{x}', (sd * x, y, zt - .06), (sd * x, y, zt + .012), .05, 'CHROME', seg=40, cap=False)
-        car.cyl(f'exhR{sd}{x}', (sd * x, y, zt + .004), (sd * x, y, zt + .018), .054, 'CHROME', r1=.051, seg=40, cap=False)
-        car.cyl(f'exhC{sd}{x}', (sd * x, y, zt - .02), (sd * x, y, zt - .015), .046, 'GAP', seg=24)
-        car.cyl(f'exhI{sd}{x}', (sd * x, y, zt - .015), (sd * x, y, zt + .03), .04, 'SATIN', seg=40, cap=False)   # inner liner
-        car.cyl(f'exhB{sd}{x}', (sd * x, y, zt - .016), (sd * x, y, zt - .012), .016, 'SATIN', seg=24)                  # baffle cone tip
+        zo = zt - .025                                     # tips stand 2.5 cm proud of the valance (rear is -z)
+        car.cyl(f'exh{sd}{x}', (sd * x, y, zt + .06), (sd * x, y, zo), .05, 'CHROME', seg=48, cap=False)
+        car.cyl(f'exhR{sd}{x}', (sd * x, y, zo + .01), (sd * x, y, zo), .055, 'CHROME', r1=.051, seg=48, cap=False)   # rolled rim
+        car.cyl(f'exhI{sd}{x}', (sd * x, y, zo + .045), (sd * x, y, zo), .043, 'SATIN', seg=48, cap=False)          # inner liner
+        car.cyl(f'exhC{sd}{x}', (sd * x, y, zo + .05), (sd * x, y, zo + .045), .044, 'GAP', seg=24)                  # dark core
 car.tube('tailbar', [tailpt(x, .936, .012) for x in [lerp(-.52, .52, k / 32) for k in range(33)]], .0072, 'TAIL', res=8)       # the full-width bar
 car.tube('tailbarW', [tailpt(x, .936, .018) for x in [lerp(-.5, .5, k / 30) for k in range(31)]], .003, 'TAILW', res=6)   # its white-hot core
-car.tube('diffTrim', [(x, .44 - .06 * (abs(x) / .95) ** 4 + .004, BZ(x, .44 - .06 * (abs(x) / .95) ** 4) + .006) for x in [lerp(-.9, .9, k / 36) for k in range(37)]], .0045, 'CHROME', res=4)   # bright line along the carbon
-for x in (-.12, .12): car.box(f'plight{x}', (.05, .008, .012), (x, .868, BZ(x, .868) + .012), 'HEAD')
+VAL = lambda u, v: (lambda x, y: (x, y, BZ(x, y) - .006))(lerp(-.8, .8, u), lerp(.24 + .06 * abs(2 * u - 1) ** 3, .42 - .04 * abs(2 * u - 1) ** 4, v))
+grid('valance', VAL, 72, 10, 'CARBON', flip=True)                                     # carbon lower tail, laid on the skin
+car.tube('diffTrim', [VAL(k / 40, 1)[:2] + (VAL(k / 40, 1)[2] - .004,) for k in range(41)], .004, 'CHROME', res=4)   # bright line along its top
+for x in (-.12, .12): car.box(f'plight{x}', (.05, .008, .012), (x, .868, BZ(x, .868) - .004), 'HEAD')
 # diffuser: carbon strakes in the middle of the lower tail
 for k in range(5):
     x = -.3 + k * .15; zt = BZ(x, .3)
@@ -302,20 +300,21 @@ def foil(chord, thick, n=24):   # cambered section (z, y) from the leading edge,
         yc = .05 * (2 * .4 * xc - xc * xc) / .16 if xc < .4 else .05 * (1 - 2 * .4 + 2 * .4 * xc - xc * xc) / .36
         up.append((-xc * chord, (yc + yt) * chord)); lo.append((-xc * chord, (yc - yt) * chord))
     return up + list(reversed(lo[1:-1]))
-WZ = -2.3; WX = .74; SEC = foil(.28, .09, 28); WS = []
-for i in range(61):
-    t = i / 60; x = lerp(-WX, WX, t); a = abs(x)
-    drop = smooth(.55, WX, a); base = car.surf_y(0, WZ - .14) or 1.05      # a straight blade, the tips just turning down
-    h = .085 - .02 * drop ** 2; tilt = -.1          # the ends roll down and lean into the shoulders
+WZ = -2.22; WX = .78; SEC = foil(.27, .1, 32); WS = []; YW = (car.surf_y(0, -2.32) or 1.06) + .075
+for i in range(81):
+    t = i / 80; x = lerp(-WX, WX, t); a = abs(x)
+    drop = smooth(.5, WX, a)                                      # the tips sweep down to meet the shoulders
+    ys = car.surf_y(x * .98, WZ - .14) or 1.0
+    y = lerp(YW, ys + .03, drop ** 1.6); tilt = -.12 - .1 * drop
     ring = []
-    for z, y in SEC:
-        zz = z * math.cos(tilt) - y * math.sin(tilt); yy = z * math.sin(tilt) + y * math.cos(tilt)
-        ring.append(G(x, base + h + yy, WZ + zz))
+    for z, yy in SEC:
+        zz = z * math.cos(tilt) - yy * math.sin(tilt); y2 = z * math.sin(tilt) + yy * math.cos(tilt)
+        ring.append(G(x, y + y2, WZ + zz))
     WS.append(ring)
 car.loft('Wing', WS, 'CARBON')
-for sd in (1, -1):   # struts: slim blades from the deck lid up under the wing
-    x = sd * .4; y0 = car.surf_y(x, WZ - .14) or 1.05
-    car.extrude_x(f'strut{sd}', [(WZ - .06, y0 - .01), (WZ - .2, y0 - .01), (WZ - .18, (car.surf_y(0, WZ - .14) or 1.05) + .075), (WZ - .1, (car.surf_y(0, WZ - .14) or 1.05) + .075)], x - .008, x + .008, 'GLOSSBLACK')
+for sd in (1, -1):   # short swan-free struts: slim blades from the deck lid up under the blade
+    x = sd * .36; y0 = car.surf_y(x, WZ - .14) or 1.05
+    car.extrude_x(f'strut{sd}', [(WZ - .05, y0 - .01), (WZ - .2, y0 - .01), (WZ - .17, YW - .005), (WZ - .07, YW - .005)], x - .007, x + .007, 'CARBON')
 
 # ---------------------------------------------------------------- inside: liner, buckets, dash (seen through the glass)
 cab = car.cabin; me = cab.data

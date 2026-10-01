@@ -53,12 +53,14 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .stage-hit.dragging{cursor:grabbing}
 #select .top,#select .hl,#select .stamp,#select .hand{z-index:1}
 #select .foot{z-index:1}
-#showcase .top,#showcase .hl,#showcase .shint,#showcase .foot{z-index:1}
+#showcase .top,#showcase .hl,#showcase .foot{z-index:1}
+#showcase .hl{position:relative}
+#showcase .shint{z-index:1}
 #showcase .hl.sh{font-size:clamp(36px,11vw,96px);margin-top:6px}
 .shint{position:absolute;left:20px;top:calc(env(safe-area-inset-top,0px) + 52px);font-size:13px;color:var(--dim);font-stretch:80%;letter-spacing:.02em;pointer-events:none;max-width:min(22em,70vw)}
 .shfoot{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
 #results .top,#results .place,#results #rReport,#results #rClassic{z-index:1}
-#select .top,#results .top,#events .top,#tagteam .top{position:relative;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:6px;pointer-events:auto}
+#select .top,#results .top,#events .top,#tagteam .top,#showcase .top{position:relative;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:6px;pointer-events:auto}
 .top .m{font-weight:900;font-stretch:125%;font-size:15px;letter-spacing:-.01em}
 .top .r{font-size:13px;color:var(--dim);display:flex;gap:14px;align-items:baseline}
 .top .r button{font-size:13px;color:var(--dim);padding:4px 0;white-space:nowrap}

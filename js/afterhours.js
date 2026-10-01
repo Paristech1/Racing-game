@@ -6196,7 +6196,8 @@ const keys={};
 const pads={left:false,right:false,brake:false,nitro:false};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(mode==='select'&&e.code==='KeyI'){ sheetOpen?closeSheet():openSheet(); }
-  if(mode==='select'){ if(e.code==='ArrowRight') turn(1); if(e.code==='ArrowLeft') turn(-1); if(e.code==='Enter') openEvents(); }
+  if(mode==='select'){ if(e.code==='ArrowRight') turn(1); if(e.code==='ArrowLeft') turn(-1); if(e.code==='Enter') openEvents(); if(e.code==='KeyV') openShowcase(); }
+  if(mode==='showcase'){ if(e.code==='ArrowRight') turnShowcase(1); if(e.code==='ArrowLeft') turnShowcase(-1); if(e.code==='Enter') openEvents(); if(e.code==='Escape') backFromShowcase(); }
   else if(mode==='events'){ if(e.code==='ArrowRight') turnEvent(1); if(e.code==='ArrowLeft') turnEvent(-1); if(e.code==='Enter'){ tagPick=null; startLoading(); } if(e.code==='Escape') backToArchive(); }
   else if(mode==='tagteam'){ if(e.code==='Enter') startTagTeam(); if(e.code==='Escape') backFromTag(); }
   else if(mode==='race'&&e.code==='KeyT'&&!e.repeat) tagSwap(false);
@@ -6275,6 +6276,46 @@ function applyStudioOrbit(){
   const c=studioCars[page]; if(!c) return;
   c.group.rotation.y=studioYaw; c.group.rotation.x=studioPitch;
 }
+let showcaseOrbit=null;
+function ensureShowcaseOrbit(){
+  if(showcaseOrbit) return showcaseOrbit;
+  if(!THREE.OrbitControls) return null;
+  const dom=$('#cStage')||canvas;
+  showcaseOrbit=new THREE.OrbitControls(cam,dom);
+  showcaseOrbit.enableDamping=true;
+  showcaseOrbit.dampingFactor=.06;
+  showcaseOrbit.enablePan=false;
+  showcaseOrbit.minDistance=3;
+  showcaseOrbit.maxDistance=18;
+  showcaseOrbit.minPolarAngle=.08;
+  showcaseOrbit.maxPolarAngle=Math.PI-.08;
+  showcaseOrbit.rotateSpeed=.72;
+  showcaseOrbit.enabled=false;
+  return showcaseOrbit;
+}
+function resetShowcaseOrbit(){
+  const d=CARS[page], oc=ensureShowcaseOrbit(); if(!oc) return;
+  resetStudioOrbit();
+  const c=(DEV&&DEV.scam)||d.cam, mul=cam.aspect<1?Math.min(2.1,.85/Math.pow(cam.aspect,.85)):1;
+  oc.target.set(c.l[0],c.l[1],c.l[2]);
+  oc.object.position.set(c.p[0]*mul,c.p[1]*(cam.aspect<1?1.08:1),c.p[2]*mul);
+  oc.update();
+}
+function renderShowcase(dir){
+  const d=CARS[page], h=hist(d.id);
+  setWorld(d.world);
+  studioCars.forEach((c,i)=>{ c.group.visible=i===page; c.paint.roughness=clamp(c.def.rough+hist(c.def.id).hits*.004,0,.6); });
+  $('#cHead').innerHTML=`<span class="k">${esc(d.kick)}</span><span>${esc(d.name)}</span>`;
+  $('#cSpecs').textContent=d.specs;
+  $('#cCap').textContent=d.caption;
+  $('#cPg').innerHTML=`${String(page+1).padStart(2,'0')} <em>/ ${String(CARS.length).padStart(2,'0')}</em>`;
+  if(dir) animIn([['#cHead',''],['#cFoot','d1']],dir);
+  resetShowcaseOrbit();
+  modeT=0;
+}
+function openShowcase(){ initAudio(); closeSheet(); sfx.shutter(); flash(.85); mode='showcase'; show('showcase'); renderShowcase(0); const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=true; }
+function backFromShowcase(){ const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; mode='select'; show('select'); flash(.85); sfx.shutter(); renderPage(0); camSnap=true; }
+function turnShowcase(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75); renderShowcase(dir); }
 let sheetOpen=false;
 function renderSheet(dir){
   const d=CARS[page], sh=SHEETS[d.id]||{};
@@ -6290,7 +6331,7 @@ function renderSheet(dir){
 function openSheet(){ sheetOpen=true; renderSheet(1); $('#sheet').classList.add('open'); $('#sheet').setAttribute('aria-hidden','false'); sfx.page(); }
 function closeSheet(){ sheetOpen=false; $('#sheet').classList.remove('open'); $('#sheet').setAttribute('aria-hidden','true'); }
 function turn(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderPage(dir); if(sheetOpen) renderSheet(dir); }
-function openEvents(){ initAudio(); closeSheet(); sel=page; sfx.shutter(); flash(1); mode='events'; show('events'); renderEvent(0,true); }
+function openEvents(){ initAudio(); closeSheet(); sel=page; const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; sfx.shutter(); flash(1); mode='events'; show('events'); renderEvent(0,true); }
 function eventPageHtml(){ return `${EVI+1} <em>/ ${EVENTS.length}</em>`; }
 function renderEventRoster(){
   const el=$('#eRoster'); if(!el) return;
@@ -6334,6 +6375,11 @@ $('#shPrev').onclick=()=>turn(-1); $('#shNext').onclick=()=>turn(1);
   el.addEventListener('pointerup',e=>{ if(x0===null) return; const dx=e.clientX-x0, dy=e.clientY-y0; x0=null; e.stopPropagation();
     if(dy>60&&dy>Math.abs(dx)) closeSheet(); else if(Math.abs(dx)>40) turn(dx<0?1:-1); }); })();
 $('#race').onclick=()=>openEvents();
+$('#showcaseBtn').onclick=()=>openShowcase();
+$('#cBack').onclick=()=>backFromShowcase();
+$('#cPrev').onclick=()=>turnShowcase(-1);
+$('#cNext').onclick=()=>turnShowcase(1);
+$('#cRace').onclick=()=>openEvents();
 $('#ePrev').onclick=()=>turnEvent(-1); $('#eNext').onclick=()=>turnEvent(1);
 $('#eGo').onclick=()=>{ tagPick=null; EV.knockout?openGauntlet():startLoading(); }; $('#eBack').onclick=()=>backToArchive();
 $('#eTag').onclick=()=>{ if(!EV.knockout) openTagTeam(); };
@@ -6370,7 +6416,7 @@ addEventListener('pointerup',e=>{ if(sx===null) return; const dx=e.clientX-sx, d
 
 let studioPtr=null;
 function studioPtrTarget(e){
-  if(sheetOpen||mode!=='select'&&mode!=='results') return false;
+  if(sheetOpen||mode==='showcase'||mode!=='select'&&mode!=='results') return false;
   if(e.target.closest('button,.actions,.magact,.foot')) return false;
   const t=e.target;
   if(mode==='select') return t===canvas||t.id==='sStage'||!!t.closest('#select');
@@ -6780,7 +6826,16 @@ function loop(now){
   else if(mode==='highlight'){
     highlightStep(dt);
   }
+  else if(mode==='showcase'){
+    const oc=ensureShowcaseOrbit();
+    if(oc){ oc.enabled=true; oc.update(); }
+    sKey.position.copy(cam.position).add(new THREE.Vector3(0,2,0));
+    floorStreaks.children.forEach((b,i)=>{ b.position.z+=dt*(2+i%4); if(b.position.z>12) b.position.z=-12; });
+    bokeh.rotation.y+=dt*.02;
+    draw(studio);
+  }
   else if(mode==='select'||mode==='results'){
+    const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false;
     studioCam(dt,CARS[page],mode==='results');
     draw(studio);
   }

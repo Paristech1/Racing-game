@@ -62,7 +62,7 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #results .top,#results .place,#results #rReport,#results #rClassic{z-index:1}
 #select .top,#results .top,#events .top,#tagteam .top,#showcase .top{position:relative;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:6px;pointer-events:auto}
 .top .m{font-weight:900;font-stretch:125%;font-size:15px;letter-spacing:-.01em}
-.top .r{font-size:13px;color:var(--dim);display:flex;gap:14px;align-items:baseline}
+.top .r{font-size:13px;color:var(--dim);display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px 14px;align-items:baseline}
 .top .r button{font-size:13px;color:var(--dim);padding:4px 0;white-space:nowrap}
 .top .r span{white-space:nowrap}
 @media (max-width:440px){ .top .r{gap:10px} #select #issue{display:none} }

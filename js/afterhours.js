@@ -5647,6 +5647,25 @@ const MUS={
     {out:.55,pad:.9,arp:.8, bass:.8,lead:0, kit:.7,hat:.9,cut:1800},  // loading and countdown
     {out:.42,pad:.6,arp:.75,bass:1, lead:1, kit:1, hat:1, cut:3200}]  // racing
 };
+// COLD SWITCH: original track in the style Paris asked for (124 BPM, B minor, icy half-time opening, then a beat
+// switch). Bells, dark pads and an 808 carry the first part of the race; once the player passes switchAt of the
+// race the drums cut out for half a bar under a riser, then a harder double-time groove with a gliding 808 takes over.
+const ICE={
+  bpm:124, switchAt:.35,
+  // 4-bar cycle: Bm  G  Em  F#
+  chords:[[47,[59,62,66]],[43,[59,62,67]],[40,[59,64,67]],[42,[58,61,66]]],
+  // bell motif, [step, midi] per bar
+  bells:[[[0,83],[3,86],[6,85],[10,81]], [[0,79],[3,81],[6,78],[12,74]], [[0,79],[3,83],[6,81],[10,76]], [[0,78],[4,82],[8,85],[12,82]]],
+  arp:[0,1,2,1,3,2,1,2,0,1,2,4,3,2,1,2],
+  kickB:[0,3,7,10], snareB:[4,12],
+  levels:[
+    {out:.5, pad:.9,arp:.4, bass:.7,lead:.8,kit:0, hat:.5,cut:800},   // menus and results
+    {out:.5, pad:.9,arp:.5, bass:.8,lead:.8,kit:.7,hat:.8,cut:1400},  // loading and countdown
+    {out:.44,pad:.7,arp:.75,bass:1, lead:1, kit:1, hat:1, cut:3000}]  // racing
+};
+const MUS_THEMES={ice:{name:'Cold Switch',def:ICE},night:{name:'Night Drive',def:MUS}};
+let musTheme=MUS_THEMES[SAVE.musTheme]?SAVE.musTheme:'ice';
+const MT=()=>MUS_THEMES[musTheme].def;
 let M=null, musicOn=SAVE.musicOff?false:true;
 const mf=m=>440*Math.pow(2,(m-69)/12);
 function musicInit(ctx,dest){
@@ -5656,13 +5675,13 @@ function musicInit(ctx,dest){
   for(let c=0;c<2;c++){ const d=ir.getChannelData(c); for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2); }
   rev.buffer=ir; rev.connect(g(.3,out));
   const dl=ctx.createDelay(1.5), dlF=ctx.createBiquadFilter(), fb=g(.34);
-  dl.delayTime.value=60/MUS.bpm*.75; dlF.type='lowpass'; dlF.frequency.value=2400;
+  dl.delayTime.value=60/MT().bpm*.75; dlF.type='lowpass'; dlF.frequency.value=2400;
   dl.connect(dlF); dlF.connect(fb); fb.connect(dl); dlF.connect(g(.26,duck));
   const L={}; ['pad','arp','bass','lead','kit','hat'].forEach(k=>{ L[k]=g(0,k==='kit'||k==='hat'?out:duck); });
   L.pad.connect(rev); L.lead.connect(rev); L.lead.connect(dl); L.arp.connect(dl);
   const arpF=ctx.createBiquadFilter(); arpF.type='lowpass'; arpF.frequency.value=900; arpF.Q.value=4; arpF.connect(L.arp);
   const nb=ctx.createBuffer(1,sr,sr), w=nb.getChannelData(0); for(let i=0;i<w.length;i++) w[i]=Math.random()*2-1;
-  M={ctx,out,duck,L,arpF,nb,step:0,bar:0,nextT:0,level:-1,vol:-1,cd:false};
+  M={ctx,out,duck,L,arpF,nb,dl,step:0,bar:0,nextT:0,level:-1,vol:-1,cd:false,sw:0};
 }
 function mVoice(t,midi,dur,vol,types,to,o){
   const c=M.ctx, g=c.createGain(), f=c.createBiquadFilter(), a=o.atk||.005, r=o.rel||.08, end=t+Math.max(dur,a+.01);
@@ -5700,13 +5719,20 @@ function musicWanted(){
   return mode==='loading'?1:0;
 }
 function mSetLevel(lv,t){
-  const P=MUS.levels[lv];
+  const P=MT().levels[lv];
   Object.keys(M.L).forEach(k=>M.L[k].gain.setTargetAtTime(P[k],t,lv===2?.02:.6));
   M.arpF.frequency.setTargetAtTime(P.cut,t,lv===2?.05:.8);
-  if(lv===2&&M.level!==2){ M.step=0; M.bar=0; mDrum.crash(t); mDrum.kick(t,.9); }
+  if(lv===2&&M.level!==2){ M.step=0; M.bar=0; M.sw=0; mDrum.crash(t); mDrum.kick(t,.9); }
+  if(lv!==2) M.sw=0;
   M.level=lv;
 }
+// switch the track from the top bar; the new tempo takes over on the next step
+function setMusicTheme(id){
+  if(!MUS_THEMES[id]) return; musTheme=id; SAVE.musTheme=id; persist();
+  if(M){ const t=M.ctx.currentTime; M.dl.delayTime.setTargetAtTime(60/MT().bpm*.75,t,.1); M.step=0; M.bar=0; M.sw=0; const lv=M.level; M.level=-1; if(lv>=0) mSetLevel(lv,t); }
+}
 function mStep(t){
+  if(musTheme==='ice') return mStepIce(t);
   const s=M.step%16, bar=M.bar%16, ch=MUS.chords[bar%8], root=ch[0], pad=ch[1], lv=M.level, sp=60/MUS.bpm/4;
   if(s===0) pad.forEach(n=>mVoice(t,n,sp*16,.045,['sawtooth'],M.L.pad,{dets:[-10,10],atk:.5,rel:.9,cut:lv===2?1500:900,q:.6}));
   const tones=pad.map(n=>n+12).concat(pad.map(n=>n+24));
@@ -5727,9 +5753,59 @@ function mStep(t){
     else mVoice(t,n-12,sp*len,.07,['triangle'],M.L.lead,{atk:.03,rel:.5,cut:2200,sus:.7}); });
   M.step++; if(M.step%16===0) M.bar++;
 }
+// 808: sine body plus a quiet triangle an octave up so it still reads on phone speakers; optional glide to another note
+function m808(t,midi,dur,vol,glide){
+  const c=M.ctx, o=c.createOscillator(), o2=c.createOscillator(), g=c.createGain(), g2=c.createGain(), f=c.createBiquadFilter(), end=t+dur;
+  o.type='sine'; o2.type='triangle'; o.frequency.setValueAtTime(mf(midi),t); o2.frequency.setValueAtTime(mf(midi+12),t);
+  if(glide){ [[o,0],[o2,12]].forEach(([os,up])=>{ os.frequency.setValueAtTime(mf(midi+up),t+dur*.45); os.frequency.exponentialRampToValueAtTime(mf(glide+up),t+dur*.8); }); }
+  f.type='lowpass'; f.frequency.value=900; g2.gain.value=.18;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.004); g.gain.setTargetAtTime(vol*.55,t+.05,.25);
+  g.gain.setValueAtTime(vol*.5,end); g.gain.linearRampToValueAtTime(0,end+.08);
+  o.connect(g); o2.connect(g2); g2.connect(g); g.connect(f); f.connect(M.L.bass);
+  o.start(t); o2.start(t); o.stop(end+.12); o2.stop(end+.12);
+}
+function mClap(t,v){ [0,.011,.023].forEach((d,i)=>mNoise(t+d,i<2?.03:.18,'bandpass',1300,1000,v*(i<2?.7:1),1.1,M.L.kit)); }
+const ICE_KICK_LEN={0:3,3:4,7:3,10:6};
+function mStepIce(t){
+  const s=M.step%16, bar=M.bar, ch=ICE.chords[bar%4], root=ch[0], pad=ch[1], lv=M.level, sp=60/ICE.bpm/4;
+  // the beat switch follows race progress: drums drop for half a bar under a riser, the new groove lands on the bar
+  const prog=(mode==='race'&&player&&TR&&TR.L&&countdown<=0)?clamp(player.dist/(laps()*TR.L),0,1):0;
+  if(lv===2&&M.sw===0&&s===8&&prog>=ICE.switchAt){ M.sw=1; mDrum.riser(t,sp*8); }
+  if(s===0&&M.sw===1){ M.sw=2; mDrum.crash(t); }
+  const hot=M.sw===2, drop=M.sw===1;
+  if(s===0) pad.forEach(n=>mVoice(t,n,sp*16,.04,['sawtooth'],M.L.pad,{dets:[-12,12],atk:hot?.08:.7,rel:1.1,cut:hot?2000:lv===2?1100:750,q:.6}));
+  // bell motif with a quiet partial above it for the icy shimmer
+  if(!drop) ICE.bells[bar%4].forEach(([st,n])=>{ if(st!==s) return; const v=lv===2?.05:.04;
+    mVoice(t,n,sp*3,v,['sine'],M.L.lead,{atk:.003,rel:.7,sus:.2,cut:6000});
+    mVoice(t,n+19,sp*1.5,v*.3,['sine'],M.L.lead,{atk:.002,rel:.4,sus:.1,cut:9000}); });
+  if(hot){ const tones=pad.map(n=>n+12).concat(pad.map(n=>n+24));
+    mVoice(t,tones[ICE.arp[s]],sp*.8,.045,['square','sawtooth'],M.arpF,{dets:[0,5],rel:.04,cut:7000}); }
+  else if(lv>=1&&s%4===2) mVoice(t,pad[(s>>2)%3]+24,sp*2,.03,['triangle'],M.arpF,{atk:.01,rel:.3,cut:5000});
+  if(!drop){
+    if(hot){
+      if(ICE_KICK_LEN[s]){ mDrum.kick(t,.9); m808(t,root,sp*ICE_KICK_LEN[s],.32,s===10&&bar%2===1?root+12:0); }
+      if(ICE.snareB.includes(s)){ mDrum.snare(t,.28); mClap(t,.3); }
+      mDrum.hat(t,s%2?.035:.07,false);
+      if(s===6) mDrum.hat(t,.06,true);
+      if(s>=14&&bar%2===1){ mDrum.hat(t+sp/3,.04,false); mDrum.hat(t+sp*2/3,.05,false); }
+      if(bar%8===7&&s>=12) mDrum.snare(t,.05+(s-12)*.03);
+    } else if(lv===2){
+      if(s===0||s===10) mDrum.kick(t,.8);
+      if(s===0) m808(t,root,sp*9,.3,0);
+      if(s===10) m808(t,root,sp*5,.24,bar%4===3?root-2:0);
+      if(s===8){ mDrum.snare(t,.24); mClap(t,.22); }
+      if(s%2===0) mDrum.hat(t,s%4===0?.05:.03,false);
+      if(s===14&&bar%2===1){ mDrum.hat(t+sp/2,.035,false); mDrum.hat(t+sp,.03,false); }
+    } else {
+      if(s===0) m808(t,root,sp*12,lv===1?.22:.16,0);
+      if(lv===1&&s%4===2) mDrum.hat(t,.035,false);
+    }
+  }
+  M.step++; if(M.step%16===0) M.bar++;
+}
 function musicTick(){
-  if(!M) return; const now=M.ctx.currentTime, sp=60/MUS.bpm/4;
-  const vol=soundOn&&musicOn&&!document.hidden?MUS.levels[Math.max(M.level,0)].out:0;
+  if(!M) return; const now=M.ctx.currentTime, sp=60/MT().bpm/4;
+  const vol=soundOn&&musicOn&&!document.hidden?MT().levels[Math.max(M.level,0)].out:0;
   if(vol!==M.vol){ M.out.gain.setTargetAtTime(vol,now,.3); M.vol=vol; }
   if(M.nextT<now) M.nextT=now+.05;
   while(M.nextT<now+.12){
@@ -6419,6 +6495,9 @@ $('#gStart').onclick=()=>startGauntlet();
 $('#snd').onclick=()=>{ soundOn=!soundOn; $('#snd').textContent=soundOn?'Sound on':'Sound off'; };
 $('#mus').textContent=musicOn?'Music on':'Music off';
 $('#mus').onclick=()=>{ musicOn=!musicOn; SAVE.musicOff=!musicOn; persist(); $('#mus').textContent=musicOn?'Music on':'Music off'; };
+const trackLabel=()=>{ const b=$('#track'); if(b) b.textContent='Track: '+MUS_THEMES[musTheme].name; };
+trackLabel();
+if($('#track')) $('#track').onclick=()=>{ setMusicTheme(musTheme==='ice'?'night':'ice'); trackLabel(); };
 $('#glow').onclick=()=>{ glowOn=!glowOn; $('#glow').textContent=glowOn?'Glow on':'Glow off'; };
 $('#tap').onclick=()=>{ if(bootReady) enter(); };
 function bindTap(id,fn){ // fires on pointerup so a canvas swipe can't swallow the tap; click still covers keyboard (Enter/Space)

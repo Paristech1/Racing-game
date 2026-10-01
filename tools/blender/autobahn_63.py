@@ -30,13 +30,13 @@ pb = car.M['PAINT'].node_tree.nodes['Principled BSDF']; pb.inputs['Metallic'].de
 # a thin glasshouse whose roof peaks behind the B-pillar and falls in one long arc to a deck at ~1.1, then a short tail
 # that rolls over and down to the bumper. Coke-bottle plan, hood domes, a door scallop, round haunches.
 Z0, Z1, WB, WR = -2.6, 2.455, 1.475, .36
-HW = [[-2.6, .8], [-2.54, .88], [-2.4, .94], [-2.0, .975], [-1.5, .977], [-1.0, .955], [-.4, .925], [.3, .92], [.9, .94],
+HW = [[-2.6, .7], [-2.55, .78], [-2.45, .86], [-2.3, .92], [-2.0, .962], [-1.5, .977], [-1.0, .955], [-.4, .925], [.3, .92], [.9, .94],
       [1.475, .962], [1.9, .945], [2.1, .92], [2.25, .87], [2.36, .8], [2.425, .7], [2.455, .58]]   # nose rounds off hard in plan
 YB = [[-2.6, .4], [-2.55, .27], [-2.4, .17], [2.2, .18], [2.39, .21], [2.455, .28]]
 YT = [[-2.6, .76], [-2.57, .84], [-2.5, .92], [-2.42, 1.0], [-2.33, 1.05], [-2.2, 1.1], [-1.6, 1.11], [-1.0, 1.08], [-.3, 1.055],
-      [.5, 1.04], [.95, 1.03], [1.32, 1.02], [1.65, 1.0], [1.95, .96], [2.11, .915], [2.26, .85], [2.39, .78], [2.455, .67]]
+      [.5, 1.04], [.95, 1.03], [1.3, 1.005], [1.65, .965], [1.95, .915], [2.15, .865], [2.3, .805], [2.4, .745], [2.455, .67]]   # hood falls evenly cowl -> nose
 YS = [[-2.6, .6], [-2.55, .69], [-2.47, .79], [-2.38, .89], [-2.2, .96], [-1.9, 1.02], [-1.6, 1.04], [-1.0, 1.02], [-.3, .995], [.5, .985],
-      [.95, .98], [1.475, .96], [1.95, .915], [2.2, .86], [2.38, .77], [2.455, .64]]
+      [.95, .975], [1.475, .945], [1.95, .885], [2.2, .825], [2.38, .755], [2.455, .64]]
 def dome(x, z):
     """hood: two low power domes either side of a shallow centre, fading out before the grille"""
     a = abs(x); hz = smooth(.95, 1.3, z) * (1 - smooth(2.0, 2.3, z))
@@ -124,8 +124,8 @@ for sd in (1, -1):
 # ---- tail (from the rear reference): slim lamp blades where the turtleback rolls over into the tail, wrapping round the
 # corners; a plate recess; vertical vents in the bumper corners behind the rear wheels
 # lamps from Paris's taillight reference: a full-width bar across the tail, ending in corner clusters of LED slashes
-CLUSTER = [(.5, .952), (.83, .972), (.865, .95), (.86, .885), (.57, .878), (.5, .925)]   # wedge: pointed inboard, wraps the corner
-pocket('tailbar', [(-.52, .945), (.52, .945), (.52, .927), (-.52, .927)], .02, back=True, per=10)
+CLUSTER = [(.48, .952), (.76, .972), (.8, .95), (.795, .885), (.55, .878), (.48, .925)]   # wedge: pointed inboard, wraps the corner
+pocket('tailbar', [(-.5, .945), (.5, .945), (.5, .927), (-.5, .927)], .02, back=True, per=10)
 for sd in (1, -1):
     pass   # (no pocket: the cluster lens sits on the skin, so the wrap-round corner stays clean)
 pocket('plate', Car.rounded(0, .79, .52, .13, .015), .045, back=True, per=3)
@@ -263,10 +263,10 @@ for sd in (1, -1):
     def slash(name, x0, y0, w, h, lean, m, off):
         panel(name, [(x0, y0), (x0 + w, y0), (x0 + w + lean * h, y0 + h), (x0 + lean * h, y0 + h)], m, off)
     for k in range(7):                                          # white slashes: short inboard, tall at the corner
-        t = k / 6; x = lerp(.56, .79, t); h = lerp(.018, .05, t ** 1.3); w = lerp(.016, .024, t)
+        t = k / 6; x = lerp(.53, .735, t); h = lerp(.018, .05, t ** 1.3); w = lerp(.016, .024, t)
         slash(f'tslash{sd}{k}', x, .924 + .008 * t, w, h, .45, 'TAILW', .014)
     for k in range(11):                                         # red slashes in a band underneath
-        t = k / 10; slash(f'tred{sd}{k}', lerp(.585, .83, t), .889, .007, .015, .55, 'TAIL', .013)
+        t = k / 10; slash(f'tred{sd}{k}', lerp(.565, .77, t), .889, .007, .015, .55, 'TAIL', .013)
     out = CLUSTER + [CLUSTER[0]]
     car.tube(f'tframe{sd}', [tailpt(sd * x, y, .011) for x, y in out], .0028, 'TAIL', res=3)
     panel(f'tlens{sd}', CLUSTER, 'LENS', .006)
@@ -280,8 +280,8 @@ for sd in (1, -1):
         car.cyl(f'exhR{sd}{x}', (sd * x, y, zo + .01), (sd * x, y, zo), .055, 'CHROME', r1=.051, seg=48, cap=False)   # rolled rim
         car.cyl(f'exhI{sd}{x}', (sd * x, y, zo + .045), (sd * x, y, zo), .043, 'SATIN', seg=48, cap=False)          # inner liner
         car.cyl(f'exhC{sd}{x}', (sd * x, y, zo + .05), (sd * x, y, zo + .045), .044, 'GAP', seg=24)                  # dark core
-car.tube('tailbar', [tailpt(x, .936, .012) for x in [lerp(-.52, .52, k / 32) for k in range(33)]], .0072, 'TAIL', res=8)       # the full-width bar
-car.tube('tailbarW', [tailpt(x, .936, .018) for x in [lerp(-.5, .5, k / 30) for k in range(31)]], .003, 'TAILW', res=6)   # its white-hot core
+car.tube('tailbar', [tailpt(x, .936, .012) for x in [lerp(-.5, .5, k / 32) for k in range(33)]], .0072, 'TAIL', res=8)       # the full-width bar
+car.tube('tailbarW', [tailpt(x, .936, .018) for x in [lerp(-.48, .48, k / 30) for k in range(31)]], .003, 'TAILW', res=6)   # its white-hot core
 VAL = lambda u, v: (lambda x, y: (x, y, BZ(x, y) - .006))(lerp(-.8, .8, u), lerp(.24 + .06 * abs(2 * u - 1) ** 3, .42 - .04 * abs(2 * u - 1) ** 4, v))
 grid('valance', VAL, 72, 10, 'CARBON', flip=True)                                     # carbon lower tail, laid on the skin
 car.tube('diffTrim', [VAL(k / 40, 1)[:2] + (VAL(k / 40, 1)[2] - .004,) for k in range(41)], .004, 'CHROME', res=4)   # bright line along its top

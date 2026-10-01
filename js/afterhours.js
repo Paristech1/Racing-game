@@ -897,11 +897,11 @@ function autobahnGlbShell(g,def,B,paint,glass,opts){
   const MATS={PAINT:paint,CARBON:K.carbon,GLASS:WISP_GLASS,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,TAILW:AB_TAILW,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin,GRILLE:AB_GRILLE,REFLECT:AB_REFLECT,INTERIOR:AB_CABIN};
   parts.forEach(p=>{ const m=new THREE.Mesh(p.geo,MATS[p.key]||paint); if(p.key==='GLASS') m.renderOrder=3; g.add(m); });
   { const pr=K.add(new THREE.PlaneGeometry(.5,.12),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'AUTOBAHN'),roughness:.5}),0,.79,PLATE_Z); pr.rotation.y=Math.PI; }
-  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.3,sd*.64,.69,HEAD_Z); K.glow(0xff2030,.28,sd*.74,.93,TAIL_Z); });
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.3,sd*.64,.69,HEAD_Z); K.glow(0xff2030,.28,sd*.68,.93,TAIL_Z); });
   K.glow(0xff2030,.2,0,.936,-2.5);
   // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in autobahn_63.py)
-  const HS=[[-2.6,.8],[-2.54,.88],[-2.4,.94],[-2.0,.975],[-1.5,.977],[-1.0,.955],[-.4,.925],[.3,.92],[.9,.94],[1.475,.962],[1.9,.945],[2.1,.92],[2.25,.87],[2.36,.8],[2.425,.7],[2.455,.58]],
-    YS=[[-2.6,.6],[-2.55,.69],[-2.47,.79],[-2.38,.89],[-2.2,.96],[-1.9,1.02],[-1.6,1.04],[-1.0,1.02],[-.3,.995],[.5,.985],[.95,.98],[1.475,.96],[1.95,.915],[2.2,.86],[2.38,.77],[2.455,.64]],
+  const HS=[[-2.6,.7],[-2.55,.78],[-2.45,.86],[-2.3,.92],[-2.0,.962],[-1.5,.977],[-1.0,.955],[-.4,.925],[.3,.92],[.9,.94],[1.475,.962],[1.9,.945],[2.1,.92],[2.25,.87],[2.36,.8],[2.425,.7],[2.455,.58]],
+    YS=[[-2.6,.6],[-2.55,.69],[-2.47,.79],[-2.38,.89],[-2.2,.96],[-1.9,1.02],[-1.6,1.04],[-1.0,1.02],[-.3,.995],[.5,.985],[.95,.975],[1.475,.945],[1.95,.885],[2.2,.825],[2.38,.755],[2.455,.64]],
     YB=[[-2.6,.4],[-2.55,.27],[-2.4,.17],[2.2,.18],[2.39,.21],[2.455,.28]];
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.06,ay:ys-.12,yc:ys+.1,yf:ys+.1}; }};
 }
@@ -7017,7 +7017,7 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=4'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=5'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   const land=(k,gl)=>{ window.AH_MODELS[k]=gl.scene; if(started&&window.AH_MODEL_READY) window.AH_MODEL_READY(k); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ land(k,gl); done(); },undefined,e=>{ console.warn(url+' failed, retrying once (procedural fallback meanwhile)',e); done();
     setTimeout(()=>new THREE.GLTFLoader().load(url,gl=>land(k,gl),undefined,e2=>console.warn(url+' failed again',e2)),3000); }));

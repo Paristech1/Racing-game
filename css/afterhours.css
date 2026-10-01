@@ -46,12 +46,17 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #loading .where b{display:block;font-size:clamp(30px,9vw,72px);font-weight:900;font-stretch:62%;line-height:.9;letter-spacing:-.01em;margin-bottom:6px}
 
 /* MAGAZINE SPREAD */
-#select::before,#results::before,#events::before{content:'';position:absolute;inset:0;pointer-events:none;
+#select::before,#results::before,#events::before,#showcase::before{content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(to bottom,rgba(0,0,0,.55) 0,rgba(0,0,0,0) 24%,rgba(0,0,0,0) 48%,rgba(0,0,0,.82) 78%,rgba(0,0,0,.9) 100%)}
+#showcase::before{background:linear-gradient(to bottom,rgba(0,0,0,.45) 0,rgba(0,0,0,0) 18%,rgba(0,0,0,0) 62%,rgba(0,0,0,.78) 88%,rgba(0,0,0,.88) 100%)}
 .stage-hit{position:absolute;inset:0;z-index:0;pointer-events:auto;touch-action:none;cursor:grab}
 .stage-hit.dragging{cursor:grabbing}
 #select .top,#select .hl,#select .stamp,#select .hand{z-index:1}
 #select .foot{z-index:1}
+#showcase .top,#showcase .hl,#showcase .shint,#showcase .foot{z-index:1}
+#showcase .hl.sh{font-size:clamp(36px,11vw,96px);margin-top:6px}
+.shint{position:absolute;left:20px;top:calc(env(safe-area-inset-top,0px) + 52px);font-size:13px;color:var(--dim);font-stretch:80%;letter-spacing:.02em;pointer-events:none;max-width:min(22em,70vw)}
+.shfoot{bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
 #results .top,#results .place,#results #rReport,#results #rClassic{z-index:1}
 #select .top,#results .top,#events .top,#tagteam .top{position:relative;display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid rgba(255,255,255,.35);padding-bottom:6px;pointer-events:auto}
 .top .m{font-weight:900;font-stretch:125%;font-size:15px;letter-spacing:-.01em}

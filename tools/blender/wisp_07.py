@@ -62,8 +62,9 @@ def ray_poly(c, d, poly):
         if t > 0 and -1e-6 <= u <= 1 + 1e-6 and (best is None or t < best): best = t
     return best
 def flare(name, zc, outline, ycut=.17, nth=150, rivets=True):
-    """outline: (z, y) polygon of the slab seen from the side. The face sits at XF, rolls into an arch lip and runs back
-    into the wheel well; the outer edge has a crisp chamfer that tucks under the body skin."""
+    """outline: (z, y) polygon of the slab seen from the side. The face sits at XF and stops at the opening on a crisp,
+    square-cut edge (no rolled lip or tube around the wheel: Paris doesn't want that look); a short matte-black wall
+    runs back into the well behind it. The outer edge has a crisp chamfer that tucks under the body skin."""
     r = ARCH_R; th0 = math.asin(clamp((ycut - WR) / r, -1, 1)); th1 = math.pi - th0
     xb = lambda y, z: (car.surf_side(y, z, 1) or .9)
     xf = lambda y: XF - .03 * smooth(.62, .9, y) + .006 * smooth(.5, .2, y)
@@ -74,7 +75,7 @@ def flare(name, zc, outline, ycut=.17, nth=150, rivets=True):
             L = ray_poly(I, d, outline) or .08; O = (I[0] + d[0] * L, I[1] + d[1] * L)
             P = lambda s: (I[0] + d[0] * s, I[1] + d[1] * s)
             row = []
-            for s, dx in ((0, -.36), (0, -.12), (0, -.03), (.006, -.008), (.02, 0)):
+            for s, dx in ((0, -.004), (.003, 0), (.02, 0)):            # square edge: 3 mm break, then flat face
                 z, y = P(s); row.append((xf(y) + dx, y, z))
             for t in [j / 6 for j in range(1, 6)]:
                 z, y = P(lerp(.03, L - .03, t)); row.append((xf(y) + .004 * math.sin(math.pi * t), y, z))
@@ -87,6 +88,12 @@ def flare(name, zc, outline, ycut=.17, nth=150, rivets=True):
             for j in range(n - 1):
                 a = i * n + j; f = (a, a + 1, a + n + 1, a + n); faces.append(f if sd > 0 else tuple(reversed(f)))
         ob = car.new_obj(f'{name}{sd}', verts, faces, 'PAINT'); car.sharpen(ob, 30)
+        # the arch wall: a straight, matte-black skirt from the cut edge back into the well (reads as shadow, not as a lip)
+        wall = [[(sd * (xf(y) - .004), y, z), (sd * (xf(y) - .14), y, z)] for (x_, y, z) in [(r_[0][0], r_[0][1], r_[0][2]) for r_ in rows]]
+        wv = [G(*p) for w_ in wall for p in w_]; wf = []
+        for i in range(len(wall) - 1):
+            f = (2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2); wf.append(f if sd < 0 else tuple(reversed(f)))
+        car.new_obj(f'{name}wall{sd}', wv, wf, 'GAP', False)
         if rivets:     # a rivet line just inside the outer edge, and one around the lip
             acc = 0.; last = None
             for k in range(0, nth + 1):

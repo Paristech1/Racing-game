@@ -856,7 +856,7 @@ function p1Shell(g,def,B,paint,glass){
    carbon weave and blooming lamps the rest of the archive uses. Falls back to the procedural p1Shell if the file is missing. */
 const GLB_PARTS={}; // model key -> [{geo, key}] baked once, shared by every car built from it
 function glbParts(model){ if(GLB_PARTS[model]!==undefined) return GLB_PARTS[model];
-  const src=(window.AH_MODELS||{})[model]; if(!src) return (GLB_PARTS[model]=null);
+  const src=(window.AH_MODELS||{})[model]; if(!src) return null; // not loaded (yet): don't cache the miss, it may arrive after boot
   src.updateMatrixWorld(true); const parts=[];
   src.traverse(o=>{ if(!o.isMesh) return; const g=o.geometry.clone().applyMatrix4(o.matrixWorld), key=(o.material&&o.material.name||'PAINT').split('.')[0];
     if(key==='CARBON'){ // no UVs from Blender: box-project so the twill weave has something to sample (threejs-textures)
@@ -1918,7 +1918,7 @@ function stratosShell(g,def,B,paint,glass){
    floating roof over a black glasshouse, mint light blades front and rear, closed EV nose, big swan-neck wing. ---- */
 function wispShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0x9ffff0,.08);
-  paint.color.set(0xaeb9c2); paint.metalness=.3; paint.roughness=.28; paint.envMapIntensity=.7; paint.sheen=new THREE.Color(0x1c3a44); paint.clearcoat=1; paint.clearcoatRoughness=.03; // pearl: soft white, cool sheen, not blown out
+  paint.color.set(def.paint||0x050506); paint.metalness=.55; paint.roughness=.08; paint.clearcoat=1; paint.clearcoatRoughness=.01; // fallback only (GLB not loaded yet): gloss black like the real car
   const mint=new THREE.MeshBasicMaterial({color:def.accent||0x7dffef,toneMapped:false});
   const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
   const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:60,inset:.14,
@@ -2615,7 +2615,7 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
    kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
 const KIT_CACHE={};
 function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
-  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (KIT_CACHE[name]=null);
+  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (null);
   src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
   root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
   // perf: fold every part that shares a material slot into one geometry, so an asset costs one draw call per material
@@ -5283,6 +5283,10 @@ for(let i=0;i<34;i++){ const c=[0xff7a2a,0xff3a2a,0xffd08a,0x4fd0ff][i%4];
   const a=Math.random()*Math.PI*2, r=12+Math.random()*10; s.position.set(Math.cos(a)*r,1+Math.random()*5,Math.sin(a)*r); s.scale.setScalar(1+Math.random()*2.5); bokeh.add(s); }
 renderer.localClippingEnabled=true;
 const studioCars=CARS.map(d=>{ const c=buildCar(d,{cut:true}); c.group.visible=false; studio.add(c.group); return c; });
+const GLB_SHELL_KEY=new Map([[wispGlbShell,'wisp'],[kageShell,'kage'],[volcanoShell,'volcano'],[autobahnGlbShell,'autobahn']]);
+window.AH_MODEL_READY=key=>{ // slow connections boot before every model has downloaded; swap the real body in as soon as it lands
+  CARS.forEach((d,i)=>{ if(GLB_SHELL_KEY.get(SHELLS[d.sculpt])!==key) return; const old=studioCars[i], nc=buildCar(d,{cut:true});
+    nc.group.visible=old.group.visible; nc.group.rotation.copy(old.group.rotation); studio.remove(old.group); studio.add(nc.group); studioCars[i]=nc; }); };
 const dust=new THREE.Group(); studio.add(dust);
 for(let i=0;i<26;i++){ const d=new THREE.Sprite(new THREE.SpriteMaterial({map:smokeTex,color:0xe8dccb,transparent:true,depthWrite:false,opacity:.5}));
   d.position.set(1.5+Math.random()*5,.3+Math.random()*1.2,-2.5+Math.random()*4); d.scale.setScalar(1.5+Math.random()*2.5); d.userData.v=.2+Math.random()*.5; dust.add(d); }
@@ -6909,6 +6913,8 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=1'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
-  want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const land=(k,gl)=>{ window.AH_MODELS[k]=gl.scene; if(started&&window.AH_MODEL_READY) window.AH_MODEL_READY(k); };
+  want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ land(k,gl); done(); },undefined,e=>{ console.warn(url+' failed, retrying once (procedural fallback meanwhile)',e); done();
+    setTimeout(()=>new THREE.GLTFLoader().load(url,gl=>land(k,gl),undefined,e2=>console.warn(url+' failed again',e2)),3000); }));
 })();

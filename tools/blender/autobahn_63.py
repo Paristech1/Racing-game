@@ -19,7 +19,7 @@ def mk(name, col, metal=0., rough=.5, emit=None, strength=4.):
 car.M['INTERIOR'] = mk('INTERIOR', (.012, .012, .014), 0., .7)
 car.M['LENS'].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.018, .004, .005, 1)   # smoked lens
 car.M['TAILW'] = mk('TAILW', (1., .86, .86), 0., .3, emit=(1., .8, .8), strength=9.)          # white-hot LED slashes in the tail clusters
-car.M['GRILLE'] = mk('GRILLE', (.012, .013, .015), .2, .55)                                    # dark satin grille mesh
+car.M['GRILLE'] = mk('GRILLE', (.005, .005, .006), 0., .7)                                    # dark satin grille mesh
 car.M['REFLECT'] = mk('REFLECT', (.5, .02, .02), 0., .3)                                   # red bumper reflectors (unlit)
 pb = car.M['PAINT'].node_tree.nodes['Principled BSDF']; pb.inputs['Metallic'].default_value = .8; pb.inputs['Roughness'].default_value = .14
 
@@ -38,9 +38,12 @@ YT = [[-2.6, .76], [-2.57, .84], [-2.5, .92], [-2.42, 1.0], [-2.33, 1.05], [-2.2
 YS = [[-2.6, .6], [-2.55, .69], [-2.47, .79], [-2.38, .89], [-2.2, .96], [-1.9, 1.02], [-1.6, 1.04], [-1.0, 1.02], [-.3, .995], [.5, .985],
       [.95, .975], [1.475, .945], [1.95, .885], [2.2, .825], [2.38, .755], [2.455, .64]]
 def dome(x, z):
-    """hood: two low power domes either side of a shallow centre, fading out before the grille"""
-    a = abs(x); hz = smooth(.95, 1.3, z) * (1 - smooth(2.0, 2.3, z))
-    return .022 * hz * math.exp(-((a - .3) / .14) ** 2) - .01 * hz * (1 - smooth(.1, .25, a))
+    """hood (from the front reference): the fender crowns stand above a valley, and a raised centre panel narrows from
+    the cowl into a V that runs down into the top of the grille"""
+    a = abs(x); hz = smooth(.95, 1.3, z) * (1 - smooth(2.32, 2.46, z))
+    valley = -.035 * hz * (1 - smooth(.45, .72, a))
+    w = lerp(.32, .13, smooth(1.0, 2.38, z))
+    return valley + .032 * hz * (1 - smooth(w - .03, w + .02, a))
 car.build_body({'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT, 'sill': .06, 'NS': 460 if DETAIL else 170, 'res': 2 if DETAIL else 1,
     'Rx': lambda z: lerp(.13, .2, smooth(-1.0, -1.8, z)),
     'tumble': lambda z: .085 + .04 * smooth(-.9, -1.6, z) + .025 * smooth(.9, 1.4, z) * (1 - smooth(1.8, 2.2, z)),
@@ -115,12 +118,39 @@ def rr_tube(name, cx, cy, w, h, r, z0, z1, m, wall=.008, n=6):
     return ob
 
 # ---------------------------------------------------------------- nose: oval mouth, slim lamp blades, corner air curtains
-MOUTH = ellipse(0, .41, .47, .2, 72, 2.25)
-pocket('mouth', MOUTH, .14, per=2)
-HEAD_L = [(.42, .685), (.6, .698), (.78, .718), (.86, .738), (.855, .718), (.77, .692), (.6, .673), (.43, .668)]
+def angry_mouth(cx=0., cy=.44, rx=.51, ry=.215, n=96, sq=2.4):
+    """the aggressive face from the front reference: a wide rounded mouth whose top edge frowns in toward the centre and
+    whose lower half flares wider"""
+    pts = []
+    for k in range(n):
+        a = 2 * math.pi * k / n; c, s_ = math.cos(a), math.sin(a)
+        x = rx * math.copysign(abs(c) ** (2 / sq), c); y = ry * math.copysign(abs(s_) ** (2 / sq), s_)
+        if y > 0: y -= .03 * (1 - (x / rx) ** 2)
+        else: x *= 1 + .07 * (-y / ry)
+        pts.append((cx + x, cy + y))
+    return pts
+MOUTH = angry_mouth()
+pocket('mouth', MOUTH, .15, per=1)
+# headlamp: a slim blade from above the mouth corner out to the nose corner, then wrapping back along the fender
+HEAD_L = [(.34, .712), (.55, .722), (.72, .735), (.8, .748), (.8, .726), (.71, .708), (.55, .694), (.35, .69)]
+def side_slot(name, pts, h, depth, m='GLOSSBLACK'):
+    """a horizontal slot cut along the flank: pts are (x, y, z) on the side skin, running rearward"""
+    rings = []
+    for x, y, z in pts:
+        sd = 1 if x > 0 else -1
+        rings.append([G(x + sd * .06, y - h, z), G(x + sd * .06, y + h, z), G(x - sd * depth, y + h, z), G(x - sd * depth, y - h, z)])
+    ob = car.loft(name, rings, m, smooth_=False); return car.cutter(ob, m)
+def lamp_side(sd, off=0., n=10):   # the wrap-round run of the lamp along the fender, rising slightly as it goes back
+    z0 = (FZ(sd * .8, .742) or 2.3) - .02; out = []
+    for k in range(n):
+        t = k / (n - 1); z = lerp(z0, 1.94, t); y = lerp(.738, .79, t ** .9); x = BV0.ray_cast(G(sd * 2.5, y, z), Vector((-sd, 0, 0)))[0]
+        if x is None: continue
+        out.append((sd * (abs(x.x) + off), y, z))
+    return out
 for sd in (1, -1):
     pocket(f'head{sd}', [(sd * x, y) for x, y in HEAD_L], .035, per=6)
-    pocket(f'curtain{sd}', [(sd * x, y) for x, y in [(.6, .24), (.77, .26), (.79, .56), (.75, .61), (.64, .59), (.58, .44)]], .12)
+    side_slot(f'headS{sd}', lamp_side(sd, 0., 14), .016, .03)
+    pocket(f'curtain{sd}', [(sd * x, y) for x, y in [(.62, .2), (.83, .22), (.86, .44), (.83, .6), (.74, .645), (.64, .59), (.585, .4)]], .16)
 # ---- tail (from the rear reference): slim lamp blades where the turtleback rolls over into the tail, wrapping round the
 # corners; a plate recess; vertical vents in the bumper corners behind the rear wheels
 # lamps from Paris's taillight reference: a full-width bar across the tail, ending in corner clusters of LED slashes
@@ -161,7 +191,7 @@ car.sharpen(car.body, 55); car.bvh = car.BV()
 # roof: one continuous arc, no flat section - the crown sits over the B-pillar and the line falls away at a steadily
 # increasing rate into the tail (|dz|^1.55), so the fastback reads as a single aerodynamic curve
 CH = [[-2.16, 1.08], [-2.035, 1.115], [-1.856, 1.178], [-1.587, 1.261], [-1.355, 1.329], [-1.149, 1.381], [-.943, 1.415],
-      [-.738, 1.436], [-.5, 1.444], [-.257, 1.436], [-.05, 1.41], [.12, 1.37], [.3, 1.31], [.47, 1.24], [.64, 1.165], [.8, 1.095], [.92, 1.04]]   # traced roofline
+      [-.738, 1.436], [-.5, 1.444], [-.257, 1.436], [-.05, 1.41], [.12, 1.385], [.3, 1.338], [.47, 1.27], [.64, 1.185], [.8, 1.092], [.92, 1.02]]   # traced roofline; windshield bowed (convex) into the cowl
 def roof_y(z): return kf(CH, z)
 car.build_cabin({'CZ0': -2.16, 'CZ1': .92, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.67, .58, -1.62, -1.39), 'rear_glass': -1.45, 'dlo_trim': 'CHROME',
     'pillars': [(-.44, -.37), (-1.08, -1.02)], 'apillar_r': .015,
@@ -170,23 +200,21 @@ car.build_cabin({'CZ0': -2.16, 'CZ1': .92, 'NC': 260 if DETAIL else 120, 'CH': C
 
 # ---------------------------------------------------------------- front details
 for sd in (1, -1):
-    # lamp blade: a bright LED line along the top of the slot, a dimmer main-beam strip below, smoked lens over both
-    up = [(sd * x, y + .009, FZ(sd * x, y + .009) - .012) for x, y in [(.43, .679), (.6, .691), (.76, .71), (.85, .73)]]
-    car.tube(f'drl{sd}', up, .0055, 'HEAD', res=8)
-    for j, (x, y) in enumerate([(.5, .676), (.6, .683), (.7, .693)]):          # three projector cells in the lamp slot
+    # lamp blade: a bright LED line along the top of the slot that carries on round the corner and back along the fender,
+    # projector cells in the front run, a smoked lens over it
+    up = [(sd * x, y + .01, FZ(sd * x, y + .01) - .012) for x, y in [(.37, .7), (.55, .711), (.7, .722), (.78, .733)]]
+    up += [(x, y + .004, z) for x, y, z in lamp_side(sd, -.008, 14)]
+    car.tube(f'drl{sd}', up, .0085, 'HEAD', res=10)
+    for j, (x, y) in enumerate([(.47, .704), (.57, .711), (.67, .719)]):
         zf = FZ(sd * x, y) - .028
-        car.cyl(f'pbez{sd}{j}', (sd * x, y, zf - .012), (sd * x, y, zf + .006), .019, 'CHROME', seg=32)
-        car.cyl(f'proj{sd}{j}', (sd * x, y, zf + .004), (sd * x, y, zf + .01), .014, 'HEAD', seg=32)
-    car.tube(f'beam{sd}', [(sd * x, y - .006, FZ(sd * x, y - .006) - .022) for x, y in [(.47, .674), (.6, .683), (.74, .698)]], .004, 'HEAD', res=6)
-    grid(f'hlens{sd}', lambda u, v, sd=sd: (sd * lerp(.43, .855, u), lerp(.668, .69, v) + .045 * u ** 1.6 * (1 - .3 * v), FZ(sd * lerp(.43, .855, u), lerp(.668, .69, v) + .045 * u ** 1.6) - .003), 24, 3, 'LENS', flip=sd < 0)
-    # air curtains: vertical vanes down the corner slots
-    for k in range(3):
-        x = sd * lerp(.63, .73, k / 2); y = .42
-        car.box(f'cvane{sd}{k}', (.008, .28, .08), (x, y, FZ(x, y) - .07), 'GLOSSBLACK', rot=(0, sd * .2, 0))
+        car.cyl(f'pbez{sd}{j}', (sd * x, y, zf - .012), (sd * x, y, zf + .006), .017, 'CHROME', seg=32)
+        car.cyl(f'proj{sd}{j}', (sd * x, y, zf + .004), (sd * x, y, zf + .01), .012, 'HEAD', seg=32)
+    grid(f'hlens{sd}', lambda u, v, sd=sd: (lambda x, y: (sd * x, y, FZ(sd * x, y) - .003))(lerp(.37, .795, u), lerp(.696 + .03 * u, .71 + .03 * u, v)), 24, 3, 'LENS', flip=sd < 0)
 # the oval mouth: a dark mesh deep inside, and three thin horizontal blades across it
-for k in range(3):
-    y = .34 + k * .075; car.box(f'mblade{k}', (lerp(.92, .84, abs(k - 1)), .008, .035), (0, y, FZ(0, y) - .11), 'GLOSSBLACK', rot=(-.2, 0, 0))
-grid('mmesh', lambda u, v: (lerp(-.5, .5, u), lerp(.25, .58, v), FZ(0, .41) - .13), 40, 12, 'GAP')
+for sd in (1, -1):   # dark back wall inside each corner intake so the opening reads as a clean black void
+    CUR = [(.62, .2), (.83, .22), (.86, .44), (.83, .6), (.74, .645), (.64, .59), (.585, .4)]
+    grid(f'curtainBack{sd}', lambda u, v, sd=sd: (lambda x, y: (x, y, FZ(x, y) - .13))(sd * lerp(.6, .84, u), lerp(.22, .62, v)), 10, 12, 'GAP')
+grid('mmesh', lambda u, v: (lerp(-.56, .56, u), lerp(.21, .65, v), FZ(0, .44) - .145), 40, 12, 'GAP')
 # diamond mesh across the mouth: a lattice of small diamond cells, set back in the opening
 def inside(poly, x, y):
     c = False
@@ -194,11 +222,11 @@ def inside(poly, x, y):
         (ax, ay), (bx, by) = poly[i], poly[(i + 1) % len(poly)]
         if (ay > y) != (by > y) and x < ax + (y - ay) * (bx - ax) / (by - ay): c = not c
     return c
-MZ = FZ(0, .41) - .085; cell = .05 if DETAIL else .08; k = 0; mv = []; mf = []
-y = .23
-while y < .6:
-    x = -.5 + (cell / 2 if round((y - .23) / (cell * .6)) % 2 else 0)
-    while x < .5:
+MZ = FZ(0, .44) - .095; cell = .05 if DETAIL else .08; k = 0; mv = []; mf = []
+y = .22
+while y < .66:
+    x = -.56 + (cell / 2 if round((y - .22) / (cell * .6)) % 2 else 0)
+    while x < .56:
         if all(inside(MOUTH, x + dx, y + dy) for dx, dy in ((cell * .55, 0), (-cell * .55, 0), (0, cell * .35), (0, -cell * .35))):
             zc = MZ - .02 * (x / .5) ** 2
             o = [(x + cell * .5, y), (x, y + cell * .3), (x - cell * .5, y), (x, y - cell * .3)]

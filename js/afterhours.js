@@ -121,14 +121,14 @@ CARS.push(
   cam:{p:[4.8,.9,-4.2],l:[0,.45,-.2],roll:.08,fov:30}}
 );
 CARS.push(
- {id:'wisp',sculpt:'wisp',name:'WISP 07',body:'hatch',lowPro:true,paint:0xe8f4ff,metal:.35,rough:.18,rim:0x1a1c20,rimLip:0x0e0f11,caliper:0x7dffef,wing:true,accent:0x7dffef,spokes:5,world:'ice',
+ {id:'wisp',sculpt:'wisp',name:'WISP 07',body:'wisp',lowPro:false,paint:0x050506,metal:.55,rough:.08,rim:0x2c2a33,rimLip:0x19181d,caliper:0xa8ff1a,wing:true,accent:0xa8ff1a,spokes:5,world:'wisp',
   top:97,acc:39,grip:29,nitro:1.55,mass:.52,nitroRegenMul:.28,nosVmax:1.42,nosAccMul:2.05,nosDrainMul:1.18,
   kick:'Carbon tub',loc:'South Street, Loading Bay 2',when:'Tuesday, 01:08',
   caption:'Weighed on a freight scale. The clerk thought the scale was broken.',
   specs:'TRIPLE E-MOTOR / 920 HP / 1,980 LB / 0–60 IN 1.8S',
   rival:'Rival note: it launches like a railgun. Boost takes forever to come back.',
   note:'feather.\nviolent.', notePos:{l:'62%',t:'35%'},
-  cam:{p:[-4.0,.85,3.6],l:[0,.55,.35],roll:-.05,fov:32}},
+  cam:{p:[-3.7,.58,4.3],l:[.15,.62,.45],roll:-.035,fov:36}},
  {id:'stratos',sculpt:'stratos',name:'STRATOS V',body:'stratos',lowPro:true,paint:0xff5c12,metal:.72,rough:.12,rim:0x101114,caliper:0xffd23b,wing:true,livery:0xffd23b,accent:0xffd23b,spokes:5,world:'ice',
   top:102,acc:29,grip:35,nitro:1.42,mass:1.08,nosVmax:1.28,
   kick:'Wind-tunnel',loc:'Delaware Ave Overpass',when:'Pre-dawn, 04:55',
@@ -438,6 +438,14 @@ function makeEnv(kind){
       for(let i=0;i<16;i++) g.fillRect(i*64+8,70+(i%3)*28,40,7);
       g.fillRect(0,150,w,4); g.fillRect(0,196,w,3);
       g.globalAlpha=.6; g.fillRect(300,20,420,30); g.globalAlpha=1;
+    } else if(kind==='pinkcity'){ // Wisp's street: violet dusk sky, lit towers, pink neon and cool shopfronts low on the horizon
+      const gr=g.createLinearGradient(0,0,0,h);
+      gr.addColorStop(0,'#0d0a2a');gr.addColorStop(.3,'#2a1d5c');gr.addColorStop(.46,'#5a3a86');gr.addColorStop(.5,'#c060b0');gr.addColorStop(.55,'#2a1430');gr.addColorStop(1,'#07050a');
+      g.fillStyle=gr;g.fillRect(0,0,w,h);
+      for(let i=0;i<22;i++){ const x=i*48+Math.random()*20, bw=24+Math.random()*30, top=h*(.14+Math.random()*.22); g.fillStyle='#120e24'; g.fillRect(x,top,bw,h*.5-top);
+        g.fillStyle='#cfe0ff'; for(let y=top+4;y<h*.48;y+=7) for(let xx=x+3;xx<x+bw-3;xx+=6) if(Math.random()<.32) g.fillRect(xx,y,3,3); }
+      [['#ff3fb8',.53,90],['#ff5ad0',.56,60],['#4f8bff',.54,70],['#ffb070',.42,40],['#b8ff3a',.55,22]].forEach(([c,y,r],i)=>{ for(let k=0;k<5;k++){ const x=Math.random()*w, rg=g.createRadialGradient(x,h*y,0,x,h*y,r);
+        rg.addColorStop(0,c); rg.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=rg; g.fillRect(x-r,h*y-r,r*2,r*2); } });
     } else if(kind==='tunnel'){ // inside a lit road tube: dark vault, two rows of LED strips overhead, tiled walls glowing low, green exits
       const gr=g.createLinearGradient(0,0,0,h);
       gr.addColorStop(0,'#05070a');gr.addColorStop(.3,'#0c1118');gr.addColorStop(.46,'#3a4450');gr.addColorStop(.5,'#8e9aa8');gr.addColorStop(.56,'#2a3038');gr.addColorStop(1,'#07080a');
@@ -465,7 +473,7 @@ function makeEnv(kind){
   const t=new THREE.CanvasTexture(c); t.mapping=THREE.EquirectangularReflectionMapping; t.encoding=THREE.sRGBEncoding;
   const rt=pmrem.fromEquirectangular(t); t.dispose(); return rt.texture;
 }
-const ENV={ice:makeEnv('ice'),flash:makeEnv('flash'),street:makeEnv('street'),tunnel:makeEnv('tunnel')};
+const ENV={ice:makeEnv('ice'),flash:makeEnv('flash'),street:makeEnv('street'),tunnel:makeEnv('tunnel'),pinkcity:makeEnv('pinkcity')};
 
 const glowTex=new THREE.CanvasTexture(canvasTex(64,64,(g)=>{const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.25,'rgba(255,255,255,.5)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,64,64);}));
 const poolTex=new THREE.CanvasTexture(canvasTex(128,128,(g)=>{const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,'rgba(255,255,255,.9)');r.addColorStop(.45,'rgba(255,255,255,.35)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,128,128);}));
@@ -614,6 +622,12 @@ const trimM=new THREE.MeshStandardMaterial({color:0x050506,metalness:.2,roughnes
 const carbonM=new THREE.MeshStandardMaterial({map:CARTEX.carbon,metalness:.45,roughness:.28,envMapIntensity:1.1});
 const gapM=new THREE.MeshBasicMaterial({color:0x020203}), lensM=new THREE.MeshStandardMaterial({color:0x0b0e13,metalness:.9,roughness:.08}), exhM=new THREE.MeshStandardMaterial({color:0xb8bec6,metalness:1,roughness:.18});
 const TIRE_GEO=new THREE.CylinderGeometry(.37,.37,.3,32), ROTOR_GEO=new THREE.CylinderGeometry(.25,.25,.024,28), BARREL_GEO=new THREE.CylinderGeometry(.275,.275,.2,24,1,true);
+// Wisp 07 tire: lathed profile with rounded shoulders (threejs-geometry: LatheGeometry), far more segments than TIRE_GEO
+let WISP_TIRE=null; function wispTireGeo(){ if(WISP_TIRE) return WISP_TIRE; const p=[];
+  [[.262,-.15],[.3,-.152],[.34,-.148],[.358,-.138],[.367,-.12],[.37,-.09],[.37,.09],[.367,.12],[.358,.138],[.34,.148],[.3,.152],[.262,.15]].forEach(([r,y])=>p.push(new THREE.Vector2(r,y)));
+  const ref=[]; for(let i=0;i<p.length-1;i++){ ref.push(p[i]); ref.push(p[i].clone().lerp(p[i+1],.5)); } ref.push(p[p.length-1]);
+  WISP_TIRE=new THREE.LatheGeometry(ref,96); return WISP_TIRE; }
+const WISP_BAND_GEO=new THREE.RingGeometry(.298,.34,96);
 const PLATE_CACHE={};
 function plateTex(txt){ if(PLATE_CACHE[txt]) return PLATE_CACHE[txt]; const c=canvasTex(256,64,(g,w,h)=>{ g.fillStyle='#e9ecef'; g.fillRect(0,0,w,h); g.strokeStyle='#1a2a4a'; g.lineWidth=4; g.strokeRect(3,3,w-6,h-6);
   g.fillStyle='#1a2a4a'; g.font='800 38px "Arial Narrow",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(txt,w/2,h/2+3,w*.86); g.font='700 10px Arial'; g.fillText('PENNSYLVANIA',w/2,10); });
@@ -633,6 +647,8 @@ const BODIES={
    cab:[[-1.6,.98],[-1.05,1.42],[.35,1.46],[.95,1.22],[1.38,.96]],cabBase:[-1.6,.95,1.38,.94],w:1.94,cw:1.5,wr:.38,wb:1.58,tr:.9,front:2.5,rear:2.5,headY:.74,tailY:.92,wingY:1.2,wingZ:-2.3},
  hatch:{pts:[[-1.98,.42],[-2.04,.78],[-1.98,1.0],[-1.5,1.06],[-.5,1.04],[.5,1.0],[1.3,.88],[1.82,.7],[2.0,.52],[2.02,.4]],base:.3,
    cab:[[-1.92,1.0],[-1.72,1.52],[-.3,1.6],[.5,1.34],[1.02,1.02]],cabBase:[-1.92,.98,1.02,.98],w:1.84,cw:1.5,wr:.35,wb:1.26,tr:.94,front:2.02,rear:2.04,headY:.76,tailY:.94,wingY:1.66,wingZ:-1.82},
+ wisp:{pts:[[-2.12,.42],[-2.18,.8],[-2.1,1.0],[-1.5,1.04],[-.5,1.0],[.5,.98],[1.3,.92],[1.85,.8],[2.18,.62],[2.24,.4]],base:.28, // time-attack hatch (Blender GLB, tools/blender/wisp_07.py)
+   cab:[[-2.1,1.04],[-1.9,1.43],[-.3,1.47],[.5,1.32],[.92,1.03]],cabBase:[-2.1,1.02,.92,1.0],w:1.76,cw:1.5,wr:.38,wb:1.42,tr:.92,front:2.24,rear:2.18,headY:.69,tailY:.87,wingY:1.62,wingZ:-2.05},
  truck:{pts:[[-2.62,.66],[-2.68,1.06],[-2.6,1.2],[-1.6,1.22],[-.6,1.22],[.2,1.24],[1.1,1.3],[1.9,1.24],[2.5,1.06],[2.64,.78]],base:.56,
    cab:[[-.62,1.22],[-.5,1.96],[.62,2.0],[1.14,1.62],[1.56,1.3]],cabBase:[-.62,1.2,1.56,1.28],w:2.04,cw:1.8,wr:.5,wb:1.72,tr:.96,front:2.64,rear:2.68,headY:1.06,tailY:1.02,wingY:2.1,wingZ:-2.2},
  coupe:{pts:[[-2.12,.4],[-2.18,.74],[-2.08,.96],[-1.6,1.02],[-.8,1.04],[.2,.98],[1.1,.86],[1.75,.72],[2.12,.54],[2.16,.38]],base:.24,
@@ -1980,7 +1996,31 @@ function zephyrShell(g,def,B,paint,glass){
   K.plate(def,.4,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
+/* ---- Wisp 07 (Blender build, v3): a gloss-black five-door time-attack hatch modeled in Blender (tools/blender/wisp_07.py) ----
+   From Paris's three reference renders: flat-faced bolt-on over-fenders with rivets, a hawk-eye nose with a honeycomb hex
+   grille, a top-mount hood scoop and louvers, carbon splitter and canards, lime trim on the splitter, skirts and shoulders,
+   a lime roll cage and red harnesses behind tinted glass, vented rear quarters and a swan-neck time-attack wing.
+   threejs-materials: tinted MeshPhysical glass (transparent, no depth write) so the cage reads through the windows;
+   the lime is a glossy clear-coated paint with a little emission so it holds its color at night without blooming out. */
+const WISP_LIME=new THREE.MeshPhysicalMaterial({color:0x3cff00,emissive:0x2fb800,emissiveIntensity:.5,metalness:0,roughness:.25,clearcoat:1,clearcoatRoughness:.05});
+const WISP_GLASS=new THREE.MeshPhysicalMaterial({color:0x10141c,metalness:.1,roughness:.02,clearcoat:1,clearcoatRoughness:.02,reflectivity:1,envMapIntensity:1.8,transparent:true,opacity:.42,depthWrite:false});
+const WISP_CABIN=new THREE.MeshStandardMaterial({color:0x0c0c0e,roughness:.85,metalness:0});
+const WISP_RED=new THREE.MeshStandardMaterial({color:0xd01818,roughness:.45,metalness:.1});
+const WISP_SATIN=new THREE.MeshStandardMaterial({color:0x34363c,metalness:.9,roughness:.32});
+function wispGlbShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('wisp'); if(!parts) return wispShell(g,def,B,paint,glass,opts);
+  const K=carKit(g); rimPaint(paint,0x8fa0ff,.07); paint.color.set(def.paint||0x050506); paint.metalness=.55; paint.roughness=.08; paint.clearcoat=1; paint.clearcoatRoughness=.008; paint.envMapIntensity=1.5;
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:WISP_GLASS,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M,SATIN:WISP_SATIN,LIME:WISP_LIME,INTERIOR:WISP_CABIN,RED:WISP_RED};
+  parts.forEach(p=>{ const m=new THREE.Mesh(p.geo,MATS[p.key]||paint); if(p.key==='GLASS') m.renderOrder=3; g.add(m); });
+  { const pr=K.add(new THREE.PlaneGeometry(.5,.13),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'WISP07'),roughness:.5}),0,.63,-2.148); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xd8f0ff,.55,sd*.63,.69,2.2); K.glow(0xff2030,.38,sd*.64,.87,-2.21); K.glow(0xd8f0ff,.22,sd*.75,.38,2.17); });
+  K.glow(0xff2030,.25,0,.245,-2.1);
+  // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in wisp_07.py)
+  const HS=[[-2.18,.74],[-2.1,.84],[-1.9,.88],[-1.42,.895],[-.6,.895],[0,.89],[.6,.895],[1.42,.895],[2.0,.91],[2.24,.8]],
+    YS=[[-2.18,.9],[-2.0,.93],[-1.4,.93],[-.6,.91],[.4,.89],[.9,.87],[1.5,.82],[1.95,.74],[2.24,.56]], YB=[[-2.18,.36],[-2.06,.22],[-1.8,.17],[1.8,.17],[2.06,.2],[2.24,.26]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.06,ay:ys-.12,yc:ys+.1,yf:ys+.1}; }};
+}
+const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -2001,7 +2041,7 @@ const STREET={
  hikari:{glow:0xff3cd8,wheel:'six',camber:.1}, // wears its own lime slashes (hikariShell) // already wears its 37 roundels and windshield banner
  split:{vinyl:'flames',wheel:'twin'},
  overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan'},
- wisp:{wheel:'fan'},
+ wisp:{wheel:'wisp',camber:.03},
  stratos:{wheel:'split'},
  volcano:{wheel:'forged'},
  hellbound:{wheel:'dish',camber:.03},
@@ -2138,6 +2178,22 @@ function wheelStyle(spin,side,style,rimM,def){
       at(new THREE.Mesh(W6.cap,rimM),.16); at(new THREE.Mesh(W6.boss,MACHINED_M),.182);
       const lb=WHEEL_GEO.lip6||(WHEEL_GEO.lip6=new THREE.CylinderGeometry(.281,.281,.036,48,1,true).rotateZ(Math.PI/2)); at(new THREE.Mesh(lb,rimM),.169); // lip barrel wall between sidewall and step
       break; }
+    case 'wisp': { // Wisp 07, from the side reference: five chunky Y spokes in smoked gunmetal, each forking into twin tines at
+      // the lip, open between them so the drilled rotor and lime caliper show; stepped lip with a machined edge, small lime-ringed cap
+      const W=WHEEL_GEO.wisp||(WHEEL_GEO.wisp=(()=>{ const P=(r,t)=>[-Math.sin(t)*r,Math.cos(t)*r], blades=[];
+        for(let k=0;k<5;k++){ const a=k/5*Math.PI*2; [-1,1].forEach(f=>{ const sh=new THREE.Shape();
+            const pts=[P(.062,a-.11+f*.05),P(.15,a+f*.045-.055),P(.272,a+f*.17-.05),P(.272,a+f*.17+.05),P(.15,a+f*.045+.055),P(.062,a+.11+f*.05)];
+            sh.moveTo(...pts[0]); sh.quadraticCurveTo(...pts[1],...pts[2]); sh.lineTo(...pts[3]); sh.quadraticCurveTo(...pts[4],...pts[5]); sh.lineTo(...pts[0]);
+            const g=new THREE.ExtrudeGeometry(sh,{depth:.04,bevelEnabled:true,bevelThickness:.012,bevelSize:.009,bevelSegments:5,curveSegments:20}); g.translate(0,0,-.02); g.rotateY(Math.PI/2); blades.push(g); }); }
+        const hubG=new THREE.CylinderGeometry(.088,.1,.05,48).rotateZ(Math.PI/2);
+        return {blades,hub:hubG,step:new THREE.RingGeometry(.264,.286,96).rotateY(Math.PI/2),edge:new THREE.TorusGeometry(.286,.006,8,128).rotateY(Math.PI/2),
+          lip:new THREE.CylinderGeometry(.286,.286,.036,96,1,true).rotateZ(Math.PI/2),cap:new THREE.CylinderGeometry(.044,.05,.03,36).rotateZ(Math.PI/2),
+          capRing:new THREE.TorusGeometry(.05,.006,8,48).rotateY(Math.PI/2),nut:new THREE.CylinderGeometry(.012,.012,.03,6).rotateZ(Math.PI/2)}; })());
+      W.blades.forEach(b=>{ const piv=new THREE.Group(); piv.add(new THREE.Mesh(b,rimM)); piv.rotation.z=-side*.06; at(piv,.158); });
+      at(new THREE.Mesh(W.hub,rimM),.15); at(new THREE.Mesh(W.lip,rimM),.168); at(new THREE.Mesh(W.step,rimM),.186).rotation.y=side>0?0:Math.PI; at(new THREE.Mesh(W.edge,MACHINED_M),.188);
+      at(new THREE.Mesh(W.cap,blackM),.178); at(new THREE.Mesh(W.capRing,WISP_LIME),.192);
+      for(let k=0;k<5;k++){ const a=k/5*Math.PI*2+Math.PI/5, n=new THREE.Mesh(W.nut,MACHINED_M); n.position.set(side*.18,Math.cos(a)*.07,Math.sin(a)*.07); spin.add(n); }
+      break; }
     case 'aero': // aero cover: flat disc with five teardrop windows
       at(new THREE.Mesh(new THREE.CircleGeometry(.27,28),rimM),.15).rotation.y=side*Math.PI/2;
       for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, h=new THREE.Mesh(new THREE.CircleGeometry(.05,14),gapM); h.rotation.y=side*Math.PI/2;
@@ -2268,17 +2324,23 @@ function buildCar(def,opts){
   [[B.tr,B.wb],[-B.tr,B.wb],[B.tr,-B.wb],[-B.tr,-B.wb]].forEach(([x,z],i)=>{
     const holder=new THREE.Group(); holder.position.set(x,wr,z); g.add(holder);
     const spin=new THREE.Group(); spin.scale.setScalar(sc); holder.add(spin);
-    const tire=new THREE.Mesh(TIRE_GEO,[tireTreadM,tireSideM,tireSideM]); tire.rotation.z=Math.PI/2; spin.add(tire);
+    const tire=new THREE.Mesh(cid==='wisp'?wispTireGeo():TIRE_GEO,cid==='wisp'?tireTreadM:[tireTreadM,tireSideM,tireSideM]); tire.rotation.z=Math.PI/2; spin.add(tire);
+    if(cid==='wisp'){ // the lime sidewall from the reference, on the outer face of the tire
+      const sx=Math.sign(x), band=new THREE.Mesh(WISP_BAND_GEO,WISP_LIME); band.rotation.y=Math.PI/2*sx; band.position.x=sx*.154; spin.add(band); }
     const side=Math.sign(x);
     const barrel=new THREE.Mesh(BARREL_GEO,barrelM); barrel.rotation.z=Math.PI/2; barrel.position.x=side*.05; spin.add(barrel);
     const rotor=new THREE.Mesh(ROTOR_GEO,[barrelM,rotorM,rotorM]); rotor.rotation.z=Math.PI/2; rotor.position.x=side*.02; spin.add(rotor);
-    if(!['forged','six'].includes((STREET[cid]||{}).wheel)){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
+    if(!['forged','six','wisp'].includes((STREET[cid]||{}).wheel)){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
     const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
     wheelStyle(spin,side,(STREET[cid]||{}).wheel,rimM,def);
     if(def.lowPro) spin.children.forEach(o=>{ if(o!==tire&&o!==barrel&&o!==rotor){ o.scale.y*=1.2; o.scale.z*=1.2; } }); // bigger rim inside the same tire: thin sidewall
     const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,12),cid==='hikari'?rimM:calM); // hikari: gunmetal centre, the red is on the calipers hub.rotation.z=Math.PI/2; hub.position.x=side*.17; spin.add(hub);
-    for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, nut=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.03,6),chromeTrimM); nut.rotation.z=Math.PI/2; nut.position.set(side*(cid==='hikari'?.184:.165),Math.cos(a)*.085,Math.sin(a)*.085); spin.add(nut); }
-    const cal=new THREE.Mesh(new THREE.BoxGeometry(.07,.2,.18),calM); cal.position.set(side*.06,.14*sc,-.06); holder.add(cal);
+    if(cid!=='wisp') for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, nut=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.03,6),chromeTrimM); nut.rotation.z=Math.PI/2; nut.position.set(side*(cid==='hikari'?.184:.165),Math.cos(a)*.085,Math.sin(a)*.085); spin.add(nut); }
+    if(cid==='wisp'){ // six-piston monobloc caliper: an arc hugging the rotor, lime with a black bridge, sat at the trailing edge
+      const cg=WHEEL_GEO.wispCal||(WHEEL_GEO.wispCal=(()=>{ const sh=new THREE.Shape(); sh.absarc(0,0,.255,.55,1.45,false); sh.absarc(0,0,.175,1.45,.55,true);
+        const g=new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:3,curveSegments:16}); g.translate(0,0,-.03); g.rotateY(Math.PI/2); return g; })());
+      const cal=new THREE.Mesh(cg,WISP_LIME); cal.position.x=side*.065; cal.scale.setScalar(sc); holder.add(cal); }
+    else { const cal=new THREE.Mesh(new THREE.BoxGeometry(.07,.2,.18),calM); cal.position.set(side*.06,.14*sc,-.06); holder.add(cal); }
     if(cid==='split'){ const k=new THREE.Mesh(new THREE.BoxGeometry(.02,.16,.03),chromeTrimM); k.position.x=side*.19; spin.add(k); const h=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.03,8),chromeTrimM); h.rotation.z=Math.PI/2; h.position.x=side*.185; spin.add(h); } // knock-off spinner
     if(cid==='overload'){ const hr=new THREE.Mesh(new THREE.RingGeometry(.075,.1,24),new THREE.MeshBasicMaterial({color:def.accent,toneMapped:false,side:THREE.DoubleSide})); hr.rotation.y=side*Math.PI/2; hr.position.x=side*.19; spin.add(hr); } // lit motor ring
     const cam=(STREET[cid]||{}).camber; if(cam) holder.rotation.z=side*cam; // stance: tops of the wheels tucked in
@@ -5226,10 +5288,97 @@ for(let i=0;i<26;i++){ const d=new THREE.Sprite(new THREE.SpriteMaterial({map:sm
   d.position.set(1.5+Math.random()*5,.3+Math.random()*1.2,-2.5+Math.random()*4); d.scale.setScalar(1.5+Math.random()*2.5); d.userData.v=.2+Math.random()*.5; dust.add(d); }
 const horizon=new THREE.Mesh(new THREE.CylinderGeometry(40,40,6,48,1,true),new THREE.MeshBasicMaterial({color:0x1d2a24,side:THREE.BackSide,fog:false}));
 horizon.position.y=2; studio.add(horizon);
+/* ---- Wisp 07's own car-select set, from Paris's fourth reference: the car parked at a curb on a wet Belgian-block street
+   at night. Flagstone sidewalk and granite curb in the foreground, autumn trees lit warm from below, glass towers with lit
+   floors against a violet sky, street lamps and sagging wires, pink neon shopfronts and a graffiti shutter across the road.
+   threejs-textures: every surface is a CanvasTexture (color, plus a roughness/bump map so the stones read wet and the
+   joints dry). threejs-lighting: magenta and blue point lights paint the flank the way the reference does; they stay in
+   the studio at zero intensity on the other pages so switching cars never recompiles shaders. ---- */
+const wispSet=new THREE.Group(); wispSet.visible=false; studio.add(wispSet);
+const wispLights=[[0xff3fb4,2.4,9,-3.4,1.4,3.4],[0xff55d0,1.1,10,-.6,3.6,-3.6],[0x4c7cff,1.8,14,4.6,2.6,-1.6],[0xffa860,1.4,10,-3.2,5.8,-7]].map(([c,i,d,x,y,z])=>{
+  const L=new THREE.PointLight(c,0,d,2); L.position.set(x,y,z); L.userData.on=i; studio.add(L); return L; });
+(function(){
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  // stones: color + a matching gray map (bright stone = high, dark joint = low) used as bump, and inverted for roughness
+  const stones=(n,draw)=>{ const col=canvasTex(n,n,(g,w,h)=>draw(g,w,h,false)), gray=canvasTex(n,n,(g,w,h)=>draw(g,w,h,true)), rough=canvasTex(n,n,(g,w,h)=>{ g.drawImage(gray,0,0); g.globalCompositeOperation='difference'; g.fillStyle='#fff'; g.fillRect(0,0,w,h);
+      g.globalCompositeOperation='source-over'; g.fillStyle='rgba(0,0,0,.45)'; g.fillRect(0,0,w,h); }); return {col:CT(col,true),gray:CT(gray,true),rough:CT(rough,true)}; };
+  const blocks=stones(1024,(g,w,h,gr)=>{ g.fillStyle=gr?'#000':'#07080c'; g.fillRect(0,0,w,h); const rows=20, bh=h/rows;
+    for(let r=0;r<rows;r++){ let x=-Math.random()*40; while(x<w){ const bw=rnd(38,62), sh=gr?Math.round(rnd(150,235)):null;
+        g.fillStyle=gr?`rgb(${sh},${sh},${sh})`:`hsl(${rnd(215,250)},${rnd(8,20)}%,${rnd(13,24)}%)`;
+        const x0=x+rnd(2,4), y0=r*bh+rnd(2,4), ww=bw-rnd(4,7), hh=bh-rnd(4,7), rr=7; g.beginPath(); g.moveTo(x0+rr,y0); g.arcTo(x0+ww,y0,x0+ww,y0+hh,rr); g.arcTo(x0+ww,y0+hh,x0,y0+hh,rr); g.arcTo(x0,y0+hh,x0,y0,rr); g.arcTo(x0,y0,x0+ww,y0,rr); g.fill();
+        if(!gr){ g.fillStyle='rgba(255,255,255,.05)'; g.fillRect(x0+4,y0+3,ww-8,3); } x+=bw; } } });
+  [blocks.col,blocks.gray,blocks.rough].forEach(t=>t.repeat.set(14,14));
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(56,56),new THREE.MeshStandardMaterial({map:blocks.col,bumpMap:blocks.gray,bumpScale:.03,roughnessMap:blocks.rough,roughness:.55,metalness:.15,envMapIntensity:1.6}));
+  road.rotation.x=-Math.PI/2; road.position.set(12,0,-10); wispSet.add(road);
+  const flags=stones(1024,(g,w,h,gr)=>{ g.fillStyle=gr?'#000':'#0b0a0f'; g.fillRect(0,0,w,h); const n=5, cs=w/n;
+    for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const sh=gr?Math.round(rnd(160,230)):null; g.fillStyle=gr?`rgb(${sh},${sh},${sh})`:`hsl(${rnd(220,260)},${rnd(6,14)}%,${rnd(20,30)}%)`;
+      const jx=()=>rnd(-10,10); g.beginPath(); g.moveTo(i*cs+6+jx(),j*cs+6+jx()); g.lineTo((i+1)*cs-6+jx(),j*cs+6+jx()); g.lineTo((i+1)*cs-6+jx(),(j+1)*cs-6+jx()); g.lineTo(i*cs+6+jx(),(j+1)*cs-6+jx()); g.closePath(); g.fill();
+      if(!gr){ for(let k=0;k<40;k++){ g.fillStyle=`rgba(255,255,255,${rnd(.01,.05)})`; g.fillRect(i*cs+rnd(10,cs-10),j*cs+rnd(10,cs-10),rnd(2,10),rnd(2,6)); } } } });
+  [flags.col,flags.gray,flags.rough].forEach(t=>t.repeat.set(6,10));
+  const walk=new THREE.Mesh(new THREE.BoxGeometry(12,.14,46),new THREE.MeshStandardMaterial({map:flags.col,bumpMap:flags.gray,bumpScale:.025,roughnessMap:flags.rough,roughness:.5,metalness:.1,envMapIntensity:1.5}));
+  walk.position.set(-7.55,.07,-6); wispSet.add(walk);
+  const curb=new THREE.Mesh(new THREE.BoxGeometry(.24,.16,46),new THREE.MeshStandardMaterial({color:0x6a6878,roughness:.32,metalness:.1})); curb.position.set(-1.5,.08,-6); wispSet.add(curb);
+  // far sidewalk and the shopfronts across the street
+  const walk2=walk.clone(); walk2.position.set(14.5,.07,-6); wispSet.add(walk2);
+  const shopM=new THREE.MeshStandardMaterial({color:0x0b0910,roughness:.95}); const glowM=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false});
+  [[-12,0xff3fb8],[-4,0xff6ad6],[3.5,0x4f8bff],[11,0xff3fb8]].forEach(([z,c],i)=>{ const f=new THREE.Mesh(new THREE.BoxGeometry(.4,4.2,7.2),shopM); f.position.set(9.4,2.1,z); wispSet.add(f);
+    const win=new THREE.Mesh(new THREE.PlaneGeometry(5.4,1.9),new THREE.MeshBasicMaterial({color:new THREE.Color(c).multiplyScalar(.1)})); win.position.set(9.18,1.3,z); win.rotation.y=-Math.PI/2; wispSet.add(win);
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(.06,.06,5.6),glowM(c)); bar.position.set(9.16,2.42,z); wispSet.add(bar);
+    const pool=glowSprite(c,3.4); pool.position.set(8.8,2.3,z); wispSet.add(pool); });
+  { const ring=new THREE.Mesh(new THREE.TorusGeometry(.55,.05,10,48),glowM(0xb6ff2a)); ring.position.set(9.1,3.1,-12.6); ring.rotation.y=Math.PI/2; wispSet.add(ring); // round lime neon sign
+    const sg=glowSprite(0xb6ff2a,2.4); sg.position.set(9,3.1,-12.6); wispSet.add(sg); }
+  { const sh=new THREE.Mesh(new THREE.PlaneGeometry(3.4,2.6),new THREE.MeshStandardMaterial({roughness:.6,metalness:.4,map:CT(canvasTex(512,384,(g,w,h)=>{ // roll-up shutter with tags
+      for(let y=0;y<h;y+=12){ g.fillStyle=(y/12)%2?'#3b3a44':'#4a4954'; g.fillRect(0,y,w,12); }
+      [['#ff3fb8','NITE'],['#9dff1c','WSP'],['#4fd0ff','07']].forEach(([c,t],i)=>{ g.save(); g.translate(60+i*150,140+i*60); g.rotate(-.12+i*.08); g.font='900 italic 92px Arial'; g.lineWidth=10; g.strokeStyle='#111'; g.strokeText(t,0,0); g.fillStyle=c; g.fillText(t,0,0); g.restore(); }); }))}));
+    sh.position.set(9.16,1.3,5.6); sh.rotation.y=-Math.PI/2; wispSet.add(sh); }
+  // trees: dark trunks, crowns of jittered icosahedra in autumn orange and neon-washed pink (vertex colors, one draw call)
+  const crowns=[], trunks=[];
+  [[-3.0,-6],[-3.0,-15],[-3.0,-24],[-3.0,9],[8.3,-2],[8.3,-12.5],[8.3,-22],[8.3,6.5]].forEach(([x,z],ti)=>{
+    const tg=new THREE.CylinderGeometry(.1,.17,3.6,10); tg.translate(x,1.8,z); trunks.push(tg);
+    for(let k=0;k<9;k++){ const r=rnd(.9,1.5), gq=new THREE.IcosahedronGeometry(r,1), P=gq.attributes.position;
+      for(let i=0;i<P.count;i++) P.setXYZ(i,P.getX(i)*rnd(.85,1.15),P.getY(i)*rnd(.75,1.05),P.getZ(i)*rnd(.85,1.15));
+      gq.translate(x+rnd(-1.3,1.3),rnd(3.6,5.6),z+rnd(-1.3,1.3)); gq.computeVertexNormals();
+      const c=new THREE.Color().setHSL(Math.random()<.18?rnd(.93,.97):rnd(.02,.08),rnd(.75,.95),rnd(.3,.46)), col=new Float32Array(P.count*3);
+      for(let i=0;i<P.count;i++){ const v=rnd(.75,1.1); col[i*3]=c.r*v; col[i*3+1]=c.g*v; col[i*3+2]=c.b*v; }
+      gq.setAttribute('color',new THREE.BufferAttribute(col,3)); crowns.push(gq); } });
+  const leafM=new THREE.MeshStandardMaterial({vertexColors:true,flatShading:true,roughness:.85,emissive:0x7a2a08,emissiveIntensity:.45});
+  wispSet.add(new THREE.Mesh(mergeGeos(crowns),leafM));
+  wispSet.add(new THREE.Mesh(mergeGeos(trunks),new THREE.MeshStandardMaterial({color:0x1a1210,roughness:.9})));
+  // street lamps and the wires strung between them
+  const poleM=new THREE.MeshStandardMaterial({color:0x15151a,metalness:.6,roughness:.4}), heads=[];
+  [[-2.4,-10,1],[-2.4,-26,1],[8.6,-17,-1],[8.6,1.5,-1]].forEach(([x,z,sd])=>{ const p=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,7,10),poleM); p.position.set(x,3.5,z); wispSet.add(p);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(1.6,.07,.07),poleM); arm.position.set(x+sd*.75,6.9,z); wispSet.add(arm);
+    const hd=new THREE.Mesh(new THREE.BoxGeometry(.5,.12,.24),glowM(0xffd9a8)); hd.position.set(x+sd*1.45,6.82,z); wispSet.add(hd); heads.push(hd.position);
+    const gl=glowSprite(0xffc890,3.2); gl.position.copy(hd.position); wispSet.add(gl); });
+  const wireM=new THREE.MeshBasicMaterial({color:0x0a0812});
+  [[[-2.4,7.4,-10],[8.6,7.6,-17]],[[-2.4,7.2,-26],[8.6,7.5,-17]],[[-2.4,7.6,-10],[-2.4,7.5,-26]],[[8.6,7.3,1.5],[-2.4,7.1,-10]]].forEach(([a,b])=>{
+    const m=new THREE.Vector3((a[0]+b[0])/2,Math.min(a[1],b[1])-.7,(a[2]+b[2])/2);
+    wispSet.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(new THREE.Vector3(...a),m,new THREE.Vector3(...b)),24,.012,4,false),wireM)); });
+  // towers: lit floors on a canvas grid, unlit so they glow against the sky; fog off so they read through the haze
+  const towerTex=(warm)=>CT(canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#0b0a16'; g.fillRect(0,0,w,h);
+    for(let y=4;y<h;y+=9) for(let x=3;x<w;x+=7){ if(Math.random()<.42){ const v=rnd(.5,1); g.fillStyle=Math.random()<(warm?.4:.1)?`rgba(255,200,140,${v})`:`rgba(190,215,255,${v})`; g.fillRect(x,y,5,6); } }
+    g.fillStyle='rgba(140,120,255,.06)'; for(let x=0;x<w;x+=14) g.fillRect(x,0,1,h); }));
+  const TT=[towerTex(false),towerTex(true),towerTex(false)];
+  [[34,-34,14,96],[48,-12,16,70],[22,-52,12,120],[58,-44,18,84],[38,-70,15,110],[8,-66,13,78],[66,-18,14,58],[-6,-58,12,64]].forEach(([x,z,wd,ht],i)=>{
+    const t=TT[i%3].clone(); t.needsUpdate=true; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(wd/14,ht/40);
+    const tw=new THREE.Mesh(new THREE.BoxGeometry(wd,ht,wd),new THREE.MeshBasicMaterial({map:t,color:0xb8b0d8,fog:false})); tw.position.set(x,ht/2-2,z); tw.rotation.y=rnd(-.3,.3); wispSet.add(tw);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(wd*.3,.3,.3),glowM(0xff3048)); cap.position.set(x,ht-1.8,z); wispSet.add(cap); });
+  // sky dome: deep blue overhead fading to violet and a pink haze on the horizon
+  wispSet.add(new THREE.Mesh(new THREE.SphereGeometry(220,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,fog:false,depthWrite:false,map:CT(canvasTex(8,256,(g,w,h)=>{
+    const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#070818'); gr.addColorStop(.32,'#1b1648'); gr.addColorStop(.47,'#3b2a74'); gr.addColorStop(.5,'#6a3c8c'); gr.addColorStop(.53,'#1a1024'); gr.addColorStop(1,'#050308'); g.fillStyle=gr; g.fillRect(0,0,w,h); }))})));
+  // a parked car up the street, and wet reflections: long additive streaks under the lamps and the neon
+  const pk=buildTrafficCar(0x1c1a22); pk.group.position.set(-.4,0,-11.5); pk.group.rotation.y=.02; wispSet.add(pk.group);
+  const streakM=c=>new THREE.MeshBasicMaterial({map:glowTex,color:c,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false});
+  [[7.6,-12,0xff3fb8,1.6,9],[7.6,-4,0xff6ad6,1.4,8],[7.6,3.5,0x4f8bff,1.4,8],[7.0,-17,0xffc890,.9,10],[-1.2,-10,0xffc890,.8,9],[-.8,3,0xff3fb4,2.4,6],[2.2,-1,0x4c7cff,2,7]].forEach(([x,z,c,w,l])=>{
+    const st=new THREE.Mesh(new THREE.PlaneGeometry(w,l),streakM(c)); st.rotation.x=-Math.PI/2; st.position.set(x,.012,z); wispSet.add(st); });
+})();
+
 function setWorld(w){
   const W={
     flash:{env:ENV.flash,bg:0x0b0705,hemi:[0xffd9b0,.5],key:[0xfff0dc,2.6],rim:[0xff8a3a,1.2],floor:[0x2a2622,.7],strips:0,bokeh:1,streaks:0,dust:0,hz:0,exp:1.15,near:10,far:34},
     ice:  {env:ENV.ice,bg:0x070a0f,hemi:[0xcfe0ff,.6],key:[0xdfeaff,1.1],rim:[0x9fc4ff,1.6],floor:[0x10141a,.28],strips:1,bokeh:0,streaks:1,dust:0,hz:0,exp:1.05,near:10,far:34},
+    wisp: {env:ENV.pinkcity,bg:0x140c26,hemi:[0x8a70ff,.32],key:[0xffe6f4,.45],rim:[0x7a8cff,1.3],floor:[0x120c18,.2],strips:0,bokeh:0,streaks:0,dust:0,hz:0,exp:1.0,near:16,far:90,set:1,
+      grade:{shadow:[.96,.88,1.22],high:[1.06,1.0,1.06],sat:1.2,vig:.5,grain:0}},
     neon: {env:ENV.ice,bg:0x0a0612,hemi:[0xe0c8ff,.5],key:[0xf2e8ff,1.3],rim:[0xc04cff,1.1],floor:[0x120c18,.2],strips:1,bokeh:1,streaks:1,dust:0,hz:0,exp:1.08,near:10,far:34},
     white:{env:ENV.ice,bg:0x8d9cae,hemi:[0xe6eef8,.7],key:[0xffffff,1.2],rim:[0xcfe0ff,1.4],floor:[0x7f8c9b,.5],strips:0,bokeh:0,streaks:0,dust:0,hz:0,exp:.95,near:12,far:48},
     desert:{env:ENV.street,bg:0x2b3a44,hemi:[0xbcd0e0,.9],key:[0xfff1e0,1.6],rim:[0x9fc0d8,.8],floor:[0xb3aa9e,.95],strips:0,bokeh:0,streaks:0,dust:1,hz:1,exp:1.0,near:14,far:60}
@@ -5237,6 +5386,8 @@ function setWorld(w){
   studio.environment=c.env; studio.fog.color.set(c.bg); studio.background.set(c.bg); studio.fog.near=c.near; studio.fog.far=c.far;
   sHemi.color.set(c.hemi[0]); sHemi.intensity=c.hemi[1]; sKey.color.set(c.key[0]); sKey.intensity=c.key[1]; sRim.color.set(c.rim[0]); sRim.intensity=c.rim[1];
   floorM.color.set(c.floor[0]); floorM.roughness=c.floor[1]; floorM.metalness=w==='desert'?0:.6;
+  wispSet.visible=!!c.set; floor.visible=!c.set; wispLights.forEach(L=>{ L.intensity=c.set?L.userData.on:0; });
+  if(c.grade) studio.userData.grade=c.grade; else delete studio.userData.grade;
   stripsG.visible=!!c.strips; bokeh.visible=!!c.bokeh; floorStreaks.visible=!!c.streaks; dust.visible=!!c.dust; horizon.visible=!!c.hz;
   renderer.toneMappingExposure=c.exp;
   document.body.classList.toggle('warm',w==='flash'||w==='desert');
@@ -5293,7 +5444,8 @@ if(DEV) window.AHDEV={
   cam:(p,l,fov)=>{ DEV.hold={p,l,fov}; },
   track:(s,x,h,back,ahead,fov)=>{ const F=mkF(); frame(s-(back||0),F); const P=F.p.clone().addScaledVector(F.r,x||0); P.y+=h||2;
     frame(s+(ahead||30),F); const Lk=F.p.clone(); Lk.y+=1; DEV.hold={p:P.toArray(),l:Lk.toArray(),fov}; return DEV.hold; },
-  free:()=>{ DEV.hold=null; }};
+  free:()=>{ DEV.hold=null; DEV.scam=null; },
+  scam:(p,l,fov)=>{ DEV.scam={p,l,roll:0,fov:fov||30}; }};
 const CULL_V=new THREE.Vector3(); let DRAW_RACING=false;
 function draw(scene){
   if(DEV&&DEV.hold&&scene!==studio){ const H=DEV.hold; cam.position.fromArray(H.p); cam.lookAt(H.l[0],H.l[1],H.l[2]); if(H.fov&&cam.fov!==H.fov){ cam.fov=H.fov; cam.updateProjectionMatrix(); } }
@@ -6575,7 +6727,7 @@ function cineCam(dt,r){
   cam.fov=clamp(hfovToV(62),38,90); cam.updateProjectionMatrix();
 }
 function studioCam(dt,d,hero){
-  const c=hero?{p:[4.2,1.1,-3.6],l:[0,.6,-.3],roll:-.1,fov:32}:d.cam;
+  const c=hero?{p:[4.2,1.1,-3.6],l:[0,.6,-.3],roll:-.1,fov:32}:(DEV&&DEV.scam)||d.cam; // ?dev: AHDEV.scam() holds a close-up
   const mul=cam.aspect<1?Math.min(2.3,.8/Math.pow(cam.aspect,.9)):1;
   const drift=Math.sin(modeT*.25)*.25;
   tgt.set(c.p[0]*mul+drift,c.p[1]*(cam.aspect<1?1+(mul-1)*.4:1),c.p[2]*mul);
@@ -6702,6 +6854,6 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=1'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ window.AH_MODELS[k]=gl.scene; done(); },undefined,e=>{ console.warn(url+' failed, using the procedural fallback',e); done(); }));
 })();

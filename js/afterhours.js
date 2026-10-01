@@ -194,14 +194,14 @@ CARS.push(
   rival:'Rival note: never leave it behind you for long.',
   note:'patient.\nthen not.', notePos:{l:'58%',t:'33%'},
   cam:{p:[-4.4,.95,3.9],l:[0,.5,.3],roll:.05,fov:31}},
- {id:'autobahn',sculpt:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x0f2a96,metal:.86,rough:.14,rim:0x2a2d33,chrome:true,lowPro:true,caliper:0xffc21a,wing:false,spokes:10,world:'flash',
+ {id:'autobahn',sculpt:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x0a2a8c,metal:.8,rough:.1,rim:0xf2f4f7,chrome:true,lowPro:true,caliper:0xd4121c,wing:false,spokes:10,world:'wisp',
   top:96,acc:27,grip:30,nitro:1.15,mass:1.4,cleanTop:358,vcap:360,
   kick:'Outlaw 04',loc:'I-76, Blue Route split',when:'Unrestricted, 03:30',
-  caption:'Four doors, a hard shoulder line and a light bar across the tail. Drawn in Blender, finished in candy blue. It gets faster the longer you leave it alone.',
+  caption:'Four doors, a roof that never stops falling and a tail lit like a blade. Deep sapphire, chrome split spokes, red calipers. It gets faster the longer you leave it alone.',
   specs:'4.0L TWIN-TURBO V8 + E-AXLE / 830 HP / FOUR DOORS / 800 MPH',
   rival:'Rival note: smooth is fast. Smoother is faster. Smoothest is something else.',
   note:'don\'t touch\nanything.', notePos:{l:'58%',t:'34%'},
-  cam:{p:[4.6,.95,4.4],l:[0,.6,.3],roll:-.05,fov:32}}
+  cam:{p:[-4.1,.62,4.6],l:[.15,.62,.4],roll:-.035,fov:34}}
 );
 // full spec sheets (slide-up panel)
 const SHEETS={
@@ -673,8 +673,8 @@ const BODIES={
    cab:[[-1.25,.95],[-.7,1.2],[.1,1.24],[.7,1.0],[1.15,.72]],cabBase:[-1.25,.93,1.15,.7],w:2.06,cw:1.24,wr:.37,wb:1.5,tr:1.05,front:2.4,rear:2.5,headY:.48,tailY:.68,wingY:1.36,wingZ:-2.28},
  mantis:{pts:[[-2.24,.36],[-2.3,.74],[-2.12,.92],[-1.5,.98],[-.7,.98],[.2,.9],[1.0,.72],[1.6,.54],[2.1,.4],[2.2,.28]],base:.2, // longtail mid-engine
    cab:[[-1.2,.95],[-.7,1.2],[.05,1.26],[.6,1.04],[1.05,.74]],cabBase:[-1.2,.93,1.05,.72],w:1.96,cw:1.26,wr:.36,wb:1.36,tr:1.0,front:2.2,rear:2.3,headY:.5,tailY:.82,wingY:1.12,wingZ:-1.95},
- autobahn:{pts:[[-2.56,.46],[-2.62,.86],[-2.5,.98],[-1.8,1.0],[-.6,.95],[.55,.9],[1.5,.83],[2.15,.72],[2.38,.6],[2.42,.3]],base:.26, // four-door fastback, long hood (v2)
-   cab:[[-2.35,.99],[-1.3,1.29],[-.3,1.42],[.3,1.15],[.6,.9]],cabBase:[-2.35,.97,.6,.89],w:1.98,cw:1.46,wr:.37,wb:1.5,tr:.9,front:2.42,rear:2.62,headY:.63,tailY:.84,wingY:1.08,wingZ:-2.45},
+ autobahn:{pts:[[-2.55,.4],[-2.6,.76],[-2.45,.98],[-2.1,1.1],[-.6,1.06],[.6,1.04],[1.6,1.0],[2.1,.92],[2.4,.78],[2.45,.3]],base:.18, // four-door fastback on AMG GT 63 4-Door proportions (v4, traced)
+   cab:[[-2.16,1.08],[-1.35,1.33],[-.5,1.444],[.3,1.31],[.92,1.04]],cabBase:[-2.16,1.06,.92,1.02],w:1.95,cw:1.4,wr:.36,wb:1.475,tr:.8,front:2.455,rear:2.6,headY:.7,tailY:.93,wingY:1.17,wingZ:-2.35},
  bell:{pts:[[-2.66,.34],[-2.72,.62],[-2.52,.84],[-1.7,.96],[-.7,.99],[.3,.92],[1.2,.76],[1.85,.58],[2.26,.42],[2.3,.3]],base:.2,
    cab:[[-1.2,.94],[-.6,1.24],[.25,1.3],[.85,1.04],[1.25,.78]],cabBase:[-1.2,.92,1.25,.76],w:2.04,cw:1.3,wr:.37,wb:1.5,tr:.94,front:2.3,rear:2.72,headY:.56,tailY:.76,wingY:1.14,wingZ:-2.36},
  hikari:{pts:[[-2.2,.4],[-2.26,.74],[-2.12,.9],[-1.6,.94],[-.8,.96],[.2,.9],[1.1,.8],[1.8,.68],[2.2,.52],[2.26,.38]],base:.22, // fastback drift coupe (sculpted; pts/cab are the fallback profile)
@@ -885,20 +885,25 @@ function volcanoShell(g,def,B,paint,glass,opts){
    Proportioned from side-view refs of the class: long hood with the cowl behind the front axle, convex sides that swell over
    both axles into wide hips, a low tumblehome glasshouse falling to a ducktail, gloss-black sills/valance, flush lower aero.
    Blender material names map onto the game's materials; the procedural autobahnShell stays as the fallback. */
-const PLATE_Z=-2.605, HEAD_Z=2.28, TAIL_Z=-2.64; // lamp glow / plate stations measured off the v2 GLB
+const PLATE_Z=-2.565, HEAD_Z=2.42, TAIL_Z=-2.44; // lamp glow / plate stations measured off the v4 GLB
+const AB_TAILW=new THREE.MeshBasicMaterial({color:0xfff0f0,toneMapped:false}); // white-hot LED slashes in the tail clusters
+const AB_GRILLE=new THREE.MeshStandardMaterial({color:0x0c0d10,metalness:.3,roughness:.55});
+const AB_REFLECT=new THREE.MeshStandardMaterial({color:0x7a0a0e,roughness:.3,metalness:.1});
+const AB_CABIN=new THREE.MeshStandardMaterial({color:0x0e0e10,roughness:.8,metalness:0});
 function autobahnGlbShell(g,def,B,paint,glass,opts){
   const parts=glbParts('autobahn'); if(!parts) return autobahnShell(g,def,B,paint,glass,opts);
-  const K=carKit(g); rimPaint(paint,0x6f9dff,.12); paint.clearcoat=1; paint.clearcoatRoughness=.012; paint.roughness=Math.min(paint.roughness,.12);
+  const K=carKit(g); rimPaint(paint,0x7fa6ff,.1); paint.clearcoat=1; paint.clearcoatRoughness=.008; paint.roughness=Math.min(paint.roughness,.1); paint.envMapIntensity=1.5;
   const satin=new THREE.MeshStandardMaterial({color:0x3c4047,metalness:.9,roughness:.32});
-  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:glass,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin};
-  parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
-  { const pr=K.add(new THREE.PlaneGeometry(.5,.12),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'AUTOBAHN'),roughness:.5}),0,.58,PLATE_Z); pr.rotation.y=Math.PI; }
-  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.32,sd*.64,.63,HEAD_Z); K.glow(0xff2030,.3,sd*.66,.84,TAIL_Z); });
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:WISP_GLASS,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,TAILW:AB_TAILW,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin,GRILLE:AB_GRILLE,REFLECT:AB_REFLECT,INTERIOR:AB_CABIN};
+  parts.forEach(p=>{ const m=new THREE.Mesh(p.geo,MATS[p.key]||paint); if(p.key==='GLASS') m.renderOrder=3; g.add(m); });
+  { const pr=K.add(new THREE.PlaneGeometry(.5,.12),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'AUTOBAHN'),roughness:.5}),0,.79,PLATE_Z); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.3,sd*.64,.69,HEAD_Z); K.glow(0xff2030,.28,sd*.74,.93,TAIL_Z); });
+  K.glow(0xff2030,.2,0,.936,-2.5);
   // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in autobahn_63.py)
-  const HS=[[-2.62,.76],[-2.52,.87],[-2.35,.95],[-2.0,1.0],[-1.55,1.03],[-1.1,.99],[-.5,.955],[.2,.945],[.75,.955],[1.1,.98],[1.5,.995],[1.85,.97],[2.12,.92],[2.3,.84],[2.42,.7]],
-    YS=[[-2.62,.82],[-2.4,.87],[-1.8,.9],[-1.35,.87],[-.7,.81],[.2,.78],[.9,.78],[1.4,.79],[1.8,.76],[2.1,.7],[2.32,.62],[2.42,.52]],
-    YB=[[-2.62,.46],[-2.45,.28],[-2.2,.17],[2.0,.165],[2.28,.2],[2.42,.27]];
-  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.085,ay:ys-.12,yc:ys+.2,yf:ys+.2}; }};
+  const HS=[[-2.6,.8],[-2.54,.88],[-2.4,.94],[-2.0,.975],[-1.5,.977],[-1.0,.955],[-.4,.925],[.3,.92],[.9,.94],[1.475,.962],[1.9,.945],[2.1,.92],[2.25,.87],[2.36,.8],[2.425,.7],[2.455,.58]],
+    YS=[[-2.6,.6],[-2.55,.69],[-2.47,.79],[-2.38,.89],[-2.2,.96],[-1.9,1.02],[-1.6,1.04],[-1.0,1.02],[-.3,.995],[.5,.985],[.95,.98],[1.475,.96],[1.95,.915],[2.2,.86],[2.38,.77],[2.455,.64]],
+    YB=[[-2.6,.4],[-2.55,.27],[-2.4,.17],[2.2,.18],[2.39,.21],[2.455,.28]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.06,ay:ys-.12,yc:ys+.1,yf:ys+.1}; }};
 }
 
 /* ---- Kage R (Blender build): an electric hypercar modeled in Blender (tools/blender/kage_r.py) ----
@@ -2047,7 +2052,7 @@ const STREET={
  hellbound:{wheel:'dish',camber:.03},
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
  mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
- autobahn:{wheel:'forged',camber:.03},
+ autobahn:{wheel:'abs',camber:.03},
  zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
 };
 const VINYLS={
@@ -2158,8 +2163,8 @@ function wheelStyle(spin,side,style,rimM,def){
             const g=new THREE.ExtrudeGeometry(sh,{depth:.03,bevelEnabled:true,bevelThickness:.008,bevelSize:.007,bevelSegments:2,curveSegments:8}); g.rotateY(Math.PI/2); blades.push(g); }); }
         const rivet=new THREE.CylinderGeometry(.009,.009,.016,6); rivet.rotateZ(Math.PI/2);
         return {blades,rivet,cap:new THREE.CylinderGeometry(.088,.098,.05,28).rotateZ(Math.PI/2),badge:new THREE.CircleGeometry(.045,20)}; })());
-      const FC=def.id==='autobahn'||def.chassisId==='autobahn'?FORGED_BLACK:FORGED_CHROME;
-      C.blades.forEach(g=>at(new THREE.Mesh(g,FC),.128));
+      const FC=FORGED_CHROME; // AUTOBAHN 63 v4 runs mirror-chrome split spokes over red calipers, as in Paris's wheel reference
+      C.blades.forEach(g=>{ const m=at(new THREE.Mesh(g,FC),.128); m.scale.x=side; }); // the blade extrusion runs +x: mirror it on the left wheels so it stands proud of the tire there too
       at(new THREE.Mesh(C.back||(C.back=new THREE.RingGeometry(.09,.29,32)),barrelM),.1).rotation.y=side*Math.PI/2; // dark barrel face so the chrome pops
       at(new THREE.Mesh(C.cap,FC),.172);
       at(new THREE.Mesh(C.badge,blackM),.198).rotation.y=side*Math.PI/2;
@@ -2193,6 +2198,21 @@ function wheelStyle(spin,side,style,rimM,def){
       at(new THREE.Mesh(W.hub,rimM),.15); at(new THREE.Mesh(W.lip,rimM),.168); at(new THREE.Mesh(W.step,rimM),.186).rotation.y=side>0?0:Math.PI; at(new THREE.Mesh(W.edge,MACHINED_M),.188);
       at(new THREE.Mesh(W.cap,blackM),.178); at(new THREE.Mesh(W.capRing,WISP_LIME),.192);
       for(let k=0;k<5;k++){ const a=k/5*Math.PI*2+Math.PI/5, n=new THREE.Mesh(W.nut,MACHINED_M); n.position.set(side*.18,Math.cos(a)*.07,Math.sin(a)*.07); spin.add(n); }
+      break; }
+    case 'abs': { // AUTOBAHN 63, from Paris's wheel reference: five split spokes in mirror chrome, each pair fanning wide toward a
+      // thin polished rim, concave (hub set back), open between the tines so the drilled rotor and the big red caliper show
+      const W=WHEEL_GEO.abs||(WHEEL_GEO.abs=(()=>{ const P=(r,t)=>[-Math.sin(t)*r,Math.cos(t)*r], blades=[];
+        for(let k=0;k<5;k++){ const a=k/5*Math.PI*2; [-1,1].forEach(f=>{ const sh=new THREE.Shape();
+            const pts=[P(.07,a+f*.05-.07),P(.17,a+f*.11-.045),P(.27,a+f*.24-.04),P(.27,a+f*.24+.04),P(.17,a+f*.11+.045),P(.07,a+f*.05+.07)];
+            sh.moveTo(...pts[0]); sh.quadraticCurveTo(...pts[1],...pts[2]); sh.lineTo(...pts[3]); sh.quadraticCurveTo(...pts[4],...pts[5]); sh.lineTo(...pts[0]);
+            const g=new THREE.ExtrudeGeometry(sh,{depth:.034,bevelEnabled:true,bevelThickness:.01,bevelSize:.008,bevelSegments:4,curveSegments:16}); g.translate(0,0,-.017); g.rotateY(Math.PI/2); blades.push(g); }); }
+        return {blades,hub:new THREE.CylinderGeometry(.09,.1,.05,48).rotateZ(Math.PI/2),edge:new THREE.TorusGeometry(.284,.008,8,128).rotateY(Math.PI/2),
+          lip:new THREE.CylinderGeometry(.286,.286,.03,96,1,true).rotateZ(Math.PI/2),cap:new THREE.CylinderGeometry(.046,.052,.03,36).rotateZ(Math.PI/2),
+          nut:new THREE.CylinderGeometry(.012,.012,.03,6).rotateZ(Math.PI/2)}; })());
+      W.blades.forEach(b=>{ const piv=new THREE.Group(); piv.add(new THREE.Mesh(b,FORGED_CHROME)); piv.rotation.z=-side*.07; at(piv,.152); }); // dish: tips lean out to the rim
+      at(new THREE.Mesh(W.hub,FORGED_CHROME),.145); at(new THREE.Mesh(W.lip,FORGED_CHROME),.162); at(new THREE.Mesh(W.edge,FORGED_CHROME),.176);
+      at(new THREE.Mesh(W.cap,blackM),.172);
+      for(let k=0;k<5;k++){ const a=k/5*Math.PI*2+Math.PI/5, n=new THREE.Mesh(W.nut,MACHINED_M); n.position.set(side*.172,Math.cos(a)*.068,Math.sin(a)*.068); spin.add(n); }
       break; }
     case 'aero': // aero cover: flat disc with five teardrop windows
       at(new THREE.Mesh(new THREE.CircleGeometry(.27,28),rimM),.15).rotation.y=side*Math.PI/2;
@@ -2324,19 +2344,24 @@ function buildCar(def,opts){
   [[B.tr,B.wb],[-B.tr,B.wb],[B.tr,-B.wb],[-B.tr,-B.wb]].forEach(([x,z],i)=>{
     const holder=new THREE.Group(); holder.position.set(x,wr,z); g.add(holder);
     const spin=new THREE.Group(); spin.scale.setScalar(sc); holder.add(spin);
-    const tire=new THREE.Mesh(cid==='wisp'?wispTireGeo():TIRE_GEO,cid==='wisp'?tireTreadM:[tireTreadM,tireSideM,tireSideM]); tire.rotation.z=Math.PI/2; spin.add(tire);
+    const openTire=cid==='wisp'||cid==='autobahn'; // open-faced tire: the rotor and caliper show between the spokes
+    const tire=new THREE.Mesh(openTire?wispTireGeo():TIRE_GEO,openTire?tireTreadM:[tireTreadM,tireSideM,tireSideM]); tire.rotation.z=Math.PI/2; spin.add(tire);
     if(cid==='wisp'){ // the lime sidewall from the reference, on the outer face of the tire
       const sx=Math.sign(x), band=new THREE.Mesh(WISP_BAND_GEO,WISP_LIME); band.rotation.y=Math.PI/2*sx; band.position.x=sx*.154; spin.add(band); }
     const side=Math.sign(x);
     const barrel=new THREE.Mesh(BARREL_GEO,barrelM); barrel.rotation.z=Math.PI/2; barrel.position.x=side*.05; spin.add(barrel);
     const rotor=new THREE.Mesh(ROTOR_GEO,[barrelM,rotorM,rotorM]); rotor.rotation.z=Math.PI/2; rotor.position.x=side*.02; spin.add(rotor);
-    if(!['forged','six','wisp'].includes((STREET[cid]||{}).wheel)){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
+    if(!['forged','six','wisp','abs'].includes((STREET[cid]||{}).wheel)){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
     const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
     wheelStyle(spin,side,(STREET[cid]||{}).wheel,rimM,def);
     if(def.lowPro) spin.children.forEach(o=>{ if(o!==tire&&o!==barrel&&o!==rotor){ o.scale.y*=1.2; o.scale.z*=1.2; } }); // bigger rim inside the same tire: thin sidewall
     const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,12),cid==='hikari'?rimM:calM); // hikari: gunmetal centre, the red is on the calipers hub.rotation.z=Math.PI/2; hub.position.x=side*.17; spin.add(hub);
     if(cid!=='wisp') for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, nut=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.03,6),chromeTrimM); nut.rotation.z=Math.PI/2; nut.position.set(side*(cid==='hikari'?.184:.165),Math.cos(a)*.085,Math.sin(a)*.085); spin.add(nut); }
-    if(cid==='wisp'){ // six-piston monobloc caliper: an arc hugging the rotor, lime with a black bridge, sat at the trailing edge
+    if(cid==='autobahn'){ // big red monobloc caliper hugging the rotor at the trailing edge, as in the wheel reference
+      const cg=WHEEL_GEO.wispCal||(WHEEL_GEO.wispCal=(()=>{ const sh=new THREE.Shape(); sh.absarc(0,0,.255,.55,1.45,false); sh.absarc(0,0,.175,1.45,.55,true);
+        const g=new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:3,curveSegments:16}); g.translate(0,0,-.03); g.rotateY(Math.PI/2); return g; })());
+      const cal=new THREE.Mesh(cg,calM); cal.position.x=side*.07; cal.scale.setScalar(sc); holder.add(cal); }
+    else if(cid==='wisp'){ // six-piston monobloc caliper: an arc hugging the rotor, lime with a black bridge, sat at the trailing edge
       const cg=WHEEL_GEO.wispCal||(WHEEL_GEO.wispCal=(()=>{ const sh=new THREE.Shape(); sh.absarc(0,0,.255,.55,1.45,false); sh.absarc(0,0,.175,1.45,.55,true);
         const g=new THREE.ExtrudeGeometry(sh,{depth:.06,bevelEnabled:true,bevelThickness:.012,bevelSize:.012,bevelSegments:3,curveSegments:16}); g.translate(0,0,-.03); g.rotateY(Math.PI/2); return g; })());
       const cal=new THREE.Mesh(cg,WISP_LIME); cal.position.x=side*.065; cal.scale.setScalar(sc); holder.add(cal); }
@@ -6913,7 +6938,7 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=4'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   const land=(k,gl)=>{ window.AH_MODELS[k]=gl.scene; if(started&&window.AH_MODEL_READY) window.AH_MODEL_READY(k); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ land(k,gl); done(); },undefined,e=>{ console.warn(url+' failed, retrying once (procedural fallback meanwhile)',e); done();
     setTimeout(()=>new THREE.GLTFLoader().load(url,gl=>land(k,gl),undefined,e2=>console.warn(url+' failed again',e2)),3000); }));

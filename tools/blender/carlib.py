@@ -82,25 +82,28 @@ class Car:
 
     # ---------------------------------------------------------------- body
     def build_body(self, P):
-        """P: Z0 Z1 HW YB YS YT, optional dome(x,z), lean(y,z,P), swage=(yl_fn, w_fn, depth), feature (bool), sill (tuck depth),
-        Rx (shoulder radius), nose/tail rounding."""
+        """P: Z0 Z1 HW YB YS YT, optional dome(x,z), lean(y,z,P), swage=(yl_fn, w_fn, depth[, sigma]), feature (bool, or fn(z) -> step depth), sill (tuck depth),
+        Rx (shoulder radius, number or fn(z)), tumble (upper-side tumble-in, number or fn(z)), nose/tail rounding."""
         self.P = P; Z0, Z1 = P['Z0'], P['Z1']; HW, YB, YS, YT = P['HW'], P['YB'], P['YS'], P['YT']
-        dome = P.get('dome', lambda x, z: 0.); tuck = P.get('sill', .085); Rx = P.get('Rx', .15)
+        dome = P.get('dome', lambda x, z: 0.); tuck = P.get('sill', .085); Rx0 = P.get('Rx', .15); tumble = P.get('tumble', .045)
         sw = P.get('swage'); feat = P.get('feature', True)
         def section(z):
             hs = kf(HW, z); yb = kf(YB, z); ys = kf(YS, z); yt = max(kf(YT, z), ys + .03)
-            yw = yb + (ys - yb) * P.get('bulge_at', .5); Ry = max(.022, (yt - .012) - ys); x0 = hs - .045
+            Rx = Rx0(z) if callable(Rx0) else Rx0; tb = tumble(z) if callable(tumble) else tumble   # optional per-station shoulder radius / tumble-in
+            yw = yb + (ys - yb) * P.get('bulge_at', .5); Ry = max(.022, (yt - .012) - ys); x0 = hs - tb
             half = [(0, yb), (hs - tuck - .16, yb), (hs - tuck - .05, yb + .008), (hs - tuck - .015, yb + .045), (hs - tuck, yb + .1)]
-            yl, wl, dl = (sw[0](z), sw[1](z), sw[2]) if sw else (0, 0, 0)
-            for k in range(1, 9):
-                t = k / 8; y = lerp(yb + .1, yw, t); half.append((hs - tuck * (1 - t) ** 2.2 - dl * wl * math.exp(-((y - yl) / .04) ** 2), y))
-            for t in (.22, .44, .5, .56, .78, 1.):
-                half.append((hs - .045 * t ** 1.7 - (.007 if (feat and t > .5) else 0), lerp(yw, ys, t)))
-            for k in range(1, 7):
-                a = k / 6 * math.pi / 2; half.append((x0 - Rx * (1 - math.cos(a)), ys + Ry * math.sin(a)))
+            yl, wl, dl = (sw[0](z), sw[1](z), sw[2]) if sw else (0, 0, 0); sig = sw[3] if sw and len(sw) > 3 else .04
+            RES = P.get('res', 1); nl = 8 * RES
+            for k in range(1, nl + 1):
+                t = k / nl; y = lerp(yb + .1, yw, t); half.append((hs - tuck * (1 - t) ** 2.2 - dl * wl * math.exp(-((y - yl) / sig) ** 2), y))
+            for t in ((.22, .44, .5, .56, .78, 1.) if RES == 1 else (.11, .22, .33, .44, .5, .56, .67, .78, .89, 1.)):
+                half.append((hs - tb * t ** 1.7 - ((feat(z) if callable(feat) else .007) if (feat and t > .5) else 0), lerp(yw, ys, t)))
+            ns = 6 * RES
+            for k in range(1, ns + 1):
+                a = k / ns * math.pi / 2; half.append((x0 - Rx * (1 - math.cos(a)), ys + Ry * math.sin(a)))
             xe = x0 - Rx; ye = ys + Ry
-            for k in range(1, 7):
-                t = k / 6; x = lerp(xe, 0, t); half.append((x, ye + (yt - ye) * (1 - (1 - t) ** 2) + dome(x, z)))
+            for k in range(1, ns + 1):
+                t = k / ns; x = lerp(xe, 0, t); half.append((x, ye + (yt - ye) * (1 - (1 - t) ** 2) + dome(x, z)))
             half[-1] = (0, half[-1][1])
             rn, rt = P.get('round_nose', .16), P.get('round_tail', .18)
             tn = clamp((z - (Z1 - rn)) / rn, 0, 1); tr = clamp(((Z0 + rt) - z) / rt, 0, 1)
@@ -213,7 +216,7 @@ class Car:
                 t = k / 8; half.append((rw * (1 - t) * (1 - .04 * t), top - .05 * (1 - t) ** 2))
             half[-1] = (0, top); return half
         self.cab_ring = ring
-        CZS = [lerp(CZ0, CZ1, i / 159) for i in range(160)]
+        NC = C.get('NC', 160); CZS = [lerp(CZ0, CZ1, i / (NC - 1)) for i in range(NC)]
         cab = [[G(x, y, z) for x, y in self.mirror_ring(ring(z))] for z in CZS]
         self.cabin = self.loft('Cabin', cab, 'PAINT'); self.cabin.data.materials.append(self.M['GLASS']); self.cabin.data.materials.append(self.M['GLOSSBLACK'])
         NR = len(cab[0]); NH = NR // 2 + 1

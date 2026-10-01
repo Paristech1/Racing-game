@@ -1,453 +1,357 @@
-"""AFTERHOURS — AUTOBAHN 63 (v2): an original four-door performance GT, built in Blender (bpy).
-Game coords: x right, y up, z forward (nose +z). Blender: (x, -z, y). Wheels (BODIES.autobahn): x ±.9, z ±1.5, r .37.
-v2 rebuild: convex body sides that swell over both axles, rear haunches, a low tumblehome greenhouse whose roof falls in
-one arc to a ducktail, hood power domes, flush lower aero, gloss-black sills and diffuser, tight wheel arches with liners.
-CLI:  blender -b -P autobahn_63.py -- --out autobahn_63.glb
-Live: exec in Blender (MCP) — builds into a fresh 'Autobahn 63' scene; preview rig lives in a separate 'Preview' collection.
-"""
-import bpy, bmesh, math, os, sys
-from mathutils import Vector, Matrix
-from mathutils.bvhtree import BVHTree
+"""AFTERHOURS — AUTOBAHN 63 (v3), built in Blender on carlib.py from Paris's three references: a four-door fastback GT
+three-view sheet (body, nose, flanks), a chrome split-spoke wheel close-up (wheels, built in js/afterhours.js) and a
+wide-body rear view (tail). Deep sapphire-blue gloss paint, no underglow.
+Front: a big dark oval intake, slim LED blade headlamps above it, tall vertical air curtains in the corners, a thin
+carbon splitter blade. Flanks: long hood, cowl behind the front axle, a vertical fender vent, flush handles, carbon sills
+with a chrome strip, frameless four-door glasshouse. Rear: clean body-color
+flanks into the tail (no wide-body fenders), a carbon rear wing on short struts with its ends rolled into the shoulders, a full-width light bar ending in corner clusters of white-hot LED slashes over a row of red ones, a recessed plate box,
+red reflector strips, twin triple rectangular exhaust clusters either side of a finned carbon diffuser.
+Wheels (BODIES.autobahn): x +-.8, z +-1.475, r .36.
+Live (MCP) or headless (pip bpy): exec carlib.py, then this file in the same namespace."""
+car = Car('Autobahn 63', paint=(.012, .045, .30), accent=(1, .05, .06))
+DETAIL = globals().get('DETAIL', 1)
 
-ARGV = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-CLI = '--out' in ARGV
-OUT = ARGV[ARGV.index('--out') + 1] if CLI else None
-
-def G(x, y, z): return Vector((x, -z, y))
-def clamp(v, a, b): return max(a, min(b, v))
-def lerp(a, b, t): return a + (b - a) * t
-def kf(keys, z):  # Catmull-Rom through (z, value) keys
-    i = 0
-    while i < len(keys) - 2 and z > keys[i + 1][0]: i += 1
-    p0 = keys[max(0, i - 1)]; p1 = keys[i]; p2 = keys[i + 1]; p3 = keys[min(len(keys) - 1, i + 2)]
-    t = clamp((z - p1[0]) / (p2[0] - p1[0]), 0, 1); t2 = t * t; t3 = t2 * t
-    return .5 * (2 * p1[1] + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)
-def smooth(e0, e1, v):
-    t = clamp((v - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t)
-
-# ---------------------------------------------------------------- scene
-if CLI:
-    bpy.ops.wm.read_factory_settings(use_empty=True); scene = bpy.context.scene
-    def DG(): return bpy.context.evaluated_depsgraph_get()
-else:
-    old = bpy.data.scenes.get('Autobahn 63')
-    if old:
-        for o in list(old.objects): bpy.data.objects.remove(o)
-        for c in list(old.collection.children): bpy.data.collections.remove(c)
-        bpy.data.scenes.remove(old)
-    for blk in (bpy.data.meshes, bpy.data.curves, bpy.data.materials):
-        for d in list(blk):
-            if d.users == 0: blk.remove(d)
-    scene = bpy.data.scenes.new('Autobahn 63')
-    for w in bpy.context.window_manager.windows: w.scene = scene
-    VL = scene.view_layers[0]
-    def DG():
-        d = VL.depsgraph; d.update(); return d
-CAR = bpy.data.collections.new('Car'); scene.collection.children.link(CAR)
-
-def mat(name, col, metal=0., rough=.5, emit=None, coat=False, strength=6.):
-    m = bpy.data.materials.new(name); m.use_nodes = True
-    b = m.node_tree.nodes['Principled BSDF']
+def mk(name, col, metal=0., rough=.5, emit=None, strength=4.):
+    m = bpy.data.materials.new(name); m.use_nodes = True; b = m.node_tree.nodes['Principled BSDF']
     b.inputs['Base Color'].default_value = (*col, 1); b.inputs['Metallic'].default_value = metal; b.inputs['Roughness'].default_value = rough
-    if coat and 'Coat Weight' in b.inputs: b.inputs['Coat Weight'].default_value = 1.; b.inputs['Coat Roughness'].default_value = .02
     if emit: b.inputs['Emission Color'].default_value = (*emit, 1); b.inputs['Emission Strength'].default_value = strength
     return m
-M = {'PAINT': mat('PAINT', (.01, .04, .3), .75, .16, coat=True), 'CARBON': mat('CARBON', (.02, .021, .024), .1, .35, coat=True),
-     'GLASS': mat('GLASS', (.004, .005, .007), .2, .02, coat=True), 'GLOSSBLACK': mat('GLOSSBLACK', (.005, .005, .006), .2, .08, coat=True),
-     'GAP': mat('GAP', (.002, .002, .002), 0., .9), 'HEAD': mat('HEAD', (.9, .95, 1.), 0., .3, emit=(.85, .92, 1.)),
-     'TAIL': mat('TAIL', (1., .05, .05), 0., .3, emit=(1., .03, .05), strength=8.), 'CHROME': mat('CHROME', (.85, .86, .88), 1., .08),
-     'LENS': mat('LENS', (.9, .9, .9), 0., .02), 'SATIN': mat('SATIN', (.2, .21, .23), .9, .3)}
+car.M['INTERIOR'] = mk('INTERIOR', (.012, .012, .014), 0., .7)
+car.M['LENS'].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (.018, .004, .005, 1)   # smoked lens
+car.M['TAILW'] = mk('TAILW', (1., .86, .86), 0., .3, emit=(1., .8, .8), strength=9.)          # white-hot LED slashes in the tail clusters
+car.M['REFLECT'] = mk('REFLECT', (.5, .02, .02), 0., .3)                                   # red bumper reflectors (unlit)
+pb = car.M['PAINT'].node_tree.nodes['Principled BSDF']; pb.inputs['Metallic'].default_value = .8; pb.inputs['Roughness'].default_value = .14
 
-def link(ob): CAR.objects.link(ob); return ob
-def fixn(ob):
-    bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces); bm.to_mesh(ob.data); bm.free()
-def new_obj(name, verts, faces, m, smooth_=True):
-    me = bpy.data.meshes.new(name); me.from_pydata([tuple(v) for v in verts], [], faces); me.update()
-    ob = link(bpy.data.objects.new(name, me)); me.materials.append(M[m])
-    if smooth_: me.shade_smooth()
+# ---------------------------------------------------------------- body
+# Proportions: Mercedes-AMG GT 63 4-Door (5.05 m long, 2.95 m wheelbase, 1.44 m tall, 1.95 m wide, 1.67 m track), with the
+# side profile traced off Paris's blue side-view photo: a short tall nose, the cowl ~.6 m behind the front axle, a high
+# belt that rises toward the tail, a long roof falling in one arc to a high tail. Sculpted per Paris's notes and the
+# rear / stance references: coke-bottle plan, fender crowns standing above a hood valley, a deep scallop down the doors,
+# round tumbling sides, and a turtleback deck that rolls down over the tail between the haunches.
+Z0, Z1, WB, WR = -2.62, 2.43, 1.475, .36
+HW = [[-2.62, .74], [-2.52, .87], [-2.35, .945], [-2.0, .972], [-1.5, .977], [-1.0, .955], [-.4, .925], [.3, .92], [.9, .94],
+      [1.475, .962], [1.95, .945], [2.2, .905], [2.35, .84], [2.43, .72]]
+YB = [[-2.62, .24], [-2.5, .19], [-2.25, .17], [2.05, .17], [2.3, .22], [2.43, .3]]
+YS = [[-2.62, .8], [-2.5, .93], [-2.2, 1.02], [-1.6, 1.03], [-1.0, .99], [0, .955], [.9, .945], [1.475, .925], [2.0, .86],
+      [2.28, .74], [2.43, .62]]
+YT = [[-2.62, .84], [-2.54, 1.0], [-2.42, 1.09], [-2.2, 1.12], [-1.6, 1.1], [-1.0, 1.06], [0, 1.03], [.6, 1.045], [1.0, 1.035],
+      [1.475, 1.0], [1.8, .97], [2.1, .91], [2.3, .8], [2.43, .68]]
+def dome(x, z):
+    """hood: a valley between the fender crowns, with a raised centre panel that narrows to a V at the grille;
+    deck: a rounded turtleback, lower between the haunches"""
+    a = abs(x); hz = smooth(.95, 1.25, z) * (1 - smooth(2.1, 2.36, z))
+    valley = -.03 * hz * (1 - smooth(.42, .7, a))
+    w = lerp(.3, .17, smooth(1.0, 2.2, z))
+    panel = .026 * hz * (1 - smooth(w - .02, w + .015, a))
+    turtle = -.03 * smooth(-1.6, -2.0, z) * (1 - smooth(.3, .75, a)) * (1 - smooth(-2.4, -2.55, z))
+    return valley + panel + turtle
+car.build_body({'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT, 'sill': .06, 'NS': 460 if DETAIL else 170, 'res': 2 if DETAIL else 1,
+    'Rx': lambda z: lerp(.14, .24, smooth(-1.0, -1.8, z)) * (1 - .3 * smooth(-2.35, -2.55, z)),
+    'tumble': lambda z: .06 + .05 * smooth(-.9, -1.6, z) + .025 * smooth(.9, 1.4, z) * (1 - smooth(1.8, 2.2, z)),
+    'round_nose': .12, 'round_tail': .24, 'bulge_at': .5, 'dome': dome,
+    'swage': (lambda z: lerp(.52, .44, smooth(-1.3, 1.0, z)), lambda z: smooth(-1.3, -1.0, z) * (1 - smooth(.85, 1.02, z)), .042, .09),
+    'lean': lambda y, z: .05 * smooth(2.1, 2.43, z) * (car.h_of(y, z) - .5) - .08 * smooth(-2.3, -2.62, z) * (car.h_of(y, z) - .45)})
+SKIN0 = bpy.data.objects.new('Skin0', car.body.data.copy()); car.scene.collection.objects.link(SKIN0)   # uncut skin, for normals
+def skin_normals():
+    """exact booleans leave sliver triangles round every cut; copy each paint loop's normal from the uncut skin so the
+    panels shade as one surface in gloss paint (same pass as wisp_07.py)"""
+    me = car.body.data; vg = car.body.vertex_groups.get('skin') or car.body.vertex_groups.new(name='skin')
+    keep = set()
+    for p_ in me.polygons:
+        if me.materials[p_.material_index].name.split('.')[0] == 'PAINT': keep.update(p_.vertices)
+    vg.add(list(keep), 1., 'REPLACE')
+    mod = car.body.modifiers.new('skinN', 'DATA_TRANSFER'); mod.object = SKIN0; mod.use_loop_data = True
+    mod.data_types_loops = {'CUSTOM_NORMAL'}; mod.loop_mapping = 'POLYINTERP_NEAREST'; mod.vertex_group = 'skin'
+    nm = bpy.data.meshes.new_from_object(car.body.evaluated_get(car.DG())); car.body.modifiers.clear(); om = car.body.data; car.body.data = nm; bpy.data.meshes.remove(om)
+    car.body.vertex_groups.clear()
+ARCH_R = .415
+for sd in (1, -1):
+    car.cyl_x(f'archF{sd}', WR, WB, ARCH_R, sd * .6, sd * 1.4)
+    car.cyl_x(f'archR{sd}', WR, -WB, ARCH_R, sd * .6, sd * 1.4)
+car.apply_cuts()
+car.sharpen(car.body, 28); car.bvh = car.BV()
+car.arch_liners(WB, WR, ARCH_R, x0=.52, x1=.9)   # stays inside the skin
+
+# ---------------------------------------------------------------- helpers for this build
+BV0 = car.BV()   # the uncut skin: lamps and trims are placed against this, not the floors of their own pockets
+def FZ(x, y):
+    h = BV0.ray_cast(G(x, y, 4), Vector((0, 1, 0))); return -h[0].y if h[0] else 2.3
+def BZ(x, y):
+    h = BV0.ray_cast(G(x, y, -4), Vector((0, -1, 0))); return -h[0].y if h[0] else -2.5
+def resample(poly, per=10):
+    out = []
+    for i in range(len(poly)):
+        (ax, ay), (bx, by) = poly[i], poly[(i + 1) % len(poly)]
+        for k in range(per): out.append((lerp(ax, bx, k / per), lerp(ay, by, k / per)))
+    return out
+def ellipse(cx, cy, rx, ry, n=64, sq=2.6):   # superellipse: sq > 2 squares it off toward the oval-mouth look
+    return [(cx + rx * math.copysign(abs(math.cos(a)) ** (2 / sq), math.cos(a)), cy + ry * math.copysign(abs(math.sin(a)) ** (2 / sq), math.sin(a)))
+            for a in [2 * math.pi * k / n for k in range(n)]]
+def pocket(name, poly, depth, m='GLOSSBLACK', back=False, per=10):
+    """a recess that follows the curved nose/tail: every rim point is pushed `depth` into the skin under it"""
+    pts = resample(poly, per) if per > 1 else list(poly); n = len(pts); S = BZ if back else FZ; sg = -1 if back else 1
+    fr = [G(x, y, S(x, y) + sg * .25) for x, y in pts]; bk = [G(x, y, S(x, y) - sg * depth) for x, y in pts]
+    cx = sum(p[0] for p in pts) / n; cy = sum(p[1] for p in pts) / n
+    verts = fr + bk + [G(cx, cy, S(cx, cy) + sg * .25), G(cx, cy, S(cx, cy) - sg * depth)]
+    faces = [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)] + [(2 * n, (i + 1) % n, i) for i in range(n)] + [(2 * n + 1, n + i, n + (i + 1) % n) for i in range(n)]
+    ob = car.new_obj(name, verts, faces, m, False); car.fixn(ob); return car.cutter(ob, m)
+def grid(name, P, nu, nv, m, flip=False):   # P(u, v) -> (x, y, z) in game space
+    verts = [G(*P(i / nu, j / nv)) for i in range(nu + 1) for j in range(nv + 1)]; faces = []
+    for i in range(nu):
+        for j in range(nv):
+            a = i * (nv + 1) + j; f = (a, a + nv + 1, a + nv + 2, a + 1); faces.append(tuple(reversed(f)) if flip else f)
+    ob = car.new_obj(name, verts, faces, m); car.fixn(ob); return ob
+def bevel_obj(ob, off, seg=2, ang=.6):
+    bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bmesh.ops.bevel(bm, geom=[e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > ang], offset=off, segments=seg, affect='EDGES', profile=.5)
+    bm.to_mesh(ob.data); bm.free(); return ob
+def rr_tube(name, cx, cy, w, h, r, z0, z1, m, wall=.008, n=6):
+    """a rounded-rectangle tailpipe: open shell from z0 to z1 with a rolled rim, dark core set inside"""
+    o = Car.rounded(cx, cy, w, h, r, n); i_ = Car.rounded(cx, cy, w - 2 * wall, h - 2 * wall, max(r - wall, .002), n); k = len(o)
+    verts = [G(x, y, z0) for x, y in o] + [G(x, y, z1) for x, y in o] + [G(x, y, z1) for x, y in i_] + [G(x, y, z0 + .02) for x, y in i_]
+    faces = []
+    for j in range(k):
+        a, b = j, (j + 1) % k
+        faces += [(a, b, k + b, k + a), (k + a, k + b, 2 * k + b, 2 * k + a), (2 * k + a, 2 * k + b, 3 * k + b, 3 * k + a)]
+    ob = car.new_obj(name, verts, faces, m); car.fixn(ob)
+    car.new_obj(name + 'core', [G(x, y, z0 + .03) for x, y in i_], [tuple(range(k))], 'GAP', False)
     return ob
-def loft(name, stations, m, smooth_=True, cap=True, closed=True):
-    verts = [v for r in stations for v in r]; n = len(stations[0]); S = len(stations); faces = []
-    J = n if closed else n - 1
-    for i in range(S - 1):
-        for j in range(J):
-            a = i * n + j; b = i * n + (j + 1) % n; c = (i + 1) * n + (j + 1) % n; d = (i + 1) * n + j; faces.append((a, b, c, d))
-    if cap:
-        for i, flip in ((0, True), (S - 1, False)):
-            ring = list(range(i * n, i * n + n)); faces.append(tuple(reversed(ring)) if flip else tuple(ring))
-    ob = new_obj(name, verts, faces, m, smooth_); fixn(ob); return ob
-def mirror_ring(half): return half + [(-x, y) for (x, y) in reversed(half[1:-1])]
-def sharpen(ob, deg):
-    bm = bmesh.new(); bm.from_mesh(ob.data); lim = math.radians(deg)
-    for f in bm.faces: f.smooth = True
-    for e in bm.edges: e.smooth = len(e.link_faces) == 2 and e.calc_face_angle(0) <= lim and e.link_faces[0].material_index == e.link_faces[1].material_index
-    bm.to_mesh(ob.data); bm.free()
-def slot_of(ob, key):
-    for i, m in enumerate(ob.data.materials):
-        if m and m.name.split('.')[0] == key: return i
-    ob.data.materials.append(M[key]); return len(ob.data.materials) - 1
 
-# ================================================================ BODY
-Z0, Z1, WB, WR = -2.62, 2.42, 1.5, .37
-# plan: max half-width (at the bulge line). Swells over both axles, pinches at the doors, hips widest.
-# proportions from the side-view refs: short front overhang, long rear overhang, cowl well behind the front axle (long hood)
-HW = [[-2.62, .76], [-2.52, .87], [-2.35, .95], [-2.0, 1.0], [-1.55, 1.03], [-1.1, .99], [-.5, .955], [.2, .945], [.75, .955],
-      [1.1, .98], [1.5, .995], [1.85, .97], [2.12, .92], [2.3, .84], [2.42, .7]]
-YB = [[-2.62, .46], [-2.45, .28], [-2.2, .17], [2.0, .165], [2.28, .2], [2.42, .27]]                    # floor
-YS = [[-2.62, .82], [-2.4, .87], [-1.8, .9], [-1.35, .87], [-.7, .81], [.2, .78], [.9, .78], [1.4, .79], [1.8, .76],
-      [2.1, .7], [2.32, .62], [2.42, .52]]                                                                # shoulder: fender crown + haunch
-YT = [[-2.62, .88], [-2.52, .985], [-2.35, .995], [-1.8, 1.0], [-1.0, .97], [0, .925], [.55, .895], [1.0, .87], [1.5, .83],
-      [1.9, .78], [2.15, .72], [2.32, .65], [2.42, .56]]                                                  # hood / deck center
-def dome(x, z):  # twin hood power domes
-    w = smooth(.62, .95, z) * (1 - smooth(1.85, 2.2, z))
-    return .03 * w * math.exp(-((abs(x) - .33) / .11) ** 2)
-def section(z):
-    hs = kf(HW, z); yb = kf(YB, z); ys = kf(YS, z); yt = max(kf(YT, z), ys + .03)
-    yw = yb + (ys - yb) * .5                     # widest point, just above the hubs
-    Rx = .15; Ry = max(.022, (yt - .012) - ys); x0 = hs - .045
-    half = [(0, yb), (hs - .25, yb), (hs - .135, yb + .008), (hs - .1, yb + .045), (hs - .085, yb + .1)]
-    yl = lerp(.52, .36, smooth(-1.3, 1.1, z))     # lower swage: a scooped line sweeping up from the front door to the haunch
-    wl = smooth(-1.35, -1.05, z) * (1 - smooth(.85, 1.1, z))
-    for k in range(1, 9):                        # lower body: bows out from a deep sill tuck to the bulge
-        t = k / 8; y = lerp(yb + .1, yw, t); half.append((hs - .085 * (1 - t) ** 2.2 - .016 * wl * math.exp(-((y - yl) / .04) ** 2), y))
-    for t in (.22, .44, .5, .56, .78, 1.):       # upper body: tumbles in, with a crisp stepped feature line
-        half.append((hs - .045 * t ** 1.7 - (.007 if t > .5 else 0), lerp(yw, ys, t)))
-    for k in range(1, 7):                        # shoulder radius
-        a = k / 6 * math.pi / 2; half.append((x0 - Rx * (1 - math.cos(a)), ys + Ry * math.sin(a)))
-    xe = x0 - Rx; ye = ys + Ry
-    for k in range(1, 7):                        # hood / deck, gently crowned
-        t = k / 6; x = lerp(xe, 0, t); half.append((x, ye + (yt - ye) * (1 - (1 - t) ** 2) + dome(x, z)))
-    half[-1] = (0, half[-1][1])
-    # round the nose and tail in plan and elevation
-    tn = clamp((z - (Z1 - .16)) / .16, 0, 1); tr = clamp(((Z0 + .18) - z) / .18, 0, 1)
-    en = 1 - math.sqrt(max(0., 1 - tn * tn)); er = 1 - math.sqrt(max(0., 1 - tr * tr))
-    ym = (yb + yt) * .5
-    return [(x * (1 - .2 * en - .12 * er), ym + (y - ym) * (1 - .28 * en - .18 * er)) for x, y in half]
-def lean(y, z):  # shark nose: the upper nose leans forward over a tucked chin; the tail's top overhangs a tucked valance
-    yb = kf(YB, z); yt = kf(YT, z); h = clamp((y - yb) / max(yt - yb, .01), 0, 1)
-    return .07 * smooth(1.95, 2.42, z) * (h - .5) - .06 * smooth(-2.35, -2.62, z) * (h - .4)
-stations = []
-NS = 220
-for i in range(NS):
-    t = i / (NS - 1); t = .82 * t + .18 * (.5 - .5 * math.cos(math.pi * t)); z = Z0 + (Z1 - Z0) * t
-    stations.append([G(x, y, z + lean(y, z)) for x, y in mirror_ring(section(z))])
-body = loft('Body', stations, 'PAINT')
-
-# ---------------- cutters
-cut_objs = []
-def cutter(ob, m):
-    ob.data.materials.clear(); ob.data.materials.append(M[m]); ob.hide_render = True; cut_objs.append(ob); return ob
-def front_prism(name, poly_xy, z0, z1, m='GAP'):
-    n = len(poly_xy); verts = [G(x, y, z0) for x, y in poly_xy] + [G(x, y, z1) for x, y in poly_xy]
-    faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
-    ob = new_obj(name, verts, faces, m, False); fixn(ob); return cutter(ob, m)
-def cyl_x(name, cy, cz, r, x0, x1, m='GAP', seg=96):
-    verts = []
-    for x in (x0, x1):
-        for k in range(seg): a = 2 * math.pi * k / seg; verts.append(G(x, cy + r * math.sin(a), cz + r * math.cos(a)))
-    faces = [tuple(range(seg)), tuple(range(2 * seg - 1, seg - 1, -1))] + [(k, (k + 1) % seg, seg + (k + 1) % seg, seg + k) for k in range(seg)]
-    ob = new_obj(name, verts, faces, m, False); fixn(ob); return cutter(ob, m)
-def rounded(cx, cy, w, h, r, n=5, skew=0.):  # rounded-rect polygon (x, y), optional top skew
-    pts = []
-    for (qx, qy, a0) in ((1, 1, 0), (-1, 1, 90), (-1, -1, 180), (1, -1, 270)):
-        for k in range(n + 1):
-            a = math.radians(a0 + 90 * k / n); x = cx + qx * (w / 2 - r) + r * math.cos(a); y = cy + qy * (h / 2 - r) + r * math.sin(a)
-            pts.append((x + skew * (y - cy), y))
-    return pts
-def strip_cut(name, pts, hw, depth, m='GAP', axis='side'):  # thin gap along a polyline of surface points
-    verts = []; faces = []
-    for (x, y, z) in pts:
-        if axis == 'side':
-            sd = 1 if x > 0 else -1
-            verts += [G(x + sd * .05, y, z - hw), G(x + sd * .05, y, z + hw), G(x - sd * depth, y, z + hw), G(x - sd * depth, y, z - hw)]
-        elif axis == 'top':
-            verts += [G(x - hw, y + .05, z), G(x + hw, y + .05, z), G(x + hw, y - depth, z), G(x - hw, y - depth, z)]
-        else:  # across (z-constant line on a top surface)
-            verts += [G(x, y + .05, z - hw), G(x, y + .05, z + hw), G(x, y - depth, z + hw), G(x, y - depth, z - hw)]
-    for i in range(len(pts) - 1):
-        for j in range(4): a = 4 * i + j; b = 4 * i + (j + 1) % 4; faces.append((a, b, b + 4, a + 4))
-    L = 4 * (len(pts) - 1); faces += [(0, 1, 2, 3), (L + 3, L + 2, L + 1, L)]
-    ob = new_obj(name, verts, faces, m, False); fixn(ob); return cutter(ob, m)
-
-ARCH_R = .408
+# ---------------------------------------------------------------- nose: oval mouth, slim lamp blades, corner air curtains
+MOUTH = ellipse(0, .41, .47, .2, 72, 2.25)
+pocket('mouth', MOUTH, .14, per=2)
+HEAD_L = [(.42, .685), (.6, .698), (.78, .718), (.86, .738), (.855, .718), (.77, .692), (.6, .673), (.43, .668)]
 for sd in (1, -1):
-    for zw in (WB, -WB): cyl_x(f'arch{sd}{zw}', WR, zw, ARCH_R, sd * .6, sd * 1.4)
-# front: one wide lower mouth, two corner intakes, a slim upper slot
-front_prism('mouth', [(-.56, .2), (.56, .2), (.5, .47), (.4, .5), (-.4, .5), (-.5, .47)], 2.06, 2.9)
+    pocket(f'head{sd}', [(sd * x, y) for x, y in HEAD_L], .035, per=6)
+    pocket(f'curtain{sd}', [(sd * x, y) for x, y in [(.6, .24), (.77, .26), (.79, .56), (.75, .61), (.64, .59), (.58, .44)]], .12)
+# ---- tail (from the rear reference): slim lamp blades where the turtleback rolls over into the tail, wrapping round the
+# corners; a plate recess; vertical vents in the bumper corners behind the rear wheels
+# lamps from Paris's taillight reference: a full-width bar across the tail, ending in corner clusters of LED slashes
+CLUSTER = [(.5, .952), (.83, .972), (.865, .95), (.86, .885), (.57, .878), (.5, .925)]   # wedge: pointed inboard, wraps the corner
+pocket('tailbar', [(-.52, .945), (.52, .945), (.52, .927), (-.52, .927)], .02, back=True, per=10)
 for sd in (1, -1):
-    front_prism(f'corner{sd}', [(sd * .62, .2), (sd * .86, .22), (sd * .86, .44), (sd * .72, .47), (sd * .6, .36)], 2.0, 2.9)
-# rear: diffuser bay, plate pocket
-front_prism('diff', rounded(0, .29, 1.5, .22, .04), -2.9, -2.36, 'GLOSSBLACK')
-front_prism('plate', rounded(0, .58, .54, .13, .02), -2.9, -2.6, 'GLOSSBLACK')
-
-bvh = None
-def BV(): return BVHTree.FromObject(body, DG())
-bvh = BV()
-def surf_y(x, z):
-    h = bvh.ray_cast(G(x, 3, z), Vector((0, 0, -1))); return h[0].z if h[0] else None
-def surf_front(x, y):
-    h = bvh.ray_cast(G(x, y, 3.5), Vector((0, 1, 0))); return -h[0].y if h[0] else None
-def surf_back(x, y):
-    h = bvh.ray_cast(G(x, y, -3.5), Vector((0, -1, 0))); return -h[0].y if h[0] else None
-def surf_side(y, z, sd=1):
-    h = bvh.ray_cast(G(sd * 2.5, y, z), Vector((-sd, 0, 0))); return abs(h[0].x) if h[0] else None
-
-# headlamps: a slim blade that sweeps back and up round the nose corner
-def lamp_pts(sd):
-    pts = []
-    for k in range(12):
-        t = k / 11; x = sd * lerp(.38, .88, t); y = lerp(.6, .665, t ** 1.4)
-        z = surf_front(x, y); pts.append((x, y, (z or 2.3) - .003))
-    return pts
-LAMPS = {sd: lamp_pts(sd) for sd in (1, -1)}
+    pocket(f'tail{sd}', [(sd * x, y) for x, y in CLUSTER], .03, back=True, per=6)
+pocket('plate', Car.rounded(0, .79, .52, .13, .015), .045, back=True, per=3)
+# ---- shut lines: hood, four doors, deck lid, fuel door
 for sd in (1, -1):
-    pts = LAMPS[sd]; verts = []; faces = []
-    for k, (x, y, z) in enumerate(pts):
-        h = lerp(.03, .046, k / 11)
-        verts += [G(x, y - h, z + .2), G(x, y + h * .8, z + .2), G(x, y + h * .8, z - .06), G(x, y - h, z - .06)]
-    for i in range(len(pts) - 1):
-        for j in range(4): a = 4 * i + j; b = 4 * i + (j + 1) % 4; faces.append((a, b, b + 4, a + 4))
-    L = 4 * (len(pts) - 1); faces += [(0, 1, 2, 3), (L + 3, L + 2, L + 1, L)]
-    ob = new_obj(f'lampcut{sd}', verts, faces, 'GLOSSBLACK', False); fixn(ob); cutter(ob, 'GLOSSBLACK')
-# panel gaps: doors, hood shut lines, hatch
-for sd in (1, -1):
-    for z0, lean, top in ((.66, -.08, .0), (-.66, .0, .0), (-1.38, -.12, .0)):
+    for z0, ln in ((.74, -.05), (-.37, .0), (-1.33, .06)):
         pts = []
-        for k in range(12):
-            y = lerp(.25, kf(YT, z0) - .03, k / 11); z = z0 + lean * (y - .25)
-            if z0 < -.5: z += .06 * math.sin(k / 11 * math.pi)            # rear door edge kinks round the haunch
-            x = surf_side(y, z, sd)
+        for k in range(14):
+            y = lerp(.24, kf(YT, z0) - .04, k / 13); z = z0 + ln * (y - .24)
+            if z0 < -1: z -= .05 * math.sin(k / 13 * math.pi)                      # rear door kinks round the haunch
+            x = car.surf_side(y, z, sd)
             if x: pts.append((sd * x, y, z))
-        strip_cut(f'door{sd}{z0}', pts, .0035, .012)
+        car.strip_cut(f'door{sd}{z0}', pts, .0032, .012)
     pts = []
-    for k in range(14):
-        z = lerp(.66, 2.26, k / 13); x = sd * lerp(.7, .58, (k / 13) ** 1.5); y = surf_y(x, z)
+    for k in range(18):
+        z = lerp(.8, 2.28, k / 17); x = sd * lerp(.66, .54, (k / 17) ** 1.4); y = car.surf_y(x, z)
         if y: pts.append((x, y, z))
-    strip_cut(f'hoodgap{sd}', pts, .0035, .012, axis='top')
-pts = [(x, (surf_y(x, -2.44) or .95), -2.44) for x in [lerp(-.62, .62, k / 12) for k in range(13)]]
-strip_cut('hatchgap', pts, .0035, .012, axis='across')
-
-cc = bpy.data.collections.new('Cutters'); scene.collection.children.link(cc)
-for o in cut_objs:
-    for c in list(o.users_collection): c.objects.unlink(o)
-    cc.objects.link(o)
-mod = body.modifiers.new('cuts', 'BOOLEAN'); mod.operation = 'DIFFERENCE'; mod.solver = 'EXACT'; mod.operand_type = 'COLLECTION'; mod.collection = cc
-if hasattr(mod, 'material_mode'): mod.material_mode = 'TRANSFER'
-nm = bpy.data.meshes.new_from_object(body.evaluated_get(DG())); body.modifiers.clear(); om = body.data; body.data = nm; bpy.data.meshes.remove(om)
-for o in list(cc.objects): bpy.data.objects.remove(o)
-bpy.data.collections.remove(cc)
-# two-tone lower: gloss black sills, front lip band and rear valance
-gb = slot_of(body, 'GLOSSBLACK')
-for p in body.data.polygons:
-    if p.material_index != 0: continue
-    c = p.center; gx, gy, gz = abs(c.x), c.z, -c.y; yb = kf(YB, gz)
-    if (gy < yb + .085 and -1.1 < gz < 1.1) or (gz > 2.22 and gy < yb + .05) or (gz < -2.4 and gy < .4 and gx < .8) or (gz < -2.5 and .76 < gy < .9 and gx < .8 and p.normal.y > .55):
-        p.material_index = gb
-sharpen(body, 28)
-bvh = BV()
-
-# ---------------- helpers for detail parts
-def tube(name, pts, r, m, res=12):
-    cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 3; cu.resolution_u = res; cu.use_fill_caps = True
-    sp = cu.splines.new('NURBS'); sp.points.add(len(pts) - 1)
-    for p, q in zip(sp.points, pts): p.co = (*G(*q), 1)
-    sp.use_endpoint_u = True; sp.order_u = min(4, len(pts))
-    ob = bpy.data.objects.new(name, cu); CAR.objects.link(ob); cu.materials.append(M[m])
-    me = bpy.data.meshes.new_from_object(ob.evaluated_get(DG())); bpy.data.objects.remove(ob); bpy.data.curves.remove(cu)
-    ob = link(bpy.data.objects.new(name, me)); me.shade_smooth(); return ob
-def box(name, size, pos, m, rot=(0, 0, 0), bevel=0.):
-    sx, sy, sz = size; x, y, z = pos
-    bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
-    if bevel:
-        bmesh.ops.bevel(bm, geom=list(bm.edges), offset=bevel, segments=2, affect='EDGES', profile=.5)
-    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
-    R = Matrix.Rotation(rot[2], 4, 'Z') @ Matrix.Rotation(rot[1], 4, 'Y') @ Matrix.Rotation(rot[0], 4, 'X')
-    for v in me.vertices: g = R @ Vector((v.co.x * sx, v.co.z * sy, v.co.y * sz)); v.co = G(g.x, g.y, g.z) + G(x, y, z)
-    ob = link(bpy.data.objects.new(name, me)); me.materials.append(M[m]); return ob
-def extrude_y(name, poly_xz, y0, y1, m, bevel=0.):
-    n = len(poly_xz); verts = [G(x, y0, z) for x, z in poly_xz] + [G(x, y1, z) for x, z in poly_xz]
-    faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
-    ob = new_obj(name, verts, faces, m, False)
-    if bevel:
-        bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        bmesh.ops.bevel(bm, geom=[e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6], offset=bevel, segments=2, affect='EDGES', profile=.5)
-        bm.to_mesh(ob.data); bm.free()
-    else: fixn(ob)
-    return ob
-def extrude_x(name, poly_zy, x0, x1, m, bevel=0.):
-    n = len(poly_zy); verts = [G(x0, y, z) for z, y in poly_zy] + [G(x1, y, z) for z, y in poly_zy]
-    faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
-    ob = new_obj(name, verts, faces, m, False)
-    if bevel:
-        bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        bmesh.ops.bevel(bm, geom=[e for e in bm.edges if e.calc_face_angle(0) > .6], offset=bevel, segments=2, affect='EDGES', profile=.5)
-        bm.to_mesh(ob.data); bm.free()
-    else: fixn(ob)
-    return ob
-def cyl_z(name, x, y, z0, z1, r, m, seg=36, open_=False):
-    verts = []
-    for z in (z0, z1):
-        for k in range(seg): a = 2 * math.pi * k / seg; verts.append(G(x + r * math.cos(a), y + r * math.sin(a), z))
-    faces = [(k, (k + 1) % seg, seg + (k + 1) % seg, seg + k) for k in range(seg)]
-    if not open_: faces += [tuple(range(seg)), tuple(range(2 * seg - 1, seg - 1, -1))]
-    ob = new_obj(name, verts, faces, m); fixn(ob); return ob
-
-# wheel-arch liners so the arches read as deep black wells, not holes into the shell
-for sd in (1, -1):
-    for zw in (WB, -WB):
-        seg = 40; verts = []; faces = []
-        for i, x in enumerate((sd * .56, sd * 1.0)):
-            for k in range(seg + 1):
-                a = math.radians(-20 + 220 * k / seg); verts.append(G(x, WR + (ARCH_R - .006) * math.sin(a), zw + (ARCH_R - .006) * math.cos(a)))
-        for k in range(seg): faces.append((k, k + 1, seg + 2 + k, seg + 1 + k))
-        new_obj(f'liner{sd}{zw}', verts, faces, 'GAP')
-
-# ================================================================ CABIN: low glasshouse with tumblehome, fastback to a ducktail
-CZ0, CZ1 = -2.35, .6
-CH = [[-2.35, .995], [-2.0, 1.1], [-1.55, 1.23], [-1.05, 1.335], [-.6, 1.4], [-.3, 1.418], [-.08, 1.4], [.1, 1.3], [.35, 1.105], [.6, .9]]
-def cw_(z): return kf(HW, z) - .205 - .06 * smooth(-1.75, -2.35, z) - .05 * smooth(.3, .6, z)
-def rw_(z): return cw_(z) - .215
-def belt(z): return (surf_y(cw_(z) + .01, z) or kf(YT, z)) - .004
-BELT = {}
-def cab_ring(z, grow=0.):
-    cw = cw_(z) + grow; rw = rw_(z) + grow * .7; top = kf(CH, z) + grow * .5; b = BELT.setdefault(round(z, 5), belt(z))
-    half = [(0, b - .08), (cw + .004, b - .08), (cw, b)]
-    for k in range(1, 15):   # side glass, leaning in with a slight convexity
-        t = k / 15; half.append((lerp(cw, rw, t ** 1.18) + .012 * math.sin(math.pi * t), lerp(b, top - .05, t)))
-    for k in range(0, 9):    # roof crown
-        t = k / 8; half.append((rw * (1 - t) * (1 - .04 * t), top - .05 * (1 - t) ** 2))
-    half[-1] = (0, top); return half
-CZS = [lerp(CZ0, CZ1, i / 159) for i in range(160)]
-cab = [[G(x, y, z) for x, y in mirror_ring(cab_ring(z))] for z in CZS]
-cabin = loft('Cabin', cab, 'PAINT'); cabin.data.materials.append(M['GLASS']); cabin.data.materials.append(M['GLOSSBLACK'])
-DLO_R0, DLO_R1, DLO_F, DLO_K = -1.8, -1.3, .5, .57   # C-pillar point at the belt / at the roof, A-pillar at the belt
-NR = len(cab[0]); NH = NR // 2 + 1                  # ring size / half-ring size (mirror_ring)
-def ring_u(jj):                                      # 0 at the belt -> .55 at the roof rail -> 1 on the centreline
-    h = jj if jj < NH else NR - jj
-    return clamp((h - 2) / 14 * .55, 0, .55) if h <= 16 else .55 + (h - 16) / (NH - 1 - 16) * .45
-def a_line(u): return lerp(DLO_F, -.06, clamp(u / .6, 0, 1))   # A-pillar center line in (u, z)
-for p in cabin.data.polygons:
-    js = sorted({v % NR for v in p.vertices})
-    if len(js) != 2: continue                        # end caps stay paint
-    j0, j1 = js if js[1] - js[0] == 1 else (js[1], js[0])
-    u = .5 * (ring_u(j0) + ring_u(j1)); gz = -p.center.y
-    if min(j0 if j0 < NH else NR - j0, j1 if j1 < NH else NR - j1) < 2: continue   # belt skirt
-    za = a_line(u)
-    if gz > za + .03: p.material_index = 1                                           # windscreen, wraps to the cowl
-    elif gz > za - .03: continue                                                     # slim A-pillar
-    elif u >= .6: p.material_index = 1 if gz < -1.42 else 0                          # rear glass / painted roof
-    elif u < .53 and lerp(DLO_R0, DLO_R1, u / .53) < gz:
-        p.material_index = 2 if -.72 < gz < -.62 else 1                              # side glass, black B-pillar
-sharpen(cabin, 32)
-def ring_pt(z, u, grow=.004):                        # point on the cabin surface at ring parameter u
-    half = cab_ring(z, grow); us = [ring_u(h) for h in range(len(half))]
-    for h in range(2, len(half) - 1):
-        if us[h] <= u <= us[h + 1]:
-            t = (u - us[h]) / max(us[h + 1] - us[h], 1e-6); return lerp(half[h][0], half[h + 1][0], t), lerp(half[h][1], half[h + 1][1], t)
-    return half[-1]
-for sd in (1, -1):   # A-pillar cover: a slim gloss-black blade along the pillar line, so the glass edge reads crisp
+    car.strip_cut(f'hood{sd}', pts, .0032, .012, axis='top')
     pts = []
-    for k in range(16):
-        u = .6 * k / 15; z = a_line(u); x, y = ring_pt(z, u); pts.append((sd * x, y, z))
-    tube(f'apillar{sd}', pts, .016, 'GLOSSBLACK', res=4)
-for sd in (1, -1):   # bright DLO surround: along the belt, over the door tops, into the C-pillar point
-    tube(f'dlo_belt{sd}', [(sd * (cw_(z) + .003), belt(z) + .005, z) for z in [lerp(DLO_F, DLO_R0, k / 20) for k in range(21)]], .0065, 'CHROME', res=4)
-    top = []
-    for k in range(20):
-        z = lerp(DLO_F - DLO_K * .97, DLO_R1, k / 19); r = cab_ring(z, .006); p = r[2 + 14]; top.append((sd * p[0], p[1], z))
-    top.append((sd * (cw_(DLO_R0) + .003), belt(DLO_R0) + .005, DLO_R0))
-    tube(f'dlo_top{sd}', top, .0065, 'CHROME', res=4)
+    for k in range(10):
+        z = lerp(-2.0, -2.5, k / 9); x = sd * .7; y = car.surf_y(x, z)
+        if y: pts.append((x, y, z))
+    car.strip_cut(f'deck{sd}', pts, .003, .012, axis='top')
+pts = [(x, (car.surf_y(x, -2.0) or 1.0), -2.0) for x in [lerp(-.7, .7, k / 16) for k in range(17)]]
+car.strip_cut('deckF', pts, .003, .012, axis='across')
+car.apply_cuts()
+car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: gz > 2.2 and gy < .2)                          # chin under the mouth
+car.recolor('CARBON', lambda gx, gy, gz, n: gz < -2.1 and n[2] < -.15 and gy < .44 - .06 * (gx / .95) ** 4)   # carbon lower tail / diffuser surround
+car.sharpen(car.body, 30); car.bvh = car.BV()
 
-# ================================================================ FRONT
-for sd in (1, -1):
-    pts = LAMPS[sd]
-    tube(f'drl{sd}', [(x, y + .018, z - .016) for x, y, z in pts], .006, 'HEAD')                     # upper DRL blade
-    tube(f'drlhook{sd}', [pts[-3], (pts[-1][0], pts[-1][1] - .03, pts[-1][2] - .02)], .005, 'HEAD')  # hook at the outer end
-    tube(f'drl2{sd}', [(x, y - .014, z - .03) for x, y, z in pts[3:]], .004, 'HEAD')              # lower main-beam strip
-    for k in range(4):                                                                              # dark lens cells
-        x, y, z = pts[3 + k * 2]; box(f'cell{sd}{k}', (.05, .018, .02), (x, y, z - .045), 'SATIN', bevel=.003)
-    for k in range(3):                                                                              # angled fins in the corner intakes
-        x = sd * lerp(.68, .82, k / 2); zc = surf_front(x, .32) or 2.3
-        box(f'cfin{sd}{k}', (.01, .2, .12), (x, .32, zc - .07), 'CARBON', rot=(0, sd * .25, 0))
-# lower mouth: three satin blades across the opening with a carbon lip below
-for k in range(5):                                                                                  # grille: satin blades, deep in the mouth
-    y = .24 + k * .055; zc = surf_front(0, y) or 2.3
-    box(f'mblade{k}', (lerp(1.04, .86, k / 4), .01, .04), (0, y, zc - .09), 'SATIN', rot=(-.25, 0, 0))
-for k in range(7):
-    x = -.42 + k * .14; zc = surf_front(x, .34) or 2.3
-    box(f'mvane{k}', (.008, .27, .04), (x, .34, zc - .1), 'GLOSSBLACK')
-lip = [(-.88, 1.98)] + [(math.sin(a) * .88, 2.2 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 24 for k in range(25)]] + [(.88, 1.98)]
-extrude_y('Lip', lip, .16, .178, 'CARBON', bevel=.006)
 
-# ================================================================ FLANKS
+# ---------------------------------------------------------------- cabin: low fastback glasshouse, frameless doors
+# roof: one continuous arc, no flat section - the crown sits over the B-pillar and the line falls away at a steadily
+# increasing rate into the tail (|dz|^1.55), so the fastback reads as a single aerodynamic curve
+def roof_y(z):
+    zp = -.15
+    return 1.443 - (.089 * (zp - z) ** 1.55 if z < zp else .345 * (z - zp) ** 1.6)
+CH = [[z, roof_y(z)] for z in [lerp(-2.3, .92, k / 24) for k in range(25)]]
+car.build_cabin({'CZ0': -2.3, 'CZ1': .92, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.72, .5, -1.62, -1.34), 'rear_glass': -1.62, 'dlo_trim': 'CHROME',
+    'pillars': [(-.43, -.35), (-1.0, -.95)], 'apillar_r': .015,
+    'cw': lambda z: kf(HW, z) - .19 - .1 * smooth(-1.6, -2.3, z) - .07 * smooth(.55, .92, z),
+    'rw': lambda z: kf(HW, z) - .39 - .1 * smooth(-1.5, -2.3, z) - .09 * smooth(.3, .92, z)})
+
+# ---------------------------------------------------------------- front details
 for sd in (1, -1):
-    for z in (.05, -1.02):                                                                           # flush handles
-        y = kf(YS, z) - .06; x = surf_side(y, z, sd)
-        if x: box(f'handle{sd}{z}', (.01, .018, .2), (sd * (x + .002), y, z), 'SATIN')
-    z = .92; y = .6; x = surf_side(y, z, sd)                                                    # fender vent behind the front wheel
-    if x:
-        box(f'ventbk{sd}', (.012, .06, .22), (sd * (x - .003), y, z), 'GLOSSBLACK', rot=(-.12 * sd * 0, 0, 0))
-        box(f'ventbl{sd}', (.012, .012, .2), (sd * (x + .002), y, z), 'CHROME')
-    # mirrors: blade stalk off the door, teardrop cap
-    mz = .4; my = belt(mz) + .02; mx = cw_(mz)
-    tube(f'mstalk{sd}', [(sd * (mx - .02), my - .015, mz), (sd * (mx + .06), my + .01, mz - .03), (sd * (mx + .1), my + .03, mz - .05)], .011, 'GLOSSBLACK', res=4)
-    b = bmesh.new(); bmesh.ops.create_uvsphere(b, u_segments=24, v_segments=14, radius=1.)
-    for v in b.verts:
-        gx, gy, gz = v.co.x * .095, v.co.z * .043, v.co.y * .068
-        if gz < 0: gz *= .3
-        v.co = G(sd * (mx + .16) + gx, my + .045 + gy, mz - .065 + gz)
-    me = bpy.data.meshes.new(f'mcap{sd}'); b.to_mesh(me); b.free(); me.materials.append(M['PAINT']); me.shade_smooth(); link(bpy.data.objects.new(f'mcap{sd}', me))
-    # thin carbon sill blade, tucked (no shelf)
+    # lamp blade: a bright LED line along the top of the slot, a dimmer main-beam strip below, smoked lens over both
+    up = [(sd * x, y + .009, FZ(sd * x, y + .009) - .012) for x, y in [(.43, .679), (.6, .691), (.76, .71), (.85, .73)]]
+    car.tube(f'drl{sd}', up, .0055, 'HEAD', res=8)
+    for j, (x, y) in enumerate([(.5, .676), (.6, .683), (.7, .693)]):          # three projector cells in the lamp slot
+        zf = FZ(sd * x, y) - .028
+        car.cyl(f'pbez{sd}{j}', (sd * x, y, zf - .012), (sd * x, y, zf + .006), .019, 'CHROME', seg=32)
+        car.cyl(f'proj{sd}{j}', (sd * x, y, zf + .004), (sd * x, y, zf + .01), .014, 'HEAD', seg=32)
+    car.tube(f'beam{sd}', [(sd * x, y - .006, FZ(sd * x, y - .006) - .022) for x, y in [(.47, .674), (.6, .683), (.74, .698)]], .004, 'HEAD', res=6)
+    grid(f'hlens{sd}', lambda u, v, sd=sd: (sd * lerp(.43, .855, u), lerp(.668, .69, v) + .045 * u ** 1.6 * (1 - .3 * v), FZ(sd * lerp(.43, .855, u), lerp(.668, .69, v) + .045 * u ** 1.6) - .003), 24, 3, 'LENS', flip=sd < 0)
+    # air curtains: vertical vanes down the corner slots
+    for k in range(3):
+        x = sd * lerp(.63, .73, k / 2); y = .42
+        car.box(f'cvane{sd}{k}', (.008, .28, .08), (x, y, FZ(x, y) - .07), 'GLOSSBLACK', rot=(0, sd * .2, 0))
+# the oval mouth: a dark mesh deep inside, and three thin horizontal blades across it
+for k in range(3):
+    y = .34 + k * .075; car.box(f'mblade{k}', (lerp(.92, .84, abs(k - 1)), .008, .035), (0, y, FZ(0, y) - .11), 'GLOSSBLACK', rot=(-.2, 0, 0))
+grid('mmesh', lambda u, v: (lerp(-.5, .5, u), lerp(.25, .58, v), FZ(0, .41) - .13), 40, 12, 'GAP')
+# diamond mesh across the mouth: a lattice of small diamond cells, set back in the opening
+def inside(poly, x, y):
+    c = False
+    for i in range(len(poly)):
+        (ax, ay), (bx, by) = poly[i], poly[(i + 1) % len(poly)]
+        if (ay > y) != (by > y) and x < ax + (y - ay) * (bx - ax) / (by - ay): c = not c
+    return c
+MZ = FZ(0, .41) - .085; cell = .05 if DETAIL else .08; k = 0; mv = []; mf = []
+y = .23
+while y < .6:
+    x = -.5 + (cell / 2 if round((y - .23) / (cell * .6)) % 2 else 0)
+    while x < .5:
+        if all(inside(MOUTH, x + dx, y + dy) for dx, dy in ((cell * .55, 0), (-cell * .55, 0), (0, cell * .35), (0, -cell * .35))):
+            zc = MZ - .02 * (x / .5) ** 2
+            o = [(x + cell * .5, y), (x, y + cell * .3), (x - cell * .5, y), (x, y - cell * .3)]
+            i_ = [(x + cell * .36, y), (x, y + cell * .2), (x - cell * .36, y), (x, y - cell * .2)]
+            b = len(mv); mv += [G(px, py, zc) for px, py in o] + [G(px, py, zc) for px, py in i_] + [G(px, py, zc - .02) for px, py in o]
+            mf += [(b + j, b + (j + 1) % 4, b + 4 + (j + 1) % 4, b + 4 + j) for j in range(4)] + [(b + 8 + j, b + 8 + (j + 1) % 4, b + (j + 1) % 4, b + j) for j in range(4)]
+        x += cell
+    y += cell * .3
+car.new_obj('mdiamond', mv, mf, 'GLOSSBLACK', False)
+# splitter: a thin carbon blade standing proud of the chin, swept up at the ends
+SPL = [(-.9, 2.0)] + [(math.sin(a) * .9, 2.24 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 40 for k in range(41)]] + [(.9, 2.0)]
+bevel_obj(car.extrude_y('Splitter', SPL, .12, .14, 'CARBON'), .004)
+for sd in (1, -1):
+    car.extrude_x(f'splitEnd{sd}', [(2.02, .13), (2.3, .13), (2.26, .19), (2.06, .22)], sd * .885, sd * .9, 'CARBON')
+
+# ---------------------------------------------------------------- flanks
+for sd in (1, -1):
+    # vertical fender vent behind the front wheel, chrome blade down its middle
+    z = .98; pts = []
+    for k in range(9):
+        y = lerp(.5, .82, k / 8); x = car.surf_side(y, z + .02 * (k / 8), sd)
+        if x: pts.append((sd * (x + .001), y, z + .02 * (k / 8)))
+    if len(pts) > 2:
+        car.tube(f'ventbk{sd}', pts, .016, 'GLOSSBLACK', res=4)
+        car.tube(f'ventbl{sd}', [(p[0] + sd * .006, p[1], p[2]) for p in pts[1:-1]], .004, 'CHROME', res=4)
+    # flush handles
+    for z in (.3, -.72):
+        y = kf(YS, z) - .055; x = car.surf_side(y, z, sd)
+        if x: car.box(f'handle{sd}{z}', (.008, .016, .2), (sd * (x + .002), y, z), 'SATIN')
+    # carbon sill blade with a chrome strip along its lower edge
     sill = []
-    for i in range(26):
-        z = lerp(-1.02, 1.02, i / 25); x = surf_side(.24, z, sd) or .9
-        sill.append([G(sd * (x - .05), .17, z), G(sd * (x + .018), .17, z), G(sd * (x + .02), .185, z), G(sd * (x - .05), .2, z)])
-    loft(f'Sill{sd}', sill, 'CARBON', smooth_=False)
+    for i in range(41):
+        zz = lerp(-1.05, 1.08, i / 40); x = car.surf_side(.26, zz, sd) or .9
+        sill.append([G(sd * (x - .06), .165, zz), G(sd * (x + .02), .165, zz), G(sd * (x + .025), .2, zz), G(sd * (x - .06), .23, zz)])
+    car.loft(f'Sill{sd}', sill, 'CARBON', smooth_=False)
+    car.tube(f'sillChrome{sd}', [(sd * ((car.surf_side(.26, zz, sd) or .9) + .028), .172, zz) for zz in [lerp(-1.0, 1.03, k / 20) for k in range(21)]], .0045, 'CHROME', res=4)
+    # mirrors: blade stalk off the door, paint cap
+    mz = .58; my = car.belt(mz) + .02; mx = car.C['cw'](mz)
+    car.tube(f'mstalk{sd}', [(sd * (mx - .02), my - .015, mz), (sd * (mx + .06), my + .01, mz - .03), (sd * (mx + .1), my + .03, mz - .05)], .011, 'GLOSSBLACK', res=4)
+    b = bmesh.new(); bmesh.ops.create_uvsphere(b, u_segments=32, v_segments=16, radius=1.)
+    for v in b.verts:
+        gx, gy, gz = v.co.x * .1, v.co.z * .045, v.co.y * .07
+        if gz < 0: gz *= .3
+        v.co = G(sd * (mx + .16) + gx, my + .045 + gy, mz - .07 + gz)
+    me = bpy.data.meshes.new(f'mcap{sd}'); b.to_mesh(me); b.free(); me.materials.append(car.M['PAINT']); me.shade_smooth(); car.link(bpy.data.objects.new(f'mcap{sd}', me))
+    car.box(f'mglass{sd}', (.17, .065, .006), (sd * (mx + .16), my + .045, mz - .093), 'GLOSSBLACK')
 
-# ================================================================ REAR
-tl = []
-for k in range(-14, 15):                                                                            # full-width light bar
-    x = k / 14 * .78; y = .83 + .012 * (1 - (k / 14) ** 2); z = (surf_back(x, y) or -2.55) - .004; tl.append((x, y, z))
-tube('taillight', tl, .014, 'TAIL', res=4)
+# ---------------------------------------------------------------- tail
+def tailpt(x, y, off=.012):   # a point on the rounded tail, standing `off` proud of it
+    return (x, y, BZ(x, y) + off)
 for sd in (1, -1):
-    x0, y0, z0 = tl[-1 if sd > 0 else 0]
-    ret = [(x0, y0, z0)]
-    for i, xx in enumerate((.81, .84), 1):                      # wrap round the tail corner, hugging the surface
-        yy = y0 - .006 * i; ret.append((sd * xx, yy, (surf_back(sd * xx, yy) or z0) - .004))
-    for i, z in enumerate((-2.46, -2.38), 3): ret.append((sd * ((surf_side(y0 - .006 * i, z, sd) or .9) + .003), y0 - .006 * i, z))
-    tube(f'tailret{sd}', ret, .012, 'TAIL', res=4)
-    for ex in (.4, .56):                                                                            # quad round tailpipes in the diffuser
-        zt = (surf_back(sd * ex, .34) or -2.4) - .01                 # tips sit flush with the valance above them
-        cyl_z(f'exh{sd}{ex}', sd * ex, .27, zt, zt + .18, .046, 'CHROME', open_=True)
-        cyl_z(f'exhi{sd}{ex}', sd * ex, .27, zt + .03, zt + .05, .04, 'GAP')
-for k in range(5):                                                                                  # diffuser strakes, inside the footprint
-    x = -.44 + k * .22; extrude_x(f'fin{k}', [(-2.02, .17), (-2.3, .17), (-2.3, .28), (-2.2, .28)], x - .007, x + .007, 'CARBON', bevel=.004)
-lipd = []                                                                                           # carbon ducktail lip
-for i in range(18):
-    x = lerp(-.64, .64, i / 17); lipd.append((x, surf_y(x, -2.5) or .95))
-verts = []; faces = []
-for x, y in lipd: verts += [G(x, y - .004, -2.46), G(x, y + .006, -2.46), G(x, y + .02, -2.62), G(x, y - .006, -2.6)]
-for i in range(len(lipd) - 1):
-    for j in range(4): a = 4 * i + j; b = 4 * i + (j + 1) % 4; faces.append((a, b, b + 4, a + 4))
-L = 4 * (len(lipd) - 1); faces += [(0, 1, 2, 3), (L + 3, L + 2, L + 1, L)]
-ob = new_obj('Ducktail', verts, faces, 'CARBON', False); fixn(ob)
-extrude_y('Floor', [(-.82, -2.15), (.82, -2.15), (.82, 2.0), (-.82, 2.0)], .15, .17, 'GLOSSBLACK', bevel=.004)
+    # corner cluster (taillight reference): a row of white-hot slashes that grow taller toward the corner and lean outward,
+    # a row of small red slashes beneath them, a red outline round the wedge, a smoked lens behind it all. Every piece is
+    # a panel laid on the tail surface (not a box), so the cluster follows the body as it wraps round the corner.
+    def panel(name, poly, m, off):
+        n = len(poly); cx = sum(p[0] for p in poly) / n; cy = sum(p[1] for p in poly) / n
+        ring = [(sd * x, y, BZ(sd * x, y) + off) for x, y in poly]; ctr = (sd * cx, cy, BZ(sd * cx, cy) + off)
+        verts = [G(*q) for q in ring] + [G(*ctr)] + [G(q[0], q[1], q[2] - .003) for q in ring]
+        faces = [(n, i, (i + 1) % n) if sd > 0 else (n, (i + 1) % n, i) for i in range(n)]
+        faces += [(i, n + 1 + i, n + 1 + (i + 1) % n, (i + 1) % n) if sd > 0 else (i, (i + 1) % n, n + 1 + (i + 1) % n, n + 1 + i) for i in range(n)]
+        ob = car.new_obj(name, verts, faces, m, False); return ob
+    def slash(name, x0, y0, w, h, lean, m, off):
+        panel(name, [(x0, y0), (x0 + w, y0), (x0 + w + lean * h, y0 + h), (x0 + lean * h, y0 + h)], m, off)
+    for k in range(7):                                          # white slashes: short inboard, tall at the corner
+        t = k / 6; x = lerp(.56, .79, t); h = lerp(.018, .05, t ** 1.3); w = lerp(.016, .024, t)
+        slash(f'tslash{sd}{k}', x, .924 + .008 * t, w, h, .45, 'TAILW', .014)
+    for k in range(11):                                         # red slashes in a band underneath
+        t = k / 10; slash(f'tred{sd}{k}', lerp(.585, .83, t), .889, .007, .015, .55, 'TAIL', .013)
+    out = CLUSTER + [CLUSTER[0]]
+    car.tube(f'tframe{sd}', [tailpt(sd * x, y, .011) for x, y in out], .0028, 'TAIL', res=3)
+    panel(f'tlens{sd}', CLUSTER, 'LENS', .006)
+    # red reflectors either side of the plate, low on the bumper
+    x, y = .6, .5; car.box(f'refl{sd}', (.2, .02, .012), (sd * x, y, BZ(sd * x, y) + .006), 'REFLECT')
+    # twin round tailpipes per side in the carbon diffuser
+    for x in (.46, .59):
+        y = .33; zt = BZ(sd * x, y)
+        car.cyl(f'exh{sd}{x}', (sd * x, y, zt - .06), (sd * x, y, zt + .012), .05, 'CHROME', seg=40, cap=False)
+        car.cyl(f'exhR{sd}{x}', (sd * x, y, zt + .004), (sd * x, y, zt + .018), .054, 'CHROME', r1=.051, seg=40, cap=False)
+        car.cyl(f'exhC{sd}{x}', (sd * x, y, zt - .02), (sd * x, y, zt - .015), .046, 'GAP', seg=24)
+        car.cyl(f'exhI{sd}{x}', (sd * x, y, zt - .015), (sd * x, y, zt + .03), .04, 'SATIN', seg=40, cap=False)   # inner liner
+        car.cyl(f'exhB{sd}{x}', (sd * x, y, zt - .016), (sd * x, y, zt - .012), .016, 'SATIN', seg=24)                  # baffle cone tip
+car.tube('tailbar', [tailpt(x, .936, .012) for x in [lerp(-.52, .52, k / 32) for k in range(33)]], .0072, 'TAIL', res=8)       # the full-width bar
+car.tube('tailbarW', [tailpt(x, .936, .018) for x in [lerp(-.5, .5, k / 30) for k in range(31)]], .003, 'TAILW', res=6)   # its white-hot core
+car.tube('diffTrim', [(x, .44 - .06 * (abs(x) / .95) ** 4 + .004, BZ(x, .44 - .06 * (abs(x) / .95) ** 4) + .006) for x in [lerp(-.9, .9, k / 36) for k in range(37)]], .0045, 'CHROME', res=4)   # bright line along the carbon
+for x in (-.12, .12): car.box(f'plight{x}', (.05, .008, .012), (x, .868, BZ(x, .868) + .012), 'HEAD')
+# diffuser: carbon strakes in the middle of the lower tail
+for k in range(5):
+    x = -.3 + k * .15; zt = BZ(x, .3)
+    car.extrude_x(f'dfin{k}', [(-2.15, .2), (zt + .02, .2), (zt + .005, .38), (-2.3, .38)], x - .006, x + .006, 'CARBON')
+# rear wing (from the rear reference): a carbon blade held close over the deck on two struts, its ends sweeping down
+# into the tail shoulders, a short kick-up gurney along the trailing edge
+def foil(chord, thick, n=24):   # cambered section (z, y) from the leading edge, z running rearward
+    up, lo = [], []
+    for k in range(n + 1):
+        t = k / n; xc = (1 - math.cos(math.pi * t)) / 2
+        yt = 5 * thick * (.2969 * math.sqrt(xc) - .126 * xc - .3516 * xc ** 2 + .2843 * xc ** 3 - .1036 * xc ** 4)
+        yc = .05 * (2 * .4 * xc - xc * xc) / .16 if xc < .4 else .05 * (1 - 2 * .4 + 2 * .4 * xc - xc * xc) / .36
+        up.append((-xc * chord, (yc + yt) * chord)); lo.append((-xc * chord, (yc - yt) * chord))
+    return up + list(reversed(lo[1:-1]))
+WZ = -2.3; WX = .74; SEC = foil(.28, .09, 28); WS = []
+for i in range(61):
+    t = i / 60; x = lerp(-WX, WX, t); a = abs(x)
+    drop = smooth(.55, WX, a); base = car.surf_y(0, WZ - .14) or 1.05      # a straight blade, the tips just turning down
+    h = .085 - .02 * drop ** 2; tilt = -.1          # the ends roll down and lean into the shoulders
+    ring = []
+    for z, y in SEC:
+        zz = z * math.cos(tilt) - y * math.sin(tilt); yy = z * math.sin(tilt) + y * math.cos(tilt)
+        ring.append(G(x, base + h + yy, WZ + zz))
+    WS.append(ring)
+car.loft('Wing', WS, 'CARBON')
+for sd in (1, -1):   # struts: slim blades from the deck lid up under the wing
+    x = sd * .4; y0 = car.surf_y(x, WZ - .14) or 1.05
+    car.extrude_x(f'strut{sd}', [(WZ - .06, y0 - .01), (WZ - .2, y0 - .01), (WZ - .18, (car.surf_y(0, WZ - .14) or 1.05) + .075), (WZ - .1, (car.surf_y(0, WZ - .14) or 1.05) + .075)], x - .008, x + .008, 'GLOSSBLACK')
 
-objs = [o for o in CAR.objects if o.type == 'MESH']
-tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in objs)
-print('objects', len(objs), 'tris', tris)
+# ---------------------------------------------------------------- inside: liner, buckets, dash (seen through the glass)
+cab = car.cabin; me = cab.data
+bm = bmesh.new(); bm.from_mesh(me)
+gl = [f for f in bm.faces if f.material_index == 1]; bmesh.ops.delete(bm, geom=gl, context='FACES')
+for v in bm.verts:
+    c = Vector((0, v.co.y, 1.0)); v.co = c + (v.co - c) * .965
+bmesh.ops.reverse_faces(bm, faces=bm.faces)
+for f in bm.faces: f.material_index = 0
+lin = bpy.data.meshes.new('Liner'); bm.to_mesh(lin); bm.free(); lin.materials.append(car.M['INTERIOR'])
+car.link(bpy.data.objects.new('Liner', lin))
+for sd in (1, -1):
+    for zs in (.0, -.95):
+        x = sd * .38
+        car.box(f'seatback{sd}{zs}', (.46, .62, .08), (x, .95, zs - .3), 'INTERIOR', rot=(-.25, 0, 0))
+        car.box(f'headrest{sd}{zs}', (.26, .16, .08), (x, 1.22 if zs == 0 else 1.08, zs - .36), 'INTERIOR', rot=(-.25, 0, 0))
+        car.box(f'cushion{sd}{zs}', (.42, .08, .44), (x, .66, zs - .05), 'INTERIOR')
+car.box('dash', (1.6, .12, .36), (0, .86, .55), 'INTERIOR', rot=(.25, 0, 0))
+car.box('console', (.22, .14, 1.5), (0, .6, -.2), 'INTERIOR')
+car.box('screen', (.5, .14, .015), (0, .98, .42), 'GLOSSBLACK', rot=(-.3, 0, 0))
+sw = [(.38 + .17 * math.cos(2 * math.pi * k / 32), .92 + .17 * math.sin(2 * math.pi * k / 32) * .92, .3 + .17 * math.sin(2 * math.pi * k / 32) * .38) for k in range(33)]
+car.tube('steer', sw, .016, 'INTERIOR', res=4)
+car.cyl('column', (.38, .88, .32), (.38, .82, .55), .025, 'INTERIOR', seg=16)
+for sd in (1, -1):   # seat bolsters
+    for zs in (.0, -.95):
+        for e in (1, -1): car.box(f'bol{sd}{zs}{e}', (.07, .5, .12), (sd * .38 + e * .2, .92, zs - .28), 'INTERIOR', rot=(-.25, 0, 0))
+# roof antenna fin, on the arc
+fz = -1.75; fy = roof_y(fz) - .004
+car.extrude_x('sharkfin', [(fz + .1, fy), (fz - .12, fy), (fz - .07, fy + .055)], -.022, .022, 'GLOSSBLACK', smooth_=True)
+# small aero fins on the sills ahead of the rear wheels
+for sd in (1, -1):
+    for k in range(3):
+        z = -.92 + k * .07; x = car.surf_side(.26, z, sd) or .9
+        car.box(f'sfin{sd}{k}', (.05, .05, .006), (sd * (x + .03), .215, z), 'CARBON')
+car.box('rdeck', (1.4, .02, .4), (0, .99, -1.75), 'INTERIOR', rot=(.15, 0, 0))
 
-def export(path):
-    for o in bpy.context.view_layer.objects if CLI else scene.objects: o.select_set(False)
-    for o in objs: o.select_set(True)
-    kw = dict(filepath=path, export_format='GLB', use_selection=True, export_apply=True, export_yup=True, export_normals=True,
-              export_texcoords=False, export_materials='EXPORT', export_lights=False, export_cameras=False)
-    if CLI: bpy.ops.export_scene.gltf(**kw)
-    else:
-        with bpy.context.temp_override(window=bpy.context.window_manager.windows[0], scene=scene, view_layer=VL):
-            bpy.ops.export_scene.gltf(**kw)
-    return os.path.getsize(path)
-if CLI:
-    print('wrote', OUT, export(OUT))
-else:
-    result = {'objects': len(objs), 'tris': tris}
+skin_normals(); bpy.data.objects.remove(SKIN0)
+objs = car.objs(); result = car.stats(); print(result)
+print('stations: plate z %.3f, head z %.3f, tail z %.3f' % (BZ(0, .6), FZ(.64, .62), BZ(.85, .88)))

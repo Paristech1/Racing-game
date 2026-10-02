@@ -40,9 +40,9 @@ HW = [[-2.45, .78], [-2.41, .86], [-2.33, .925], [-2.15, .968], [-1.8, .995], [-
 HW = [[z, w + .035 * (1 - smooth(2.15, 2.45, z)) * (1 - smooth(-2.3, -2.45, z))] for z, w in HW]   # wider, lower stance (sheet front/rear views)
 YB = [[-2.45, .4], [-2.41, .3], [-2.3, .2], [-2.1, .16], [2.15, .155], [2.36, .165], [2.47, .18]]
 YT = [[-2.45, .86], [-2.42, .93], [-2.36, .98], [-2.2, 1.02], [-1.9, 1.035], [-1.4, 1.03], [-.8, 1.0], [0, .975], [.6, .965],
-      [.95, .955], [1.3, .94], [1.7, .89], [2.05, .84], [2.3, .795], [2.42, .77], [2.47, .75]]
+      [.95, .955], [1.3, .935], [1.7, .875], [2.05, .815], [2.3, .77], [2.42, .745], [2.47, .725]]
 YS = [[-2.45, .8], [-2.41, .86], [-2.32, .91], [-2.1, .945], [-1.7, .955], [-1.2, .925], [-.5, .88], [.3, .865], [.9, .865],
-      [1.3, .885], [1.68, .912], [1.98, .855], [2.2, .8], [2.38, .765], [2.47, .72]]
+      [1.3, .885], [1.68, .905], [1.98, .84], [2.2, .78], [2.38, .742], [2.47, .7]]
 def dome(x, z):
     """hood: one broad centre power dome running up to the cowl, fading out just behind the grille"""
     a = abs(x); hz = smooth(1.0, 1.35, z) * (1 - smooth(2.2, 2.42, z))
@@ -114,12 +114,12 @@ def rr_tube(name, cx, cy, w, h, r, z0, z1, m, wall=.008, n=6):
     return ob
 
 # ---------------------------------------------------------------- nose openings
-GRILLE = Car.rounded(0, .595, .74, .3, .06, 6)                                   # the big proud slat grille
+GRILLE = Car.rounded(0, .58, .8, .3, .06, 6)                                   # the big proud slat grille
 pocket('grille', GRILLE, .05, m='GAP', per=4)
 SLOT = [(-.36, .4), (.36, .4), (.42, .23), (-.42, .23)]                      # centre lower slot under it
 pocket('slot', SLOT, .1, per=8)
 INTAKE = [(.44, .4), (.62, .465), (.79, .475), (.81, .3), (.75, .225), (.5, .225), (.44, .3)]   # big corner intakes under the lamps
-HEAD_L = [(.39, .742), (.55, .75), (.69, .76), (.79, .773), (.86, .785), (.862, .74), (.85, .7), (.83, .7), (.79, .73), (.68, .706), (.55, .69), (.39, .688)]
+HEAD_L = [(.39, .720), (.55, .728), (.69, .738), (.79, .751), (.86, .763), (.862, .718), (.85, .678), (.83, .678), (.79, .708), (.68, .684), (.55, .668), (.39, .666)]
 for sd in (1, -1):
     pocket(f'head{sd}', [(sd * x, y) for x, y in HEAD_L], .035, per=6)
     pocket(f'intake{sd}', [(sd * x, y) for x, y in INTAKE], .11, per=8)
@@ -170,8 +170,8 @@ for sd in (1, -1):
 GF = [(x, y) for x, y in GRILLE]
 def gsurf(x, y): return FZ(x * .97, min(y, .7)) 
 GZ = max(gsurf(x, y) for x, y in GF)                       # foremost skin point under the frame
-def gzf(x, y): return GZ + .035 - .025 * (x / .37) ** 2 - .012 * ((y - .595) / .16) ** 2     # the shield's convex front
-ring_o = Car.rounded(0, .595, .76, .32, .07, 6); ring_i = Car.rounded(0, .595, .7, .26, .045, 6); k = len(ring_o)
+def gzf(x, y): return GZ + .035 - .025 * (x / .4) ** 2 - .012 * ((y - .58) / .16) ** 2     # the shield's convex front
+ring_o = Car.rounded(0, .58, .82, .32, .07, 6); ring_i = Car.rounded(0, .58, .76, .26, .045, 6); k = len(ring_o)
 verts = [G(x, y, gzf(x, y)) for x, y in ring_o] + [G(x, y, gzf(x, y)) for x, y in ring_i] + \
         [G(x, y, gsurf(x, y) - .03) for x, y in ring_o] + [G(x, y, gzf(x, y) - .05) for x, y in ring_i]
 faces = []
@@ -179,22 +179,22 @@ for j in range(k):
     a_, b_ = j, (j + 1) % k
     faces += [(a_, b_, k + b_, k + a_), (2 * k + b_, 2 * k + a_, a_, b_)[::-1], (k + a_, k + b_, 3 * k + b_, 3 * k + a_)]
 fob = car.new_obj('gframe', verts, faces, 'GLOSSBLACK'); car.fixn(fob)
-grid('gback', lambda u, v: (lerp(-.36, .36, u), lerp(.45, .74, v), GZ - .06), 20, 6, 'GAP')
-NSL = 25 if DETAIL else 17
+grid('gback', lambda u, v: (lerp(-.39, .39, u), lerp(.435, .725, v), GZ - .06), 20, 6, 'GAP')
+NSL = 27 if DETAIL else 19
 for k in range(NSL):   # each slat a rounded vertical rod with a fin behind it, so every one catches its own highlight
-    x = lerp(-.33, .33, k / (NSL - 1)); ytop = .72 - .006 * (x / .35) ** 4; ybot = .47 + .006 * (x / .35) ** 4
-    zf = gzf(x, .595) - .014
+    x = lerp(-.36, .36, k / (NSL - 1)); ytop = .705 - .006 * (x / .38) ** 4; ybot = .455 + .006 * (x / .38) ** 4
+    zf = gzf(x, .58) - .014
     car.cyl(f'slat{k}', (x, ybot, zf - .004), (x, ytop, zf - .004), .0085, 'GRILLE', seg=12)
     car.box(f'slatfin{k}', (.006, ytop - ybot, .06), (x, (ytop + ybot) / 2, zf - .035), 'GRILLE')
 for sd in (1, -1):
     # LED DRL (#03): along the lamp's lower edge, hooking down beside the grille; projector cells behind a smoked lens
-    drl = [(sd * x, y, FZ(sd * x, y) - .01) for x, y in [(.41, .697), (.55, .701), (.68, .716), (.78, .736), (.83, .748), (.845, .735), (.842, .71)]]
+    drl = [(sd * x, y, FZ(sd * x, y) - .01) for x, y in [(.41, .675), (.55, .679), (.68, .694), (.78, .714), (.83, .726), (.845, .713), (.842, .688)]]
     car.tube(f'drl{sd}', drl, .0055, 'HEAD', res=8)
-    for j, (x, y) in enumerate([(.52, .72), (.61, .726), (.7, .737)]):
+    for j, (x, y) in enumerate([(.52, .698), (.61, .704), (.7, .715)]):
         zf = FZ(sd * x, y) - .024
         car.cyl(f'proj{sd}{j}', (sd * x, y, zf), (sd * x, y, zf + .008), .013, 'CHROME', seg=24)
     def hl(u, v, sd=sd):
-        x = lerp(.395, .85, u); y0 = lerp(.692, .735, u ** 1.4); y = lerp(y0, y0 + .048 - .006 * u, v); return (sd * x, y, FZ(sd * x, y) - .003)
+        x = lerp(.395, .85, u); y0 = lerp(.67, .713, u ** 1.4); y = lerp(y0, y0 + .048 - .006 * u, v); return (sd * x, y, FZ(sd * x, y) - .003)
     grid(f'hlens{sd}', hl, 24, 3, 'LENS', flip=sd < 0)
     # corner intake: a horizontal gloss-black blade across it, dark mesh behind
     car.tube(f'iblade{sd}', [(sd * x, .33, FZ(sd * x, .33) - .035) for x in [lerp(.46, .79, k / 8) for k in range(9)]], .009, 'GLOSSBLACK', res=3)

@@ -662,7 +662,7 @@ const BODIES={
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
    cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:.92,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3},
  granfour:{pts:[[-2.4,.4],[-2.45,.76],[-2.34,.96],[-1.7,1.03],[-.6,1.0],[.5,.97],[1.4,.93],[2.1,.83],[2.44,.72],[2.47,.4]],base:.2, // Gran Four v3 (tools/blender/gran_four.py)
-   cab:[[-2.12,1.05],[-1.3,1.29],[-.1,1.42],[.58,1.27],[.98,.99]],cabBase:[-2.12,1.02,.98,.97],w:1.96,cw:1.42,wr:.395,wb:1.635,tr:.78,front:2.385,rear:2.535,headY:.72,tailY:.87,wingY:1.08,wingZ:-2.3},
+   cab:[[-2.12,1.05],[-1.3,1.29],[-.1,1.42],[.58,1.27],[.98,.99]],cabBase:[-2.12,1.02,.98,.97],w:1.96,cw:1.42,wr:.4,wb:1.56,tr:.78,front:2.49,rear:2.31,headY:.72,tailY:.87,wingY:1.08,wingZ:-2.3},
  noctis:{pts:[[-2.12,.34],[-2.2,.68],[-2.02,.86],[-1.3,.94],[-.35,.96],[.55,.92],[1.4,.8],[2.1,.64],[2.5,.48],[2.54,.34]],base:.22,
    cab:[[-1.62,.92],[-1.08,1.26],[-.15,1.32],[.4,1.08],[.72,.88]],cabBase:[-1.62,.9,.72,.86],w:1.98,cw:1.4,wr:.37,wb:1.5,tr:.9,front:2.54,rear:2.2,headY:.6,tailY:.8,wingY:1.16,wingZ:-1.9},
  vanta:{pts:[[-2.72,.26],[-2.78,.48],[-2.55,.62],[-1.75,.7],[-.75,.72],[.25,.66],[1.2,.5],[1.9,.36],[2.32,.28],[2.36,.22]],base:.14,
@@ -1525,10 +1525,10 @@ function granfourShell(g,def,B,paint,glass){
 const GF_YELLOW=new THREE.MeshStandardMaterial({color:0xffb21a,emissive:0xb87400,emissiveIntensity:.35,roughness:.35,metalness:.1});
 const GF_GRILLE=new THREE.MeshStandardMaterial({color:0x2c2e33,metalness:.9,roughness:.24,envMapIntensity:1.8});
 const GF_GLASS=new THREE.MeshPhysicalMaterial({color:0x040507,metalness:.35,roughness:.04,clearcoat:1,clearcoatRoughness:.03,reflectivity:.8,envMapIntensity:.9,transparent:true,opacity:.9,depthWrite:false});
-const GF_ZOFF=-.085, GF_HEAD_Z=2.27, GF_TAIL_Z=-2.55; // the Blender build is shifted by ZOFF so the axles sit at +-wb; lamp stations measured off the GLB (no plate: the sheet shows a clean tail)
-const GF_HW=[[-2.45,.78],[-2.41,.866],[-2.33,.956],[-2.15,1.003],[-1.8,1.03],[-1.5,1.035],[-1.05,1.003],[-.5,.973],[.2,.967],[.85,.98],[1.3,1.0],[1.72,1.035],[1.98,1.01],[2.08,.995],[2.15,.965],[2.26,.914],[2.35,.839],[2.42,.741],[2.47,.6]],
-  GF_YS=[[-2.45,.8],[-2.41,.86],[-2.32,.91],[-2.1,.945],[-1.7,.955],[-1.2,.925],[-.5,.88],[.3,.865],[.9,.865],[1.3,.885],[1.68,.905],[1.98,.84],[2.2,.78],[2.38,.742],[2.47,.7]],
-  GF_YB=[[-2.45,.4],[-2.41,.3],[-2.3,.2],[-2.1,.16],[2.15,.155],[2.36,.165],[2.47,.18]];
+const GF_ZOFF=0, GF_HEAD_Z=2.37, GF_TAIL_Z=-2.33; // the Blender build is shifted by ZOFF so the axles sit at +-wb; lamp stations measured off the GLB (no plate: the sheet shows a clean tail)
+const GF_HW=[[-2.31,.74],[-2.27,.84],[-2.2,.925],[-2.05,.975],[-1.8,1.0],[-1.56,1.01],[-1.1,.985],[-.5,.955],[.2,.95],[.85,.96],[1.2,.975],[1.56,1.0],[1.85,.985],[2.0,.965],[2.12,.935],[2.24,.89],[2.34,.83],[2.43,.74],[2.49,.6]],
+  GF_YS=[[-2.31,.82],[-2.27,.88],[-2.15,.93],[-1.8,.96],[-1.5,.965],[-1.1,.94],[-.4,.92],[.4,.91],[.9,.91],[1.3,.905],[1.56,.91],[1.9,.85],[2.2,.79],[2.4,.745],[2.49,.7]],
+  GF_YB=[[-2.31,.36],[-2.27,.28],[-2.15,.2],[-1.95,.15],[2.1,.14],[2.36,.17],[2.49,.2]];
 function granfourGlbShell(g,def,B,paint,glass,opts){
   const parts=glbParts('granfour'); if(!parts) return granfourShell(g,def,B,paint,glass,opts);
   const K=carKit(g); rimPaint(paint,0xffe2a8,.04);
@@ -7061,7 +7061,7 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=5'],['granfour','models/gran_four.glb?v=2'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=5'],['granfour','models/gran_four.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   const land=(k,gl)=>{ window.AH_MODELS[k]=gl.scene; if(started&&window.AH_MODEL_READY) window.AH_MODEL_READY(k); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ land(k,gl); done(); },undefined,e=>{ console.warn(url+' failed, retrying once (procedural fallback meanwhile)',e); done();
     setTimeout(()=>new THREE.GLTFLoader().load(url,gl=>land(k,gl),undefined,e2=>console.warn(url+' failed again',e2)),3000); }));

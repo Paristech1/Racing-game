@@ -39,7 +39,7 @@ HW = [[-2.45, .78], [-2.41, .86], [-2.33, .925], [-2.15, .968], [-1.8, .995], [-
       [.85, .945], [1.3, .965], [1.72, 1.0], [1.98, .975], [2.08, .96], [2.15, .93], [2.26, .89], [2.35, .83], [2.42, .74], [2.47, .6]]   # broad nose, corners rounding back to the arches
 HW = [[z, w + .035 * (1 - smooth(2.15, 2.45, z)) * (1 - smooth(-2.3, -2.45, z))] for z, w in HW]   # wider, lower stance (sheet front/rear views)
 YB = [[-2.45, .4], [-2.41, .3], [-2.3, .2], [-2.1, .16], [2.15, .155], [2.36, .165], [2.47, .18]]
-YT = [[-2.45, .86], [-2.42, .93], [-2.36, .98], [-2.2, 1.02], [-1.9, 1.035], [-1.4, 1.03], [-.8, 1.0], [0, .975], [.6, .965],
+YT = [[-2.45, .88], [-2.42, .96], [-2.36, 1.0], [-2.2, 1.035], [-1.9, 1.035], [-1.4, 1.03], [-.8, 1.0], [0, .975], [.6, .965],
       [.95, .955], [1.3, .935], [1.7, .875], [2.05, .815], [2.3, .77], [2.42, .745], [2.47, .725]]
 YS = [[-2.45, .8], [-2.41, .86], [-2.32, .91], [-2.1, .945], [-1.7, .955], [-1.2, .925], [-.5, .88], [.3, .865], [.9, .865],
       [1.3, .885], [1.68, .905], [1.98, .84], [2.2, .78], [2.38, .742], [2.47, .7]]
@@ -242,20 +242,22 @@ def tailpt(x, y, off=.012): return (x, y, BZ(x, y) - off)
 for sd in (1, -1):
     # lamp cluster at each end of the light bar: red bracket wrapping the corner, a white LED stroke inside it
     # cluster (blueprint #10): two stacked red brackets wrapping the corner over a smoked lens
-    for dy, w in ((0., .01), (-.05, .009)):
-        brk = [(.46, .9 + dy), (.66, .904 + dy), (.78, .9 + dy), (.83, .886 + dy), (.84, .866 + dy), (.81, .858 + dy), (.58, .862 + dy)]
-        car.tube(f'tbrk{sd}{dy}', [tailpt(sd * x, y, .011) for x, y in brk], w, 'TAIL', res=6)
-    grid(f'tlens{sd}', lambda u, v, sd=sd: (lambda x, y: (x, y, BZ(x, y) - .004))(sd * lerp(.46, .835, u), lerp(.806, .906, v)), 16, 4, 'LENS', flip=sd > 0)
+    # tall C-shaped cluster (sheet rear view): the bar runs out along its top, wraps down the outer corner and back
+    # inboard along the bottom; a second line across the middle
+    C_OUT = [(.36, .92), (.6, .922), (.76, .918), (.83, .9), (.85, .86), (.845, .79), (.82, .745), (.74, .732), (.5, .734), (.45, .742)]
+    car.tube(f'tbrk{sd}', [tailpt(sd * x, y, .011) for x, y in C_OUT], .0095, 'TAIL', res=6)
+    car.tube(f'tmid{sd}', [tailpt(sd * x, y, .011) for x, y in [(.52, .83), (.68, .832), (.8, .83), (.83, .82)]], .008, 'TAIL', res=6)
+    grid(f'tlens{sd}', lambda u, v, sd=sd: (lambda x, y: (x, y, BZ(x, y) - .004))(sd * lerp(.42, .845, u), lerp(.738, .918, v)), 18, 6, 'LENS', flip=sd > 0)
     # red reflector slivers low on the bumper corners
     x, y = .86, .42; car.box(f'refl{sd}', (.012, .06, .012), (sd * x, y, BZ(sd * x, y) + .02), 'REFLECT')
     # rectangular tailpipes in the black band
-    x, y = .56, .32; zt = BZ(sd * x, y)
-    rr_tube(f'exh{sd}', sd * x, y, .2, .065, .018, zt + .05, zt - .02, 'CHROME')
+    x, y = .62, .275; zt = BZ(sd * x, y)
+    rr_tube(f'exh{sd}', sd * x, y, .26, .075, .02, zt + .05, zt - .02, 'CHROME')
 # bumper crease under the lamps (the deck lid's lower edge) and the vertical lid shut lines
-car.tube('tcrease', [tailpt(x, .79, .002) for x in [lerp(-.78, .78, k / 40) for k in range(41)]], .0032, 'GAP', res=3)
-for sd in (1, -1): car.tube(f'tlid{sd}', [tailpt(sd * .82, y, .002) for y in [lerp(.79, .93, k / 6) for k in range(7)]], .0028, 'GAP', res=3)
+car.tube('tcrease', [tailpt(x, .69, .002) for x in [lerp(-.8, .8, k / 40) for k in range(41)]], .0032, 'GAP', res=3)
+for sd in (1, -1): car.tube(f'tlid{sd}', [tailpt(sd * .88, y, .002) for y in [lerp(.69, .95, k / 6) for k in range(7)]], .0028, 'GAP', res=3)
 # full-width light bar (#10): one red blade right across the tail, joining the two corner clusters
-car.tube('tailbar', [tailpt(x, .896, .011) for x in [lerp(-.52, .52, k / 40) for k in range(41)]], .0075, 'TAIL', res=8)
+car.tube('tailbar', [tailpt(x, .92, .011) for x in [lerp(-.4, .4, k / 40) for k in range(41)]], .0075, 'TAIL', res=8)
 # diffuser (#11): vertical gloss-black strakes across the middle of the black band
 for k in range(7):
     x = -.33 + k * .11; zt = BZ(x, .3)

@@ -150,18 +150,18 @@ car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: gz > 2.25 and gy < .215)        
 car.sharpen(car.body, 55); car.bvh = car.BV()
 
 # ---------------------------------------------------------------- cabin: low fastback glasshouse under a glass roof
-CH = [[-2.12, 1.05], [-1.95, 1.1], [-1.7, 1.18], [-1.4, 1.27], [-1.1, 1.325], [-.75, 1.37], [-.4, 1.392], [-.1, 1.398], [.15, 1.385],
+CH = [[-2.22, 1.055], [-2.05, 1.095], [-1.8, 1.165], [-1.55, 1.235], [-1.4, 1.27], [-1.1, 1.325], [-.75, 1.37], [-.4, 1.392], [-.1, 1.398], [.15, 1.385],
       [.38, 1.345], [.58, 1.262], [.75, 1.155], [.89, 1.06], [.98, .99]]
 def roof_y(z): return kf(CH, z)
-car.build_cabin({'CZ0': -2.12, 'CZ1': .98, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.84, .6, -1.62, -1.36), 'rear_glass': 9., 'dlo_trim': 'CHROME',
+car.build_cabin({'CZ0': -2.22, 'CZ1': .98, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.84, .6, -1.62, -1.36), 'rear_glass': 9., 'dlo_trim': 'CHROME',
     'pillars': [(-.1, -.0)], 'apillar_r': .016,
-    'cw': lambda z: kf(HW, z) - .24 - .07 * smooth(-1.5, -2.12, z) - .07 * smooth(.62, .98, z),
-    'rw': lambda z: kf(HW, z) - .48 - .03 * smooth(-1.4, -2.12, z) - .08 * smooth(.42, .98, z)})
+    'cw': lambda z: kf(HW, z) - .24 - .02 * smooth(-1.5, -2.22, z) - .07 * smooth(.62, .98, z),
+    'rw': lambda z: kf(HW, z) - .48 + .1 * smooth(-1.4, -2.22, z) - .08 * smooth(.42, .98, z)})
 # thin yellow line along each roof rail
 for sd in (1, -1):
     pts = []
     for k in range(26):
-        z = lerp(car.a_line(.6) - .02, -1.95, k / 25); x, y = car.ring_pt(z, .6, .007); pts.append((sd * x, y, z))
+        z = lerp(car.a_line(.6) - .02, -2.05, k / 25); x, y = car.ring_pt(z, .6, .007); pts.append((sd * x, y, z))
     car.tube(f'rail{sd}', pts, .0055, 'YELLOW', res=4)
 
 # ---------------------------------------------------------------- front details
@@ -270,7 +270,7 @@ def foil(chord, thick, n=16):
         yt = 5 * thick * (.2969 * math.sqrt(xc) - .126 * xc - .3516 * xc ** 2 + .2843 * xc ** 3 - .1036 * xc ** 4)
         up.append((-xc * chord, yt * chord)); lo.append((-xc * chord, -yt * chord))
     return up + list(reversed(lo[1:-1]))
-SEC = foil(.15, .09, 16); WS = []; WZ = -2.28
+SEC = foil(.13, .09, 16); WS = []; WZ = -2.31
 for i in range(61):
     t = i / 60; x = lerp(-.8, .8, t); a = abs(x)
     ys = car.surf_y(min(a, .8) * (1 if x >= 0 else -1), WZ - .05) or 1.0

@@ -230,6 +230,7 @@ Events 11–14 and Tag Team came out of a recon of racing-game repos on GitHub, 
 index.html           screens and HUD markup
 css/afterhours.css   magazine and HUD styling
 js/afterhours.js     game: cars, tracks, AI, physics, audio, UI
+tools/blender/       Blender car sources, refs/, CAR_PIPELINE.md (reference → in-game)
 .cursor/skills/      Three.js agent skills (see AGENTS.md)
 AGENTS.md            instructions for coding agents on this repo
 ```

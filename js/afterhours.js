@@ -57,7 +57,7 @@ CARS.push(
   rival:'Rival note: The Wall can\'t hold you off in this. Push through.',
   note:'quiet until\nit isn\'t.', notePos:{l:'8%',t:'36%'},
   cam:{p:[3.9,.95,5.4],l:[0,.7,.3],roll:-.06,fov:32}},
- {id:'granfour',sculpt:'granfour',name:'GRAN FOUR',body:'fastback',lowPro:true,paint:0x5b5f65,metal:.35,rough:.55,matte:true,rim:0x16181b,caliper:0xffc21a,wing:false,accent:0xffc21a,world:'ice',
+ {id:'granfour',sculpt:'granfour',name:'GRAN FOUR',body:'granfour',lowPro:true,paint:0x333431,metal:.3,rough:.42,matte:true,rim:0x2a2622,rimLip:0x1c1a18,caliper:0xffc21a,wing:false,accent:0xffc21a,world:'ice',
   top:89,acc:22,grip:30,nitro:1.0,mass:1.35,
   kick:'Four doors',loc:'Forest Lot',when:'After rain, 05:30',
   caption:'Four doors, four seats, one driver who actually matters.',
@@ -661,6 +661,8 @@ const BODIES={
    cab:[[-1.55,.96],[-1.0,1.16],[-.2,1.22],[.5,1.02],[.98,.7]],cabBase:[-1.55,.94,.98,.68],w:2.0,cw:1.22,wr:.36,wb:1.36,tr:1.0,front:2.22,rear:2.3,headY:.5,tailY:.76,wingY:1.14,wingZ:-1.95},
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
    cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:.92,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3},
+ granfour:{pts:[[-2.4,.4],[-2.45,.76],[-2.34,.96],[-1.7,1.03],[-.6,1.0],[.5,.97],[1.4,.93],[2.1,.83],[2.44,.72],[2.47,.4]],base:.2, // Gran Four v3 (tools/blender/gran_four.py)
+   cab:[[-2.12,1.05],[-1.3,1.29],[-.1,1.42],[.58,1.27],[.98,.99]],cabBase:[-2.12,1.02,.98,.97],w:1.96,cw:1.42,wr:.4,wb:1.56,tr:.78,front:2.49,rear:2.31,headY:.72,tailY:.87,wingY:1.08,wingZ:-2.3},
  noctis:{pts:[[-2.12,.34],[-2.2,.68],[-2.02,.86],[-1.3,.94],[-.35,.96],[.55,.92],[1.4,.8],[2.1,.64],[2.5,.48],[2.54,.34]],base:.22,
    cab:[[-1.62,.92],[-1.08,1.26],[-.15,1.32],[.4,1.08],[.72,.88]],cabBase:[-1.62,.9,.72,.86],w:1.98,cw:1.4,wr:.37,wb:1.5,tr:.9,front:2.54,rear:2.2,headY:.6,tailY:.8,wingY:1.16,wingZ:-1.9},
  vanta:{pts:[[-2.72,.26],[-2.78,.48],[-2.55,.62],[-1.75,.7],[-.75,.72],[.25,.66],[1.2,.5],[1.9,.36],[2.32,.28],[2.36,.22]],base:.14,
@@ -1515,6 +1517,30 @@ function granfourShell(g,def,B,paint,glass){
   return T;
 }
 
+/* ---- Gran Four (Blender build, v3): tools/blender/gran_four.py, traced off Paris's Midjourney sheet and design blueprint.
+   Tapered nose with a proud vertical-slat grille, slim LED lamps whose DRL hooks down beside it, big corner intakes, a black
+   splitter edged in yellow that carries on along the sills, long domed hood, four-door glasshouse under a glass roof with a
+   yellow line on each rail, wide haunches, deck lip spoiler, full-width light bar, black diffuser band with square pipes.
+   Matte pale-gray paint: no clear coat. Blender material names map onto the game's materials; granfourShell is the fallback. */
+const GF_YELLOW=new THREE.MeshStandardMaterial({color:0xffb21a,emissive:0xb87400,emissiveIntensity:.35,roughness:.35,metalness:.1});
+const GF_GRILLE=new THREE.MeshStandardMaterial({color:0x2c2e33,metalness:.9,roughness:.24,envMapIntensity:1.8});
+const GF_GLASS=new THREE.MeshPhysicalMaterial({color:0x040507,metalness:.35,roughness:.04,clearcoat:1,clearcoatRoughness:.03,reflectivity:.8,envMapIntensity:.9,transparent:true,opacity:.9,depthWrite:false});
+const GF_ZOFF=0, GF_HEAD_Z=2.37, GF_TAIL_Z=-2.33; // the Blender build is shifted by ZOFF so the axles sit at +-wb; lamp stations measured off the GLB (no plate: the sheet shows a clean tail)
+const GF_HW=[[-2.31,.74],[-2.27,.84],[-2.2,.925],[-2.05,.975],[-1.8,1.0],[-1.56,1.01],[-1.1,.985],[-.5,.955],[.2,.95],[.85,.96],[1.2,.975],[1.56,1.0],[1.85,.985],[2.0,.965],[2.12,.935],[2.24,.89],[2.34,.83],[2.43,.74],[2.49,.6]],
+  GF_YS=[[-2.31,.82],[-2.27,.88],[-2.15,.93],[-1.8,.96],[-1.5,.965],[-1.1,.94],[-.4,.92],[.4,.91],[.9,.91],[1.3,.905],[1.56,.91],[1.9,.85],[2.2,.79],[2.4,.745],[2.49,.7]],
+  GF_YB=[[-2.31,.36],[-2.27,.28],[-2.15,.2],[-1.95,.15],[2.1,.14],[2.36,.17],[2.49,.2]];
+function granfourGlbShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('granfour'); if(!parts) return granfourShell(g,def,B,paint,glass,opts);
+  const K=carKit(g); rimPaint(paint,0xffe2a8,.04);
+  paint.clearcoat=0; paint.roughness=Math.max(paint.roughness,.45); paint.metalness=.25; paint.envMapIntensity=.6; // satin wrap
+  const satin=new THREE.MeshStandardMaterial({color:0x3c4047,metalness:.9,roughness:.32});
+  const MATS={PAINT:paint,GLASS:GF_GLASS,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,TAILW:AB_TAILW,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin,GRILLE:GF_GRILLE,YELLOW:GF_YELLOW,REFLECT:AB_REFLECT,INTERIOR:AB_CABIN,CARBON:K.carbon};
+  parts.forEach(p=>{ const m=new THREE.Mesh(p.geo,MATS[p.key]||paint); if(p.key==='GLASS') m.renderOrder=3; g.add(m); });
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.35,sd*.64,.72,GF_HEAD_Z); K.glow(0xff2030,.3,sd*.7,.88,GF_TAIL_Z); });
+  // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in gran_four.py)
+  return {sec:z=>{ z-=GF_ZOFF; const hs=kfCR(GF_HW,z), ys=kfCR(GF_YS,z), yb=kfCR(GF_YB,z); return {hs,ys,yb,hl:hs-.07,ay:ys-.12,yc:ys+.1,yf:ys+.1}; }};
+}
+
 /* ---- Bell 76: W16 longtail hypercar. Smooth teardrop body, gold C-sweep around the door and side intake, horseshoe
    grille, quad-LED headlamps, gold dorsal spine over the roof, full-width tail light bar, square quad exhaust,
    active wing. Two-tone: blue over a darker navy tail section. ---- */
@@ -2025,7 +2051,7 @@ function wispGlbShell(g,def,B,paint,glass,opts){
     YS=[[-2.18,.9],[-2.0,.93],[-1.4,.93],[-.6,.91],[.4,.89],[.9,.87],[1.5,.82],[1.95,.74],[2.24,.56]], YB=[[-2.18,.36],[-2.06,.22],[-1.8,.17],[1.8,.17],[2.06,.2],[2.24,.26]];
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.06,ay:ys-.12,yc:ys+.1,yf:ys+.1}; }};
 }
-const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
+const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -2038,7 +2064,7 @@ const STREET={
  kern:{vinyl:'number',vc:'#d8b04a',text:'88',wheel:'mesh'},
  dune:{vinyl:'splatter',vc:'#5a4630',wheel:'star'},
  sovereign:{vinyl:'checker',vc:'#1a1a1c',wheel:'spoke'}, // ghost checker, black on black
- granfour:{wheel:'fan'},
+ granfour:{wheel:'turbine'},
  bell:{wheel:'twin'},
  passyunk:{glow:0x2fd6ff,vinyl:'sponsor',wheel:'split',camber:.05},
  richmond:{vinyl:'tribal',vc:'#ff5a1f',wheel:'star'},
@@ -2130,6 +2156,7 @@ function streetStyle(g,def,B,cid,flank){
       const mesh=new THREE.Mesh(geo,vinylMat(cid,st,sd>0)); mesh.renderOrder=1; g.add(mesh); }); }
 }
 // rim designs; spin is the wheel's spinning group, side = +-1, rimM the rim material
+const TURBINE_M=new THREE.MeshStandardMaterial({color:0x3b342c,metalness:.75,roughness:.36,envMapIntensity:1.1});
 const MACHINED_M=new THREE.MeshStandardMaterial({color:0xb4bac2,metalness:1,roughness:.22,envMapIntensity:1.6}); const WHEEL_GEO={}, FORGED_CHROME=new THREE.MeshStandardMaterial({color:0xf6f8fa,metalness:.88,roughness:.1,envMapIntensity:2.6}), FORGED_BLACK=new THREE.MeshStandardMaterial({color:0x3a3f47,metalness:1,roughness:.12,envMapIntensity:2.2});
 function wheelStyle(spin,side,style,rimM,def){
   const at=(o,x)=>{ o.position.x=side*x; spin.add(o); return o; };
@@ -2145,6 +2172,23 @@ function wheelStyle(spin,side,style,rimM,def){
       at(new THREE.Mesh(new THREE.CircleGeometry(.27,28),rimM),.145).rotation.y=side*Math.PI/2;
       for(let k=0;k<14;k++){ const b=new THREE.Mesh(new THREE.BoxGeometry(.012,.2,.05),rimM); b.position.set(0,Math.cos(k/14*Math.PI*2)*.17,Math.sin(k/14*Math.PI*2)*.17); b.rotation.x=k/14*Math.PI*2; b.rotateY(side*.5);
         at(b,.16); } break; }
+    case 'turbine': { // Gran Four, from Paris's sheet: sixteen curved, pitched turbine blades sweeping from a small hub to the lip over a dark dish
+      const TB=WHEEL_GEO.turbine||(WHEEL_GEO.turbine=(()=>{ const P=(r,t)=>[-Math.sin(t)*r,Math.cos(t)*r], N=16, blades=[];
+        const th=r=>{ const s=clamp((r-.07)/.205,0,1); return 1.05*Math.pow(s,1.25); }, hw=r=>{ const s=clamp((r-.07)/.205,0,1); return (.03-.011*s)/r; };
+        for(let k=0;k<N;k++){ const a=k/N*Math.PI*2, sh=new THREE.Shape(), e1=[], e2=[];
+          for(let i=0;i<=10;i++){ const r=lerp(.07,.275,i/10); e1.push(P(r,a+th(r)+hw(r))); e2.push(P(r,a+th(r)-hw(r))); }
+          sh.moveTo(...e1[0]); e1.slice(1).forEach(p=>sh.lineTo(...p)); e2.reverse().forEach(p=>sh.lineTo(...p)); sh.lineTo(...e1[0]);
+          const g=new THREE.ExtrudeGeometry(sh,{depth:.024,bevelEnabled:true,bevelThickness:.004,bevelSize:.003,bevelSegments:1,curveSegments:4});
+          const pos=g.attributes.position; // pitch: push each point out along the axle by its offset from the blade's centreline (a turbine twist)
+          for(let i=0;i<pos.count;i++){ const x=pos.getX(i), y=pos.getY(i), r=Math.hypot(x,y), phi=Math.atan2(-x,y); let d=phi-(a+th(r)); d=Math.atan2(Math.sin(d),Math.cos(d)); pos.setZ(i,pos.getZ(i)+.55*d*r); }
+          g.computeVertexNormals(); g.rotateY(Math.PI/2); blades.push(g); }
+        return {blades:mergeGeos(blades),dish:new THREE.RingGeometry(.05,.285,48).rotateY(Math.PI/2),cap:new THREE.CylinderGeometry(.062,.07,.04,28).rotateZ(Math.PI/2),
+          badge:new THREE.CircleGeometry(.03,20).rotateY(Math.PI/2),lip:new THREE.CylinderGeometry(.285,.285,.04,48,1,true).rotateZ(Math.PI/2)}; })());
+      const TM=TURBINE_M; // smoked dark-bronze satin, as on the sheet
+      at(new THREE.Mesh(TB.dish,barrelM),.12).rotation.y=side>0?0:Math.PI;
+      const bm=at(new THREE.Mesh(TB.blades,TM),.132); bm.scale.x=side;
+      at(new THREE.Mesh(TB.lip,TM),.15); at(new THREE.Mesh(TB.cap,TM),.16);
+      at(new THREE.Mesh(TB.badge,blackM),.181).rotation.y=side>0?0:Math.PI; break; }
     case 'twin': // forged ten twin-spoke: slim paired spokes running out to the lip
       for(let k=0;k<10;k++) [-.045,.045].forEach(o=>{ const s=new THREE.Mesh(new THREE.BoxGeometry(.016,.2,.022),rimM), a=k/10*Math.PI*2+o;
         s.position.set(0,Math.cos(a)*.165,Math.sin(a)*.165); s.rotation.x=a; at(s,.158); });
@@ -2351,7 +2395,7 @@ function buildCar(def,opts){
     const side=Math.sign(x);
     const barrel=new THREE.Mesh(BARREL_GEO,barrelM); barrel.rotation.z=Math.PI/2; barrel.position.x=side*.05; spin.add(barrel);
     const rotor=new THREE.Mesh(ROTOR_GEO,[barrelM,rotorM,rotorM]); rotor.rotation.z=Math.PI/2; rotor.position.x=side*.02; spin.add(rotor);
-    if(!['forged','six','wisp','abs'].includes((STREET[cid]||{}).wheel)){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
+    if(!['forged','six','wisp','abs','turbine'].includes((STREET[cid]||{}).wheel)){ const disc=new THREE.Mesh(new THREE.RingGeometry(.2,.27,28),rimM); disc.rotation.y=side*Math.PI/2; disc.position.x=side*.14; spin.add(disc); } // forged wheels are open between the spokes
     const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
     wheelStyle(spin,side,(STREET[cid]||{}).wheel,rimM,def);
     if(def.lowPro) spin.children.forEach(o=>{ if(o!==tire&&o!==barrel&&o!==rotor){ o.scale.y*=1.2; o.scale.z*=1.2; } }); // bigger rim inside the same tire: thin sidewall
@@ -5308,7 +5352,7 @@ for(let i=0;i<34;i++){ const c=[0xff7a2a,0xff3a2a,0xffd08a,0x4fd0ff][i%4];
   const a=Math.random()*Math.PI*2, r=12+Math.random()*10; s.position.set(Math.cos(a)*r,1+Math.random()*5,Math.sin(a)*r); s.scale.setScalar(1+Math.random()*2.5); bokeh.add(s); }
 renderer.localClippingEnabled=true;
 const studioCars=CARS.map(d=>{ const c=buildCar(d,{cut:true}); c.group.visible=false; studio.add(c.group); return c; });
-const GLB_SHELL_KEY=new Map([[wispGlbShell,'wisp'],[kageShell,'kage'],[volcanoShell,'volcano'],[autobahnGlbShell,'autobahn']]);
+const GLB_SHELL_KEY=new Map([[wispGlbShell,'wisp'],[granfourGlbShell,'granfour'],[kageShell,'kage'],[volcanoShell,'volcano'],[autobahnGlbShell,'autobahn']]);
 window.AH_MODEL_READY=key=>{ // slow connections boot before every model has downloaded; swap the real body in as soon as it lands
   CARS.forEach((d,i)=>{ if(GLB_SHELL_KEY.get(SHELLS[d.sculpt])!==key) return; const old=studioCars[i], nc=buildCar(d,{cut:true});
     nc.group.visible=old.group.visible; nc.group.rotation.copy(old.group.rotation); studio.remove(old.group); studio.add(nc.group); studioCars[i]=nc; }); };
@@ -7017,7 +7061,7 @@ requestAnimationFrame(loop);
   window.AH_MODELS=window.AH_MODELS||{};
   if(!THREE.GLTFLoader||location.protocol==='file:'){ go(); return; }
   setTimeout(go,8000);
-  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=5'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
+  const want=[['volcano','models/volcano_p1.glb?v=2'],['kage','models/kage_r.glb?v=1'],['wisp','models/wisp_07.glb?v=2'],['blvd','models/blvd_kit.glb?v=3'],['autobahn','models/autobahn_63.glb?v=5'],['granfour','models/gran_four.glb?v=3'],['philly','models/philly_kit.glb?v=2'],['mtairy','models/mtairy_kit.glb?v=2']]; let left=want.length; const done=()=>{ if(--left===0) go(); };
   const land=(k,gl)=>{ window.AH_MODELS[k]=gl.scene; if(started&&window.AH_MODEL_READY) window.AH_MODEL_READY(k); };
   want.forEach(([k,url])=>new THREE.GLTFLoader().load(url,gl=>{ land(k,gl); done(); },undefined,e=>{ console.warn(url+' failed, retrying once (procedural fallback meanwhile)',e); done();
     setTimeout(()=>new THREE.GLTFLoader().load(url,gl=>land(k,gl),undefined,e2=>console.warn(url+' failed again',e2)),3000); }));

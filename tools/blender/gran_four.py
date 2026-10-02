@@ -29,31 +29,29 @@ car.M['LENS'].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_va
 pb = car.M['PAINT'].node_tree.nodes['Principled BSDF']; pb.inputs['Metallic'].default_value = .3; pb.inputs['Roughness'].default_value = .42
 
 # ---------------------------------------------------------------- body
-# 4.92 m long, 3.0 m wheelbase, 1.96 m wide, 1.40 m tall. Tall blunt nose (bonnet ~.80 at the grille), hood rising to a
-# cowl at ~.99 far back over the front doors, a belt that climbs gently to wide high rear haunches, a short deck at ~1.04.
-Z0, Z1, WB, WR, TR = -2.45, 2.47, 1.5, .395, .8
-# axles traced off the camera-matched sheet: front axle well forward (short front overhang), rear a touch back.
-# The finished car is shifted by ZOFF so the game sees symmetric axles at +-WBG (BODIES.granfour.wb).
-AXF, AXR = 1.72, -1.55; ZOFF = -(AXF + AXR) / 2; WBG = (AXF - AXR) / 2
-HW = [[-2.45, .78], [-2.41, .86], [-2.33, .925], [-2.15, .968], [-1.8, .995], [-1.5, 1.0], [-1.05, .968], [-.5, .938], [.2, .932],
-      [.85, .945], [1.3, .965], [1.72, 1.0], [1.98, .975], [2.08, .96], [2.15, .93], [2.26, .89], [2.35, .83], [2.42, .74], [2.47, .6]]   # broad nose, corners rounding back to the arches
-HW = [[z, w + .035 * (1 - smooth(2.15, 2.45, z)) * (1 - smooth(-2.3, -2.45, z))] for z, w in HW]   # wider, lower stance (sheet front/rear views)
-YB = [[-2.45, .4], [-2.41, .3], [-2.3, .2], [-2.1, .16], [2.15, .155], [2.36, .165], [2.47, .18]]
-YT = [[-2.45, .88], [-2.42, .96], [-2.36, 1.0], [-2.2, 1.035], [-1.9, 1.035], [-1.4, 1.03], [-.8, 1.0], [0, .975], [.6, .965],
-      [.95, .955], [1.3, .935], [1.7, .875], [2.05, .815], [2.3, .77], [2.42, .745], [2.47, .725]]
-YS = [[-2.45, .8], [-2.41, .86], [-2.32, .91], [-2.1, .945], [-1.7, .955], [-1.2, .925], [-.5, .88], [.3, .865], [.9, .865],
-      [1.3, .885], [1.68, .905], [1.98, .84], [2.2, .78], [2.38, .742], [2.47, .7]]
+# Traced off Paris's near side-on reference (carpics/show_more_angles_1, top-left panel) at 130 px/m, scaled by the
+# wheels (r .40): wheelbase 3.12, front overhang .93, short rear overhang .75, roof 1.39 just behind the B-pillar,
+# a high belt (~1.03) with slim side glass, windshield base forward over the front wheel (z 1.22), hood falling to .72.
+Z0, Z1, WB, WR, TR = -2.31, 2.49, 1.56, .40, .8
+AXF, AXR = WB, -WB; ZOFF = 0.; WBG = WB
+HW = [[-2.31, .74], [-2.27, .84], [-2.2, .925], [-2.05, .975], [-1.8, 1.0], [-1.56, 1.01], [-1.1, .985], [-.5, .955], [.2, .95],
+      [.85, .96], [1.2, .975], [1.56, 1.0], [1.85, .985], [2.0, .965], [2.12, .935], [2.24, .89], [2.34, .83], [2.43, .74], [2.49, .6]]
+YB = [[-2.31, .36], [-2.27, .28], [-2.15, .2], [-1.95, .15], [2.1, .14], [2.36, .17], [2.49, .2]]
+YT = [[-2.31, .9], [-2.27, .98], [-2.2, 1.02], [-2.0, 1.04], [-1.5, 1.05], [-1.0, 1.045], [-.3, 1.04], [.4, 1.035], [.9, 1.03],
+      [1.22, 1.01], [1.47, .975], [1.86, .915], [2.13, .855], [2.36, .78], [2.45, .745], [2.49, .72]]
+YS = [[-2.31, .82], [-2.27, .88], [-2.15, .93], [-1.8, .96], [-1.5, .965], [-1.1, .94], [-.4, .92], [.4, .91], [.9, .91],
+      [1.3, .905], [1.56, .91], [1.9, .85], [2.2, .79], [2.4, .745], [2.49, .7]]
 def dome(x, z):
     """hood: one broad centre power dome running up to the cowl, fading out just behind the grille"""
-    a = abs(x); hz = smooth(1.0, 1.35, z) * (1 - smooth(2.2, 2.42, z))
+    a = abs(x); hz = smooth(1.25, 1.5, z) * (1 - smooth(2.25, 2.45, z))
     return .03 * hz * math.exp(-(a / .28) ** 2) - .014 * hz * smooth(.38, .55, a) * (1 - smooth(.6, .74, a))   # dome, then a valley before the fender crowns
 car.build_body({'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT, 'sill': .07, 'NS': 340 if DETAIL else 170, 'res': 2 if DETAIL else 1,
     'Rx': lambda z: lerp(.12, .17, smooth(-1.0, -1.8, z)),
-    'tumble': lambda z: .1 - .015 * smooth(-1.2, -2.0, z) + .02 * smooth(.9, 1.4, z) * (1 - smooth(1.9, 2.3, z)),
+    'tumble': lambda z: .1 - .015 * smooth(-1.2, -2.0, z) + .02 * smooth(1.1, 1.5, z) * (1 - smooth(1.95, 2.3, z)),
     'round_nose': .11, 'round_tail': .1, 'bulge_at': .44, 'dome': dome,
-    'feature': lambda z: .026 * smooth(-2.35, -2.1, z) * (1 - smooth(2.1, 2.35, z)),     # crisp shoulder line
-    'swage': (lambda z: lerp(.40, .52, smooth(.9, -1.0, z)), lambda z: smooth(1.05, .8, z) * (1 - smooth(-.9, -1.05, z)), .05, .09),   # concave lower doors
-    'lean': lambda y, z: -.09 * smooth(2.15, 2.47, z) * (car.h_of(y, z) - .5) - .04 * smooth(-2.3, -2.45, z) * (car.h_of(y, z) - .5)})
+    'feature': lambda z: .026 * smooth(-2.25, -2.0, z) * (1 - smooth(2.1, 2.38, z)),     # crisp shoulder line
+    'swage': (lambda z: lerp(.40, .52, smooth(.9, -1.0, z)), lambda z: smooth(1.1, .85, z) * (1 - smooth(-.95, -1.1, z)), .05, .09),   # concave lower doors
+    'lean': lambda y, z: -.09 * smooth(2.17, 2.49, z) * (car.h_of(y, z) - .5) - .04 * smooth(-2.16, -2.31, z) * (car.h_of(y, z) - .5)})
 SKIN0 = bpy.data.objects.new('Skin0', car.body.data.copy()); car.scene.collection.objects.link(SKIN0)   # uncut skin, for normals
 def skin_normals():
     me = car.body.data; vg = car.body.vertex_groups.get('skin') or car.body.vertex_groups.new(name='skin')
@@ -134,34 +132,34 @@ for sd in (1, -1):
             if x: pts.append((sd * x, y, z))
         if len(pts) > 2: car.strip_cut(name, pts, .0032, .012)
     # front door leading edge: down from the A-pillar base, chasing the front arch
-    side_line(f'dF{sd}', [(lerp(.98, 1.22, smooth(0, 1, k / 15)) - .04 * math.sin(k / 15 * math.pi), lerp(.98, .26, k / 15)) for k in range(16)])
+    side_line(f'dF{sd}', [(lerp(.8, 1.08, smooth(.3, 1, k / 15)) - .03 * math.sin(k / 15 * math.pi), lerp(1.0, .22, k / 15)) for k in range(16)])
     # B-pillar split, slightly raked
-    side_line(f'dB{sd}', [(lerp(-.08, -.02, k / 13), lerp(.99, .26, k / 13)) for k in range(14)])
+    side_line(f'dB{sd}', [(lerp(-.32, -.27, k / 13), lerp(1.01, .22, k / 13)) for k in range(14)])
     # rear door trailing edge: from the quarter-window corner, bowing back round the haunch and down in front of the rear arch
-    side_line(f'dR{sd}', [(-1.22 - .2 * math.sin(k / 15 * math.pi * .9) + .14 * (k / 15) ** 2, lerp(1.0, .26, k / 15)) for k in range(16)])
+    side_line(f'dR{sd}', [(-1.16 - .16 * math.sin(k / 15 * math.pi * .85) + .06 * (k / 15) ** 2, lerp(1.02, .22, k / 15)) for k in range(16)])
     pts = []
     for k in range(18):
-        z = lerp(1.05, 2.2, k / 17); x = sd * lerp(.7, .74, (k / 17) ** 2); y = car.surf_y(x, z)
+        z = lerp(1.3, 2.25, k / 17); x = sd * lerp(.7, .74, (k / 17) ** 2); y = car.surf_y(x, z)
         if y: pts.append((x, y, z))
     car.strip_cut(f'hood{sd}', pts, .0032, .012, axis='top')
 car.apply_cuts()
-car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: -1.1 < gz < 1.27 and gy < .215 and abs(n[0]) > .3)   # thin black sills
-car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: gz > 2.25 and gy < .215)                             # chin
+car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: -1.13 < gz < 1.13 and gy < .215 and abs(n[0]) > .3)   # thin black sills
+car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: gz > 2.28 and gy < .215)                             # chin
 car.sharpen(car.body, 55); car.bvh = car.BV()
 
 # ---------------------------------------------------------------- cabin: low fastback glasshouse under a glass roof
-CH = [[-2.22, 1.055], [-2.05, 1.095], [-1.8, 1.165], [-1.55, 1.235], [-1.4, 1.27], [-1.1, 1.325], [-.75, 1.37], [-.4, 1.392], [-.1, 1.398], [.15, 1.385],
-      [.38, 1.345], [.58, 1.262], [.75, 1.155], [.89, 1.06], [.98, .99]]
+CH = [[-2.18, 1.04], [-2.1, 1.07], [-1.8, 1.15], [-1.41, 1.25], [-1.03, 1.32], [-.64, 1.37], [-.22, 1.39], [.13, 1.375],
+      [.51, 1.31], [.82, 1.215], [1.05, 1.115], [1.2, 1.04], [1.26, 1.01]]   # traced roofline: long raked A-pillar to a cowl over the front wheel
 def roof_y(z): return kf(CH, z)
-car.build_cabin({'CZ0': -2.22, 'CZ1': .98, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.84, .6, -1.62, -1.36), 'rear_glass': 9., 'dlo_trim': 'CHROME',
-    'pillars': [(-.1, -.0)], 'apillar_r': .016,
-    'cw': lambda z: kf(HW, z) - .24 - .02 * smooth(-1.5, -2.22, z) - .07 * smooth(.62, .98, z),
-    'rw': lambda z: kf(HW, z) - .48 + .1 * smooth(-1.4, -2.22, z) - .08 * smooth(.42, .98, z)})
+car.build_cabin({'CZ0': -2.18, 'CZ1': 1.26, 'NC': 260 if DETAIL else 120, 'CH': CH, 'dlo': (.92, .55, -1.24, -.98), 'rear_glass': 9., 'dlo_trim': 'CHROME',
+    'pillars': [(-.34, -.25)], 'apillar_r': .016,
+    'cw': lambda z: kf(HW, z) - .24 - .02 * smooth(-1.5, -2.18, z) - .08 * smooth(.85, 1.26, z),
+    'rw': lambda z: kf(HW, z) - .48 + .1 * smooth(-1.4, -2.18, z) - .1 * smooth(.6, 1.26, z)})
 # thin yellow line along each roof rail
 for sd in (1, -1):
     pts = []
     for k in range(26):
-        z = lerp(car.a_line(.6) - .02, -2.05, k / 25); x, y = car.ring_pt(z, .6, .007); pts.append((sd * x, y, z))
+        z = lerp(car.a_line(.6) - .02, -2.0, k / 25); x, y = car.ring_pt(z, .6, .007); pts.append((sd * x, y, z))
     car.tube(f'rail{sd}', pts, .0055, 'YELLOW', res=4)
 
 # ---------------------------------------------------------------- front details
@@ -203,31 +201,31 @@ for k in range(2):
     y = .28 + k * .055; car.box(f'sblade{k}', (.78, .007, .03), (0, y, FZ(0, y) - .05), 'GLOSSBLACK', rot=(-.2, 0, 0))
 # splitter (#05): a black blade proud of the chin, edged in yellow; the edge carries on along each side to the front arch
 def foot(x):   # skin footprint at bumper height, pushed out a little
-    z = FZ(x, .22); return z + .035
+    z = FZ(x, .22); return z + .02
 SPL = []
 for k in range(65):
     x = lerp(-.86, .86, k / 64); SPL.append((x * 1.02, foot(x)))
 for sd_ in (1, -1):   # run the ends back along the sides to the front arch
     tail = [(sd_ * ((car.surf_side(.22, z) or .9) + .03), z) for z in [lerp(SPL[-1 if sd_ > 0 else 0][1] - .02, 1.95, k / 6) for k in range(7)]]
     SPL = SPL + tail if sd_ > 0 else list(reversed(tail)) + SPL
-bevel_obj(car.extrude_y('Splitter', SPL, .13, .152, 'GLOSSBLACK'), .004)
-car.tube('splitY', [(x * 1.004, .141, z + .004 * (z > 2.2)) for x, z in SPL], .0065, 'YELLOW', res=4)
+bevel_obj(car.extrude_y('Splitter', SPL, .158, .178, 'GLOSSBLACK'), .004)
+car.tube('splitY', [(x * 1.004, .168, z + .004 * (z > 2.2)) for x, z in SPL], .0065, 'YELLOW', res=4)
 
 # ---------------------------------------------------------------- flanks
 for sd in (1, -1):
     # flush handles: front door and rear door, just under the shoulder
-    for z in (.18, -.86):
+    for z in (.25, -.95):
         y = kf(YS, z) - .07; x = car.surf_side(y, z, sd)
         if x: car.box(f'handle{sd}{z}', (.007, .014, .17), (sd * (x + .002), y, z), 'SATIN')
     # sill blade with the yellow line along its bottom edge (continues from the splitter)
     sill = []
     for i in range(41):
-        zz = lerp(-1.1, 1.27, i / 40); x = car.surf_side(.27, zz, sd) or .92
+        zz = lerp(-1.12, 1.12, i / 40); x = car.surf_side(.27, zz, sd) or .92
         sill.append([G(sd * (x - .07), .15, zz), G(sd * (x + .012), .15, zz), G(sd * (x + .016), .172, zz), G(sd * (x - .07), .21, zz)])
     car.loft(f'Sill{sd}', sill, 'GLOSSBLACK', smooth_=False)
-    car.tube(f'sillY{sd}', [(sd * ((car.surf_side(.27, zz, sd) or .92) + .02), .155, zz) for zz in [lerp(-1.08, 1.25, k / 24) for k in range(25)]], .0055, 'YELLOW', res=4)
+    car.tube(f'sillY{sd}', [(sd * ((car.surf_side(.27, zz, sd) or .92) + .02), .155, zz) for zz in [lerp(-1.1, 1.1, k / 24) for k in range(25)]], .0055, 'YELLOW', res=4)
     # door mirror: black blade stalk off the front door, body-colour cap
-    mz = .62; my = car.belt(mz) + .02; mx = car.C['cw'](mz)
+    mz = .55; my = car.belt(mz) + .02; mx = car.C['cw'](mz)
     car.tube(f'mstalk{sd}', [(sd * (mx - .02), my - .015, mz), (sd * (mx + .06), my + .012, mz - .02), (sd * (mx + .11), my + .03, mz - .04)], .01, 'GLOSSBLACK', res=4)
     b = bmesh.new(); bmesh.ops.create_uvsphere(b, u_segments=32, v_segments=16, radius=1.)
     for v in b.verts:
@@ -270,7 +268,7 @@ def foil(chord, thick, n=16):
         yt = 5 * thick * (.2969 * math.sqrt(xc) - .126 * xc - .3516 * xc ** 2 + .2843 * xc ** 3 - .1036 * xc ** 4)
         up.append((-xc * chord, yt * chord)); lo.append((-xc * chord, -yt * chord))
     return up + list(reversed(lo[1:-1]))
-SEC = foil(.13, .09, 16); WS = []; WZ = -2.31
+SEC = foil(.13, .09, 16); WS = []; WZ = -2.2
 for i in range(61):
     t = i / 60; x = lerp(-.8, .8, t); a = abs(x)
     ys = car.surf_y(min(a, .8) * (1 if x >= 0 else -1), WZ - .05) or 1.0

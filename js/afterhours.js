@@ -4901,7 +4901,6 @@ const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},lo
   desperate:{c:0xff4466,css:'#ff4466',label:'Desperation',tag:'LAST-CHANCE'},
   echoboost:{c:0xc77dff,css:'#c77dff',label:'Echo Boost',tag:'ECHO BOOST'},
   tempest:{c:0xff2438,css:'#ff2438',label:'Tempest',tag:'TEMPEST'}};
-const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux, Strato Surge and Tempest gems are locked to Wisp 07, Stratos V and Tempesta SV. Last-Chance (red) hunts last place; Echo Boost (violet) hunts the last two — for 15s you copy every power-up taken by anyone ahead of you.';
 const puGeo=new THREE.OctahedronGeometry(.62,0), puRing=new THREE.TorusGeometry(1.15,.07,6,28);
 function addPickups(ev,list){
   ev.pickups=[]; const f=mkF();
@@ -6454,10 +6453,10 @@ function renderEvent(dir,force){
   $('#eNote').innerHTML=esc(e.note)+handArrow;
   $('#eSpecs').textContent=e.specs; $('#eCap').textContent=e.caption;
   const g=loadGhost();
-  $('#eGhost').textContent=g?`Your ghost: ${fmt(g.t)} in the ${(CARS.find(c=>c.id===g.car)||CARS[0]).name}. Beat it and it gets replaced.`:'No ghost yet. Your first finish becomes the one to beat.';
-  $('#eGhost').textContent+=' On the grid: Apex, The Wall, Leech, Bruiser, The Closer, Wildcard. '+PU_DESC;
+  const ghostCar=(CARS.find(c=>c.id===g?.car)||CARS[0]).name;
+  $('#eGhost').textContent=g?`${fmt(g.t)} · ${ghostCar}`:'No ghost yet.';
   $('#eTag').style.display=e.knockout?'none':'';
-  if(e.knockout){ bindKoTrack(koMapI); $('#eGhost').textContent='Pick a map on the next screen. Short loops use lap checkpoints; long courses knock out at sectors so you are not running 110 km. Round rules: '+KO_MODS.filter(m=>m.id!=='clean').map(m=>m.name).join(', ')+', and a Final Duel for the last two.'; }
+  if(e.knockout){ bindKoTrack(koMapI); $('#eGhost').textContent='Pick a map on the next screen.'; }
   $('#ePg').innerHTML=eventPageHtml();
   renderEventRoster();
   if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3']],dir);

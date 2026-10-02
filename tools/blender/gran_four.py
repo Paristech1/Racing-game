@@ -32,14 +32,17 @@ pb = car.M['PAINT'].node_tree.nodes['Principled BSDF']; pb.inputs['Metallic'].de
 # 4.92 m long, 3.0 m wheelbase, 1.96 m wide, 1.40 m tall. Tall blunt nose (bonnet ~.80 at the grille), hood rising to a
 # cowl at ~.99 far back over the front doors, a belt that climbs gently to wide high rear haunches, a short deck at ~1.04.
 Z0, Z1, WB, WR, TR = -2.45, 2.47, 1.5, .395, .8
+# axles traced off the camera-matched sheet: front axle well forward (short front overhang), rear a touch back.
+# The finished car is shifted by ZOFF so the game sees symmetric axles at +-WBG (BODIES.granfour.wb).
+AXF, AXR = 1.72, -1.55; ZOFF = -(AXF + AXR) / 2; WBG = (AXF - AXR) / 2
 HW = [[-2.45, .78], [-2.41, .86], [-2.33, .925], [-2.15, .968], [-1.8, .995], [-1.5, 1.0], [-1.05, .968], [-.5, .938], [.2, .932],
-      [.85, .942], [1.5, .985], [1.85, .968], [2.02, .955], [2.15, .93], [2.26, .89], [2.35, .83], [2.42, .74], [2.47, .6]]   # broad nose, corners rounding back to the arches
+      [.85, .945], [1.3, .965], [1.72, 1.0], [1.98, .975], [2.08, .96], [2.15, .93], [2.26, .89], [2.35, .83], [2.42, .74], [2.47, .6]]   # broad nose, corners rounding back to the arches
 HW = [[z, w + .035 * (1 - smooth(2.15, 2.45, z)) * (1 - smooth(-2.3, -2.45, z))] for z, w in HW]   # wider, lower stance (sheet front/rear views)
 YB = [[-2.45, .4], [-2.41, .3], [-2.3, .2], [-2.1, .16], [2.15, .155], [2.36, .165], [2.47, .18]]
 YT = [[-2.45, .86], [-2.42, .93], [-2.36, .98], [-2.2, 1.02], [-1.9, 1.035], [-1.4, 1.03], [-.8, 1.0], [0, .975], [.6, .965],
       [.95, .955], [1.3, .94], [1.7, .89], [2.05, .84], [2.3, .795], [2.42, .77], [2.47, .75]]
 YS = [[-2.45, .8], [-2.41, .86], [-2.32, .91], [-2.1, .945], [-1.7, .955], [-1.2, .925], [-.5, .88], [.3, .865], [.9, .865],
-      [1.45, .912], [1.9, .862], [2.2, .8], [2.38, .765], [2.47, .72]]
+      [1.3, .885], [1.68, .912], [1.98, .855], [2.2, .8], [2.38, .765], [2.47, .72]]
 def dome(x, z):
     """hood: one broad centre power dome running up to the cowl, fading out just behind the grille"""
     a = abs(x); hz = smooth(1.0, 1.35, z) * (1 - smooth(2.2, 2.42, z))
@@ -64,11 +67,11 @@ def skin_normals():
     car.body.vertex_groups.clear()
 ARCH_R = .44
 for sd in (1, -1):
-    car.cyl_x(f'archF{sd}', WR, WB, ARCH_R, sd * .58, sd * 1.4)
-    car.cyl_x(f'archR{sd}', WR, -WB, ARCH_R, sd * .58, sd * 1.4)
+    car.cyl_x(f'archF{sd}', WR, AXF, ARCH_R, sd * .58, sd * 1.4)
+    car.cyl_x(f'archR{sd}', WR, AXR, ARCH_R, sd * .58, sd * 1.4)
 car.apply_cuts()
 car.sharpen(car.body, 55); car.bvh = car.BV()
-car.arch_liners(WB, WR, ARCH_R, x0=.5, x1=.92)
+car.arch_liners(WB, WR, ARCH_R, x0=.5, x1=.92, zs=(AXF, AXR))
 
 # ---------------------------------------------------------------- helpers (as autobahn_63.py)
 BV0 = car.BV()
@@ -131,18 +134,18 @@ for sd in (1, -1):
             if x: pts.append((sd * x, y, z))
         if len(pts) > 2: car.strip_cut(name, pts, .0032, .012)
     # front door leading edge: down from the A-pillar base, chasing the front arch
-    side_line(f'dF{sd}', [(lerp(.86, 1.0, smooth(0, 1, k / 15)) - .04 * math.sin(k / 15 * math.pi), lerp(.98, .26, k / 15)) for k in range(16)])
+    side_line(f'dF{sd}', [(lerp(.98, 1.22, smooth(0, 1, k / 15)) - .04 * math.sin(k / 15 * math.pi), lerp(.98, .26, k / 15)) for k in range(16)])
     # B-pillar split, slightly raked
     side_line(f'dB{sd}', [(lerp(-.08, -.02, k / 13), lerp(.99, .26, k / 13)) for k in range(14)])
     # rear door trailing edge: from the quarter-window corner, bowing back round the haunch and down in front of the rear arch
     side_line(f'dR{sd}', [(-1.22 - .2 * math.sin(k / 15 * math.pi * .9) + .14 * (k / 15) ** 2, lerp(1.0, .26, k / 15)) for k in range(16)])
     pts = []
     for k in range(18):
-        z = lerp(.98, 2.2, k / 17); x = sd * lerp(.7, .74, (k / 17) ** 2); y = car.surf_y(x, z)
+        z = lerp(1.05, 2.2, k / 17); x = sd * lerp(.7, .74, (k / 17) ** 2); y = car.surf_y(x, z)
         if y: pts.append((x, y, z))
     car.strip_cut(f'hood{sd}', pts, .0032, .012, axis='top')
 car.apply_cuts()
-car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: -1.07 < gz < 1.07 and gy < .215 and abs(n[0]) > .3)   # thin black sills
+car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: -1.1 < gz < 1.27 and gy < .215 and abs(n[0]) > .3)   # thin black sills
 car.recolor('GLOSSBLACK', lambda gx, gy, gz, n: gz > 2.25 and gy < .215)                             # chin
 car.sharpen(car.body, 55); car.bvh = car.BV()
 
@@ -219,10 +222,10 @@ for sd in (1, -1):
     # sill blade with the yellow line along its bottom edge (continues from the splitter)
     sill = []
     for i in range(41):
-        zz = lerp(-1.06, 1.06, i / 40); x = car.surf_side(.27, zz, sd) or .92
+        zz = lerp(-1.1, 1.27, i / 40); x = car.surf_side(.27, zz, sd) or .92
         sill.append([G(sd * (x - .07), .15, zz), G(sd * (x + .012), .15, zz), G(sd * (x + .016), .172, zz), G(sd * (x - .07), .21, zz)])
     car.loft(f'Sill{sd}', sill, 'GLOSSBLACK', smooth_=False)
-    car.tube(f'sillY{sd}', [(sd * ((car.surf_side(.27, zz, sd) or .92) + .02), .155, zz) for zz in [lerp(-1.04, 1.04, k / 24) for k in range(25)]], .0055, 'YELLOW', res=4)
+    car.tube(f'sillY{sd}', [(sd * ((car.surf_side(.27, zz, sd) or .92) + .02), .155, zz) for zz in [lerp(-1.08, 1.25, k / 24) for k in range(25)]], .0055, 'YELLOW', res=4)
     # door mirror: black blade stalk off the front door, body-colour cap
     mz = .62; my = car.belt(mz) + .02; mx = car.C['cw'](mz)
     car.tube(f'mstalk{sd}', [(sd * (mx - .02), my - .015, mz), (sd * (mx + .06), my + .012, mz - .02), (sd * (mx + .11), my + .03, mz - .04)], .01, 'GLOSSBLACK', res=4)
@@ -303,6 +306,7 @@ sw = [(.38 + .17 * math.cos(2 * math.pi * k / 32), .94 + .17 * math.sin(2 * math
 car.tube('steer', sw, .016, 'INTERIOR', res=4)
 
 skin_normals(); bpy.data.objects.remove(SKIN0)
+for o in car.objs(): o.location = o.location + G(0, 0, ZOFF)
 objs = car.objs(); result = car.stats(); print(result)
 print('stations: grille z %.3f, head z %.3f, plate z %.3f, tail z %.3f' % (FZ(0, .585), FZ(.64, .72), BZ(0, .66), BZ(.7, .87)))
-print('GF_HW', HW); print('GF_YS', YS); print('GF_YB', YB)
+print('ZOFF %.3f WBG %.3f' % (ZOFF, WBG)); print('GF_HW', HW); print('GF_YS', YS); print('GF_YB', YB)

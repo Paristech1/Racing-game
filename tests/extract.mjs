@@ -69,6 +69,69 @@ export function stripFunctionBody(src) {
   return s.slice(open + 1, close);
 }
 
+/** Parse `NAME = [[z, y], ...]` loft key tables from a Blender car script. */
+export function extractPyLoftTable(source, name) {
+  const re = new RegExp(`(?:^|\\n)${name}\\s*=\\s*\\[`, 'm');
+  const m = re.exec(source);
+  if (!m) return null;
+  let i = m.index + m[0].length - 1;
+  let depth = 0;
+  const start = i;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === '[') depth++;
+    else if (ch === ']') {
+      depth--;
+      if (depth === 0) {
+        i++;
+        break;
+      }
+    }
+    i++;
+  }
+  let raw = source.slice(start, i);
+  raw = raw.replace(/#.*$/gm, '');
+  raw = raw.replace(/,\s*]/g, ']');
+  raw = raw.replace(/-\.(\d)/g, '-0.$1');
+  raw = raw.replace(/([,\[\s])\.(\d)/g, '$10.$2');
+  return JSON.parse(raw);
+}
+
+/** Parse `const NAME=[[z,y],...]` inside a GLB shell function (vinyl side-section keys). */
+export function extractJsLoftConst(source, fnName, constName) {
+  const fn = extractFunctionSource(source, fnName);
+  const fnMark = `function ${fnName}`;
+  const fnIdx = source.indexOf(fnMark);
+  const beforeFn = fnIdx >= 0 ? source.slice(Math.max(0, fnIdx - 6000), fnIdx) : '';
+  for (const scope of [fn, beforeFn]) {
+    if (!scope) continue;
+    const re = new RegExp(`(?:const\\s+|[,\\n]\\s*)${constName}\\s*=\\s*\\[`, 'm');
+    const m = re.exec(scope);
+    if (!m) continue;
+    let i = m.index + m[0].length - 1;
+    let depth = 0;
+    const start = i;
+    while (i < scope.length) {
+      const ch = scope[i];
+      if (ch === '[') depth++;
+      else if (ch === ']') {
+        depth--;
+        if (depth === 0) {
+          i++;
+          break;
+        }
+      }
+      i++;
+    }
+    let raw = scope.slice(start, i);
+    raw = raw.replace(/,\s*]/g, ']');
+    raw = raw.replace(/-\.(\d)/g, '-0.$1');
+    raw = raw.replace(/([,\[\s])\.(\d)/g, '$10.$2');
+    return JSON.parse(raw);
+  }
+  return null;
+}
+
 export function bossIdListsInSource(source) {
   const lists = [];
   const re = /\[(['"])(overload|volcano|zephyr|hikari)\1(?:\s*,\s*['"](?:overload|volcano|zephyr|hikari)['"]){3}\]/g;

@@ -29,8 +29,8 @@ car.M['LENS'].node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_va
 pb = car.M['PAINT'].node_tree.nodes['Principled BSDF']; pb.inputs['Metallic'].default_value = .3; pb.inputs['Roughness'].default_value = .42
 
 # ---------------------------------------------------------------- body
-# Traced off Paris's near side-on reference (carpics/show_more_angles_1, top-left panel) at 130 px/m, scaled by the
-# wheels (r .40): wheelbase 3.12, front overhang .93, short rear overhang .75, roof 1.39 just behind the B-pillar,
+# Traced off tools/blender/refs/gf_side.png (130 px/m, scaled by wheels r .40): wheelbase 3.12, front overhang .93,
+# short rear overhang .75, roof 1.39 just behind the B-pillar,
 # a high belt (~1.03) with slim side glass, windshield base forward over the front wheel (z 1.22), hood falling to .72.
 Z0, Z1, WB, WR, TR = -2.31, 2.49, 1.56, .40, .8
 AXF, AXR = WB, -WB; ZOFF = 0.; WBG = WB

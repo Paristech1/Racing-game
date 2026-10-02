@@ -2047,8 +2047,8 @@ function wispGlbShell(g,def,B,paint,glass,opts){
   [1,-1].forEach(sd=>{ K.glow(0xd8f0ff,.55,sd*.63,.69,2.2); K.glow(0xff2030,.38,sd*.64,.87,-2.21); K.glow(0xd8f0ff,.22,sd*.75,.38,2.17); });
   K.glow(0xff2030,.25,0,.245,-2.1);
   // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in wisp_07.py)
-  const HS=[[-2.18,.74],[-2.1,.84],[-1.9,.88],[-1.42,.895],[-.6,.895],[0,.89],[.6,.895],[1.42,.895],[2.0,.91],[2.24,.8]],
-    YS=[[-2.18,.9],[-2.0,.93],[-1.4,.93],[-.6,.91],[.4,.89],[.9,.87],[1.5,.82],[1.95,.74],[2.24,.56]], YB=[[-2.18,.36],[-2.06,.22],[-1.8,.17],[1.8,.17],[2.06,.2],[2.24,.26]];
+  const HS=[[-2.18,.74],[-2.1,.84],[-1.9,.88],[-1.42,.895],[-.6,.895],[0,.89],[.6,.895],[1.42,.895],[1.85,.885],[2.0,.91],[2.12,.9],[2.19,.875],[2.24,.8]],
+    YS=[[-2.18,.9],[-2.0,.93],[-1.4,.93],[-.6,.91],[.4,.89],[.9,.87],[1.5,.82],[1.95,.74],[2.14,.66],[2.24,.56]], YB=[[-2.18,.36],[-2.06,.22],[-1.8,.17],[1.8,.17],[2.06,.2],[2.24,.26]];
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.06,ay:ys-.12,yc:ys+.1,yf:ys+.1}; }};
 }
 const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};

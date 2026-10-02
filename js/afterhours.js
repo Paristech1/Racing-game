@@ -1471,7 +1471,7 @@ function sovereignShell(g,def,B,paint,glass){
 /* ---- Gran Four: four-door sport liftback. Raised front fenders carrying 4-point LED lamps, low hood between them,
    long glasshouse sloping into a liftback with a full-width light bar, strong rear shoulders, pop-up spoiler,
    matte stealth gray with yellow accents. ---- */
-function granfourShellLegacy(g,def,B,paint,glass){ // previous sculpt-based shell, kept for reference
+function granfourShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffd878,.1);
   paint.clearcoat=0; paint.roughness=.55; paint.envMapIntensity=.55; paint.color.multiplyScalar(.8); // matte wrap: no coat, soft reflections
   const yel=new THREE.MeshStandardMaterial({color:def.accent||0xffc21a,roughness:.35,metalness:.2});
@@ -1513,126 +1513,6 @@ function granfourShellLegacy(g,def,B,paint,glass){ // previous sculpt-based shel
     [1,-1].forEach(sd=>K.add(new THREE.BoxGeometry(.03,.09,.08),GLOSS_BLACK,sd*.46,yb+.05,-2.2)); }
   K.plate(def,.62,-R-.02);
   return T;
-}
-
-/* ---- Gran Four v2: lofted four-door grand tourer built 1:1 from Paris's Midjourney turnaround sheet. Matte pale-gray
-   fastback, flat vertical-slat grille, slim LED blade headlamps, dark glass roof, yellow splitter + sill lines, small
-   lip spoiler. Procedural (threejs-geometry: BufferGeometry rings swept along z, arches cut by dropping triangles,
-   TubeGeometry trim). Body is modelled facing -z at 1 unit = 1 m, then baked (flip + width/length fit) into the game's
-   frame (front = +z, wheels at x +-tr, z +-wb). Parts are cached once and shared by every Gran Four build; wheels come
-   from buildCar's own 'fan' wheel. ~24k tris for the shell. ---- */
-let GRANFOUR_PARTS=null;
-function granfourParts(B){
-  if(GRANFOUR_PARTS) return GRANFOUR_PARTS;
-  const ZF=-2.45, ZR=2.45, END=.35, SX=B.w/1.94*1.1, SZ=B.front/2.45, WY=B.wr, AX=B.wb/SZ, AR=B.wr+.055, WX=B.tr/SX;
-  const curve=keys=>{ const n=keys.length, tan=keys.map((k,i)=>{ const a=keys[Math.max(0,i-1)], b=keys[Math.min(n-1,i+1)]; return (b[1]-a[1])/Math.max(1e-6,b[0]-a[0]); });
-    return t=>{ if(t<=keys[0][0]) return keys[0][1]; if(t>=keys[n-1][0]) return keys[n-1][1]; let i=0; while(t>keys[i+1][0]) i++;
-      const [t0,v0]=keys[i], [t1,v1]=keys[i+1], h=t1-t0, s=(t-t0)/h, s2=s*s, s3=s2*s;
-      return (2*s3-3*s2+1)*v0+(s3-2*s2+s)*h*tan[i]+(-2*s3+3*s2)*v1+(s3-s2)*h*tan[i+1]; }; };
-  const halfProfile=(ctrl,per)=>{ const out=[], n=ctrl.length;
-    for(let i=0;i<n-1;i++){ const p0=ctrl[Math.max(0,i-1)], p1=ctrl[i], p2=ctrl[i+1], p3=ctrl[Math.min(n-1,i+2)];
-      for(let k=0;k<per;k++){ const t=k/per, t2=t*t, t3=t2*t, f=(a,b,c,d)=>.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t2+(-a+3*b-3*c+d)*t3); out.push([f(p0[0],p1[0],p2[0],p3[0]),f(p0[1],p1[1],p2[1],p3[1])]); } }
-    out.push(ctrl[n-1].slice()); return out; };
-  const endShape=s=>Math.pow(1-Math.pow(1-Math.min(1,Math.max(0,s)),5),.2);
-  const fullLoop=(half,W,y0,y1)=>{ const pts=half.map(([u,v])=>[u*W,y0+v*(y1-y0)]); return pts.concat(pts.slice(1,-1).reverse().map(([x,y])=>[-x,y])); };
-  const loft=(zs,ringFn,skip)=>{ const rings=zs.map(ringFn), N=rings[0].length, pos=[], idx=[];
-    rings.forEach((r,i)=>r.forEach(([x,y])=>pos.push(x,y,zs[i])));
-    for(let i=0;i<zs.length-1;i++) for(let j=0;j<N;j++){ const a=i*N+j, b=i*N+(j+1)%N, c=(i+1)*N+j, d=(i+1)*N+(j+1)%N;
-      [[a,c,b],[b,c,d]].forEach(t=>{ if(skip){ const cx=(pos[t[0]*3]+pos[t[1]*3]+pos[t[2]*3])/3, cy=(pos[t[0]*3+1]+pos[t[1]*3+1]+pos[t[2]*3+1])/3, cz=(pos[t[0]*3+2]+pos[t[1]*3+2]+pos[t[2]*3+2])/3; if(skip(cx,cy,cz)) return; } idx.push(t[0],t[1],t[2]); }); }
-    // outward winding: signed volume about the loft centre
-    let cx=0,cy=0,cz=0; const nv=pos.length/3; for(let i=0;i<nv;i++){ cx+=pos[i*3]; cy+=pos[i*3+1]; cz+=pos[i*3+2]; } cx/=nv; cy/=nv; cz/=nv;
-    let vol=0; const V=i=>new THREE.Vector3(pos[i*3]-cx,pos[i*3+1]-cy,pos[i*3+2]-cz);
-    for(let i=0;i<idx.length;i+=3) vol+=V(idx[i]).dot(V(idx[i+1]).cross(V(idx[i+2])));
-    if(vol<0) for(let i=0;i<idx.length;i+=3){ const t=idx[i+1]; idx[i+1]=idx[i+2]; idx[i+2]=t; }
-    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); return {geometry:g,N}; };
-  const items=[], put=(geo,key,x,y,z)=>{ const m=new THREE.Mesh(geo); m.userData.key=key; if(x!==undefined) m.position.set(x,y,z); items.push(m); return m; };
-  const box=(w,h,d,key,x,y,z)=>put(new THREE.BoxGeometry(w,h,d),key,x,y,z);
-  const tube=(pts,r,key,seg)=>put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.ceil((seg||40)/2),r,5,false),key);
-
-  // lower body: hood, flanks, deck
-  const Wf=curve([[-2.46,0],[-2.3,.9],[-1.9,.935],[-1.2,.97],[0,.975],[1.2,.975],[1.9,.945],[2.3,.9],[2.46,0]]);
-  const Y1f=curve([[-2.46,.72],[-2.2,.79],[-1.7,.95],[-1.1,.99],[-.6,.99],[0,.985],[1.0,.995],[1.9,.995],[2.46,.9]]);
-  const Y0f=curve([[-2.46,.115],[-2.1,.135],[-1,.15],[1,.15],[2,.17],[2.46,.27]]);
-  const bodyHalf=halfProfile([[0,0],[.55,0],[.88,.015],[.985,.12],[1,.3],[1,.52],[.985,.72],[.94,.87],[.82,.96],[.52,.995],[0,1]],2);
-  const arches=[-AX,AX];
-  const bodyRing=z=>{ const f=Math.min(endShape((z-ZF)/END),endShape((ZR-z)/END)), W=Wf(z)*f, y0=Y0f(z), y1=Y1f(z), cy=(y0+y1)/2;
-    return fullLoop(bodyHalf,W,y0,y1).map(([x,y])=>[x,cy+(y-cy)*f]); };
-  const zs=[]; for(let i=0;i<=10;i++) zs.push(ZF+END*Math.pow(i/10,2)); for(let z=ZF+END+.06;z<ZR-END-.01;z+=.06) zs.push(z); for(let i=10;i>=0;i--) zs.push(ZR-END*Math.pow(i/10,2));
-  const body=loft(zs,bodyRing,(cx,cy,cz)=>Math.abs(cx)>.6&&arches.some(zc=>(cz-zc)**2+(cy-WY)**2<AR*AR));
-  put(body.geometry,'paint');
-
-  // greenhouse (dark glass)
-  const GZ0=-.98, GZ1=2.05;
-  const GWb=curve([[GZ0,.72],[-.6,.795],[0,.835],[1,.835],[1.6,.8],[GZ1,.6]]);
-  const GYt=curve([[GZ0,.93],[-.75,1.03],[-.3,1.215],[.2,1.335],[.75,1.37],[1.3,1.29],[1.75,1.14],[GZ1,1.03]]);
-  const GYb=curve([[GZ0,.89],[0,.93],[GZ1,.95]]);
-  const ghHalf=halfProfile([[0,0],[.9,0],[1,.03],[.965,.35],[.88,.72],[.74,.93],[.45,1],[0,1]],2);
-  const zg=[]; for(let i=0;i<=40;i++) zg.push(GZ0+(GZ1-GZ0)*i/40);
-  const ghRing=z=>{ const k=Math.min(1,(z-GZ0)/.25), kb=Math.min(1,(GZ1-z)/.25), sc=Math.min(1,.55+.45*Math.min(k,kb)); return fullLoop(ghHalf,GWb(z)*sc,GYb(z),GYt(z)); };
-  put(loft(zg,ghRing).geometry,'glass');
-
-  const nearIdx=(ringFn,z,tx,ty)=>{ const r=ringFn(z); let best=0, bd=1e9; r.forEach(([x,y],i)=>{ const d=(x-tx)**2+(y-ty)**2; if(d<bd){ bd=d; best=i; } }); return best; };
-  // yellow sill strips + splitter line wrapping the nose
-  const kSkirt=nearIdx(bodyRing,0,.965,.235), kCorner=nearIdx(bodyRing,-1.9,.9,.13), NB=body.N;
-  [1,-1].forEach(sx=>{
-    const kS=sx>0?kSkirt:(NB-kSkirt)%NB, p=[]; for(let z=-AX+.55;z<=AX-.55;z+=.11){ const [x,y]=bodyRing(z)[kS]; p.push(new THREE.Vector3(x*1.002,y,z)); } tube(p,.012,'yellow',30);
-    const kB=sx>0?kCorner:(NB-kCorner)%NB, q=[]; for(let z=-AX+.4;z>ZF+.02;z-=.12){ const [x,y]=bodyRing(z)[kB]; q.push(new THREE.Vector3(x*1.002,y+.004,z)); }
-    const zl=ZF+.012; [.72,.55,.36,.18,0].forEach(xf=>q.push(new THREE.Vector3(sx*xf,Y0f(zl)+.004,zl-.006))); tube(q,.011,'yellow',60); });
-  const surfaceZ=(x,y,front)=>{ for(let t=0;t<=1;t+=.002){ const z=front?ZF+t*END:ZR-t*END, f=Math.min(endShape((z-ZF)/END),endShape((ZR-z)/END)), y0=Y0f(z), y1=Y1f(z), cy=(y0+y1)/2, hh=(y1-y0)/2*f;
-      if(Math.abs(x)<=Wf(z)*f*.97&&Math.abs(y-cy)<=hh) return z; } return front?ZF+END:ZR-END; };
-  // front: slat grille, intake, corner vents, LED blade headlamps
-  const gz=surfaceZ(.42,.56,true)-.035;
-  box(.84,.215,.05,'gap',0,.47,gz-.005);
-  for(let i=0;i<36;i++) box(.0125,.2,.035,'grille',-.405+i*(.81/35),.47,gz-.028);
-  box(.88,.016,.06,'grille',0,.585,gz-.02); box(.88,.016,.06,'grille',0,.355,gz-.02);
-  box(1.15,.085,.04,'gap',0,.255,surfaceZ(.5,.255,true)-.01);
-  [1,-1].forEach(s=>{
-    box(.08,.26,.04,'gap',s*.8,.37,surfaceZ(.8,.37,true)-.005).rotation.y=-s*.28;
-    const hz=surfaceZ(.66,.62,true), h=box(.46,.07,.05,'gloss',s*.66,.625,hz-.01); h.rotation.y=-s*.2; h.rotation.z=-s*.07;
-    const l=box(.4,.014,.012,'led',s*.66,.605,hz-.04); l.rotation.y=-s*.2; l.rotation.z=-s*.07; });
-  // rear: light blades, end lamps, exhaust, diffuser, lip spoiler
-  const rz=surfaceZ(.45,.8,false);
-  [1,-1].forEach(s=>{
-    box(.62,.032,.02,'led',s*.46,.87,rz+.012).rotation.y=s*.1;
-    box(.045,.2,.025,'tail',s*.8,.78,surfaceZ(.8,.78,false)+.01).rotation.y=s*.35;
-    box(.26,.075,.09,'exh',s*.6,.255,surfaceZ(.6,.255,false)); box(.2,.045,.1,'gap',s*.6,.255,surfaceZ(.6,.255,false)+.01);
-    box(.03,.06,.2,'gloss',s*.69,1,ZR-.42); });
-  box(1.56,.17,.04,'gap',0,.36,surfaceZ(0,.36,false));
-  box(1.4,.028,.2,'gloss',0,1,ZR-.42).rotation.x=-.12;
-  // mirrors
-  [1,-1].forEach(s=>{ put(new THREE.SphereGeometry(1,16,10),'paint',s*.93,1,-.74).scale.set(.08,.045,.12); box(.05,.03,.06,'glass',s*.93,1,-.69); box(.05,.02,.05,'gloss',s*.88,.96,-.74); });
-  // door shut lines, B pillar, chrome window line
-  const bodyAt=(z,v,s)=>{ const r=bodyRing(z), i=Math.round(v*(bodyHalf.length-1)), [x,y]=r[s>0?i:(r.length-i)%r.length]; return new THREE.Vector3(x*1.003,y,z); };
-  const shut=(zA,zB)=>[1,-1].forEach(s=>{ const p=[]; for(let k=0;k<=8;k++){ const t=k/8; p.push(bodyAt(zA+(zB-zA)*t,.3+.5*t,s)); } tube(p,.0045,'gap',24); });
-  shut(-.88,-.78); shut(.18,.04); shut(1.28,1.18);
-  [1,-1].forEach(s=>{ const p=[]; for(let k=0;k<=8;k++){ const v=k/8*.95, r=ghRing(.1), i=Math.round(v*(ghHalf.length-1)), [x,y]=r[s>0?i:(r.length-i)%r.length]; p.push(new THREE.Vector3(x*1.01,y,.1-v*.12)); } tube(p,.028,'paint',20);
-    const w=[]; for(let z=-.9;z<=1.9;z+=.15){ const r=ghRing(z), [x,y]=r[s>0?1:r.length-1]; w.push(new THREE.Vector3(x*1.012,y+.008,z)); } tube(w,.0035,'chrome',30); });
-  // wheel wells: black half shells, inner walls and arch lips so the cut edge and the far side never show
-  arches.forEach(zc=>[1,-1].forEach(s=>{
-    const g=new THREE.CylinderGeometry(AR-.015,AR-.015,.33,24,1,true,0,Math.PI); g.rotateZ(Math.PI/2); put(g,'wells',s*(WX-.03),WY,zc);
-    const w=put(new THREE.CircleGeometry(AR,24,0,Math.PI),'wells',s*(WX-.2),WY,zc); w.rotation.y=Math.PI/2;
-    const lip=put(new THREE.TorusGeometry(AR+.004,.013,6,24,Math.PI),'gloss',s*.962,WY,zc); lip.rotation.y=Math.PI/2; }));
-
-  // bake: flip to the game's frame (front +z) and fit width / length
-  const M=new THREE.Matrix4().makeRotationY(Math.PI).multiply(new THREE.Matrix4().makeScale(SX,1,SZ));
-  GRANFOUR_PARTS={parts:items.map(m=>{ m.updateMatrix(); return {geo:m.geometry.clone().applyMatrix4(M.clone().multiply(m.matrix)),key:m.userData.key}; }),
-    sec:z=>{ const zl=-z/SZ, f=Math.min(endShape((zl-ZF)/END),endShape((ZR-zl)/END)), hs=Wf(zl)*SX*f, ys=Y1f(zl)-.03;
-      return {hs,ys,yb:Y0f(zl),hl:hs-.03,ay:ys-.15,yc:ys+.1,yf:ys+.1}; }};
-  items.forEach(m=>m.geometry.dispose());
-  return GRANFOUR_PARTS;
-}
-function granfourShell(g,def,B,paint,glass){
-  const K=carKit(g); rimPaint(paint,0xffd878,.1);
-  paint.clearcoat=0; paint.roughness=.55; paint.envMapIntensity=.55; paint.color.multiplyScalar(.8); // matte wrap: no coat, soft reflections
-  const yel=new THREE.MeshStandardMaterial({color:def.accent||0xffc21a,roughness:.35,metalness:.2,emissive:def.accent||0xffc21a,emissiveIntensity:.15});
-  const wells=new THREE.MeshBasicMaterial({color:0x020203,side:THREE.DoubleSide});
-  const MATS={paint,glass,wells,gap:gapM,gloss:GLOSS_BLACK,grille:trimM,yellow:yel,led:headM,tail:tailM,chrome:chromeTrimM,exh:exhM};
-  const P=granfourParts(B);
-  P.parts.forEach(p=>g.add(new THREE.Mesh(p.geo,MATS[p.key]||paint)));
-  const F=B.front, R=B.rear;
-  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.9,sd*.66,.62,F-.02); K.glow(0xff2030,.9,sd*.8,.78,-R-.04); });
-  K.plate(def,.62,-R-.02);
-  return {sec:P.sec};
 }
 
 /* ---- Bell 76: W16 longtail hypercar. Smooth teardrop body, gold C-sweep around the door and side intake, horseshoe

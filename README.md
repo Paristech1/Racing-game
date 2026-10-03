@@ -18,6 +18,12 @@ python3 -m http.server 8080
 
 Open http://localhost:8080
 
+## Models and loading
+
+The Blender-built GLBs in `models/` (cars and the Roosevelt Blvd, Philly and Mt Airy kits) are geometry-only, meshopt-compressed and quantized: about 5 MB instead of 21 MB. `js/assets.js` starts downloading them before three.js has even loaded, the boot bar shows real download progress, and the five car files have lighter twins in `models/lod/` (about 30% of the triangles) that the rival cars use once they arrive in the background.
+
+After exporting a model from Blender run `tools/optimize_models.sh` (Node 22; it installs its own dependencies on first run). `tools/optimize_models.sh --check` only verifies. The meshopt decoder is loaded from jsDelivr (`three@0.128.0/examples/js/libs/meshopt_decoder.js`, 21 KB).
+
 ## Controls
 
 | Action | Keyboard | Touch |

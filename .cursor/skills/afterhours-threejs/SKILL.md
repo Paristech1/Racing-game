@@ -33,6 +33,13 @@ Open http://localhost:8080 — needs egress to cdnjs, jsDelivr, and Google Fonts
 - **Race loop:** mode `race`, `TR` track, `EV` current event, physics in same file
 - **Post FX:** `EffectComposer` + bloom; scene `userData.bloom` thresholds per event
 
+## Blender models and the asset pipeline
+
+- `models/*.glb` are geometry-only, **meshopt-compressed and quantized** (`tools/optimize_models.sh`, about 5 MB for all of them). After a Blender export run that script (it also writes `models/lod/*.glb` rival-car twins and `js/model-manifest.js`); never bump the old `?v=` by hand and never commit a raw export (`npm test` fails on it).
+- `js/assets.js` loads first in `index.html`, fetches the GLBs in parallel before three.js arrives, gives GLTFLoader the meshopt decoder (r128 supports `setMeshoptDecoder`), and widens the quantized int16 attributes back to float32 (r128's `BufferAttribute.getX()` does not de-normalize, and `glbParts` / `kitParts` / `mergeGeos` read geometry on the CPU). Do not read `AH_MODELS` geometry anywhere that runs before that widening.
+- Rival cars call `buildCar(def,{lod:true})`; `glbParts(model,lod)` uses the `AH_MODELS_LOD` twin once it has downloaded and falls back to the full model. Shared GLB geometry is flagged `userData.shared` so `clearRacers` does not free it between races.
+- r128 GLTFLoader supports Draco (`DRACOLoader`, ~330 KB wasm decoder), meshopt (21 KB decoder, what we use), `KHR_mesh_quantization`, `EXT_texture_webp` and `KHR_texture_basisu` through `BasisTextureLoader` (there is no `KTX2Loader` before r129). It does not know `KHR_materials_emissive_strength`. The current models have no textures; if one ever gets some, resize them (1024 px max) and use WebP or Basis.
+
 ## Building cars (`buildCar` in `afterhours.js`)
 
 - **Body:** each car's silhouette is a `BODIES` entry (`pts` = body profile, `cab` = glass canopy, x runs rear to front). `profileGeo` extrudes it with a bevel, so the side face sits at `±(B.w/2 + .14)`. Put side trim at `B.w/2 + .14` to `.15`; anything under `.14` is hidden inside the paint.

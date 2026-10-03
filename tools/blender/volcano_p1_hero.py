@@ -50,13 +50,13 @@ def node(m, kind, **props):
 def link(m, a, b): m.node_tree.links.new(a, b)
 
 # Volcano Yellow: metallic-flake base under a glassy clear coat
-P = M['PAINT']; setp(P, Base_Color=(.92, .42, .0), Metallic=.3, Roughness=.28, Coat_Weight=1., Coat_Roughness=.015, Coat_IOR=1.5)
+P = M['PAINT']; setp(P, Base_Color=(.95, .3, .0), Metallic=.3, Roughness=.28, Coat_Weight=1., Coat_Roughness=.015, Coat_IOR=1.5)
 fl = node(P, 'ShaderNodeTexNoise'); fl.inputs['Scale'].default_value = 2200.; fl.inputs['Detail'].default_value = 1.
 bu = node(P, 'ShaderNodeBump'); bu.inputs['Strength'].default_value = .035
 link(P, fl.outputs['Fac'], bu.inputs['Height']); link(P, bu.outputs['Normal'], bsdf(P).inputs['Normal'])
 
 # carbon: 2x2 twill from two crossed wave bands picked by a checker, under clear coat
-C = M['CARBON']; setp(C, Metallic=.1, Roughness=.4, Coat_Weight=.6, Coat_Roughness=.05)
+C = M['CARBON']; setp(C, Metallic=.05, Roughness=.45, Coat_Weight=.35, Coat_Roughness=.08)
 tc = node(C, 'ShaderNodeTexCoord'); mp = node(C, 'ShaderNodeMapping'); mp.inputs['Scale'].default_value = (1, 1, 1)
 link(C, tc.outputs['Object'], mp.inputs['Vector'])
 ck = node(C, 'ShaderNodeTexChecker'); ck.inputs['Scale'].default_value = 140.
@@ -65,17 +65,17 @@ wb = node(C, 'ShaderNodeTexWave'); wb.bands_direction = 'Y'; wb.inputs['Scale'].
 for n in (ck, wa, wb): link(C, mp.outputs['Vector'], n.inputs['Vector'])
 mx = node(C, 'ShaderNodeMix'); mx.data_type = 'FLOAT'
 link(C, ck.outputs['Fac'], mx.inputs[0]); link(C, wa.outputs['Fac'], mx.inputs[2]); link(C, wb.outputs['Fac'], mx.inputs[3])
-cr = node(C, 'ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (.0025, .0028, .0033, 1); cr.color_ramp.elements[1].color = (.022, .023, .027, 1)
+cr = node(C, 'ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (.0015, .0016, .002, 1); cr.color_ramp.elements[1].color = (.012, .013, .015, 1)
 link(C, mx.outputs[0], cr.inputs['Fac']); link(C, cr.outputs['Color'], bsdf(C).inputs['Base Color'])
 
-setp(M['GLASS'], Base_Color=(.16, .18, .2), Metallic=0., Roughness=0., Transmission_Weight=1., IOR=1.45)
+setp(M['GLASS'], Base_Color=(.006, .007, .009), Metallic=0., Roughness=.02, Transmission_Weight=.25, IOR=1.45, Coat_Weight=1., Coat_Roughness=0.)
 setp(M['LENS'], Base_Color=(1., 1., 1.), Roughness=.0, Transmission_Weight=1., Alpha=1.)
 setp(M['HEAD'], Emission_Strength=28.); setp(M['TAIL'], Emission_Strength=22.)
 setp(M['GLOSSBLACK'], Metallic=0., Roughness=.06, Coat_Weight=1.)
 setp(M['CHROME'], Base_Color=(.62, .56, .5), Metallic=1., Roughness=.22)   # titanium exhaust
 TYRE = newmat('TYRE', (.004, .004, .0045), 0., .7)
-RIM = newmat('RIM', (.012, .012, .013), .7, .34, Coat_Weight=.5, Coat_Roughness=.1)
-LIP = newmat('RIMLIP', (.55, .56, .58), 1., .18)
+RIM = newmat('RIM', (.006, .006, .007), .5, .22, Coat_Weight=.5, Coat_Roughness=.1)
+LIP = newmat('RIMLIP', (.02, .02, .022), .8, .2)
 DISC = newmat('DISC', (.09, .09, .095), .3, .55)
 CAL = newmat('CALIPER', (.9, .38, .0), 0., .2, Coat_Weight=1., Coat_Roughness=.03)
 HAT = newmat('HAT', (.45, .45, .47), 1., .35)
@@ -167,7 +167,7 @@ def wheel(tag, sx, zw, front):
     tc = math.radians(48 if front else 132)
     V, F = lathe([(.165, -.066), (.236, -.066), (.246, -.056), (.246, -.002), (.236, .01), (.165, .01), (.159, -.028)], 24, tc - .5, tc + .5)
     parts.append(mesh(f'caliper_{tag}', place(V, sx, c), F, CAL, crease=45))
-    root = bpy.data.objects.new(f'Wheel_{tag}', None); scene.collection.objects.link(root); root.location = G(sx * 1.0, .36, zw)
+    root = bpy.data.objects.new(f'Wheel_{tag}', None); scene.collection.objects.link(root); root.location = G(sx * ns['TRACK'], .36, zw)
     root.empty_display_size = .4
     for p in parts: p.parent = root
     return root, parts

@@ -82,16 +82,18 @@ def cr_path(pts, per):  # Catmull-Rom sample of a 2D polyline, `per` samples per
 
 # ---------------------------------------------------------------- body design curves (z keys, nose = +z)
 Z0, Z1 = -2.32, 2.26
-HS  = [[-2.32, .93], [-2.1, 1.05], [-1.6, 1.12], [-1.2, 1.1], [-.7, 1.0], [-.1, .965], [.6, .985], [1.1, 1.06], [1.5, 1.08], [1.95, 1.02], [2.26, .86]]   # max half-width
-YS  = [[-2.32, .58], [-1.6, .58], [-.9, .52], [0, .48], [.8, .48], [1.4, .5], [1.95, .47], [2.26, .43]]                                               # width-line height
-YB  = [[-2.32, .3], [-2.12, .19], [-1.9, .165], [1.9, .165], [2.12, .19], [2.26, .22]]                                                                  # underside
-YF  = [[-2.32, .8], [-1.9, .9], [-1.36, .93], [-.9, .82], [-.3, .74], [.4, .72], [.95, .78], [1.36, .82], [1.8, .73], [2.1, .6], [2.26, .52]]            # fender crown
-YD  = [[-2.32, .78], [-1.8, .85], [-1.2, .86], [-.4, .78], [.4, .72], [1.0, .64], [1.5, .56], [1.9, .53], [2.1, .47], [2.26, .44]]                      # center deck / hood
-XF  = .8    # fender crown sits at 76% of the half-width
+TRACK = .88   # wheel centre x (BODIES.p1.tr in afterhours.js)
+# traced off refs/p1_blueprint.png (front, side and plan views), mapped piecewise so its axles land on the game's z = ±1.36
+HS  = [[-2.32, .45], [-2.27, .62], [-2.18, .8], [-2.09, .9], [-1.99, .95], [-1.81, .99], [-1.4, 1.0], [-.6, .98], [.1, .96], [.8, .98], [1.36, 1.0], [1.76, .99], [1.9, .95], [2.04, .86], [2.12, .77], [2.19, .62], [2.26, .44]]   # max half-width (plan)
+YS  = [[-2.32, .5], [-1.6, .52], [-.9, .5], [0, .48], [.8, .46], [1.4, .44], [1.95, .4], [2.26, .34]]                                                  # width-line height
+YB  = [[-2.32, .3], [-2.12, .19], [-1.9, .165], [1.8, .16], [2.05, .13], [2.26, .12]]                                                                  # underside
+YF  = [[-2.32, .62], [-2.2, .72], [-2.0, .8], [-1.7, .86], [-1.36, .88], [-1.0, .84], [-.6, .76], [-.2, .72], [.3, .71], [.8, .74], [1.1, .8], [1.36, .84], [1.6, .82], [1.8, .76], [2.0, .67], [2.15, .58], [2.26, .5]]   # fender crown (side silhouette)
+YD  = [[-2.32, .66], [-2.2, .74], [-2.0, .8], [-1.6, .84], [-1.2, .85], [-.6, .78], [0, .72], [.6, .7], [1.0, .68], [1.36, .62], [1.6, .57], [1.9, .51], [2.1, .45], [2.26, .4]]  # centre deck / hood valley
+XF  = .76   # fender crown sits at 76% of the half-width
 def section(z):
     hs = kf(HS, z); ys = kf(YS, z); yb = kf(YB, z); yf = max(kf(YF, z), ys + .1); yd = min(kf(YD, z), yf - .02); hl = hs - .14
     # nose rounding: the last .3 m pulls the plan and the lower corners in
-    tn = clamp((z - (Z1 - .32)) / .32, 0, 1); hs *= 1 - .08 * tn * tn; hl *= 1 - .18 * tn * tn
+    tn = clamp((z - (Z1 - .2)) / .2, 0, 1); hl *= 1 - .1 * tn * tn
     xf = hs * XF
     lower = [(0, yb), (hl * .92, yb), (hl, yb + .045)]
     upper = [(hs - .035, lerp(yb + .1, ys, .45)), (hs, ys), (hs - .045, ys + .085), (lerp(hs, xf, .55), lerp(ys + .085, yf, .8)), (xf, yf),
@@ -148,7 +150,7 @@ def cyl_x(name, cx, cy, cz, r, x0, x1, m='GAP', seg=64):
 
 for sd in (1, -1):
     for zw in (1.36, -1.36):  # wheel arches
-        cyl_x(f'arch{sd}{zw}', 0, .36, zw, .425, sd * .78, sd * 1.5)
+        cyl_x(f'arch{sd}{zw}', 0, .36, zw, .41, sd * (TRACK - .22), sd * 1.5)
     # side intake: a forward-raked parallelogram on the rear haunch, cut deep into the body
     # side scallop: the long dark swoop from behind the front wheel back to the haunch (traced off the side-profile reference)
     prism(f'scallop{sd}', round_poly([(.93, .43), (.78, .6), (.4, .665), (0, .7), (-.4, .72), (-.66, .7), (-.6, .52), (-.48, .33), (-.36, .19), (0, .17), (.5, .18), (.82, .27)], 2), sd * .86, sd * 1.5, 'CARBON')
@@ -156,12 +158,12 @@ for sd in (1, -1):
     prism(f'intake{sd}', round_poly([(-.1, .62), (-.42, .68), (-.64, .66), (-.56, .47), (-.42, .27), (-.14, .3)], 3), sd * .7, sd * 1.4)
     # front corner intakes below the lamps
     # front corner intakes below the lamps: a raked teardrop in front view, rising to the outer corner
-    prism_z(f'fcorner{sd}', round_poly([(sd * .36, .38), (sd * .6, .43), (sd * .84, .42), (sd * .93, .33), (sd * .86, .21), (sd * .5, .2), (sd * .37, .26)], 2), 1.8, 2.7)
+    prism_z(f'fcorner{sd}', round_poly([(sd * .4, .3), (sd * .62, .315), (sd * .84, .335), (sd * .93, .28), (sd * .9, .16), (sd * .62, .14), (sd * .42, .17)], 2), 1.8, 2.7)
 
 # center front intake (trapezoid in plan, cut through the nose)
-prism_z('fcentre', round_poly([(-.27, .33), (.27, .33), (.21, .22), (-.21, .22)], 2), 1.98, 2.7)
+prism_z('fcentre', round_poly([(-.3, .27), (.3, .27), (.25, .15), (-.25, .15)], 2), 1.98, 2.7)
 # rear recess: the tail becomes a dark cavity holding the exhausts and the mesh
-prism('rearcav', [(-2.2, .66), (-2.6, .66), (-2.6, .33), (-2.2, .33)], -.78, .78)
+prism('rearcav', [(-2.2, .64), (-2.6, .64), (-2.6, .3), (-2.2, .3)], -.64, .64)
 
 # hood vents + headlamp recesses follow the surface: sample it first
 bvh_body = None
@@ -173,6 +175,9 @@ def surf_y(x, z, y0=3.):   # height of the body surface under (x, z)
     return hit[0].z if hit[0] else None
 def surf_front(x, y):      # nose surface z at (x, y), cast backwards from ahead of the car
     hit = bvh_body.ray_cast(G(x, y, 3.5), Vector((0, 1, 0)))
+    return -hit[0].y if hit[0] else None
+def surf_back(x, y):       # tail surface z at (x, y), cast forwards from behind the car
+    hit = bvh_body.ray_cast(G(x, y, -3.5), Vector((0, -1, 0)))
     return -hit[0].y if hit[0] else None
 def surf_side(y, z, sd=1): # flank x at (y, z)
     hit = bvh_body.ray_cast(G(sd * 2.5, y, z), Vector((-sd, 0, 0)))
@@ -198,21 +203,22 @@ def surface_patch(name, corners_xz, depth, lift=.25, m='GAP', n=10):
 
 for sd in (1, -1):
     # twin hood extractor vents, raked outwards
-    surface_patch(f'vent{sd}', [(sd * .16, 1.68), (sd * .42, 1.62), (sd * .5, 1.12), (sd * .22, 1.18)], .045, m='GLOSSBLACK')
+    surface_patch(f'vent{sd}', [(sd * .1, 1.78), (sd * .3, 1.7), (sd * .42, 1.2), (sd * .24, 1.3)], .045, m='GLOSSBLACK')
 
-def lamp_path(sd):  # headlamp: a blade along the top of the fender nose, turning down into a fang at the inner end
+def lamp_path(sd):  # boomerang headlamp: thick at the outer fender tip, sweeping down and in to a point
     pts = []
-    for k in range(9):
-        t = k / 8; x = sd * lerp(.4, .9, t); y = lerp(.46, .54, t ** 1.4)
+    for k in range(11):
+        t = k / 10; x = sd * lerp(.88, .44, t); y = lerp(.47, .365, t ** 1.25)
         pts.append((x, y, surf_front(x, y) - .005))
     return pts
+def lamp_h(t): return lerp(.05, .012, t ** .8)   # half-height along the lamp, outer -> inner
 lamp_paths = {sd: lamp_path(sd) for sd in (1, -1)}
 for sd in (1, -1):
     pts = lamp_paths[sd]
-    # recess: a thin swept box along the lamp line, pushed .07 into the nose
     verts = []; faces = []
-    for (x, y, z) in pts:
-        verts += [G(x, y - .036, z + .2), G(x, y + .036, z + .2), G(x, y + .036, z - .06), G(x, y - .036, z - .06)]
+    for i, (x, y, z) in enumerate(pts):
+        h = lamp_h(i / (len(pts) - 1))
+        verts += [G(x, y - h, z + .2), G(x, y + h, z + .2), G(x, y + h, z - .055), G(x, y - h, z - .055)]
     for i in range(len(pts) - 1):
         for j in range(4): a = 4 * i + j; b = 4 * i + (j + 1) % 4; faces.append((a, b, b + 4, a + 4))
     faces.append((0, 1, 2, 3)); L = 4 * (len(pts) - 1); faces.append((L + 3, L + 2, L + 1, L))
@@ -233,6 +239,12 @@ def sharpen(ob, angle=38):  # smooth shading, hard edges on creases (the glTF ex
     for e in bm.edges:
         e.smooth = not (len(e.link_faces) == 2 and e.calc_face_angle(0) > lim) and len(e.link_faces) == 2 and e.link_faces[0].material_index == e.link_faces[1].material_index
     bm.to_mesh(ob.data); bm.free()
+# black lower nose and tail bands (the P1's dark intake band and open rear)
+gi = [m.name for m in body.data.materials].index('GLOSSBLACK') if 'GLOSSBLACK' in [m.name for m in body.data.materials] else None
+if gi is None: body.data.materials.append(M['GLOSSBLACK']); gi = len(body.data.materials) - 1
+for p in body.data.polygons:
+    c = p.center; x, y, z = c.x, c.z, -c.y; n = p.normal
+    if (z > 1.95 and y < .335 and -n.y > .25) or (z < -2.12 and y < .46 and n.y > .25): p.material_index = gi
 sharpen(body)
 bvh_body = body_bvh()
 
@@ -290,19 +302,19 @@ def airfoil(chord, thick, n=14):
     return up + list(reversed(lo[1:-1]))
 
 # ---------------------------------------------------------------- canopy: a cab-forward visor of dark glass
-CW = [[-1.28, .22], [-1.05, .5], [-.55, .61], [.05, .63], [.55, .56], [.88, .38], [1.04, .14]]
-CH = [[-1.28, .9], [-.95, 1.05], [-.35, 1.16], [.15, 1.155], [.55, 1.02], [.88, .84], [1.04, .72]]
+CW = [[-1.28, .15], [-1.0, .26], [-.8, .36], [-.4, .52], [.05, .6], [.55, .6], [1.05, .56], [1.2, .48], [1.26, .42]]
+CH = [[-1.28, .88], [-1.0, .92], [-.8, .97], [-.4, 1.09], [.05, 1.16], [.3, 1.12], [.6, .99], [.9, .84], [1.1, .73], [1.26, .62]]
 def canopy_ring(z, sc=1., lift=0., a0=0.):
     cw = kf(CW, z) * sc; top = kf(CH, z) + lift; base = kf(YD, z) - .06
     half = [(0, base), (cw, base)]
     for k in range(1, 13):
         a = a0 + (math.pi / 2 - a0) * k / 12
-        half.append((cw * math.cos(a) ** .72 * (1 - .07 * math.sin(a)), base + (top - base) * math.sin(a) ** .85))
+        half.append((cw * math.cos(a) ** .5 * (1 - .14 * math.sin(a)), base + (top - base) * math.sin(a) ** .75))
     half[-1] = (0, top)
     return half
 cst = []
 for i in range(40):
-    z = -1.28 + 2.32 * i / 39; cst.append([G(x, y, z) for x, y in mirror_ring(canopy_ring(z))])
+    z = -1.28 + 2.54 * i / 39; cst.append([G(x, y, z) for x, y in mirror_ring(canopy_ring(z))])
 canopy = loft('Canopy', cst, 'GLASS')
 
 # carbon roof skin: a thin shell over the top of the glass, leaving the visor windscreen and side glass exposed
@@ -319,10 +331,10 @@ roof_ob = loft('Roof', roof, 'CARBON')
 # ---------------------------------------------------------------- roof snorkel: forward-facing intake on the roof, fading back into the spine
 sn = []
 for i in range(16):
-    z = -.12 - .78 * i / 15; top = kf(CH, z) + .004; h = .105 * (1 - smooth_t(i / 15)) + .004; w = .11 * (1 - .35 * i / 15)
+    z = -.12 - .78 * i / 15; top = kf(CH, z) + .004; h = .065 * (1 - smooth_t(i / 15)) + .004; w = .085 * (1 - .35 * i / 15)
     sn.append([G(-w, top - .02, z), G(w, top - .02, z), G(w * .92, top + h * .7, z), G(0, top + h, z), G(-w * .92, top + h * .7, z)])
 loft('Snorkel', sn, 'CARBON')
-box('SnorkelMouth', (.17, .07, .012), (0, kf(CH, -.115) + .05, -.115), 'GLOSSBLACK', rot=(-.25, 0, 0), bevel=.004)
+box('SnorkelMouth', (.13, .045, .012), (0, kf(CH, -.115) + .032, -.115), 'GLOSSBLACK', rot=(-.25, 0, 0), bevel=.004)
 
 # door/window line: gloss black trim where the glass meets the body
 for sd in (1, -1):
@@ -347,22 +359,24 @@ for sd in (1, -1):
 # ---------------------------------------------------------------- front end
 for sd in (1, -1):
     pts = lamp_paths[sd]
-    led = [(x, y + .006, z - .025) for x, y, z in pts]
-    fang = [(sd * .4, .46, pts[0][2] - .025), (sd * .37, .41, surf_front(sd * .37, .41) - .02), (sd * .36, .37, surf_front(sd * .36, .37) - .02)]
-    tube(f'led{sd}', led, .011, 'HEAD', res=6)
-    tube(f'fang{sd}', fang, .01, 'HEAD', res=4)
-    tube(f'lens{sd}', [(x, y, z + .012) for x, y, z in pts], .034, 'LENS', res=6)
+    n = len(pts) - 1
+    led = [(x, y + lamp_h(i / n) * .55, z - .03) for i, (x, y, z) in enumerate(pts)]          # upper LED blade
+    fang = [(x, y - lamp_h(i / n) * .45, z - .03) for i, (x, y, z) in enumerate(pts[:6])]       # lower signature, outer half
+    tube(f'led{sd}', led, .009, 'HEAD', res=6)
+    tube(f'fang{sd}', fang, .008, 'HEAD', res=4)
+    for i in (1, 3):   # two projector lenses in the thick outer end
+        x, y, z = pts[i]; box(f'proj{sd}{i}', (.05, .045, .02), (x, y - .004, z - .04), 'CHROME', bevel=.008)
     # canards on the nose corners
     for k, yy in enumerate((.29, .4)):
         zc = surf_front(sd * .88, yy) or 2.0
         extrude_y(f'canard{sd}{k}', [(sd * .8, zc - .1), (sd * .95, zc - .2), (sd * .97, zc - .15), (sd * .83, zc - .02)], yy - .006, yy + .006, 'CARBON', bevel=.004)
     # slats inside the corner intakes
     for k in range(3):
-        y = .27 + k * .045; zc = surf_front(sd * .68, y) or 2.1
+        y = .18 + k * .045; zc = surf_front(sd * .66, y) or 2.1
         box(f'cslat{sd}{k}', (.36, .008, .12), (sd * .66, y, zc - .07), 'GLOSSBLACK')
 # center intake: three horizontal blades
 for k in range(3):
-    y = .245 + k * .03; zc = surf_front(0, y) or 2.2
+    y = .175 + k * .03; zc = surf_front(0, y) or 2.2
     box(f'fslat{k}', (.46, .01, .14), (0, y, zc - .08), 'CARBON', rot=(.12, 0, 0), bevel=.003)
 # splitter: a flat carbon blade with a lip, poking out ahead of the nose
 spl = [(-.96, 1.9)] + [(math.sin(a) * .98, 2.14 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 16 for k in range(17)]] + [(.96, 1.9)]
@@ -403,11 +417,13 @@ for sd in (1, -1):
 yT = surf_y(0, -2.29) or .83
 for sd in (1, -1):
     # tail lamp: a thin bar across the top of the tail that hooks down each corner
-    pts = [(0, yT - .045, -2.335)]
-    for k in range(1, 9):
-        x = sd * .11 * k; y = (surf_y(x, -2.29) or yT) - .045; pts.append((x, y, -2.335))
-    pts += [(sd * .9, (surf_y(sd * .9, -2.29) or yT) - .1, -2.335), (sd * .88, .52, -2.335)]
-    tube(f'tail{sd}', pts, .016, 'TAIL', res=6)
+    # tail lamp: a thin C that frames the open rear, across the top and hooking down each side
+    cpath = [(0, .69), (.3, .69), (.55, .685), (.66, .675), (.72, .64), (.735, .55), (.73, .44), (.7, .35)]
+    pts = []
+    for x, y in cpath:
+        zb = surf_back(sd * x, y)
+        if zb is not None and zb > -2.6: pts.append((sd * x, y, zb - .006))
+    if len(pts) > 2: tube(f'tail{sd}', pts, .014, 'TAIL', res=6)
     # exhausts: big round pair at the center of the cavity
     for ex in ((0,) if sd == 1 else ()):   # one big centre exhaust
         bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=32, radius1=.1, radius2=.11, depth=.3)
@@ -421,10 +437,10 @@ for k in range(6): box(f'rbar{k}', (1.5, .012, .03), (0, .36 + k * .055, -2.22),
 extrude_y('DiffPlate', [(-.95, -2.36), (.95, -2.36), (.95, -1.9), (-.95, -1.9)], .14, .165, 'CARBON', bevel=.005)
 for k in range(7):
     x = -.72 + k * .24
-    extrude_x(f'diff{k}', [(-1.95, .165), (-2.4, .165), (-2.4, .33), (-2.2, .31)], x - .01, x + .01, 'CARBON', bevel=.004)
+    extrude_x(f'diff{k}', [(-1.95, .165), (-2.34, .165), (-2.34, .29), (-2.2, .29)], x - .01, x + .01, 'CARBON', bevel=.004)
 
 # ---------------------------------------------------------------- swan-neck rear wing
-WY, WZ, SPAN = 1.08, -1.86, 1.64
+WY, WZ, SPAN = .98, -1.9, 1.56
 af = airfoil(.5, .12)
 wing = extrude_x('Wing', [(WZ + z, WY + y) for z, y in af], -SPAN / 2, SPAN / 2, 'PAINT', smooth=True)
 # rotate a touch (angle of attack) about its leading edge
@@ -434,7 +450,7 @@ bm = bmesh.new(); bm.from_mesh(wing.data)
 for f in bm.faces: f.smooth = abs(f.normal.x) < .9
 bm.to_mesh(wing.data); bm.free()
 for sd in (1, -1):
-    extrude_x(f'endplate{sd}', [(WZ + .08, WY - .2), (WZ - .56, WY - .22), (WZ - .56, WY + .08), (WZ - .1, WY + .05)], sd * (SPAN / 2), sd * (SPAN / 2 + .018), 'CARBON', bevel=.004)
+    extrude_x(f'endplate{sd}', [(WZ + .04, WY - .1), (WZ - .5, WY - .12), (WZ - .5, WY + .06), (WZ - .08, WY + .04)], sd * (SPAN / 2), sd * (SPAN / 2 + .018), 'CARBON', bevel=.004)
     # swan neck: rises from the deck, arcs up and hooks onto the top of the wing
     x = sd * .34; zb = -1.62; yb = (surf_y(x, zb) or .86) - .02
     tube(f'swan{sd}', [(x, yb, zb), (x, yb + .12, zb - .07), (x, WY + .04, WZ - .1), (x, WY + .03, WZ - .22)], .03, 'CARBON', res=8)
@@ -460,7 +476,7 @@ if RENDER:
     tm = mat('TYRE', (.015, .015, .016), 0., .75); rm = mat('RIM', (.03, .03, .035), .8, .25)
     for sx in (1, -1):
         for zw in (1.36, -1.36):
-            c = G(sx * 1.0, .36, zw)
+            c = G(sx * TRACK, .36, zw)
             bpy.ops.mesh.primitive_cylinder_add(radius=.36, depth=.3, location=c, rotation=(0, math.pi / 2, 0)); w = bpy.context.active_object; w.data.materials.append(tm)
             bpy.ops.mesh.primitive_cylinder_add(radius=.27, depth=.02, location=c + Vector((sx * .15, 0, 0)), rotation=(0, math.pi / 2, 0)); w = bpy.context.active_object; w.data.materials.append(rm)
             for k in range(10):

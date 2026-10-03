@@ -168,6 +168,48 @@ CARS.push(
   note:'lamps up.\nfull lock.', notePos:{l:'60%',t:'34%'},
   cam:{p:[4.5,.85,4.1],l:[0,.5,.3],roll:-.05,fov:31}}
 );
+CARS.push(
+ {id:'lumen',sculpt:'lumen',name:'LUMEN SP',body:'lumen',lowPro:true,paint:0xc8dce8,metal:.45,rough:.14,rim:0x121416,caliper:0xff6080,wing:false,world:'ice',
+  top:88,acc:25,grip:31,nitro:1.08,mass:.92,
+  kick:'Garage find',loc:'Spring Garden St',when:'Blue hour, 05:22',
+  caption:'Top down in a parking garage on Spring Garden. Keys still in the ignition.',
+  specs:'3.0L TWIN-TURBO I6 / 520 HP / ROADSTER / 7-SPEED DUAL-CLUTCH',
+  rival:'Rival note: it rotates faster than it looks. Don\'t chase it through the esses.',
+  note:'top down.\nno story.', notePos:{l:'58%',t:'34%'},
+  cam:{p:[-4.2,.95,4.0],l:[0,.55,.35],roll:-.05,fov:32}},
+ {id:'brigline',sculpt:'brigline',name:'BRIG LINE W',body:'brigline',lowPro:true,paint:0x2a3238,metal:.35,rough:.38,matte:true,rim:0x1a1c20,caliper:0x9fd3ff,wing:false,accent:0x9fd3ff,world:'ice',
+  top:85,acc:23,grip:30,nitro:1.05,mass:1.58,
+  kick:'Estate issue',loc:'Forest Hills',when:'After rain, 05:45',
+  caption:'Four seats, full carpet in the back. Still faster than your excuses.',
+  specs:'3.0L TWIN-TURBO I6 / 580 HP / SHOOTING BRAKE / AWD',
+  rival:'Rival note: Bruiser will try to move you. He won\'t.',
+  note:'matte wagon.\nquiet power.', notePos:{l:'56%',t:'33%'},
+  cam:{p:[4.6,.85,3.6],l:[0,.65,.25],roll:.08,fov:32}},
+ {id:'pulse2',sculpt:'pulse2',name:'PULSE 2',body:'pulse2',lowPro:true,paint:0xe8eef2,metal:.25,rough:.1,rim:0x0e1012,caliper:0x5fe6c8,wing:false,accent:0x5fe6c8,world:'neon',
+  top:87,acc:24,grip:29,nitro:1.18,mass:1.02,
+  kick:'Wall charge',loc:'Neon Core, Data Port',when:'Tuesday, 02:30',
+  caption:'Charged on a laundromat outlet. Range unknown. Attitude sufficient.',
+  specs:'DUAL E-MOTOR / 640 HP / 62 KWH / SINGLE-SPEED',
+  rival:'Rival note: Leech loves drafting this one. Break the tow on the straight.',
+  note:'quiet zap.\nloud exit.', notePos:{l:'60%',t:'35%'},
+  cam:{p:[3.8,.7,4.4],l:[0,.5,.3],roll:-.06,fov:33}},
+ {id:'vandal',sculpt:'vandal',name:'VANDAL SS',body:'muscle',lowPro:true,paint:0x1a0508,metal:.55,rough:.1,rim:0xf0f2f5,chrome:true,caliper:0xd42020,wing:false,widebody:true,spokes:5,world:'flash',
+  top:92,acc:22,grip:27,nitro:1.28,mass:1.28,
+  kick:'Back-alley',loc:'Kensington Ave',when:'Friday, 00:48',
+  caption:'SS badges are fake. The blower whine is not.',
+  specs:'6.2L SUPERCHARGED V8 / 820 HP / WIDEBODY / 6-SPEED MANUAL',
+  rival:'Rival note: Wildcard runs the same playbook. Out-brake it or get passed.',
+  note:'fake badges.\nreal pull.', notePos:{l:'58%',t:'34%'},
+  cam:{p:[4.5,.88,4.4],l:[0,.58,.35],roll:-.05,fov:32}},
+ {id:'needle',sculpt:'needle',name:'NEEDLE MK1',body:'needle',lowPro:true,paint:0xf4f6fa,metal:.4,rough:.2,rim:0x17181b,rimLip:0x0e0f11,caliper:0xff5a1f,wing:false,world:'flash',
+  top:83,acc:27,grip:33,nitro:1.0,mass:.8,
+  kick:'Parallel park',loc:'Dockside, Pier 12',when:'Wednesday, 01:15',
+  caption:'Parallel-parked across two meters. Still made the start.',
+  specs:'1.6L TURBO I4 / 310 HP / KEI-WIDE / 2,180 LB',
+  rival:'Rival note: Apex hates getting shown up by something this small.',
+  note:'tiny.\nsharp.', notePos:{l:'62%',t:'36%'},
+  cam:{p:[-3.8,.75,3.2],l:[0,.58,.45],roll:-.04,fov:34}}
+);
 // four outlaw cars: 500 / 600 / 700 / 800 mph, each unlocked its own way (see stepRacer). Player-only, never rivals.
 CARS.push(
  {id:'hellbound',sculpt:'hellbound',name:'HELLBOUND 717',body:'muscle',outlaw:true,paint:0xb5121b,metal:.55,rough:.14,rim:0x0b0b0c,caliper:0xd42020,wing:false,widebody:true,spokes:5,world:'flash',
@@ -226,7 +268,12 @@ const SHEETS={
  autobahn:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'830 hp',torque:'1,030 lb-ft',zero:'2.9 s',vmax:'800 mph',weight:'4,650 lb',drive:'All-wheel drive',gearbox:'9-speed wet-clutch'},
  stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'},
  hikari:{engine:'2.4L stroked turbo inline-four, built',power:'1,020 hp',torque:'760 lb-ft',zero:'2.0 s',vmax:'286 mph',weight:'2,480 lb',drive:'Rear-wheel drive, welded diff',gearbox:'6-speed sequential'},
- zephyr:{engine:'Twin axial-flux e-motors, carbon monocoque',power:'1,640 hp',torque:'1,280 lb-ft',zero:'1.1 s',vmax:'960 mph',weight:'1,180 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed'}
+ zephyr:{engine:'Twin axial-flux e-motors, carbon monocoque',power:'1,640 hp',torque:'1,280 lb-ft',zero:'1.1 s',vmax:'960 mph',weight:'1,180 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed'},
+ lumen:{engine:'3.0L twin-turbo inline-six',power:'520 hp',torque:'480 lb-ft',zero:'3.4 s',vmax:'186 mph',weight:'3,150 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
+ brigline:{engine:'3.0L twin-turbo inline-six',power:'580 hp',torque:'520 lb-ft',zero:'3.6 s',vmax:'178 mph',weight:'4,200 lb',drive:'All-wheel drive',gearbox:'8-speed automatic'},
+ pulse2:{engine:'Dual e-motors, 62 kWh pack',power:'640 hp',torque:'580 lb-ft',zero:'3.2 s',vmax:'192 mph',weight:'3,450 lb',drive:'All-wheel drive',gearbox:'Single-speed'},
+ vandal:{engine:'6.2L supercharged V8',power:'820 hp',torque:'780 lb-ft',zero:'3.1 s',vmax:'204 mph',weight:'3,680 lb',drive:'Rear-wheel drive',gearbox:'6-speed manual'},
+ needle:{engine:'1.6L turbo inline-four',power:'310 hp',torque:'280 lb-ft',zero:'4.1 s',vmax:'158 mph',weight:'2,180 lb',drive:'Front-wheel drive',gearbox:'6-speed manual'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
 const LAPS=2; // default; an event can set its own laps
@@ -284,16 +331,16 @@ const EVENT_CAR_BIAS={
  neoncore:{gripW:1.1,topW:1.06,nitroW:1.12}
 };
 const RIVAL_CAR_PREF={
- apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk']},
- wall:{gripW:1.05,topW:1,ids:['granfour','dune','sovereign','vanta']},
- leech:{gripW:.95,topW:1.05,nitroW:1.15,ids:['zenkai','noctis','sovereign','kage','vanta']},
- bruiser:{gripW:.92,topW:1.02,ids:['richmond','dune','sovereign','granfour','noctis']},
- closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['bell','noctis','vanta','kern','sovereign','stratos']},
- wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour','wisp']},
- grudge:{gripW:.95,topW:1,nitroW:1.05,ids:['richmond','dune','sovereign','granfour']},
- hunter:{gripW:1,topW:1.1,nitroW:1.15,ids:['noctis','vanta','kern','stratos']},
- rabbit:{gripW:.95,topW:1.12,nitroW:1.1,ids:['zenkai','split','wisp','bell']},
- weaver:{gripW:1.15,topW:1,nitroW:1,ids:['kage','passyunk','granfour','vanta']}
+ apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk','needle','lumen']},
+ wall:{gripW:1.05,topW:1,ids:['granfour','dune','sovereign','vanta','brigline']},
+ leech:{gripW:.95,topW:1.05,nitroW:1.15,ids:['zenkai','noctis','sovereign','kage','vanta','pulse2']},
+ bruiser:{gripW:.92,topW:1.02,ids:['richmond','dune','sovereign','granfour','noctis','brigline']},
+ closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['bell','noctis','vanta','kern','sovereign','stratos','vandal']},
+ wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour','wisp','vandal']},
+ grudge:{gripW:.95,topW:1,nitroW:1.05,ids:['richmond','dune','sovereign','granfour','brigline']},
+ hunter:{gripW:1,topW:1.1,nitroW:1.15,ids:['noctis','vanta','kern','stratos','vandal']},
+ rabbit:{gripW:.95,topW:1.12,nitroW:1.1,ids:['zenkai','split','wisp','bell','lumen']},
+ weaver:{gripW:1.15,topW:1,nitroW:1,ids:['kage','passyunk','granfour','vanta','needle']}
 };
 let RIVAL_BOSS=false;
 function rivalChassisEligible(c){ if(c.outlaw) return false; if((c.id==='overload'||c.id==='volcano'||c.id==='zephyr'||c.id==='hikari')&&!RIVAL_BOSS) return false; return true; }
@@ -886,7 +933,15 @@ const BODIES={
  kage:{pts:[[-1.96,.2],[-2.0,.6],[-1.9,.86],[-1.2,.93],[-.4,.9],[.4,.76],[1.3,.8],[1.9,.66],[2.4,.45],[2.52,.2]],base:.12, // Kage R: EV hypercar, venturi tunnels (Blender build; pts/cab are the fallback profile)
    cab:[[-1.0,.92],[-.5,1.0],[.1,1.07],[.8,.98],[1.4,.8]],cabBase:[-1.0,.9,1.4,.78],w:2.02,cw:1.28,wr:.35,wb:1.4,tr:.9,front:2.52,rear:1.96,headY:.57,tailY:.62,wingY:.95,wingZ:-1.78},
  zephyr:{pts:[[-2.62,.22],[-2.68,.46],[-2.48,.6],[-1.6,.66],[-.5,.64],[.5,.56],[1.4,.42],[2.05,.3],[2.42,.22],[2.46,.16]],base:.12,
-   cab:[[-.7,.62],[-.15,.9],[.45,.94],[.9,.74],[1.15,.5]],cabBase:[-.7,.6,1.15,.48],w:1.72,cw:1.05,wr:.33,wb:1.48,tr:.9,front:2.46,rear:2.68,headY:.38,tailY:.52,wingY:1.02,wingZ:-2.32,swan:true}
+   cab:[[-.7,.62],[-.15,.9],[.45,.94],[.9,.74],[1.15,.5]],cabBase:[-.7,.6,1.15,.48],w:1.72,cw:1.05,wr:.33,wb:1.48,tr:.9,front:2.46,rear:2.68,headY:.38,tailY:.52,wingY:1.02,wingZ:-2.32,swan:true},
+ lumen:{pts:[[-2.08,.36],[-2.14,.7],[-2.04,.92],[-1.55,.98],[-.7,1.0],[.3,.94],[1.15,.82],[1.78,.68],[2.1,.52],[2.14,.36]],base:.24,
+   cab:[[-1.55,.96],[-1.05,1.18],[-.25,1.22],[.35,1.06],[.72,.88]],cabBase:[-1.55,.94,.72,.86],w:1.88,cw:1.32,wr:.36,wb:1.28,tr:.96,front:2.14,rear:2.14,headY:.68,tailY:.86,wingY:1.28,wingZ:-1.92},
+ brigline:{pts:[[-2.55,.4],[-2.6,.78],[-2.45,.98],[-1.75,1.04],[-.6,1.02],[.5,.99],[1.4,.95],[2.15,.86],[2.48,.74],[2.52,.42]],base:.22,
+   cab:[[-2.15,1.04],[-1.35,1.32],[-.15,1.38],[.55,1.24],[.95,.98]],cabBase:[-2.15,1.02,.95,.96],w:1.98,cw:1.44,wr:.4,wb:1.58,tr:.78,front:2.52,rear:2.55,headY:.72,tailY:.88,wingY:1.1,wingZ:-2.35},
+ pulse2:{pts:[[-1.92,.28],[-1.98,.62],[-1.88,.84],[-1.2,.9],[-.4,.88],[.5,.8],[1.35,.74],[1.88,.62],[2.28,.44],[2.34,.26]],base:.14,
+   cab:[[-1.05,.9],[-.55,1.02],[.15,1.06],[.75,.92],[1.15,.72]],cabBase:[-1.05,.88,1.15,.7],w:1.86,cw:1.28,wr:.35,wb:1.36,tr:.92,front:2.34,rear:1.92,headY:.58,tailY:.72,wingY:1.0,wingZ:-1.78},
+ needle:{pts:[[-1.72,.4],[-1.78,.72],[-1.72,.92],[-1.35,.98],[-.55,.96],[.35,.92],[1.05,.84],[1.55,.68],[1.78,.52],[1.82,.38]],base:.28,
+   cab:[[-1.68,.98],[-1.52,1.38],[-.35,1.42],[.35,1.22],[.78,.98]],cabBase:[-1.68,.96,.78,.96],w:1.72,cw:1.38,wr:.33,wb:1.12,tr:.94,front:1.82,rear:1.78,headY:.72,tailY:.88,wingY:1.52,wingZ:-1.62}
 };
 const bronzeM=()=>new THREE.MeshStandardMaterial({color:0x8a5a2b,metalness:1,roughness:.25});
 /* Fold a group's direct child meshes into one mesh per material (transforms baked in). A detailed car is
@@ -2254,7 +2309,126 @@ function wispGlbShell(g,def,B,paint,glass,opts){
     YS=[[-2.18,.9],[-2.0,.93],[-1.4,.93],[-.6,.91],[.4,.89],[.9,.87],[1.5,.82],[1.95,.74],[2.24,.56]], YB=[[-2.18,.36],[-2.06,.22],[-1.8,.17],[1.8,.17],[2.06,.2],[2.24,.26]];
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.06,ay:ys-.12,yc:ys+.1,yf:ys+.1}; }};
 }
-const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell};
+/* ---- LUMEN SP: compact roadster. Low windscreen, body-color roll hoops, slim blade lamps. ---- */
+function lumenShell(g,def,B,paint,glass){
+  const K=carKit(g); rimPaint(paint,0xff90a8,.16);
+  paint.clearcoat=1; paint.clearcoatRoughness=.018;
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:52,inset:.13,
+    hwS:[[-R,.88],[-WB,1.0],[-.7,.94],[0,.92],[.7,.94],[WB,1.0],[F,.86]],
+    ysK:[[-R,.64],[-WB,.72],[0,.66],[WB,.7],[F,.52]],
+    yfK:[[-R,.86],[-WB,.9],[0,.88],[WB,.86],[F,.68]],
+    ycK:[[-R,.84],[-1.4,.88],[-.4,.84],[.5,.78],[F,.64]],
+    hwL:[[-R,.82],[-WB,.78],[0,.86],[WB,.78],[F,.78]],
+    ybK:[[-R,.28],[-1.9,.18],[1.9,.18],[F,.24]]},paint,K);
+  const C={z0:-1.42,z1:.55,tumble:.1,pow:.55,cwK:[[-1.42,.28],[-1.05,.48],[-.45,.54],[.15,.52],[.55,.38]],htK:[[-1.42,.88],[-1.05,1.06],[-.45,1.12],[.05,1.1],[.55,.92]],roof:[-1.05,.45],roofA:.85};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  [1,-1].forEach(sd=>{ const z=-1.35; K.tube([[sd*.72,canopyY(C,T,sd*.72,z)+.02,z],[sd*.72,canopyY(C,T,sd*.72,z)+.28,z+.02]],.014,paint,8);
+    K.lens(sd*.58,T.top(sd*.58,F-.28)+.01,F-.28,.16,.022,.1,.35,sd*.22); K.glow(0xcfe6ff,.85,sd*.58,T.top(sd*.58,F-.28)+.04,F-.02);
+    K.shut(sd,.35); K.mirror(sd,.35,paint); K.sill(sd,-WB+WR+.15,WB-WR-.15,.03,.12,GLOSS_BLACK);
+    K.tube([[sd*.5,.78,-R-.01],[sd*.72,.82,-R-.01]],.012,tailM,8); K.glow(0xff2030,.75,sd*.62,.8,-R-.06); });
+  K.splitter(.82,F-.32,F+.02,.2); K.pipe(0,.34,-R-.05,.048);
+  K.plate(def,.48,-R-.02);
+  return T;
+}
+/* ---- BRIG LINE W: shooting-brake wagon. Long roof, roof rails, squared tailgate. ---- */
+function briglineShell(g,def,B,paint,glass){
+  const K=carKit(g); rimPaint(paint,0x9fd3ff,.14);
+  const acc=new THREE.MeshStandardMaterial({color:def.accent||0x9fd3ff,roughness:.35,metalness:.25});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:58,inset:.14,
+    hwS:[[-R,.96],[-2.2,1.08],[-WB,1.12],[-.7,1.02],[0,1.0],[.7,1.02],[WB,1.08],[2.1,1.0],[F,.88]],
+    ysK:[[-R,.88],[-WB,.82],[0,.8],[WB,.82],[F,.66]],
+    yfK:[[-R,1.02],[-WB,1.04],[0,1.0],[WB,.98],[F,.78]],
+    ycK:[[-R,1.0],[-2.2,1.06],[-1.2,1.04],[0,1.0],[.9,.92],[F,.76]],
+    hwL:[[-R,.92],[-WB,.88],[0,.94],[WB,.88],[F,.86]],
+    ybK:[[-R,.34],[-2.3,.24],[2.2,.24],[F,.3]]},paint,K);
+  const C={z0:-2.15,z1:.95,tumble:.1,pow:.45,cwK:[[-2.15,.55],[-1.6,.68],[-.5,.72],[.4,.68],[.95,.58]],htK:[[-2.15,1.22],[-1.8,1.48],[-.8,1.52],[.2,1.46],[.95,1.18]],roof:[-1.85,.35],roofA:1.05};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  K.top(-.45,.45,-2.1,-1.5,acc,.008,14);
+  [1,-1].forEach(sd=>{ K.shut(sd,.85); K.mirror(sd,.82,paint); K.sill(sd,-WB+WR+.2,WB-WR-.2,.04,.16,GLOSS_BLACK);
+    K.add(new THREE.BoxGeometry(.012,.035,1.6),acc,sd*(T.sec(-1.2).hs+.008),kfCR(C.htK,-1.2)+.04,-1.2);
+    K.add(new THREE.BoxGeometry(.18,.14,.02),tailM,sd*.68,.92,-R-.012); K.glow(0xff2030,.85,sd*.68,.92,-R-.07); });
+  K.add(new THREE.PlaneGeometry(1.35,.22),GLOSS_BLACK,0,.48,F+.006);
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.8,sd*.62,.68,F+.04); K.add(new THREE.PlaneGeometry(.32,.1),lensM,sd*.62,.68,F+.003); });
+  K.splitter(.9,F-.34,F+.03,.16);
+  K.add(new THREE.PlaneGeometry(1.6,.24),GLOSS_BLACK,0,.52,-R-.008).rotation.y=Math.PI;
+  K.plate(def,.58,-R-.02);
+  return T;
+}
+/* ---- PULSE 2: compact EV liftback. Blade nose lamps, cyan rocker line, no exhaust. ---- */
+function pulse2Shell(g,def,B,paint,glass){
+  const K=carKit(g); rimPaint(paint,0x5fe6c8,.12);
+  const cy=new THREE.MeshBasicMaterial({color:def.accent||0x5fe6c8,toneMapped:false});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:50,inset:.12,
+    hwS:[[-R,.86],[-WB,.96],[-.5,.9],[0,.88],[.5,.9],[WB,.96],[F,.78]],
+    ysK:[[-R,.58],[-WB,.64],[0,.6],[WB,.64],[F,.44]],
+    yfK:[[-R,.78],[-WB,.82],[0,.76],[WB,.74],[F,.52]],
+    ycK:[[-R,.74],[-1.2,.78],[-.3,.72],[.6,.66],[F,.48]],
+    hwL:[[-R,.8],[-WB,.76],[0,.82],[WB,.76],[F,.72]],
+    ybK:[[-R,.22],[-1.8,.14],[1.8,.14],[F,.18]]},paint,K);
+  const C={z0:-1.2,z1:.85,tumble:.08,pow:.6,cwK:[[-1.2,.22],[-.75,.44],[-.15,.48],[.45,.44],[.85,.26]],htK:[[-1.2,.86],[-.75,1.02],[-.15,1.08],[.4,.96],[.85,.72]],roof:[-.9,.3],roofA:.95};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  K.tube([[-.75,.42,F+.01],[0,.38,F+.02],[.75,.42,F+.01]],.014,cy,20);
+  [1,-1].forEach(sd=>{ K.tube([[sd*.82,.36,1.0],[sd*.86,.36,0],[sd*.84,.36,-1.0]],.012,cy,12);
+    K.lens(sd*.7,T.top(sd*.7,F-.22)+.01,F-.22,.18,.02,.09,.32,sd*.25); K.glow(0xcfe6ff,.75,sd*.7,T.top(sd*.7,F-.22)+.03,F-.01);
+    K.tube([[sd*.35,.72,-R-.01],[sd*.65,.76,-R-.01]],.012,tailM,8); K.glow(0xff2030,.7,sd*.5,.74,-R-.06);
+    K.mirror(sd,.55,K.carbon); K.shut(sd,.4); });
+  K.splitter(.78,F-.28,F+.02,.16);
+  K.add(new THREE.BoxGeometry(1.4,.03,.5),K.carbon,0,.16,-R+.18);
+  K.plate(def,.44,-R-.02);
+  return T;
+}
+/* ---- VANDAL SS: modern widebody muscle. Hood vents, center grille, quad tips. ---- */
+function vandalShell(g,def,B,paint,glass){
+  const K=carKit(g); rimPaint(paint,0xff4040,.18);
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:52,inset:.11,
+    hwS:[[-R,.94],[-2.0,1.08],[-WB,1.12],[-.6,1.04],[0,1.02],[.6,1.04],[WB,1.1],[2.0,1.02],[F,.94]],
+    ysK:[[-R,.78],[-WB,.84],[0,.8],[WB,.84],[F,.74]],
+    yfK:[[-R,.96],[-WB,1.0],[0,.98],[WB,.98],[F,.9]],
+    ycK:[[-R,.94],[-1.5,.98],[0,.96],[1.0,1.0],[F,.92]],
+    hwL:[[-R,.88],[-WB,.84],[0,.94],[WB,.84],[F,.88]],
+    ybK:[[-R,.36],[-2.1,.26],[2.1,.26],[F,.34]]},paint,K);
+  const C={z0:-1.48,z1:.95,tumble:.12,pow:.45,cwK:[[-1.48,.48],[-1.0,.64],[-.2,.68],[.45,.64],[.95,.52]],htK:[[-1.48,1.02],[-1.0,1.38],[-.2,1.44],[.45,1.32],[.95,1.06]],roof:[-1.1,.42],roofA:.95};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  [1,-1].forEach(sd=>{ const fl=[]; for(let i=0;i<=10;i++){ const z=WB-WR-.1+i*.22, c=T.sec(z); fl.push([sd*(c.hs+.025),c.ys-.02,z]); } K.tube(fl,.035,paint,18,6);
+    K.shut(sd,.88); K.mirror(sd,.75,paint); K.sill(sd,-WB+WR+.2,WB-WR-.2,.04,.16,GLOSS_BLACK);
+    for(let i=0;i<4;i++){ const z=1.4-i*.12, s=T.sec(z); K.add(new THREE.BoxGeometry(.012,.04,.08),gapM,sd*(s.hs+.008),s.ys-.04,z); } });
+  K.add(new THREE.PlaneGeometry(1.15,.22),GLOSS_BLACK,0,.78,F+.01);
+  [1,-1].forEach(sd=>{ K.add(new THREE.TorusGeometry(.07,.012,8,24),headM,sd*.42,.78,F+.03); K.glow(0xcfe6ff,.75,sd*.42,.78,F+.08); });
+  K.splitter(.92,F-.36,F+.02,.32);
+  K.tube([[-.82,.8,-R-.02],[0,.84,-R-.025],[.82,.8,-R-.02]],.016,tailM,24);
+  [-.58,-.22,.22,.58].forEach(x=>K.pipe(x,.44,-R-.06,.052));
+  K.plate(def,.62,-R-.02);
+  return T;
+}
+/* ---- NEEDLE MK1: kei-wide hot hatch. Ducktail, orange pinstripe, roof spoiler. ---- */
+function needleShell(g,def,B,paint,glass){
+  const K=carKit(g); rimPaint(paint,0xffa060,.12);
+  const pin=new THREE.MeshBasicMaterial({color:0xff5a1f,toneMapped:false});
+  const WB=B.wb, WR=B.wr, F=B.front, R=B.rear;
+  const T=sculptBody(g,{Z0:-R,Z1:F,WB,WR,NS:50,inset:.13,
+    hwS:[[-R,.9],[-WB-.05,.98],[-.5,.94],[0,.92],[.5,.94],[WB+.05,.98],[F,.88]],
+    ysK:[[-R,.86],[-WB,.8],[0,.78],[WB,.8],[F,.62]],
+    yfK:[[-R,.98],[-WB,.98],[0,.96],[WB,.94],[F,.74]],
+    ycK:[[-R,.96],[-1.5,.98],[0,.94],[.7,.88],[F,.72]],
+    hwL:[[-R,.88],[-WB,.82],[0,.88],[WB,.82],[F,.86]],
+    ybK:[[-R,.32],[-1.6,.24],[1.6,.24],[F,.28]]},paint,K);
+  const C={z0:-1.58,z1:.88,tumble:.12,pow:.42,cwK:[[-1.58,.58],[-1.42,.64],[-.7,.66],[.15,.64],[.88,.54]],htK:[[-1.58,1.14],[-1.45,1.42],[-.75,1.46],[.1,1.38],[.88,1.04]],roof:[-1.38,.28],roofA:1.15};
+  sculptCanopy(g,C,T,glass,paint,K); outlawKit(K,T,C);
+  [.1,-.1].forEach(x=>K.roof(x-.04,x+.04,C.z0+.1,C.z1-.05,pin,.018,14));
+  [1,-1].forEach(sd=>[WB,-WB].forEach(zw=>{ const pts=[]; for(let i=0;i<=8;i++){ const a=Math.PI*(.15+.7*i/8), z=zw-Math.cos(a)*(WR+.1), c=T.sec(z); pts.push([sd*(c.hs+.018),WR+Math.sin(a)*(WR+.08),z]); } K.tube(pts,.032,paint,14,6); }));
+  K.add(new THREE.PlaneGeometry(.85,.14),GLOSS_BLACK,0,.58,F+.006);
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.9,sd*.58,.62,F+.05); K.add(new THREE.PlaneGeometry(.26,.1),lensM,sd*.58,.62,F+.003);
+    K.shut(sd,.65); K.mirror(sd,.7,GLOSS_BLACK); K.add(new THREE.BoxGeometry(.16,.12,.02),tailM,sd*.58,.9,-R-.012); K.glow(0xff2030,.85,sd*.58,.9,-R-.07); });
+  { const y=kfCR(C.htK,-1.45); K.add(new THREE.BoxGeometry(1.05,.03,.22),GLOSS_BLACK,0,y+.004,-1.48); K.add(new THREE.BoxGeometry(1.05,.012,.012),pin,0,y+.02,-1.48); }
+  K.splitter(.72,F-.26,F+.03,.18);
+  K.plate(def,.66,-R-.02);
+  return T;
+}
+const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell,lumen:lumenShell,brigline:briglineShell,pulse2:pulse2Shell,vandal:vandalShell,needle:needleShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -2282,7 +2456,12 @@ const STREET={
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
  mantis:{vinyl:'gradient',vc:'#0b0c0e',wheel:'mesh'},
  autobahn:{wheel:'abs',camber:.03},
- zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
+ zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'},
+ lumen:{wheel:'spoke',camber:.04},
+ brigline:{wheel:'turbine'},
+ pulse2:{glow:0x5fe6c8,vinyl:'gradient',vc:'#5fe6c8',wheel:'aero'},
+ vandal:{glow:0xff4040,vinyl:'slash',vc:'#d42020',wheel:'dish',camber:.04},
+ needle:{glow:0xff5a1f,vinyl:'number',vc:'#ff5a1f',text:'01',wheel:'split',camber:.06}
 };
 function carNitroColor(def){
   if(def.nosColor!=null) return def.nosColor;

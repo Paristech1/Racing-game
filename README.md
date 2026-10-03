@@ -67,6 +67,13 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - The sky goes from blue hour to pink to gold on the last lap. The street lights and the Boathouse Row outlines switch off at sunrise, and the fog lifts off the river while rowing crews head upstream.
   - The city wakes up with you: no traffic on lap 1, early commuters on lap 2, rush hour on lap 3.
 
+- **Event 14: Neon Core.** A cyberpunk Synth District loop (~3.1 km), 2 laps, mixing DNA from three fan-favorite layouts:
+  - **Skyline Circuit:** a raised mag-deck straight with holo billboards and a hard drop back to street level.
+  - **Dockside Dash:** a tight container-yard chicane through stacked synth crates.
+  - **Under the El:** a hyperloop deck with steel core posts down the median (same pick-a-side hazard), plus a **cargo lock** gate on a 40-second clock.
+  - **Harbor Line tunnel:** a short **neon tube** with magenta/cyan strip lights and reduced grip.
+  - **Pulse Grid** boost pads (cyan, magenta, violet) on alternating lanes, like Game Night’s crowd pads but tuned for night racing.
+
 - **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
 
   | Rule | What happens |

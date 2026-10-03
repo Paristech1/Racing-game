@@ -96,10 +96,10 @@ def section(z):
     lower = [(0, yb), (hl * .92, yb), (hl, yb + .045)]
     upper = [(hs - .035, lerp(yb + .1, ys, .45)), (hs, ys), (hs - .045, ys + .085), (lerp(hs, xf, .55), lerp(ys + .085, yf, .8)), (xf, yf),
              (lerp(xf, .28, .5), lerp(yf, yd, .75) + .01), (.28, yd + .012), (0, yd)]
-    half = lower + cr_path([lower[-1]] + upper, 3)[1:]
+    half = lower + cr_path([lower[-1]] + upper, int(os.environ.get('P1PER', 3)))[1:]
     return half, dict(hs=hs, ys=ys, yb=yb, yf=yf, yd=yd, hl=hl)
 
-NS = 150
+NS = int(os.environ.get('P1NS', 150))
 stations = []
 for i in range(NS):
     t = i / (NS - 1); t = .88 * t + .12 * (.5 - .5 * math.cos(math.pi * t)); z = Z0 + (Z1 - Z0) * t  # slightly denser at the ends
@@ -128,6 +128,13 @@ def prism(name, poly_zy, x0, x1, m='GAP'):  # side-view polygon (z, y) extruded 
     bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces); bm.to_mesh(ob.data); bm.free()
     return cutter(ob, m)
 
+def prism_z(name, poly_xy, z0, z1, m='GAP'):  # front-view polygon (x, y) extruded along z
+    n = len(poly_xy); verts = [G(x, y, z0) for x, y in poly_xy] + [G(x, y, z1) for x, y in poly_xy]
+    faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))] + [(i, (i + 1) % n, n + (i + 1) % n, n + i) for i in range(n)]
+    ob = new_obj(name, verts, faces, m, False)
+    bm = bmesh.new(); bm.from_mesh(ob.data); bmesh.ops.recalc_face_normals(bm, faces=bm.faces); bm.to_mesh(ob.data); bm.free()
+    return cutter(ob, m)
+
 def cyl_x(name, cx, cy, cz, r, x0, x1, m='GAP', seg=64):
     verts = []; faces = []
     for x in (x0, x1):
@@ -143,12 +150,16 @@ for sd in (1, -1):
     for zw in (1.36, -1.36):  # wheel arches
         cyl_x(f'arch{sd}{zw}', 0, .36, zw, .425, sd * .78, sd * 1.5)
     # side intake: a forward-raked parallelogram on the rear haunch, cut deep into the body
-    prism(f'intake{sd}', round_poly([(-.1, .67), (-.5, .74), (-.93, .7), (-.96, .4), (-.55, .3), (-.2, .38)], 3), sd * .72, sd * 1.4)
+    # side scallop: the long dark swoop from behind the front wheel back to the haunch (traced off the side-profile reference)
+    prism(f'scallop{sd}', round_poly([(.93, .43), (.78, .6), (.4, .665), (0, .7), (-.4, .72), (-.66, .7), (-.6, .52), (-.48, .33), (-.36, .19), (0, .17), (.5, .18), (.82, .27)], 2), sd * .86, sd * 1.5, 'CARBON')
+    # deep intake at the back of the scallop
+    prism(f'intake{sd}', round_poly([(-.1, .62), (-.42, .68), (-.64, .66), (-.56, .47), (-.42, .27), (-.14, .3)], 3), sd * .7, sd * 1.4)
     # front corner intakes below the lamps
-    prism(f'fcorner{sd}', [(2.4, .42), (1.78, .42), (1.78, .22), (2.4, .22)], sd * .4, sd * .9)
+    # front corner intakes below the lamps: a raked teardrop in front view, rising to the outer corner
+    prism_z(f'fcorner{sd}', round_poly([(sd * .36, .38), (sd * .6, .43), (sd * .84, .42), (sd * .93, .33), (sd * .86, .21), (sd * .5, .2), (sd * .37, .26)], 2), 1.8, 2.7)
 
 # center front intake (trapezoid in plan, cut through the nose)
-prism('fcentre', [(2.4, .36), (1.95, .36), (1.95, .23), (2.4, .23)], -.3, .3)
+prism_z('fcentre', round_poly([(-.27, .33), (.27, .33), (.21, .22), (-.21, .22)], 2), 1.98, 2.7)
 # rear recess: the tail becomes a dark cavity holding the exhausts and the mesh
 prism('rearcav', [(-2.2, .66), (-2.6, .66), (-2.6, .33), (-2.2, .33)], -.78, .78)
 
@@ -347,12 +358,12 @@ for sd in (1, -1):
         extrude_y(f'canard{sd}{k}', [(sd * .8, zc - .1), (sd * .95, zc - .2), (sd * .97, zc - .15), (sd * .83, zc - .02)], yy - .006, yy + .006, 'CARBON', bevel=.004)
     # slats inside the corner intakes
     for k in range(3):
-        y = .24 + k * .04; zc = surf_front(sd * .68, y) or 2.1
-        box(f'cslat{sd}{k}', (.34, .008, .12), (sd * .68, y, zc - .07), 'GLOSSBLACK')
+        y = .27 + k * .045; zc = surf_front(sd * .68, y) or 2.1
+        box(f'cslat{sd}{k}', (.36, .008, .12), (sd * .66, y, zc - .07), 'GLOSSBLACK')
 # center intake: three horizontal blades
 for k in range(3):
-    y = .245 + k * .04; zc = surf_front(0, y) or 2.2
-    box(f'fslat{k}', (.78, .01, .14), (0, y, zc - .08), 'CARBON', rot=(.12, 0, 0), bevel=.003)
+    y = .245 + k * .03; zc = surf_front(0, y) or 2.2
+    box(f'fslat{k}', (.46, .01, .14), (0, y, zc - .08), 'CARBON', rot=(.12, 0, 0), bevel=.003)
 # splitter: a flat carbon blade with a lip, poking out ahead of the nose
 spl = [(-.96, 1.9)] + [(math.sin(a) * .98, 2.14 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 16 for k in range(17)]] + [(.96, 1.9)]
 extrude_y('Splitter', spl, .115, .145, 'CARBON', bevel=.008)
@@ -369,7 +380,7 @@ for sd in (1, -1):
     # strake across the side intake
     st = []
     for i in range(12):
-        z = -.42 - .52 * i / 11; y = lerp(.52, .54, i / 11); x = (surf_side(.66, z, sd) or 1.0) - .02
+        z = .7 - 1.1 * i / 11; y = lerp(.42, .47, i / 11); x = .9
         st.append([G(sd * (x - .2), y - .012, z), G(sd * (x + .005), y - .012, z), G(sd * (x + .005), y + .012, z), G(sd * (x - .2), y + .012, z)])
     loft(f'Strake{sd}', st, 'CARBON', smooth=False)
     # mirror: carbon stalk from the door top, body-color pod
@@ -384,9 +395,9 @@ for sd in (1, -1):
         v.co = G(sd * (mx + .15) + gx, my + .045 + gy, mz - .04 + gz)
 
 for sd in (1, -1):
-    xv = (surf_side(.52, -.55, sd) or 1.0)
-    extrude_x(f'ductvane{sd}', [(-.22, .535), (-.88, .575), (-.9, .555), (-.3, .515)], sd * (xv - .17), sd * (xv - .03), 'PAINT', bevel=.004)
-    extrude_x(f'ductfloor{sd}', [(-.28, .335), (-.9, .4), (-.9, .385), (-.3, .32)], sd * (xv - .2), sd * (xv - .03), 'CARBON')
+    xv = (surf_side(.52, -.3, sd) or 1.0)
+    extrude_x(f'ductvane{sd}', [(-.08, .5), (-.6, .55), (-.62, .53), (-.14, .48)], sd * (xv - .17), sd * (xv - .03), 'PAINT', bevel=.004)
+    extrude_x(f'ductfloor{sd}', [(-.12, .31), (-.5, .33), (-.5, .315), (-.14, .295)], sd * (xv - .2), sd * (xv - .03), 'CARBON')
 
 # ---------------------------------------------------------------- rear
 yT = surf_y(0, -2.29) or .83
@@ -398,12 +409,12 @@ for sd in (1, -1):
     pts += [(sd * .9, (surf_y(sd * .9, -2.29) or yT) - .1, -2.335), (sd * .88, .52, -2.335)]
     tube(f'tail{sd}', pts, .016, 'TAIL', res=6)
     # exhausts: big round pair at the center of the cavity
-    for ex in (.13,):
-        bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=32, radius1=.075, radius2=.082, depth=.3)
+    for ex in ((0,) if sd == 1 else ()):   # one big centre exhaust
+        bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=False, segments=32, radius1=.1, radius2=.11, depth=.3)
         me = bpy.data.meshes.new(f'exh{sd}'); bm.to_mesh(me); bm.free(); o = bpy.data.objects.new(f'exh{sd}', me); scene.collection.objects.link(o)
         me.materials.append(M['CHROME']); me.shade_smooth()
         for v in me.vertices: v.co = G(sd * ex + v.co.x, .5 + v.co.y, -2.3 + v.co.z)
-        box(f'exhin{sd}', (.12, .12, .01), (sd * ex, .5, -2.2), 'GAP')
+        box(f'exhin{sd}', (.17, .17, .01), (sd * ex, .5, -2.2), 'GAP')
 # mesh in the rear cavity: horizontal carbon bars
 for k in range(6): box(f'rbar{k}', (1.5, .012, .03), (0, .36 + k * .055, -2.22), 'CARBON')
 # diffuser: flat plate + vertical strakes

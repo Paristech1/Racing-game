@@ -16,6 +16,9 @@ import {
   lerp,
   makeTrack,
   mkFrame,
+  NEW_PU_SPOTS,
+  autoPickupSpots,
+  pickClearLane,
   rng,
   scorePickup,
   Vec3,
@@ -383,5 +386,67 @@ describe('eventAiBias', () => {
     const tight = eventAiBias(false);
     assert.ok(open.straight > tight.straight);
     assert.ok(open.tight < tight.tight);
+  });
+});
+
+describe('pickClearLane (WEAVER)', () => {
+  const lanes = [-5.2, -2.6, 0, 2.6, 5.2];
+  const L = 2000;
+
+  it('takes the open lane when traffic blocks the others', () => {
+    const obs = [-5.2, -2.6, 0, 5.2].map(x => ({ dist: 30, x }));
+    assert.equal(pickClearLane(lanes, obs, 0, L, 70, 0), 2.6);
+  });
+
+  it('stays put on an empty road', () => {
+    assert.equal(pickClearLane(lanes, [], 0, L, 70, 2.6), 2.6);
+  });
+
+  it('prefers the lane whose blocker is farthest away', () => {
+    const obs = [{ dist: 20, x: -2.6 }, { dist: 60, x: 2.6 }, { dist: 25, x: 0 }, { dist: 25, x: -5.2 }, { dist: 25, x: 5.2 }];
+    assert.equal(pickClearLane(lanes, obs, 0, L, 70, 0), 2.6);
+  });
+
+  it('sees obstacles across the start/finish wrap', () => {
+    const obs = [{ dist: 10, x: 0 }, { dist: 10, x: -2.6 }, { dist: 10, x: 2.6 }, { dist: 10, x: -5.2 }];
+    assert.equal(pickClearLane(lanes, obs, L - 20, L, 70, 0), 5.2);
+  });
+
+  it('ignores cars behind and cars too close to count as ahead', () => {
+    const obs = [{ dist: -30, x: 0 }, { dist: 2, x: 0 }];
+    assert.equal(pickClearLane(lanes, obs, 0, L, 70, 0), 0);
+  });
+});
+
+describe('autoPickupSpots (new power-up gems)', () => {
+  it('adds all four new gems to an empty map', () => {
+    const out = autoPickupSpots([], 2000);
+    assert.deepEqual(out.map(i => i[2]).sort(), ['ghost', 'jam', 'payback', 'slick']);
+    for (const [s] of out) assert.ok(s >= 0 && s < 2000);
+  });
+
+  it('does not touch the original list or duplicate a type that is already placed', () => {
+    const base = [[100, 3, 'jam']];
+    const out = autoPickupSpots(base, 2000);
+    assert.equal(base.length, 1);
+    assert.equal(out.filter(i => i[2] === 'jam').length, 1);
+    assert.equal(out.length, 4);
+  });
+
+  it('keeps new gems at least 45 m from every other gem, including across the lap wrap', () => {
+    const L = 1500;
+    const base = [];
+    for (const [, f] of NEW_PU_SPOTS) base.push([L * f, 0, 'refill']);
+    base.push([L - 10, 0, 'refill']);
+    const out = autoPickupSpots(base, L);
+    const added = out.slice(base.length);
+    assert.equal(added.length, 4);
+    for (const a of added) {
+      for (const o of out) {
+        if (o === a) continue;
+        const d = Math.abs(o[0] - a[0]);
+        assert.ok(Math.min(d, L - d) >= 45, `${a[2]} sits ${Math.min(d, L - d)} m from ${o[2]}`);
+      }
+    }
   });
 });

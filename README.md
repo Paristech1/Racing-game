@@ -134,6 +134,12 @@ Every car can take each power-up once per pass (the gem blinks when someone does
 | Green Shield | **Rear Guard:** 9 s, blocks hits from behind and shockwaves | **Shield:** 6 s, walls and contact can't slow you | **Battering Ram:** 5 s, hit a car from behind to steal its speed |
 | Pink Shockwave | **Wake:** slows everyone behind you | **Shockwave:** slows everyone around you | **Lightning:** strikes the leaders wherever they are |
 | Blue Grip | **Grip Tires:** +45% grip for 8 s | **Slicks:** more grip and no scrub in corners for 8 s | **Rails:** +80% grip and walls can't slow you for 6 s |
+| Yellow Signal Jam | **Counter-Jam:** the car right behind you loses its boost for 3.5 s | **Signal Jam:** the car just ahead loses its boost for 3.5 s | **Blackout:** the leader loses its boost for 4.5 s |
+| Silver Oil Slick | **Wide Spill:** a wide slick behind you | **Oil Slick:** a slick behind you | **Spill Trail:** two slicks behind you |
+| Orange Payback | **Payback:** 3 s ram shield plus a short boost | **Payback:** 4.5 s ram shield plus a boost | **Revenge:** 6 s ram shield plus a big boost |
+| Purple Ghost Lane | **Ghost Lane:** traffic passes through you for 4 s | **Ghost Lane:** 6 s | **Ghost Run:** 8 s |
+
+The last four gems are placed automatically on every map. Signal Jam and Oil Slick make the grid fight back (a shielded car shrugs off a jam; oil costs 28% speed and kicks the car sideways, and rivals steer around it). Payback reuses the ram shield, and Ghost Lane lets you and the Weaver cut through traffic. They are left out of Echo Boost.
 
 Your car's class adds a twist. **Heavy** cars (Richmond, Dune-R, Sovereign, Gran Four) get Diesel (Long Boost lasts longer), Freight Train (Slingshot plows through traffic), Bulldozer (Shield shoves harder), Quake (bigger Shockwave) and Downforce (more grip). **Nimble** cars (Vanta LM, Kern RS, Passyunk R, Zenkai 37) get Short Shift (a punchier Overdrive), Featherweight (a bigger Slingshot) and Glue (longer Grip). **Muscle** cars (Noctis GT, Bell 76, Split 63) get Supercharged (Refill makes boost hit harder), Big Block (more Overdrive) and Siphon (Shockwave steals boost). And 1 pickup in 8 is a **Jackpot** at 1.5× strength. That's 21 position variants, 11 class twists, and over 100 combinations in play.
 
@@ -170,6 +176,12 @@ Each car has its own speed, grip, boost, and weight. Press **Specs** for the ful
 | BRUISER | Heavy car that leans on you when you're alongside |
 | THE CLOSER | Cruises early, then empties its boost late in the race |
 | WILDCARD | Brakes late, makes random mistakes, fires random boost bursts |
+| GRUDGE | Remembers whoever just passed it, then hunts that car down and leans on it (Burnout Revenge) |
+| HUNTER | Always goes after the race leader: trails it, then pulls out alongside (Mario Kart blue-shell targeting) |
+| RABBIT | Bolts early to build a gap, then fades so the pack can reel it in (Mario Kart / Burnout front-runner) |
+| WEAVER | Picks the clearest lane through traffic and slower cars (Midnight Club) |
+
+The classic seven-car events use the first six. The Gauntlet and full-grid events deal from all ten, shuffled each race, so a twelve-car field is mostly different drivers instead of repeats.
 
 Each start, rivals **draw a chassis from the archive** (no duplicate picks on the grid) weighted for the event: grip and balance on Harbor Line, top speed and nitro on the Boulevard and the Bridge Run. They **slow for upcoming corners**, **fight each other** (THE WALL blocks any chaser, LEECH drafts whoever is ahead, BRUISER sideswipes side-by-side traffic), and **score power-up detours** instead of blindly swerving.
 

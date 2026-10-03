@@ -11,6 +11,7 @@ RENDER = sys.argv[sys.argv.index('--render') + 1] if '--render' in sys.argv else
 
 def G(x, y, z): return Vector((x, -z, y))          # game -> blender
 def clamp(v, a, b): return max(a, min(b, v))
+def smooth_t(t): t = clamp(t, 0, 1); return t * t * (3 - 2 * t)
 def lerp(a, b, t): return a + (b - a) * t
 
 def kf(keys, z):  # Catmull-Rom through [z, value] keys (same as kfCR in afterhours.js)
@@ -82,10 +83,10 @@ def cr_path(pts, per):  # Catmull-Rom sample of a 2D polyline, `per` samples per
 # ---------------------------------------------------------------- body design curves (z keys, nose = +z)
 Z0, Z1 = -2.32, 2.26
 HS  = [[-2.32, .93], [-2.1, 1.05], [-1.6, 1.12], [-1.2, 1.1], [-.7, 1.0], [-.1, .965], [.6, .985], [1.1, 1.06], [1.5, 1.08], [1.95, 1.02], [2.26, .86]]   # max half-width
-YS  = [[-2.32, .58], [-1.6, .58], [-.9, .52], [0, .48], [.8, .48], [1.4, .5], [1.95, .44], [2.26, .36]]                                               # width-line height
-YB  = [[-2.32, .3], [-2.12, .19], [-1.9, .165], [1.9, .165], [2.12, .2], [2.26, .27]]                                                                  # underside
-YF  = [[-2.32, .8], [-1.9, .88], [-1.36, .9], [-.9, .82], [-.3, .74], [.4, .72], [.95, .78], [1.36, .82], [1.8, .72], [2.1, .58], [2.26, .46]]            # fender crown
-YD  = [[-2.32, .78], [-1.8, .82], [-1.2, .82], [-.4, .78], [.4, .72], [1.0, .64], [1.5, .56], [1.9, .48], [2.1, .43], [2.26, .39]]                      # center deck / hood
+YS  = [[-2.32, .58], [-1.6, .58], [-.9, .52], [0, .48], [.8, .48], [1.4, .5], [1.95, .47], [2.26, .43]]                                               # width-line height
+YB  = [[-2.32, .3], [-2.12, .19], [-1.9, .165], [1.9, .165], [2.12, .19], [2.26, .22]]                                                                  # underside
+YF  = [[-2.32, .8], [-1.9, .88], [-1.36, .9], [-.9, .82], [-.3, .74], [.4, .72], [.95, .78], [1.36, .82], [1.8, .76], [2.1, .67], [2.26, .57]]            # fender crown
+YD  = [[-2.32, .78], [-1.8, .82], [-1.2, .82], [-.4, .78], [.4, .72], [1.0, .64], [1.5, .56], [1.9, .55], [2.1, .51], [2.26, .48]]                      # center deck / hood
 XF  = .8    # fender crown sits at 76% of the half-width
 def section(z):
     hs = kf(HS, z); ys = kf(YS, z); yb = kf(YB, z); yf = max(kf(YF, z), ys + .1); yd = min(kf(YD, z), yf - .02); hl = hs - .14
@@ -104,6 +105,15 @@ for i in range(NS):
     t = i / (NS - 1); t = .88 * t + .12 * (.5 - .5 * math.cos(math.pi * t)); z = Z0 + (Z1 - Z0) * t  # slightly denser at the ends
     half, _ = section(z); stations.append([G(x, y, z) for x, y in mirror_ring(half)])
 body = loft('Body', stations, 'PAINT')
+
+def round_poly(pts, it=3):  # Chaikin corner-cutting on a closed polygon
+    for _ in range(it):
+        out = []
+        for i in range(len(pts)):
+            a = pts[i]; b = pts[(i + 1) % len(pts)]
+            out += [(.75 * a[0] + .25 * b[0], .75 * a[1] + .25 * b[1]), (.25 * a[0] + .75 * b[0], .25 * a[1] + .75 * b[1])]
+        pts = out
+    return pts
 
 # ---------------------------------------------------------------- cutters (EXACT boolean, cutter material transferred onto the cut faces)
 cutters = bpy.data.collections.new('Cutters'); scene.collection.children.link(cutters)
@@ -133,12 +143,12 @@ for sd in (1, -1):
     for zw in (1.36, -1.36):  # wheel arches
         cyl_x(f'arch{sd}{zw}', 0, .36, zw, .425, sd * .78, sd * 1.5)
     # side intake: a forward-raked parallelogram on the rear haunch, cut deep into the body
-    prism(f'intake{sd}', [(-.36, .62), (-.97, .67), (-1.0, .4), (-.62, .34)], sd * .74, sd * 1.4)
+    prism(f'intake{sd}', round_poly([(-.1, .67), (-.5, .74), (-.93, .7), (-.96, .4), (-.55, .3), (-.2, .38)], 3), sd * .72, sd * 1.4)
     # front corner intakes below the lamps
-    prism(f'fcorner{sd}', [(2.4, .36), (1.9, .36), (1.9, .21), (2.4, .21)], sd * .5, sd * .86)
+    prism(f'fcorner{sd}', [(2.4, .42), (1.78, .42), (1.78, .22), (2.4, .22)], sd * .4, sd * .9)
 
 # center front intake (trapezoid in plan, cut through the nose)
-prism('fcentre', [(2.4, .345), (1.95, .345), (1.95, .215), (2.4, .215)], -.4, .4)
+prism('fcentre', [(2.4, .36), (1.95, .36), (1.95, .23), (2.4, .23)], -.3, .3)
 # rear recess: the tail becomes a dark cavity holding the exhausts and the mesh
 prism('rearcav', [(-2.2, .66), (-2.6, .66), (-2.6, .33), (-2.2, .33)], -.78, .78)
 
@@ -294,6 +304,15 @@ for i in range(26):
     roof.append([G(x, y, z) for x, y in outer + inner])
 roof_ob = loft('Roof', roof, 'CARBON')
 
+
+# ---------------------------------------------------------------- roof snorkel: forward-facing intake on the roof, fading back into the spine
+sn = []
+for i in range(16):
+    z = -.12 - .78 * i / 15; top = kf(CH, z) + .004; h = .105 * (1 - smooth_t(i / 15)) + .004; w = .11 * (1 - .35 * i / 15)
+    sn.append([G(-w, top - .02, z), G(w, top - .02, z), G(w * .92, top + h * .7, z), G(0, top + h, z), G(-w * .92, top + h * .7, z)])
+loft('Snorkel', sn, 'CARBON')
+box('SnorkelMouth', (.17, .07, .012), (0, kf(CH, -.115) + .05, -.115), 'GLOSSBLACK', rot=(-.25, 0, 0), bevel=.004)
+
 # door/window line: gloss black trim where the glass meets the body
 for sd in (1, -1):
     tube(f'dlo{sd}', [(sd * kf(CW, z) * .99, kf(YD, z) - .045 + .03, z) for z in [-1.1 + 2.05 * k / 14 for k in range(15)]], .014, 'GLOSSBLACK', res=4)
@@ -364,6 +383,11 @@ for sd in (1, -1):
         if gz < 0: gz *= .45   # flat back face
         v.co = G(sd * (mx + .15) + gx, my + .045 + gy, mz - .04 + gz)
 
+for sd in (1, -1):
+    xv = (surf_side(.52, -.55, sd) or 1.0)
+    extrude_x(f'ductvane{sd}', [(-.22, .535), (-.88, .575), (-.9, .555), (-.3, .515)], sd * (xv - .17), sd * (xv - .03), 'PAINT', bevel=.004)
+    extrude_x(f'ductfloor{sd}', [(-.28, .335), (-.9, .4), (-.9, .385), (-.3, .32)], sd * (xv - .2), sd * (xv - .03), 'CARBON')
+
 # ---------------------------------------------------------------- rear
 yT = surf_y(0, -2.29) or .83
 for sd in (1, -1):
@@ -389,8 +413,8 @@ for k in range(7):
     extrude_x(f'diff{k}', [(-1.95, .165), (-2.4, .165), (-2.4, .33), (-2.2, .31)], x - .01, x + .01, 'CARBON', bevel=.004)
 
 # ---------------------------------------------------------------- swan-neck rear wing
-WY, WZ, SPAN = 1.12, -1.86, 1.9
-af = airfoil(.46, .12)
+WY, WZ, SPAN = 1.08, -1.86, 1.64
+af = airfoil(.5, .12)
 wing = extrude_x('Wing', [(WZ + z, WY + y) for z, y in af], -SPAN / 2, SPAN / 2, 'PAINT', smooth=True)
 # rotate a touch (angle of attack) about its leading edge
 R = Matrix.Rotation(math.radians(-7), 4, 'X'); piv = G(0, WY, WZ)
@@ -402,7 +426,7 @@ for sd in (1, -1):
     extrude_x(f'endplate{sd}', [(WZ + .08, WY - .2), (WZ - .56, WY - .22), (WZ - .56, WY + .08), (WZ - .1, WY + .05)], sd * (SPAN / 2), sd * (SPAN / 2 + .018), 'CARBON', bevel=.004)
     # swan neck: rises from the deck, arcs up and hooks onto the top of the wing
     x = sd * .34; zb = -1.62; yb = (surf_y(x, zb) or .86) - .02
-    tube(f'swan{sd}', [(x, yb, zb), (x, yb + .14, zb - .08), (x, WY + .05, WZ - .1), (x, WY + .035, WZ - .2)], .02, 'CARBON', res=8)
+    tube(f'swan{sd}', [(x, yb, zb), (x, yb + .12, zb - .07), (x, WY + .04, WZ - .1), (x, WY + .03, WZ - .22)], .03, 'CARBON', res=8)
     pass
 
 # ---------------------------------------------------------------- underside & arch liners (so nothing reads as a hole to the sky)
@@ -421,25 +445,32 @@ if RENDER:
     world = bpy.data.worlds.new('W'); scene.world = world; world.use_nodes = True
     world.node_tree.nodes['Background'].inputs['Color'].default_value = (.035, .037, .045, 1); world.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.
     bpy.ops.mesh.primitive_plane_add(size=40); fl = bpy.context.active_object; fm = mat('FLOOR', (.05, .05, .055), 0., .35); fl.data.materials.append(fm)
-    # dummy wheels for the preview (the game supplies its own)
+    # stand-in wheels for the preview (the game builds its own wheels in afterhours.js)
+    tm = mat('TYRE', (.015, .015, .016), 0., .75); rm = mat('RIM', (.03, .03, .035), .8, .25)
     for sx in (1, -1):
         for zw in (1.36, -1.36):
-            bpy.ops.mesh.primitive_cylinder_add(radius=.36, depth=.3, location=G(sx * 1.0, .36, zw), rotation=(0, math.pi / 2, 0)); w = bpy.context.active_object
-            w.data.materials.append(mat('TYRE', (.02, .02, .02), 0., .8))
+            c = G(sx * 1.0, .36, zw)
+            bpy.ops.mesh.primitive_cylinder_add(radius=.36, depth=.3, location=c, rotation=(0, math.pi / 2, 0)); w = bpy.context.active_object; w.data.materials.append(tm)
+            bpy.ops.mesh.primitive_cylinder_add(radius=.27, depth=.02, location=c + Vector((sx * .15, 0, 0)), rotation=(0, math.pi / 2, 0)); w = bpy.context.active_object; w.data.materials.append(rm)
+            for k in range(10):
+                a = 2 * math.pi * k / 10
+                bpy.ops.mesh.primitive_cube_add(size=1, location=c + Vector((sx * .165, .14 * math.sin(a), -.14 * math.cos(a)))); sp = bpy.context.active_object
+                sp.scale = (.012, .04, .17); sp.rotation_euler = (a, 0, 0); sp.data.materials.append(rm)
     def light(name, loc, energy, size, col=(1, 1, 1)):
         L = bpy.data.lights.new(name, 'AREA'); L.energy = energy; L.size = size; L.color = col
         o = bpy.data.objects.new(name, L); scene.collection.objects.link(o); o.location = loc
         d = Vector((0, 0, .5)) - o.location; o.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
     light('key', (4, 3, 6), 3000, 5); light('rim', (-5, -4, 3), 1800, 4, (.7, .8, 1.)); light('fill', (-3, 5, 2), 700, 6); light('top', (0, 0, 8), 1200, 8)
     cam = bpy.data.cameras.new('C'); cam.lens = 55; co = bpy.data.objects.new('C', cam); scene.collection.objects.link(co); scene.camera = co
-    scene.render.engine = 'CYCLES'; scene.cycles.samples = 20; scene.cycles.device = 'CPU'; scene.cycles.use_denoising = True
+    scene.render.engine = 'CYCLES'; scene.cycles.samples = int(os.environ.get('P1SAMPLES', 20)); scene.cycles.device = 'CPU'; scene.cycles.use_denoising = True
     scene.render.resolution_x = 960; scene.render.resolution_y = 540
     scene.view_settings.view_transform = 'AgX' if 'AgX' in [v.identifier for v in scene.view_settings.bl_rna.properties['view_transform'].enum_items] else 'Filmic'
-    for tag, pos in (('front', G(4.6, 1.35, 4.9)), ('rear', G(-4.4, 1.6, -5.2)), ('side', G(7.5, .9, .1)), ('top', G(3.2, 5.5, 2.2))):
+    VIEWS = {'front': G(4.6, 1.35, 4.9), 'rear': G(-4.4, 1.6, -5.2), 'side': G(7.5, .9, .1), 'top': G(3.2, 5.5, 2.2), 'headon': G(0, .75, 8.2), 'rearlow': G(-4.6, .75, -5.6), 'front34': G(-4.2, 1.05, 5.4)}
+    for tag, pos in [(t, VIEWS[t]) for t in os.environ.get('P1VIEWS', 'front,rear,side,top').split(',')]:
         co.location = pos; d = G(0, .55, 0) - pos; co.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
         scene.render.filepath = f'{RENDER}_{tag}.png'; bpy.ops.render.render(write_still=True)
     for o in list(scene.collection.objects):
-        if o.type != 'MESH' or o.name.startswith(('Plane', 'Cylinder')): bpy.data.objects.remove(o)
+        if o.type != 'MESH' or o.name.startswith(('Plane', 'Cylinder', 'Cube')): bpy.data.objects.remove(o)
 
 bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=False, export_apply=True, export_yup=True,
                           export_normals=True, export_texcoords=False, export_materials='EXPORT', export_lights=False, export_cameras=False)

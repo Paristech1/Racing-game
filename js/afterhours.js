@@ -267,7 +267,8 @@ const EVENT_CAR_BIAS={
  gamenight:{gripW:1.06,topW:1.06,nitroW:1.1},
  manayunk:{gripW:1.08,topW:1.02,nitroW:1.08},
  el:{gripW:1.14,topW:.98,nitroW:1.04},
- firstlight:{gripW:1,topW:1.12,nitroW:1.12}
+ firstlight:{gripW:1,topW:1.12,nitroW:1.12},
+ neoncore:{gripW:1.1,topW:1.06,nitroW:1.12}
 };
 const RIVAL_CAR_PREF={
  apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk']},
@@ -3324,7 +3325,7 @@ function levelPhysics(r,prevDist){
   const s0=trackS(prevDist), s1=trackS(r.dist);
   if(EV.pads) for(const p of EV.pads){ if(!hazardCrossed(s0,s1,p.s,2)||Math.abs(r.x-p.x)>p.hw||r.airT>0) continue; r.padCd=r.padCd||{}; if((r.padCd[p.s]||-1)>ghostT) continue; r.padCd[p.s]=ghostT+3;
     const br=bracketOf(r), kick=br==='chase'?11:(br==='pack'?8:6); r.v=Math.min(r.v+kick,Math.max(r.v,r.def.top*1.22)); r.nitro=Math.min(Math.max(1,r.nitro),r.nitro+.18); r.fxSling=Math.max(r.fxSling,.35);
-    if(r.isP&&mode==='race'){ toast(`${SPORTS[p.team].chant}! The crowd pushes you on.`); flash(.12); burst(.9,'bandpass',520,900,.42,.6,0,pinkBuf); shake=Math.max(shake,.25); } }
+    if(r.isP&&mode==='race'){ const T=padSport(p.team); toast(`${T.chant}! The grid pushes you on.`); flash(.12); burst(.9,'bandpass',520,900,.42,.6,0,pinkBuf); shake=Math.max(shake,.25); } }
   if(EV.surf&&r.isP&&mode==='race'&&levelGrip(r)<1&&!(r.airT>0)){ const lap=Math.floor(r.dist/TR.L); if(r.iceLap!==lap){ r.iceLap=lap; toast('Ice on the road. Easy on the wheel.'); } }
   if(EV.pillars) for(const c of EV.pillars){ if(!hazardCrossed(s0,s1,c.s,1.2)||Math.abs(r.x-c.x)>c.hw+.95||r.airT>0||(r.pillarS===c.s&&r.pillarT>ghostT)) continue;
     const sd=r.x>=c.x?1:-1, sh=r.fxShield>0&&r.shieldMode!=='rear'; r.pillarS=c.s; r.pillarT=ghostT+1; // one hit per column, then you're bounced clear
@@ -4143,6 +4144,8 @@ function loopPts(ctrl,yf){ const c=new THREE.CatmullRomCurve3(ctrl.map(p=>new TH
    Every team in town has a Crowd Roar pad in its colors; the ballpark fires off the fireworks on a lead change. */
 const SPORTS={birds:{css:'#18b3a6',c:0x18b3a6,chant:'GO BIRDS'},phils:{css:'#e81828',c:0xe81828,chant:'RING THE BELL'},sixers:{css:'#1d6fd6',c:0x1d6fd6,chant:'TRUST THE PROCESS'},
   flyers:{css:'#f74902',c:0xf74902,chant:'LET\'S GO FLYERS'},union:{css:'#d8bf7a',c:0xd8bf7a,chant:'DOOP DOOP DOOP'}};
+const NEON_SPORTS={pulse:{css:'#ff2fb4',c:0xff2fb4,chant:'PULSE GRID'},sync:{css:'#2fe6ff',c:0x2fe6ff,chant:'GHOST SYNC'},void:{css:'#b45cff',c:0xb45cff,chant:'VOID DRIFT'}};
+function padSport(team){ return SPORTS[team]||NEON_SPORTS[team]; }
 // real team palettes for the buildings (SPORTS.*.c stays the bright pad / firework color)
 const TEAM_PAL={sixers:['#006bb6','#ed174c','#ffffff'],flyers:['#f74902','#0b0b0d','#ffffff'],birds:['#004c54','#a5acaf','#0b0b0d'],phils:['#e81828','#002d72','#ffffff']};
 /* stadium marks: close to each club's look (colors, shapes, lettering style) without copying the actual logos */
@@ -4869,6 +4872,103 @@ function buildFirstLight(){
     resetTraffic(){ awake=0; pS=mode==='race'||mode==='loading'?0:.35; obst.forEach(park); }};
 }
 
+/* ---- Event 14: Neon Core — cyberpunk mash of Skyline (elevated run), Dockside (yard chicane),
+   and Under the El (overhead rail + median hazards), plus a Harbor-style neon tube.
+   Track design cues from player/community favorites: rhythm (straight → technical → recovery),
+   readable neon landmarks, risk/reward boost grids, and one timed gate without cheap traps. ---- */
+function neonPadCanvas(team){ const T=padSport(team); return canvasTex(256,256,(g,w,h)=>{ g.fillStyle='rgba(0,0,0,0)'; g.clearRect(0,0,w,h);
+  g.strokeStyle=T.css; g.lineWidth=8; g.shadowColor=T.css; g.shadowBlur=22; g.strokeRect(10,10,w-20,h-20);
+  g.fillStyle=T.css; for(let k=0;k<4;k++){ const y=200-k*48; g.beginPath(); g.moveTo(48,y); g.lineTo(128,y-36); g.lineTo(208,y); g.lineTo(208,y-12); g.lineTo(128,y-48); g.lineTo(48,y-12); g.closePath(); g.fill(); } }); }
+function buildNeonCore(){
+  const K=sceneKit({bg:0x04040c,fog:0x180a20,fogD:.0026,hemi:.42,sky:0x7030a0,ground:0x06040a,moon:0xd080ff,moonI:.32,seed:2077,bloom:{strength:1.12,radius:.6,threshold:.6}}), S=K.S, V=(x,z)=>new THREE.Vector2(x,z);
+  const sm=(a,b,v)=>{ const t=clamp((v-a)/(b-a),0,1); return t*t*(3-2*t); };
+  const raw=resample3(filletPath(V(-80,140),[[720,140,30],[720,-300,28],[420,-300,22],[420,-160,16],[280,-160,14],[280,-260,12],[200,-260,12],[200,-160,14],[80,-160,14],
+    [80,-320,16],[-80,-320,18],[-80,140,24]].map(([x,z,r])=>[V(x,z),r]),1),()=>0);
+  const pts=raw.map(p=>{ p.y=14*sm(400,720,p.x)*sm(-310,150,p.z); return p; });
+  const tr=K.track(pts,7,6.8), W=tr.W, f=K.f, q=K.q, pv=K.pv, m4=K.m4, one=K.one;
+  const onDeck=p=>p.y>8, onHyper=p=>Math.abs(p.z+305)<10&&p.x>95&&p.x<690, inTube=p=>p.x<75&&p.z>-178&&p.z<-118;
+  K.flat(-900,1500,-900,700,-.04,new THREE.MeshStandardMaterial({color:0x06050a,roughness:.95,metalness:.08}));
+  K.road({tex:{center:'rgba(255,80,220,.75)'},walk:0x1a1820,curb:0x3a3848,studs:false,skip:p=>inTube(p)});
+  K.start('EVENT 14 · NEON CORE');
+  K.lights({every:28,color:0xff80e8,pool:0x8040a0,pole:0x1a1020,skip:p=>inTube(p)||onDeck(p)});
+  K.skyline({cx:520,cz:-720,sx:420,sz:160,n:42,h:[55,280],wd:[18,52],seed:2077});
+  // elevated mag-deck rails (Skyline Circuit)
+  const railM=new THREE.MeshStandardMaterial({color:0x9aa1ab,metalness:.85,roughness:.22,side:THREE.DoubleSide}), glowLine=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false,side:THREE.DoubleSide});
+  [-1,1].forEach(sd=>{ ribbonF(tr,S,railM,(k,p)=>onDeck(p)?[sd*(W+3.6),p.y+.35,sd*(W+3.6),p.y+1.05]:null);
+    ribbonF(tr,S,glowLine(0xff40c8),(k,p)=>onDeck(p)?[sd*(W+3.65),p.y+.5,sd*(W+3.65),p.y+.58]:null);
+    ribbonF(tr,S,K.curbM,(k,p)=>onDeck(p)?[sd*(W+4.4),p.y+.14,sd*(W+4.4),p.y-1.2]:null); });
+  ribbonF(tr,S,new THREE.MeshStandardMaterial({color:0x121018,roughness:.92,side:THREE.DoubleSide}),(k,p)=>onDeck(p)?[-(W+4.4),p.y-1.2,W+4.4,p.y-1.2]:null);
+  const piers=[]; for(let s=0;s<tr.L;s+=26){ frame(s,f,tr); if(!onDeck(f.p)) continue; orientQ(f,q,K.basis,K.nr); [-1,1].forEach(sd=>{ pv.copy(f.p).addScaledVector(f.r,sd*(W-1)); pv.y=(f.p.y-1.2)/2; m4.compose(pv,q,new THREE.Vector3(1,f.p.y-1.1,1)); piers.push(m4.clone()); }); }
+  K.inst(new THREE.BoxGeometry(1.2,1,1.2),new THREE.MeshStandardMaterial({color:0x2a2438,roughness:.7,metalness:.4}),piers);
+  // hyperloop deck + median columns (Under the El)
+  const HY={y:11.2,len:620,x0:100,x1:680,z:-305}, steel=new THREE.MeshStandardMaterial({color:0x3a2850,metalness:.65,roughness:.45});
+  K.box(14,.9,HY.len,steel,(HY.x0+HY.x1)/2,HY.y+.45,HY.z); [-6.5,6.5].forEach(l=>K.box(.55,2.2,HY.len,steel,(HY.x0+HY.x1)/2,HY.y-.1,HY.z+l));
+  const cols=[], lamps=[], pillars=[];
+  for(let x=HY.x0;x<HY.x1;x+=14){ [-7.2,7.2,0].forEach(l=>{ cols.push(new THREE.Matrix4().makeTranslation(x,HY.y/2,HY.z+l)); if(!l) lamps.push(new THREE.Matrix4().makeTranslation(x,HY.y-.5,HY.z)); }); }
+  for(let s=40;s<tr.L-60;s+=15){ frame(s,f,tr); if(!onHyper(f.p)) continue; pv.copy(f.p); pv.y=HY.y/2; cols.push(new THREE.Matrix4().compose(pv,new THREE.Quaternion(),one)); pillars.push({s,x:0,hw:.62}); }
+  K.inst(new THREE.BoxGeometry(.85,HY.y,.85),steel,cols);
+  K.inst(new THREE.BoxGeometry(1.6,.45,1.6),new THREE.MeshStandardMaterial({color:0xff40c8,emissive:0xff40c8,emissiveIntensity:.35,roughness:.5}),pillars.map(p=>{ frame(p.s,f,tr); return new THREE.Matrix4().makeTranslation(f.p.x,.25,f.p.z); }));
+  K.inst(new THREE.BoxGeometry(1.1,.18,.5),new THREE.MeshBasicMaterial({color:0xff9aef,toneMapped:false}),lamps);
+  lampCones(S,lamps.map(m=>{ const v=new THREE.Vector3().setFromMatrixPosition(m); v.y+=4.2; return new THREE.Matrix4().makeTranslation(v.x,v.y,v.z); }));
+  // neon tube (Harbor Line tunnel, recolored)
+  const tWall=new THREE.MeshStandardMaterial({color:0x1a1028,roughness:.35,metalness:.55,emissive:0x401060,emissiveIntensity:.4,side:THREE.DoubleSide});
+  const tStripe=glowLine(0x2fe6ff), tMagenta=glowLine(0xff2fb4);
+  [-1,1].forEach(sd=>{ const o=sd*(W+.25);
+    ribbonF(tr,S,tWall,(k,p)=>inTube(p)?[o,p.y+.1,o,p.y+6.8]:null);
+    ribbonF(tr,S,tStripe,(k,p)=>inTube(p)?[sd*(W+.22),p.y+1.2,sd*(W+.22),p.y+1.35]:null);
+    ribbonF(tr,S,tMagenta,(k,p)=>inTube(p)?[sd*(W+.22),p.y+6.5,sd*(W+.22),p.y+6.65]:null); });
+  ribbonF(tr,S,new THREE.MeshBasicMaterial({color:0x050508,side:THREE.DoubleSide}),(k,p)=>inTube(p)?[-W-.3,p.y+6.8,W+.3,p.y+6.8]:null);
+  const strips=[], st=[]; for(let s=0;s<tr.L;s+=11){ frame(s,f,tr); if(!inTube(f.p)) continue; orientQ(f,q,K.basis,K.nr); [-3.2,3.2].forEach(x=>{ pv.copy(f.p).addScaledVector(f.r,x); pv.y+=6.55; m4.compose(pv,q,one); strips.push(m4.clone()); pv.y=f.p.y+.05; m4.compose(pv,q,one); st.push(m4.clone()); }); }
+  K.inst(new THREE.BoxGeometry(.35,.06,7),new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}),strips); lampStreaks(S,st,true);
+  // container yard chicane dressing (Dockside Dash)
+  const corrT=CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#101018'; g.fillRect(0,0,w,h); g.fillStyle='#ff2fb4'; g.font='900 14px monospace'; g.fillText(['NEON','VOID','SYNTH','KAIZEN'][Math.random()*4|0],8,38); }));
+  const cM=new THREE.MeshStandardMaterial({map:corrT,roughness:.45,metalness:.55,emissive:0xffffff,emissiveMap:corrT,emissiveIntensity:.35});
+  const L40=[]; for(let x=300;x<410;x+=13) for(let z=-295;z>-165;z+=2.8) for(let lv=0;lv<2+(K.R()*3|0);lv++) L40.push(new THREE.Matrix4().makeTranslation(x,lv*2.6+1.2,z));
+  K.inst(new THREE.BoxGeometry(12.2,2.6,2.44).translate(0,1.3,0),cM,L40);
+  K.flat(260,440,-310,-150,.02,new THREE.MeshStandardMaterial({color:0x121018,roughness:.85}));
+  // holo billboards + megacity facades
+  K.frontage(0,K.sNear(400,-300),-1,{set:6,h:[10,18],dep:[12,20],len:[8,14],styles:['glass','glass','stone'],gap:.08});
+  K.frontage(K.sNear(720,-80),tr.L-40,1,{set:7,h:[12,22],dep:[14,24],len:[10,18],styles:['glass'],gap:.05});
+  const ADS=[['SYNTH SOUL','#ff2fb4','#0a0410'],['GHOSTLINE VPN','#2fe6ff','#040818'],['NEON CORE','#b45cff','#080410'],['AFTERHOURS 2077','#ffd23b','#100804'],['VOID RUNNER','#7dff9a','#041008']];
+  let ai=0; for(let s=50;s<tr.L;s+=88){ frame(s,f,tr); if(onDeck(f.p)||inTube(f.p)) continue; orientQ(f,q,K.basis,K.nr); const sd=ai%2?1:-1, [txt,fg,bg]=ADS[ai++%ADS.length];
+    K.at(s,sd*(W+8),5); K.sign(signCanvas(txt,{w:480,h:140,bg,color:fg,size:58,glow:18}),11,3.2,K.pv.x,K.pv.y,K.pv.z,Math.atan2(K.f.r.x*sd,K.f.r.z*sd)); K.glow(new THREE.Color(fg).getHex(),12,K.pv.x,K.pv.y+1,K.pv.z); }
+  // Pulse Grid boost pads (Game Night mechanic, cyber palette)
+  const pads=[], padT={};
+  const pad=(x,z,lane,team)=>{ const s=K.sNear(x,z); K.at(s,lane); const m=new THREE.Mesh(new THREE.PlaneGeometry(4.8,6.2),new THREE.MeshBasicMaterial({map:padT[team]||(padT[team]=CT(neonPadCanvas(team))),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
+    m.position.copy(K.pv); m.position.y+=.05; m.quaternion.copy(K.q); m.rotateX(-Math.PI/2); m.rotateZ(Math.PI); S.add(m); pads.push({s,x:lane,hw:2.5,team,m}); };
+  pad(620,140,3.4,'pulse'); pad(620,140,-3.4,'sync'); pad(520,-305,3.4,'void'); pad(280,-260,-3.4,'pulse'); pad(120,-170,3.4,'sync');
+  // cargo-lock gate (freight crossing from Under the El)
+  const XS=K.sNear(280,-260), gates=[];
+  [[272,1],[288,-1]].forEach(([x,sd])=>{ const zc=-260+sd*(W+2);
+    K.box(.28,4.8,.28,new THREE.MeshStandardMaterial({color:0x9080a0,metalness:.7,roughness:.35}),x,2.4,zc);
+    const piv=new THREE.Group(); piv.position.set(x,1.5,zc); S.add(piv);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(.16,.16,2*W+1.2),new THREE.MeshBasicMaterial({map:CT(canvasTex(256,16,(g,w)=>{ for(let i=0;i<8;i++){ g.fillStyle=i%2?'#ff2fb4':'#2fe6ff'; g.fillRect(i*w/8,0,w/8,16); } })),toneMapped:false}));
+    arm.position.z=-sd*(W+.6); piv.add(arm); gates.push(piv); });
+  const cargo=new THREE.Group(); S.add(cargo);
+  for(let i=0;i<6;i++){ const c=new THREE.Mesh(new THREE.BoxGeometry(3,3.6,13),new THREE.MeshStandardMaterial({color:[0x2a1040,0x401060,0x102040][i%3],emissive:0x401080,emissiveIntensity:.25,roughness:.5,metalness:.4})); c.position.set(280,2,-280-i*14); cargo.add(c); }
+  cargo.visible=false;
+  K.gantry(K.sNear(600,130),'MAG-DECK','ELEVATED RUN · FULL BOOST',{bg:'#2a0840',color:'#ff9af0'});
+  K.gantry(K.sNear(350,-295),'DATA PORT','CONTAINER CHICANE',{bg:'#0a1830',color:'#2fe6ff'});
+  K.gantry(K.sNear(520,-305),'HYPERLOOP','STAY OFF THE CORE POSTS',{bg:'#1a0828',color:'#ff2fb4'});
+  K.gantry(K.sNear(40,-155),'NEON TUBE','LOW GRIP · KEEP IT STRAIGHT',{bg:'#060818',color:'#b45cff'});
+  K.gantry(K.sNear(200,-260),'CARGO LOCK','BEAT THE GATE OR WAIT',{bg:'#ffd23b',color:'#101114'});
+  K.flush();
+  const obst=K.traffic(4,[0x2a1838,0x401050,0x1a2840,0x302050]);
+  const sTube0=K.sNear(35,-155), sTube1=K.sNear(75,-155);
+  let xt=0, padT0=0, ledT=0;
+  const state=()=>{ const t=((xt%XING.cyc)+XING.cyc)%XING.cyc; return {t,warn:t>=XING.warn&&t<XING.close,closed:t>=XING.close&&t<XING.open}; };
+  function update(dt){
+    xt+=dt; padT0+=dt; ledT+=dt; pads.forEach((p,i)=>{ p.m.material.opacity=.5+.5*Math.max(0,Math.sin(padT0*4.5-i)); });
+    const st=state(), t=st.t, down=clamp(t<XING.warn?0:t<XING.warn+2.4?(t-XING.warn)/2.4:t<XING.open?1:1-(t-XING.open)/1.6,0,1);
+    gates.forEach(g=>g.rotation.x=Math.PI/2*(1-down));
+    cargo.visible=t>19&&t<38.6; if(cargo.visible) cargo.position.z=-278-(t-25.2)*16;
+    if((st.warn||st.closed)&&mode==='race'&&cam.position.distanceTo(new THREE.Vector3(280,2,-260))<140){ /* gate proximity */ }
+  }
+  return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[{s:K.sNear(680,120)},{s:K.sNear(400,-280)}],pads,pillars,crossing:{s:XS,state},
+    surf:[{s0:sTube0,s1:sTube1,grip:.58,name:'neon'}],
+    resetTraffic(){ xt=Math.random()*12; [.14,.32,.55,.78].forEach((u,i)=>{ const o=obst[i]; o.dist=u*tr.L; o.x=i%2?3.6:-3.6; o.v=11+Math.random()*5; }); }};
+}
+
 /* ---------------- EVENTS ---------------- */
 const EVENTS=[
   {id:'tunnel',build:buildTunnel,name:'Harbor Line',kick:'Event 01',loc:'Tunnel 7',when:'Harbor Line, 03:00',
@@ -4924,7 +5024,11 @@ const EVENTS=[
   {id:'firstlight',build:buildFirstLight,open:true,laps:3,name:'First Light',kick:'Event 13',loc:'Kelly & MLK Drive',when:'Starts 5:40 AM, sunrise on the last lap',
    caption:'Three laps of Kelly Drive and MLK Drive, starting in the dark. The sun comes up as the race runs out, the street lights click off and the fog lifts off the river. The city wakes up too: no traffic on lap one, rush hour by lap three.',
    specs:'3.6 KM LOOP / 3 LAPS / 7 CARS / SUNRISE DURING THE RACE / TRAFFIC BUILDS EVERY LAP',
-   note:'get it done\nbefore rush\nhour.',load:'First Light. Kelly Drive at dawn, beat the rush hour.'}
+   note:'get it done\nbefore rush\nhour.',load:'First Light. Kelly Drive at dawn, beat the rush hour.'},
+  {id:'neoncore',build:buildNeonCore,open:true,laps:2,name:'Neon Core',kick:'Event 14',loc:'Synth District',when:'Mag-deck, data port, hyperloop, neon tube',
+   caption:'A cyberpunk circuit stitched from the best of the city: a Skyline-style elevated mag-deck straight, a Dockside-tight container chicane, Under-the-El hyperloop columns down the middle, and a Harbor-style neon tube with low grip. Pulse Grid pads and a timed cargo lock keep the lap rhythm changing.',
+   specs:'3.1 KM LOOP / 2 LAPS / 7 CARS / LIVE TRAFFIC / PULSE GRID PADS / MEDIAN POSTS / CARGO LOCK / NEON TUBE',
+   note:'deck.\nchicane.\ntube.',load:'Neon Core. Two laps through the Synth District.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */

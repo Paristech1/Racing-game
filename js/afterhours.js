@@ -4886,7 +4886,7 @@ function buildNeonCore(){
     [80,-320,16],[-80,-320,18],[-80,140,24]].map(([x,z,r])=>[V(x,z),r]),1),()=>0);
   const pts=raw.map(p=>{ p.y=14*sm(400,720,p.x)*sm(-310,150,p.z); return p; });
   const tr=K.track(pts,7,6.8), W=tr.W, f=K.f, q=K.q, pv=K.pv, m4=K.m4, one=K.one;
-  const onDeck=p=>p.y>8, onHyper=p=>Math.abs(p.z+305)<10&&p.x>95&&p.x<690, inTube=p=>p.x<75&&p.z>-178&&p.z<-118;
+  const onDeck=p=>p.y>8, onHyper=p=>Math.abs(p.z+300)<10&&p.x>430&&p.x<700, inTube=p=>p.x<-60&&p.z>-255&&p.z<-105; // tube = the west straight (x -80), the only long straight the loop has left
   K.flat(-900,1500,-900,700,-.04,new THREE.MeshStandardMaterial({color:0x06050a,roughness:.95,metalness:.08}));
   K.road({tex:{center:'rgba(255,80,220,.75)'},walk:0x1a1820,curb:0x3a3848,studs:false,skip:p=>inTube(p)});
   K.start('EVENT 14 · NEON CORE');
@@ -4901,10 +4901,10 @@ function buildNeonCore(){
   const piers=[]; for(let s=0;s<tr.L;s+=26){ frame(s,f,tr); if(!onDeck(f.p)) continue; orientQ(f,q,K.basis,K.nr); [-1,1].forEach(sd=>{ pv.copy(f.p).addScaledVector(f.r,sd*(W-1)); pv.y=(f.p.y-1.2)/2; m4.compose(pv,q,new THREE.Vector3(1,f.p.y-1.1,1)); piers.push(m4.clone()); }); }
   K.inst(new THREE.BoxGeometry(1.2,1,1.2),new THREE.MeshStandardMaterial({color:0x2a2438,roughness:.7,metalness:.4}),piers);
   // hyperloop deck + median columns (Under the El)
-  const HY={y:11.2,len:620,x0:100,x1:680,z:-305}, steel=new THREE.MeshStandardMaterial({color:0x3a2850,metalness:.65,roughness:.45});
-  K.box(14,.9,HY.len,steel,(HY.x0+HY.x1)/2,HY.y+.45,HY.z); [-6.5,6.5].forEach(l=>K.box(.55,2.2,HY.len,steel,(HY.x0+HY.x1)/2,HY.y-.1,HY.z+l));
+  const HY={y:11.2,x0:424,x1:716,z:-300}, steel=new THREE.MeshStandardMaterial({color:0x3a2850,metalness:.65,roughness:.45}); HY.len=HY.x1-HY.x0; // the deck runs along x, centered on the road (z -300), only where the road is
+  K.box(HY.len,.9,14,steel,(HY.x0+HY.x1)/2,HY.y+.45,HY.z); [-6.5,6.5].forEach(l=>K.box(HY.len,2.2,.55,steel,(HY.x0+HY.x1)/2,HY.y-.1,HY.z+l));
   const cols=[], lamps=[], pillars=[];
-  for(let x=HY.x0;x<HY.x1;x+=14){ [-7.2,7.2,0].forEach(l=>{ cols.push(new THREE.Matrix4().makeTranslation(x,HY.y/2,HY.z+l)); if(!l) lamps.push(new THREE.Matrix4().makeTranslation(x,HY.y-.5,HY.z)); }); }
+  for(let x=HY.x0;x<HY.x1;x+=14){ [-7.2,7.2].forEach(l=>cols.push(new THREE.Matrix4().makeTranslation(x,HY.y/2,HY.z+l))); lamps.push(new THREE.Matrix4().makeTranslation(x,HY.y-.5,HY.z)); } // columns stand outside the road; the median posts are the pillar hazards below
   for(let s=40;s<tr.L-60;s+=15){ frame(s,f,tr); if(!onHyper(f.p)) continue; pv.copy(f.p); pv.y=HY.y/2; cols.push(new THREE.Matrix4().compose(pv,new THREE.Quaternion(),one)); pillars.push({s,x:0,hw:.62}); }
   K.inst(new THREE.BoxGeometry(.85,HY.y,.85),steel,cols);
   K.inst(new THREE.BoxGeometry(1.6,.45,1.6),new THREE.MeshStandardMaterial({color:0xff40c8,emissive:0xff40c8,emissiveIntensity:.35,roughness:.5}),pillars.map(p=>{ frame(p.s,f,tr); return new THREE.Matrix4().makeTranslation(f.p.x,.25,f.p.z); }));
@@ -4923,7 +4923,7 @@ function buildNeonCore(){
   // container yard chicane dressing (Dockside Dash)
   const corrT=CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#101018'; g.fillRect(0,0,w,h); g.fillStyle='#ff2fb4'; g.font='900 14px monospace'; g.fillText(['NEON','VOID','SYNTH','KAIZEN'][Math.random()*4|0],8,38); }));
   const cM=new THREE.MeshStandardMaterial({map:corrT,roughness:.45,metalness:.55,emissive:0xffffff,emissiveMap:corrT,emissiveIntensity:.35});
-  const L40=[]; for(let x=300;x<410;x+=13) for(let z=-295;z>-165;z+=2.8) for(let lv=0;lv<2+(K.R()*3|0);lv++) L40.push(new THREE.Matrix4().makeTranslation(x,lv*2.6+1.2,z));
+  const L40=[]; for(let x=304;x<398;x+=13) for(let z=-292;z<-172;z+=2.8){ const n=2+(K.R()*3|0); for(let lv=0;lv<n;lv++) L40.push(new THREE.Matrix4().makeTranslation(x,lv*2.6+1.2,z)); } // the old loop never ran (z started below its own limit); stacks stay clear of the road edges
   K.inst(new THREE.BoxGeometry(12.2,2.6,2.44).translate(0,1.3,0),cM,L40);
   K.flat(260,440,-310,-150,.02,new THREE.MeshStandardMaterial({color:0x121018,roughness:.85}));
   // holo billboards + megacity facades
@@ -4936,33 +4936,34 @@ function buildNeonCore(){
   const pads=[], padT={};
   const pad=(x,z,lane,team)=>{ const s=K.sNear(x,z); K.at(s,lane); const m=new THREE.Mesh(new THREE.PlaneGeometry(4.8,6.2),new THREE.MeshBasicMaterial({map:padT[team]||(padT[team]=CT(neonPadCanvas(team))),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}));
     m.position.copy(K.pv); m.position.y+=.05; m.quaternion.copy(K.q); m.rotateX(-Math.PI/2); m.rotateZ(Math.PI); S.add(m); pads.push({s,x:lane,hw:2.5,team,m}); };
-  pad(620,140,3.4,'pulse'); pad(620,140,-3.4,'sync'); pad(520,-305,3.4,'void'); pad(280,-260,-3.4,'pulse'); pad(120,-170,3.4,'sync');
+  pad(620,140,3.4,'pulse'); pad(620,140,-3.4,'sync'); pad(520,-305,3.4,'void'); pad(350,-160,-3.4,'pulse'); pad(120,-170,3.4,'sync');
   // cargo-lock gate (freight crossing from Under the El)
-  const XS=K.sNear(280,-260), gates=[];
-  [[272,1],[288,-1]].forEach(([x,sd])=>{ const zc=-260+sd*(W+2);
+  const XS=K.sNear(240,-260), gates=[], XP=new THREE.Vector3(240,2,-260); // on the straight between the two chicane corners; the freight line runs along z at x 240
+  [[230,1],[250,-1]].forEach(([x,sd])=>{ const zc=-260+sd*(W+2);
     K.box(.28,4.8,.28,new THREE.MeshStandardMaterial({color:0x9080a0,metalness:.7,roughness:.35}),x,2.4,zc);
     const piv=new THREE.Group(); piv.position.set(x,1.5,zc); S.add(piv);
     const arm=new THREE.Mesh(new THREE.BoxGeometry(.16,.16,2*W+1.2),new THREE.MeshBasicMaterial({map:CT(canvasTex(256,16,(g,w)=>{ for(let i=0;i<8;i++){ g.fillStyle=i%2?'#ff2fb4':'#2fe6ff'; g.fillRect(i*w/8,0,w/8,16); } })),toneMapped:false}));
     arm.position.z=-sd*(W+.6); piv.add(arm); gates.push(piv); });
   const cargo=new THREE.Group(); S.add(cargo);
-  for(let i=0;i<6;i++){ const c=new THREE.Mesh(new THREE.BoxGeometry(3,3.6,13),new THREE.MeshStandardMaterial({color:[0x2a1040,0x401060,0x102040][i%3],emissive:0x401080,emissiveIntensity:.25,roughness:.5,metalness:.4})); c.position.set(280,2,-280-i*14); cargo.add(c); }
-  cargo.visible=false;
+  for(let i=0;i<6;i++){ const c=new THREE.Mesh(new THREE.BoxGeometry(3,3.6,13),new THREE.MeshStandardMaterial({color:[0x2a1040,0x401060,0x102040][i%3],emissive:0x401080,emissiveIntensity:.25,roughness:.5,metalness:.4})); c.position.set(0,2,-9-i*15); cargo.add(c); }
+  cargo.position.x=240; cargo.visible=false;
+  { const rM=new THREE.MeshStandardMaterial({color:0x8a8e94,metalness:1,roughness:.3}); [238.3,241.7].forEach(x=>K.box(.14,.14,380,rM,x,.1,-235)); }
   K.gantry(K.sNear(600,130),'MAG-DECK','ELEVATED RUN · FULL BOOST',{bg:'#2a0840',color:'#ff9af0'});
   K.gantry(K.sNear(350,-295),'DATA PORT','CONTAINER CHICANE',{bg:'#0a1830',color:'#2fe6ff'});
   K.gantry(K.sNear(520,-305),'HYPERLOOP','STAY OFF THE CORE POSTS',{bg:'#1a0828',color:'#ff2fb4'});
-  K.gantry(K.sNear(40,-155),'NEON TUBE','LOW GRIP · KEEP IT STRAIGHT',{bg:'#060818',color:'#b45cff'});
-  K.gantry(K.sNear(200,-260),'CARGO LOCK','BEAT THE GATE OR WAIT',{bg:'#ffd23b',color:'#101114'});
+  K.gantry(K.sNear(-80,-272),'NEON TUBE','LOW GRIP · KEEP IT STRAIGHT',{bg:'#060818',color:'#b45cff'});
+  K.gantry(K.sNear(262,-260),'CARGO LOCK','BEAT THE GATE OR WAIT',{bg:'#ffd23b',color:'#101114'});
   K.flush();
   const obst=K.traffic(4,[0x2a1838,0x401050,0x1a2840,0x302050]);
-  const sTube0=K.sNear(35,-155), sTube1=K.sNear(75,-155);
-  let xt=0, padT0=0, ledT=0;
+  const sTube0=K.sNear(-80,-255), sTube1=K.sNear(-80,-105);
+  let xt=0, padT0=0, bellT=0;
   const state=()=>{ const t=((xt%XING.cyc)+XING.cyc)%XING.cyc; return {t,warn:t>=XING.warn&&t<XING.close,closed:t>=XING.close&&t<XING.open}; };
   function update(dt){
-    xt+=dt; padT0+=dt; ledT+=dt; pads.forEach((p,i)=>{ p.m.material.opacity=.5+.5*Math.max(0,Math.sin(padT0*4.5-i)); });
+    xt+=dt; padT0+=dt; pads.forEach((p,i)=>{ p.m.material.opacity=.5+.5*Math.max(0,Math.sin(padT0*4.5-i)); });
     const st=state(), t=st.t, down=clamp(t<XING.warn?0:t<XING.warn+2.4?(t-XING.warn)/2.4:t<XING.open?1:1-(t-XING.open)/1.6,0,1);
     gates.forEach(g=>g.rotation.x=Math.PI/2*(1-down));
-    cargo.visible=t>19&&t<38.6; if(cargo.visible) cargo.position.z=-278-(t-25.2)*16;
-    if((st.warn||st.closed)&&mode==='race'&&cam.position.distanceTo(new THREE.Vector3(280,2,-260))<140){ /* gate proximity */ }
+    cargo.visible=t>19&&t<38.6; if(cargo.visible) cargo.position.z=-285+(t-25.2)*18; // front car is ~34 m short of the crossing when the gates close, same timing as Under the El
+    if((st.warn||st.closed)&&mode==='race'&&cam.position.distanceTo(XP)<160){ bellT-=dt; if(bellT<=0){ bellT=.5; tone(1250,.09,.07,'triangle',{attack:.002}); } }
   }
   return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[{s:K.sNear(680,120)},{s:K.sNear(400,-280)}],pads,pillars,crossing:{s:XS,state},
     surf:[{s0:sTube0,s1:sTube1,grip:.58,name:'neon'}],

@@ -139,7 +139,7 @@ Your car's class adds a twist. **Heavy** cars (Richmond, Dune-R, Sovereign, Gran
 
 ## Cars
 
-Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Hikari 91 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1 · Zephyr 960
+Kage R · Noctis GT · Vanta LM · Kern RS (shown in cutaway) · Dune-R · Sovereign · Gran Four · Bell 76 · Passyunk R · Richmond · Zenkai 37 · Hikari 91 · Split 63 · Overload 3K · Wisp 07 · Stratos V · Volcano P1 · Zephyr 960 · Lumen SP · Brig Line W · Pulse 2 · Vandal SS · Needle MK1
 
 - **Bell 76:** blue and gold, the highest top speed and the biggest boost in the game. Built for the bridge.
 - **Passyunk R:** a light hot hatch with the most grip and acceleration.

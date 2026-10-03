@@ -194,7 +194,7 @@ CARS.push(
   rival:'Rival note: never leave it behind you for long.',
   note:'patient.\nthen not.', notePos:{l:'58%',t:'33%'},
   cam:{p:[-4.4,.95,3.9],l:[0,.5,.3],roll:.05,fov:31}},
- {id:'autobahn',sculpt:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x0a2a8c,metal:.8,rough:.1,rim:0xf2f4f7,chrome:true,lowPro:true,caliper:0xd4121c,wing:false,spokes:10,world:'wisp',
+ {id:'autobahn',sculpt:'autobahn',name:'AUTOBAHN 63',body:'autobahn',outlaw:true,paint:0x0a2a8c,metal:.8,rough:.1,rim:0xf2f4f7,chrome:true,lowPro:true,caliper:0xd4121c,nosColor:0x6f9dff,wing:false,spokes:10,world:'wisp',
   top:96,acc:27,grip:30,nitro:1.15,mass:1.4,cleanTop:358,vcap:360,
   kick:'Outlaw 04',loc:'I-76, Blue Route split',when:'Unrestricted, 03:30',
   caption:'Four doors, a roof that never stops falling and a tail lit like a blade. Deep sapphire, chrome split spokes, red calipers. It gets faster the longer you leave it alone.',
@@ -2084,6 +2084,7 @@ const STREET={
  zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
 };
 function carNitroColor(def){
+  if(def.nosColor!=null) return def.nosColor;
   const id=def.chassisId||def.id, st=STREET[id];
   if(st&&st.glow) return st.glow;
   if(def.accent) return def.accent;

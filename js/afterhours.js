@@ -513,7 +513,8 @@ const flameTex=gradTex(8,128,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h)
 const addMat=(o)=>new THREE.MeshBasicMaterial(Object.assign({transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false},o));
 const STREAK_MAT=addMat({map:streakTex,color:0xcfe0ff,opacity:.14}), TSTREAK_MAT=addMat({map:streakTex,color:0xe6f0ff,opacity:.24}), TAIL_MAT=addMat({map:streakTex,color:0xff2030,opacity:.14});
 const LAMPCONE_MAT=addMat({map:coneTex,color:0xdfe9ff,opacity:.035,side:THREE.DoubleSide}), BEAM_MAT=addMat({map:beamTex,color:0xeaf2ff,opacity:.3}), CONE_MAT=addMat({map:coneTex,color:0xeaf2ff,opacity:.03,side:THREE.DoubleSide});
-const FLAME_MAT=addMat({map:flameTex,opacity:.95,side:THREE.DoubleSide});
+const FLAME_MATS={};
+function flameMat(col){ const k=(col>>>0).toString(16); return FLAME_MATS[k]||(FLAME_MATS[k]=addMat({map:flameTex,color:col,opacity:.95,side:THREE.DoubleSide})); }
 const STREAK_GEO=new THREE.PlaneGeometry(1.5,18).rotateX(-Math.PI/2), LAMPCONE_GEO=new THREE.CylinderGeometry(.3,4.4,8.6,20,1,true);
 const BEAM_GEO=new THREE.PlaneGeometry(5.2,17).rotateX(-Math.PI/2).translate(0,.06,8.5), HCONE_GEO=new THREE.ConeGeometry(1.7,13,18,1,true).rotateX(-Math.PI/2).translate(0,0,6.5);
 const FLAME_GEO=new THREE.ConeGeometry(.2,1.3,10,1,true).rotateX(-Math.PI/2).translate(0,0,-.65), TAILREF_GEO=new THREE.PlaneGeometry(1.8,6).rotateX(-Math.PI/2).translate(0,.05,-3);
@@ -531,14 +532,15 @@ function setWeather(wet){ LOOK.wet=wet;
 const STAGE_V=[40,58,72];
 function speedStage(r){ let s=0; for(const v of STAGE_V) if(r.v>v) s++; if(r.nosOn) s++; return Math.min(4,s); }
 const STAGE={beam:[.2,.28,.38,.5,.64],cone:[.012,.022,.036,.055,.08],lines:[0,.12,.22,.34,.48],len:[.6,.8,1,1.25,1.5],trail:[0,.35,.6,.85,1.15],blur:[0,.2,.45,.7,1]};
-function rigLights(group,B,traffic){
+function rigLights(group,B,traffic,nitroCol){
   const front=traffic?2.26:B.front, hy=traffic?.72:B.headY, hx=traffic?.6:B.w*.36, rear=traffic?2.26:B.rear;
   const beamM=traffic?BEAM_MAT:BEAM_MAT.clone(), coneM=traffic?CONE_MAT:CONE_MAT.clone(); // racers get their own so the glow can follow their speed
   const beam=new THREE.Mesh(BEAM_GEO,beamM); beam.position.set(0,0,front-.2); group.add(beam);
   const tail=new THREE.Mesh(TAILREF_GEO,TAIL_MAT); tail.position.set(0,0,-rear); group.add(tail);
   if(traffic) return {};
+  const fMat=flameMat(nitroCol||0x9fd3ff);
   const cones=[-1,1].map(sd=>{ const c=new THREE.Mesh(HCONE_GEO,coneM); c.position.set(sd*hx,hy,front-.1); c.rotation.x=.06; group.add(c); return c; });
-  const flames=[-1,1].map(sd=>{ const fl=new THREE.Mesh(FLAME_GEO,FLAME_MAT); fl.position.set(sd*.45,B.base+.22,-rear-.08); fl.visible=false; group.add(fl); return fl; });
+  const flames=[-1,1].map(sd=>{ const fl=new THREE.Mesh(FLAME_GEO,fMat); fl.position.set(sd*.45,B.base+.22,-rear-.08); fl.visible=false; group.add(fl); return fl; });
   return {cones,flames,beamM,coneM};
 }
 // tail-light trails: two ribbons following each car, drawn when it's really moving
@@ -2081,6 +2083,20 @@ const STREET={
  autobahn:{wheel:'abs',camber:.03},
  zephyr:{glow:0x14e0c8,vinyl:'gradient',vc:'#14e0c8',wheel:'aero'}
 };
+function carNitroColor(def){
+  const id=def.chassisId||def.id, st=STREET[id];
+  if(st&&st.glow) return st.glow;
+  if(def.accent) return def.accent;
+  if(def.livery) return def.livery;
+  if(def.caliper){ const c=new THREE.Color(def.caliper); if(c.r+c.g+c.b>.35) return def.caliper; }
+  if(def.color&&typeof def.color==='string'&&def.color[0]==='#') return parseInt(def.color.slice(1),16);
+  return 0x9fd3ff;
+}
+function applyNitroHud(def){
+  const c=new THREE.Color(carNitroColor(def)), lit=c.clone().lerp(new THREE.Color(0xffffff),.45);
+  document.documentElement.style.setProperty('--nos','#'+c.getHexString());
+  document.documentElement.style.setProperty('--nos-dim','#'+lit.getHexString());
+}
 const VINYLS={
  flames:{dir:1,draw(g,w,h){ const gr=g.createLinearGradient(0,0,w*.8,0); gr.addColorStop(0,'#fff27a'); gr.addColorStop(.35,'#ffb020'); gr.addColorStop(.7,'#ff3a1a'); gr.addColorStop(1,'rgba(200,20,10,0)');
    g.fillStyle=gr; g.strokeStyle='#7a0a05'; g.lineWidth=3;
@@ -5865,7 +5881,7 @@ let racers=[], player=null;
 const F=mkF(), F2=mkF(), tmpV=new THREE.Vector3(), headV=new THREE.Vector3(), leftV=new THREE.Vector3(), upV=new THREE.Vector3(), mat=new THREE.Matrix4();
 function clearRacers(){ racers.forEach(r=>{ r.scene.remove(r.m.group); if(r.trail) r.scene.remove(r.trail.mesh); r.m.group.traverse(o=>{ if(o.geometry&&!o.isSprite) o.geometry.dispose(); }); }); racers=[]; }
 function addRacer(def,isP,dist,x,skill){
-  const m=buildCar(def); RS.add(m.group); const rig=rigLights(m.group,BODIES[def.body||'wedge'],false), trail=makeTrail(); RS.add(trail.mesh);
+  const m=buildCar(def); RS.add(m.group); const rig=rigLights(m.group,BODIES[def.body||'wedge'],false,carNitroColor(def)), trail=makeTrail(); RS.add(trail.mesh);
   if(isP){ const h=hist(def.id); m.paint.roughness=clamp(def.rough+h.hits*.004,0,.6); }
   const r={def,m,scene:RS,isP,dist,x,vx:0,v:0,steer:0,nitro:1,hitCd:0,slip:0,yaw:0,bumpT:0,finished:false,finishT:0,laps:[],lapStart:0,hits:0,top:0,skill:skill||1,off:(Math.random()-.5)*3,wob:Math.random()*10,draft:0,burst:0,lit:false,fxLong:0,fxOver:0,fxSling:0,fxShield:0,fxGrip:0,fxRegen:0,fxNosMul:0,towT:0,fxName:{},mass:(def.P&&def.P.mass)||def.mass||1,startDelay:def.P?(def.P.start<0?Math.random()*.55:def.P.start):0,grudge:{}};
   if(def.P) r.label=addLabel(m.group,def.tag,def.color);
@@ -6666,6 +6682,7 @@ function startRace(){
   if(EV.knockout||TAG){ ghostData=null; endGhost(); } else { loadGhost(); spawnGhost(); } ghostRec=[]; ghostAcc=0; camFlashes=0;
   document.body.classList.toggle('tagmode',!!TAG); $('#hTag').className='tagbox'; camTag.t=0;
   tapeReset(); KO=null; LOOK.lightsOut=false; applyLights(); if(EV.knockout) koStart();
+  if(player) applyNitroHud(player.def);
   try{ renderer.compile(RS,cam); }catch(e){} // perf: build every shader for this grid and track now, not as each car or prop first comes into view mid-race
   mode='race'; show('hud'); countdown=3.6; raceT=0; finishHold=0; slowmo=1; camSnap=true; shake=0;
   $('#hGhost').textContent=''; $('#hMsg').textContent='3'; sfx.beep(false); flash(.9);

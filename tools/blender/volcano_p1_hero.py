@@ -68,7 +68,7 @@ link(C, ck.outputs['Fac'], mx.inputs[0]); link(C, wa.outputs['Fac'], mx.inputs[2
 cr = node(C, 'ShaderNodeValToRGB'); cr.color_ramp.elements[0].color = (.0015, .0016, .002, 1); cr.color_ramp.elements[1].color = (.012, .013, .015, 1)
 link(C, mx.outputs[0], cr.inputs['Fac']); link(C, cr.outputs['Color'], bsdf(C).inputs['Base Color'])
 
-setp(M['GLASS'], Base_Color=(.006, .007, .009), Metallic=0., Roughness=.02, Transmission_Weight=.25, IOR=1.45, Coat_Weight=1., Coat_Roughness=0.)
+setp(M['GLASS'], Base_Color=(.006, .007, .009), Metallic=0., Roughness=.02, Transmission_Weight=.15, IOR=1.2, Coat_Weight=0.)
 setp(M['LENS'], Base_Color=(1., 1., 1.), Roughness=.0, Transmission_Weight=1., Alpha=1.)
 setp(M['HEAD'], Emission_Strength=28.); setp(M['TAIL'], Emission_Strength=22.)
 setp(M['GLOSSBLACK'], Metallic=0., Roughness=.06, Coat_Weight=1.)
@@ -113,12 +113,12 @@ def place(V, sx, centre):  # wheel-local -> blender; axle along blender X, +a po
 
 # ---------------------------------------------------------------- wheels (positions from BODIES.p1: x = ±1.0, z = ±1.36, r = .36)
 def tyre_profile():
-    out = [(.268, .128), (.283, .143), (.31, .152), (.338, .151), (.352, .143), (.3585, .13), (.3605, .112)]
+    out = [(.288, .128), (.3, .143), (.322, .152), (.342, .151), (.353, .143), (.3585, .13), (.3605, .112)]
     tread = []
     for g in (.068, .024, -.024, -.068):
         tread += [(.3605, g + .007), (.351, g + .006), (.351, g - .006), (.3605, g - .007)]
     inb = [(r, -a) for r, a in reversed(out)]
-    return out + tread + inb + [(.261, -.118), (.261, .118)]
+    return out + tread + inb + [(.281, -.118), (.281, .118)]
 
 def spokes(sx, c):
     V = []; F = []
@@ -127,7 +127,7 @@ def spokes(sx, c):
         for side in (-1, 1):
             base = len(V); NS = 9
             for i in range(NS):
-                u = i / (NS - 1); r = lerp(.068, .261, u)
+                u = i / (NS - 1); r = lerp(.068, .281, u)
                 ang = phi + side * lerp(.06, .155, u ** .8)
                 a = lerp(.062, .118, u ** 1.6)          # concave face: hub sits deeper than the rim
                 w = lerp(.017, .011, u); t = lerp(.034, .022, u)
@@ -144,9 +144,9 @@ def spokes(sx, c):
 def wheel(tag, sx, zw, front):
     c = Vector((0, 0, 0)); parts = []   # built about the hub, then parented to an empty at the wheel centre
     V, F = lathe(tyre_profile(), 128); parts.append(mesh(f'tyre_{tag}', place(V, sx, c), F, TYRE, crease=40))
-    V, F = lathe([(.251, -.128), (.259, -.13), (.261, .108), (.269, .122), (.276, .13), (.273, .136), (.261, .134), (.251, .118)], 128)
+    V, F = lathe([(.271, -.128), (.279, -.13), (.281, .108), (.289, .122), (.296, .13), (.293, .136), (.281, .134), (.271, .118)], 128)
     parts.append(mesh(f'barrel_{tag}', place(V, sx, c), F, RIM, crease=50))
-    V, F = lathe([(.2615, .1355), (.2745, .1365), (.2755, .1335), (.262, .1325)], 128); parts.append(mesh(f'lip_{tag}', place(V, sx, c), F, LIP))
+    V, F = lathe([(.2815, .1355), (.2945, .1365), (.2955, .1335), (.282, .1325)], 128); parts.append(mesh(f'lip_{tag}', place(V, sx, c), F, LIP))
     V, F = spokes(sx, c); parts.append(mesh(f'spokes_{tag}', place(V, sx, c), F, RIM, crease=55))
     V, F = lathe([(.001, .075), (.06, .075), (.072, .066), (.074, .03), (.001, .03)], 64); parts.append(mesh(f'hub_{tag}', place(V, sx, c), F, RIM, crease=50))
     V, F = lathe([(.001, .108), (.03, .108), (.036, .1), (.036, .072), (.001, .072)], 6); parts.append(mesh(f'nut_{tag}', place(V, sx, c), F, LIP, smooth=False))

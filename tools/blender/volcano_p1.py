@@ -85,18 +85,18 @@ Z0, Z1 = -2.32, 2.26
 TRACK = .88   # wheel centre x (BODIES.p1.tr in afterhours.js)
 # traced off refs/p1_blueprint.png (front, side and plan views), mapped piecewise so its axles land on the game's z = ±1.36
 HS  = [[-2.32, .45], [-2.27, .62], [-2.18, .8], [-2.09, .9], [-1.99, .95], [-1.81, .99], [-1.4, 1.0], [-.6, .98], [.1, .96], [.8, .98], [1.36, 1.0], [1.76, .99], [1.9, .95], [2.04, .86], [2.12, .77], [2.19, .62], [2.26, .44]]   # max half-width (plan)
-YS  = [[-2.32, .5], [-1.6, .52], [-.9, .5], [0, .48], [.8, .46], [1.4, .44], [1.95, .4], [2.26, .34]]                                                  # width-line height
-YB  = [[-2.32, .3], [-2.12, .19], [-1.9, .165], [1.8, .16], [2.05, .13], [2.26, .12]]                                                                  # underside
-YF  = [[-2.32, .62], [-2.2, .72], [-2.0, .8], [-1.7, .86], [-1.36, .88], [-1.0, .84], [-.6, .76], [-.2, .72], [.3, .71], [.8, .74], [1.1, .8], [1.36, .84], [1.6, .82], [1.8, .76], [2.0, .67], [2.15, .58], [2.26, .5]]   # fender crown (side silhouette)
-YD  = [[-2.32, .66], [-2.2, .74], [-2.0, .8], [-1.6, .84], [-1.2, .85], [-.6, .78], [0, .72], [.6, .7], [1.0, .68], [1.36, .62], [1.6, .57], [1.9, .51], [2.1, .45], [2.26, .4]]  # centre deck / hood valley
-XF  = .76   # fender crown sits at 76% of the half-width
+YS  = [[-2.32, .46], [-1.6, .47], [-.9, .45], [0, .44], [.8, .43], [1.4, .42], [1.95, .38], [2.26, .33]]                                                  # width-line height
+YB  = [[-2.32, .28], [-2.12, .16], [-1.9, .135], [1.8, .135], [2.05, .12], [2.26, .11]]                                                                  # underside
+YF  = [[-2.32, .58], [-2.2, .66], [-2.0, .73], [-1.7, .79], [-1.36, .82], [-1.0, .8], [-.6, .79], [-.2, .77], [.3, .76], [.8, .77], [1.1, .8], [1.36, .82], [1.6, .79], [1.8, .73], [2.0, .65], [2.15, .57], [2.26, .5]]   # fender crown / shoulder (smooth beltline)
+YD  = [[-2.32, .6], [-2.2, .67], [-2.0, .73], [-1.6, .78], [-1.2, .8], [-.6, .78], [0, .72], [.6, .7], [1.0, .68], [1.36, .64], [1.6, .6], [1.9, .53], [2.1, .47], [2.26, .42]]  # centre deck / hood valley
+XF  = .86   # fender crown sits at 76% of the half-width
 def section(z):
     hs = kf(HS, z); ys = kf(YS, z); yb = kf(YB, z); yf = max(kf(YF, z), ys + .1); yd = min(kf(YD, z), yf - .02); hl = hs - .14
     # nose rounding: the last .3 m pulls the plan and the lower corners in
     tn = clamp((z - (Z1 - .2)) / .2, 0, 1); hl *= 1 - .1 * tn * tn
     xf = hs * XF
     lower = [(0, yb), (hl * .92, yb), (hl, yb + .045)]
-    upper = [(hs - .035, lerp(yb + .1, ys, .45)), (hs, ys), (hs - .045, ys + .085), (lerp(hs, xf, .55), lerp(ys + .085, yf, .8)), (xf, yf),
+    upper = [(hs - .035, lerp(yb + .1, ys, .45)), (hs, ys), (hs - .012, min(ys + .14, yf - .06)), (lerp(hs, xf, .55), lerp(min(ys + .14, yf - .06), yf, .85)), (xf, yf),
              (lerp(xf, .28, .5), lerp(yf, yd, .75) + .01), (.28, yd + .012), (0, yd)]
     half = lower + cr_path([lower[-1]] + upper, int(os.environ.get('P1PER', 3)))[1:]
     return half, dict(hs=hs, ys=ys, yb=yb, yf=yf, yd=yd, hl=hl)
@@ -153,9 +153,9 @@ for sd in (1, -1):
         cyl_x(f'arch{sd}{zw}', 0, .36, zw, .41, sd * (TRACK - .22), sd * 1.5)
     # side intake: a forward-raked parallelogram on the rear haunch, cut deep into the body
     # side scallop: the long dark swoop from behind the front wheel back to the haunch (traced off the side-profile reference)
-    prism(f'scallop{sd}', round_poly([(.93, .43), (.78, .6), (.4, .665), (0, .7), (-.4, .72), (-.66, .7), (-.6, .52), (-.48, .33), (-.36, .19), (0, .17), (.5, .18), (.82, .27)], 2), sd * .86, sd * 1.5, 'CARBON')
+    prism(f'scallop{sd}', round_poly([(.93, .4), (.75, .55), (.35, .6), (-.1, .64), (-.55, .66), (-.86, .62), (-.92, .48), (-.82, .3), (-.66, .17), (0, .16), (.5, .17), (.82, .24)], 2), sd * .84, sd * 1.5, 'CARBON')
     # deep intake at the back of the scallop
-    prism(f'intake{sd}', round_poly([(-.1, .62), (-.42, .68), (-.64, .66), (-.56, .47), (-.42, .27), (-.14, .3)], 3), sd * .7, sd * 1.4)
+    prism(f'intake{sd}', round_poly([(-.3, .6), (-.62, .64), (-.84, .6), (-.8, .42), (-.62, .25), (-.34, .3)], 3), sd * .68, sd * 1.4)
     # front corner intakes below the lamps
     # front corner intakes below the lamps: a raked teardrop in front view, rising to the outer corner
     prism_z(f'fcorner{sd}', round_poly([(sd * .4, .3), (sd * .62, .315), (sd * .84, .335), (sd * .93, .28), (sd * .9, .16), (sd * .62, .14), (sd * .42, .17)], 2), 1.8, 2.7)
@@ -203,7 +203,7 @@ def surface_patch(name, corners_xz, depth, lift=.25, m='GAP', n=10):
 
 for sd in (1, -1):
     # twin hood extractor vents, raked outwards
-    surface_patch(f'vent{sd}', [(sd * .1, 1.78), (sd * .3, 1.7), (sd * .42, 1.2), (sd * .24, 1.3)], .045, m='GLOSSBLACK')
+    surface_patch(f'vent{sd}', [(sd * .2, 2.04), (sd * .42, 2.0), (sd * .6, 1.66), (sd * .36, 1.72)], .045, m='GLOSSBLACK')
 
 def lamp_path(sd):  # boomerang headlamp: thick at the outer fender tip, sweeping down and in to a point
     pts = []
@@ -302,14 +302,14 @@ def airfoil(chord, thick, n=14):
     return up + list(reversed(lo[1:-1]))
 
 # ---------------------------------------------------------------- canopy: a cab-forward visor of dark glass
-CW = [[-1.28, .15], [-1.0, .26], [-.8, .36], [-.4, .52], [.05, .6], [.55, .6], [1.05, .56], [1.2, .48], [1.26, .42]]
-CH = [[-1.28, .88], [-1.0, .92], [-.8, .97], [-.4, 1.09], [.05, 1.16], [.3, 1.12], [.6, .99], [.9, .84], [1.1, .73], [1.26, .62]]
+CW = [[-1.28, .15], [-1.0, .3], [-.8, .4], [-.4, .56], [.05, .66], [.55, .7], [.9, .72], [1.1, .68], [1.26, .55]]
+CH = [[-1.28, .86], [-1.0, .9], [-.8, .95], [-.4, 1.06], [.05, 1.13], [.3, 1.11], [.6, 1.02], [.9, .88], [1.1, .76], [1.26, .64]]
 def canopy_ring(z, sc=1., lift=0., a0=0.):
     cw = kf(CW, z) * sc; top = kf(CH, z) + lift; base = kf(YD, z) - .06
     half = [(0, base), (cw, base)]
     for k in range(1, 13):
         a = a0 + (math.pi / 2 - a0) * k / 12
-        half.append((cw * math.cos(a) ** .5 * (1 - .14 * math.sin(a)), base + (top - base) * math.sin(a) ** .75))
+        sa, ca = math.sin(a), math.cos(a); half.append((cw * (1 - .4 * sa ** 1.3) * ca ** .35, base + (top - base) * sa ** .7))
     half[-1] = (0, top)
     return half
 cst = []
@@ -380,7 +380,7 @@ for k in range(3):
     box(f'fslat{k}', (.46, .01, .14), (0, y, zc - .08), 'CARBON', rot=(.12, 0, 0), bevel=.003)
 # splitter: a flat carbon blade with a lip, poking out ahead of the nose
 spl = [(-.96, 1.9)] + [(math.sin(a) * .98, 2.14 + math.cos(a) * .12) for a in [(-math.pi / 2) + math.pi * k / 16 for k in range(17)]] + [(.96, 1.9)]
-extrude_y('Splitter', spl, .115, .145, 'CARBON', bevel=.008)
+extrude_y('Splitter', spl, .085, .115, 'CARBON', bevel=.008)
 for sd in (): extrude_x(f'splend{sd}', [(1.9, .12), (2.22, .12), (2.18, .2), (1.95, .24)], sd * .955, sd * .975, 'CARBON')
 
 # ---------------------------------------------------------------- flanks
@@ -389,7 +389,7 @@ for sd in (1, -1):
     sill = []
     for i in range(20):
         z = -.9 + 1.75 * i / 19; x = (surf_side(.26, z, sd) or .95)
-        sill.append([G(sd * (x - .05), .2, z), G(sd * (x + .045), .2, z), G(sd * (x + .06), .225, z), G(sd * (x - .04), .27, z)])
+        sill.append([G(sd * (x - .05), .17, z), G(sd * (x + .045), .17, z), G(sd * (x + .06), .195, z), G(sd * (x - .04), .24, z)])
     loft(f'Sill{sd}', sill, 'CARBON', smooth=False)
     # strake across the side intake
     st = []
@@ -409,9 +409,9 @@ for sd in (1, -1):
         v.co = G(sd * (mx + .15) + gx, my + .045 + gy, mz - .04 + gz)
 
 for sd in (1, -1):
-    xv = (surf_side(.52, -.3, sd) or 1.0)
-    extrude_x(f'ductvane{sd}', [(-.08, .5), (-.6, .55), (-.62, .53), (-.14, .48)], sd * (xv - .17), sd * (xv - .03), 'PAINT', bevel=.004)
-    extrude_x(f'ductfloor{sd}', [(-.12, .31), (-.5, .33), (-.5, .315), (-.14, .295)], sd * (xv - .2), sd * (xv - .03), 'CARBON')
+    xv = (surf_side(.52, -.55, sd) or .84)
+    extrude_x(f'ductvane{sd}', [(-.3, .48), (-.8, .53), (-.82, .51), (-.36, .46)], sd * (xv - .17), sd * (xv - .01), 'PAINT', bevel=.004)
+    extrude_x(f'ductfloor{sd}', [(-.34, .3), (-.74, .32), (-.74, .305), (-.36, .285)], sd * (xv - .2), sd * (xv - .01), 'CARBON')
 
 # ---------------------------------------------------------------- rear
 yT = surf_y(0, -2.29) or .83
@@ -434,10 +434,10 @@ for sd in (1, -1):
 # mesh in the rear cavity: horizontal carbon bars
 for k in range(6): box(f'rbar{k}', (1.5, .012, .03), (0, .36 + k * .055, -2.22), 'CARBON')
 # diffuser: flat plate + vertical strakes
-extrude_y('DiffPlate', [(-.95, -2.36), (.95, -2.36), (.95, -1.9), (-.95, -1.9)], .14, .165, 'CARBON', bevel=.005)
+extrude_y('DiffPlate', [(-.95, -2.36), (.95, -2.36), (.95, -1.9), (-.95, -1.9)], .11, .135, 'CARBON', bevel=.005)
 for k in range(7):
     x = -.72 + k * .24
-    extrude_x(f'diff{k}', [(-1.95, .165), (-2.34, .165), (-2.34, .29), (-2.2, .29)], x - .01, x + .01, 'CARBON', bevel=.004)
+    extrude_x(f'diff{k}', [(-1.95, .135), (-2.34, .135), (-2.34, .27), (-2.2, .27)], x - .01, x + .01, 'CARBON', bevel=.004)
 
 # ---------------------------------------------------------------- swan-neck rear wing
 WY, WZ, SPAN = .98, -1.9, 1.56
@@ -457,7 +457,7 @@ for sd in (1, -1):
     pass
 
 # ---------------------------------------------------------------- underside & arch liners (so nothing reads as a hole to the sky)
-extrude_y('Floor', [(-.86, -1.95), (.86, -1.95), (.86, 1.95), (-.86, 1.95)], .13, .17, 'GLOSSBLACK', bevel=.004)
+extrude_y('Floor', [(-.86, -1.95), (.86, -1.95), (.86, 1.95), (-.86, 1.95)], .1, .14, 'GLOSSBLACK', bevel=.004)
 
 # ---------------------------------------------------------------- tidy + export
 for ob in scene.collection.objects:

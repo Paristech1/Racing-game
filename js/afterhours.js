@@ -297,9 +297,22 @@ const RIVALS=[
  {id:'closer',tag:'THE CLOSER',car:'LAST CALL', color:'#f4f7ff',paint:0xeef0f2,metal:.3,rough:.25,rim:0xf0f3f7,chrome:true,caliper:0xd42020,wing:false,top:91,acc:21,grip:30,nitro:1.3,
   P:{line:.9, offScale:.2, wobble:.1, risk:.98, rubber:1.5,gain:.3,  mass:1,   start:.3,  nitro:'reserve'}},
  {id:'wild',  tag:'WILDCARD',  car:'LOOSE DICE',color:'#ffd23b',paint:0xc9a81a,metal:.6,rough:.3, rim:0x111214,caliper:0x7dff9a,wing:true, top:92,acc:23,grip:27,nitro:1.15,
-  P:{line:.8, offScale:.8, wobble:2.2,risk:1.16,rubber:.8, gain:.32, mass:1,   start:-1,  nitro:'burst',mistakeRate:.2,mistakeStrength:.8}}
+  P:{line:.8, offScale:.8, wobble:2.2,risk:1.16,rubber:.8, gain:.32, mass:1,   start:-1,  nitro:'burst',mistakeRate:.2,mistakeStrength:.8}},
+ /* Four more for the big grids (Gauntlet, full-grid events), so twelve cars don't repeat the same six drivers:
+   GRUDGE    remembers whoever passed it and hunts that car down (Burnout Revenge)
+   HUNTER    always goes after the race leader (Mario Kart blue-shell targeting)
+   RABBIT    bolts early to build a gap, then fades so the pack can reel it in (Mario Kart / Burnout front-runner)
+   WEAVER    threads the clearest lane through traffic and slower cars (Midnight Club) */
+ {id:'grudge',tag:'GRUDGE',    car:'PAYBACK GT',color:'#ff8a3d',paint:0x6b2a0c,metal:.5,rough:.4, rim:0x0d0e10,caliper:0xff8a3d,wing:true, top:88,acc:24,grip:29,nitro:1.05,
+  P:{line:.6, offScale:.5, wobble:.3, risk:1.04,rubber:1.0,gain:.42, mass:1.5, start:.15, nitro:'eager'}},
+ {id:'hunter',tag:'HUNTER',    car:'LOCKON',    color:'#ff4fa3',paint:0x4a1030,metal:.7,rough:.3, rim:0x15101a,caliper:0xff4fa3,wing:false,top:91,acc:22,grip:31,nitro:1.15,
+  P:{line:.9, offScale:.25,wobble:.1, risk:1.0, rubber:1.3,gain:.34, mass:1.1, start:.2,  nitro:'pass'}},
+ {id:'rabbit',tag:'RABBIT',    car:'JACKRABBIT',color:'#a6ff4f',paint:0x3f6b1a,metal:.5,rough:.35,rim:0x101410,caliper:0xa6ff4f,wing:false,top:90,acc:25,grip:30,nitro:1.0,
+  P:{line:.85,offScale:.2, wobble:.1, risk:1.02,rubber:.3, gain:.32, mass:.9,  start:.02, nitro:'eager'}},
+ {id:'weaver',tag:'WEAVER',    car:'NEEDLE',    color:'#c7a0ff',paint:0x3a2a5c,metal:.8,rough:.25,rim:0x14111c,caliper:0xc7a0ff,wing:false,top:89,acc:23,grip:33,nitro:1.0,
+  P:{line:.8, offScale:.3, wobble:.15,risk:1.05,rubber:.9, gain:.5,  mass:.9,  start:.1,  nitro:'exit'}}
 ].map(r=>Object.assign(r,{name:r.car}));
-{ const SEEK={apex:.35,wall:.45,leech:.85,bruiser:.55,closer:.5,wild:.95}; RIVALS.forEach(r=>r.P.seek=SEEK[r.id]); }
+{ const SEEK={apex:.35,wall:.45,leech:.85,bruiser:.55,closer:.5,wild:.95,grudge:.7,hunter:.75,rabbit:.4,weaver:.8}; RIVALS.forEach(r=>r.P.seek=SEEK[r.id]); }
 /* Per-event machine picks + track bias (grip tracks vs boulevard straights). */
 const EVENT_CAR_BIAS={
  tunnel:{gripW:1.22,topW:.94,nitroW:1.05},
@@ -323,7 +336,11 @@ const RIVAL_CAR_PREF={
  leech:{gripW:.95,topW:1.05,nitroW:1.15,ids:['zenkai','noctis','sovereign','kage','vanta','pulse2']},
  bruiser:{gripW:.92,topW:1.02,ids:['richmond','dune','sovereign','granfour','noctis','brigline']},
  closer:{gripW:1.05,topW:1.08,nitroW:1.2,ids:['bell','noctis','vanta','kern','sovereign','stratos','vandal']},
- wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour','wisp','vandal']}
+ wild:{gripW:.88,topW:1.14,nitroW:1.25,ids:['split','noctis','dune','kage','granfour','wisp','vandal']},
+ grudge:{gripW:.95,topW:1,nitroW:1.05,ids:['richmond','dune','sovereign','granfour','brigline']},
+ hunter:{gripW:1,topW:1.1,nitroW:1.15,ids:['noctis','vanta','kern','stratos','vandal']},
+ rabbit:{gripW:.95,topW:1.12,nitroW:1.1,ids:['zenkai','split','wisp','bell','lumen']},
+ weaver:{gripW:1.15,topW:1,nitroW:1,ids:['kage','passyunk','granfour','vanta','needle']}
 };
 let RIVAL_BOSS=false;
 function rivalChassisEligible(c){ if(c.outlaw) return false; if((c.id==='overload'||c.id==='volcano'||c.id==='zephyr'||c.id==='hikari')&&!RIVAL_BOSS) return false; return true; }
@@ -352,6 +369,47 @@ function nearestAlongside(r,span){
  for(const o of racers){ if(o===r||o.finished||(TAG&&o.team===r.team)) continue; const gap=Math.abs(r.dist-o.dist); if(gap<bd){ bd=gap; best=o; } }
  return best;
 }
+/* The race leader as seen from r (null if r is already ahead of everyone): the HUNTER's target. */
+function leaderOf(r){
+ let best=null;
+ for(const o of racers){ if(o===r||o.finished||o.out||(TAG&&o.team===r.team)) continue; if(!best||o.dist>best.dist) best=o; }
+ return best&&best.dist>r.dist?best:null;
+}
+/* WEAVER lane choice: the lane with the most open road ahead, with a small pull toward where it already is.
+   Duplicated in logic.mjs for the unit tests. */
+function pickClearLane(lanes,obs,s0,L,span,x0){
+ let best=lanes[0];
+ let bestScore=-1e9;
+ for(let i=0;i<lanes.length;i++){
+  const lx=lanes[i];
+  let clear=span;
+  for(let j=0;j<obs.length;j++){
+   let dd=obs[j].dist-s0;
+   dd=((dd%L)+L)%L;
+   if(dd>3&&dd<clear&&Math.abs(obs[j].x-lx)<2.3) clear=dd;
+  }
+  const score=clear-Math.abs(lx-x0)*1.5;
+  if(score>bestScore){ bestScore=score; best=lx; }
+ }
+ return best;
+}
+/* Power-ups that go on every map automatically (same idea as the Tempest gem): [type, fraction of the lap, lane x]. */
+const NEW_PU_SPOTS=[['jam',.16,-2.4],['slick',.36,2.4],['payback',.6,-2.4],['ghost',.8,2.4]];
+function autoPickupSpots(list,L){
+ const out=list.slice();
+ for(let i=0;i<NEW_PU_SPOTS.length;i++){
+  const type=NEW_PU_SPOTS[i][0];
+  if(out.some(it=>it[2]===type)) continue;
+  let s=(L*NEW_PU_SPOTS[i][1])%L;
+  for(let k=0;k<8;k++){
+   const crowded=out.some(it=>{ const d=Math.abs(it[0]-s); return Math.min(d,L-d)<45; });
+   if(!crowded) break;
+   s=(s+50)%L;
+  }
+  out.push([s,NEW_PU_SPOTS[i][2],type]);
+ }
+ return out;
+}
 function scorePickup(r,p,P,s0,L){
  if(p.cd>0) return -999;
  if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return -999;
@@ -377,7 +435,11 @@ const CORNER_APPROACH={
  leech:{zone:55,late:.62,brakeMax:.38,carry:1.08,lineIn:.95,vBonus:1.06,style:'momentum'},
  bruiser:{zone:78,late:.32,brakeMax:.65,carry:.92,lineIn:.7,vBonus:.97,style:'heavy'},
  closer:{zone:82,late:.38,brakeMax:.48,carry:1.02,lineIn:1.05,vBonus:1.03,style:'smooth'},
- wild:{zone:42,late:.82,brakeMax:.72,carry:1.12,lineIn:1.28,vBonus:1.1,style:'late'}
+ wild:{zone:42,late:.82,brakeMax:.72,carry:1.12,lineIn:1.28,vBonus:1.1,style:'late'},
+ grudge:{zone:76,late:.34,brakeMax:.62,carry:.95,lineIn:.75,vBonus:.99,style:'heavy'},
+ hunter:{zone:84,late:.3,brakeMax:.5,carry:1.04,lineIn:1.05,vBonus:1.04,style:'smooth'},
+ rabbit:{zone:70,late:.36,brakeMax:.52,carry:1.03,lineIn:1,vBonus:1.02,style:'early'},
+ weaver:{zone:58,late:.5,brakeMax:.45,carry:1.07,lineIn:.9,vBonus:1.05,style:'momentum'}
 };
 function aiCornerPlan(r,d,P,ka,turn,evB,rubber,vF,G,M){
  const st=CORNER_APPROACH[d.id]||CORNER_APPROACH.apex, W=TR.W;
@@ -5404,14 +5466,17 @@ const PU_TYPES={refill:{c:0x5fe6ff,css:'#5fe6ff',label:'Refill',tag:'REFILL'},lo
   wispflux:{c:0x7dffef,css:'#7dffef',label:'Feather Flux',tag:'FEATHER FLUX'},stratossurge:{c:0xff9a3c,css:'#ff9a3c',label:'Strato Surge',tag:'STRATO SURGE'},
   desperate:{c:0xff4466,css:'#ff4466',label:'Desperation',tag:'LAST-CHANCE'},
   echoboost:{c:0xc77dff,css:'#c77dff',label:'Echo Boost',tag:'ECHO BOOST'},
-  tempest:{c:0xff2438,css:'#ff2438',label:'Tempest',tag:'TEMPEST'}};
-const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip. Feather Flux, Strato Surge and Tempest gems are locked to Wisp 07, Stratos V and Tempesta SV. Last-Chance (red) hunts last place; Echo Boost (violet) hunts the last two — for 15s you copy every power-up taken by anyone ahead of you.';
+  tempest:{c:0xff2438,css:'#ff2438',label:'Tempest',tag:'TEMPEST'},
+  jam:{c:0xf2f04a,css:'#f2f04a',label:'Signal Jam',tag:'SIGNAL JAM'},slick:{c:0xe8ecf5,css:'#e8ecf5',label:'Oil Slick',tag:'OIL SLICK'},
+  payback:{c:0xff5a1f,css:'#ff5a1f',label:'Payback',tag:'PAYBACK'},ghost:{c:0xd13bff,css:'#d13bff',label:'Ghost Lane',tag:'GHOST LANE'}};
+const PU_DESC='Power-ups: cyan refills boost, violet makes it last, amber raises top speed, red slingshots you forward, green shields you from hits, pink blasts the cars around you, blue adds grip, yellow jams another car\'s boost, silver drops an oil slick behind you, orange makes your next hit from behind steal speed, purple lets you drive through traffic.Feather Flux, Strato Surge and Tempest gems are locked to Wisp 07, Stratos V and Tempesta SV. Last-Chance (red) hunts last place; Echo Boost (violet) hunts the last two — for 15s you copy every power-up taken by anyone ahead of you.';
 const puGeo=new THREE.OctahedronGeometry(.62,0), puRing=new THREE.TorusGeometry(1.15,.07,6,28);
 function addPickups(ev,list){
   ev.pickups=[]; const f=mkF();
   const tr=ev.track; if(!list.some(i=>i[2]==='tempest')){ // Tempest gem at the start of the longest straight
     let run=0, st=0, best=0, bl=0; for(let k=0;k<tr.N*2;k++){ if(Math.abs(tr.K[k%tr.N])<.004){ if(!run) st=k; run++; if(run>bl&&run<=tr.N){ bl=run; best=st; } } else run=0; }
     list=list.concat([[(best*tr.ds+25)%tr.L,-2.4,'tempest',{car:'tempesta',sig:1}]]); }
+  list=autoPickupSpots(list,tr.L); // jam, slick, payback and ghost gems on every map
   list.forEach(item=>{ const s=item[0],x=item[1],type=item[2],opts=item[3]||{}; frame(s,f,ev.track); const T=PU_TYPES[type];
     const g=new THREE.Group(); g.position.copy(f.p).addScaledVector(f.r,x);
     const gem=new THREE.Mesh(puGeo,new THREE.MeshStandardMaterial({color:T.c,emissive:T.c,emissiveIntensity:opts.sig?2.1:1.5,metalness:.3,roughness:.2})); gem.position.y=1.3; g.add(gem);
@@ -5552,9 +5617,9 @@ function updateHomingPickups(dt){
     if(p.g.position.distanceTo(puHomT)<3.6||along<5) grantPickup(tgt,p,i);
   });
 }
-function resetPickups(){ (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; p.homing=false; p.chaseWarn=false; p.s=p.homeS; p.x=p.homeX; }); }
+function resetPickups(){ clearSlicks(); (EV.pickups||[]).forEach(p=>{ p.cd=0; p.g.visible=true; p.homing=false; p.chaseWarn=false; p.s=p.homeS; p.x=p.homeX; }); }
 function worldFx(dt){
-  updateHomingPickups(dt);
+  updateHomingPickups(dt); updateSlicks(dt);
   (EV.pickups||[]).forEach(p=>{ if((p.lastOnly||p.lastTwo)&&p.homing){ p.gem.rotation.y+=dt*3.4; p.gem.rotation.x+=dt*1.1; p.ring.scale.setScalar(1.15+Math.sin(ghostT*6)*.12); return; }
     p.gem.rotation.y+=dt*2.2; p.gem.rotation.x+=dt*.7; p.gem.position.y=1.3+Math.sin(ghostT*3+p.s)*.22; p.ring.scale.setScalar(1+Math.sin(ghostT*4+p.s)*.08);
     if(p.cd>0){ p.cd-=dt; if(p.cd<=0){ p.g.visible=true; p.homing=false; p.chaseWarn=false; p.s=p.homeS; p.x=p.homeX; } } });
@@ -5585,9 +5650,13 @@ const PU_VARIANTS={
  tempest:{front:['Tempest','Tempesta-only.'],pack:['Tempest','Tempesta-only.'],chase:['Tempest','Tempesta-only.']},
  stratossurge:{front:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],pack:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.'],chase:['Strato Surge','Stratos-only: flat-out overdrive and long boost for 7s.']},
  desperate:{front:['Last-Chance','Last place only: random rescue.'],pack:['Last-Chance','Last place only: random rescue.'],chase:['Last-Chance','Last place only: random rescue.']},
- echoboost:{front:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],pack:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],chase:['Echo Boost','Last two only: copy boosts from ahead for 15s.']}
+ echoboost:{front:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],pack:['Echo Boost','Last two only: copy boosts from ahead for 15s.'],chase:['Echo Boost','Last two only: copy boosts from ahead for 15s.']},
+ jam:{front:['Counter-Jam','The car right behind you loses its boost for 3.5s.'],pack:['Signal Jam','The car just ahead loses its boost for 3.5s.'],chase:['Blackout','The leader loses its boost for 4.5s.']},
+ slick:{front:['Wide Spill','A wide oil slick behind you. Cars through it lose speed and grip.'],pack:['Oil Slick','An oil slick behind you. Cars through it lose speed and grip.'],chase:['Spill Trail','Two oil slicks behind you. Cars through them lose speed and grip.']},
+ payback:{front:['Payback','Next car you hit from behind loses speed, plus a short boost. 3s.'],pack:['Payback','Shielded 4.5s: cars you hit from behind lose speed. Plus a boost.'],chase:['Revenge','Shielded 6s: cars you hit from behind lose speed. Plus a big boost.']},
+ ghost:{front:['Ghost Lane','Traffic passes through you for 4s.'],pack:['Ghost Lane','Traffic passes through you for 6s.'],chase:['Ghost Run','Traffic passes through you for 8s.']}
 };
-const ECHO_SKIP=new Set(['echoboost']);
+const ECHO_SKIP=new Set(['echoboost','jam','slick','payback','ghost']);
 function echoBoostFrom(src,type){
   if(mode!=='race'||src._puEcho||ECHO_SKIP.has(type)) return;
   const order=standings(), i=order.indexOf(src);
@@ -5647,8 +5716,29 @@ function applyPU(r,type){
       if(cls==='heavy') twist='Quake: bigger blast radius.';
       else if(cls==='muscle'&&hit){ r.nitro=Math.min(Math.max(1,r.nitro),r.nitro+.25*hit); twist=`Siphon: stole boost from ${hit} car${hit>1?'s':''}.`; }
       break; }
+    case 'jam': { // cuts one car's boost: the leader if you're at the back, the chaser if you're up front, otherwise the car ahead
+      const t=jamTarget(r,br);
+      if(!t) twist='Nobody in range.';
+      else if(t.fxShield>0&&t.shieldMode!=='rear') twist=`${t.def.tag||t.def.name} was shielded.`;
+      else { t.fxJam=(br==='chase'?4.5:3.5)*J; t.nitro=Math.max(0,t.nitro-.3*J); twist=`Jammed ${t.def.tag||t.def.name}.`;
+        if(t.isP){ toast(`${r.def.tag||r.def.name} jammed your boost.`); shake=.5; sfx.hit(.6,0); } }
+      break; }
+    case 'slick':
+      dropSlick(r,br==='chase'?2:1,br==='front');
+      if(cls==='heavy') twist='Leaky tank: the slick lasts longer.';
+      break;
+    case 'payback': // a ram shield plus a boost: whoever you hit from behind pays for it
+      r.shieldMode='ram'; r.shieldMass=cls==='heavy'?7:4.5; r.fxShield=Math.max(r.fxShield,(br==='front'?3:(br==='chase'?6:4.5))*J);
+      r.fxOver=Math.max(r.fxOver,3*J); r.overMul=Math.max(r.overMul||1,br==='chase'?1.14:1.1);
+      r.nitro=Math.min(1.4,Math.max(r.nitro,0)+(br==='chase'?.5:.3));
+      if(cls==='heavy') twist='Wrecking ball: you shove much harder.';
+      break;
+    case 'ghost':
+      r.fxGhost=(br==='front'?4:(br==='chase'?8:6))*J;
+      if(cls==='nimble'){ r.fxGhost+=2; twist='Featherweight: lasts 2s longer.'; }
+      break;
   }
-  const key={refill:'refill',long:'long',over:'over',sling:'sling',shield:'shield',grip:'grip',shock:'shock'}[type];
+  const key={refill:'refill',long:'long',over:'over',sling:'sling',shield:'shield',grip:'grip',shock:'shock',jam:'jam',slick:'slick',payback:'payback',ghost:'ghost'}[type];
   r.fxName[key]=(jack?'Jackpot ':'')+V[0];
   r.puLog=r.puLog||{}; const combo=`${type}/${br}/${cls}${jack?'/J':''}`; r.puLog[combo]=(r.puLog[combo]||0)+1;
   if(mode!=='race') return;
@@ -5716,6 +5806,45 @@ function shockwave(src,kind,rad){
   if(mode==='race'&&(src.isP||hitP||(player&&Math.abs(src.dist-player.dist)<80))) burst(.5,'lowpass',900,60,.7);
   if(mode==='race'&&src.isP&&kind==='lightning'&&n) toast(`Lightning. ${targets.map(t=>t.def.tag).join(' and ')} got struck.`);
   return n;
+}
+/* ---- Signal Jam, Oil Slick, Payback, Ghost Lane: the power-ups that go with the Grudge / Hunter / Rabbit / Weaver drivers ---- */
+function jamTarget(r,br){
+  const ok=o=>o!==r&&!o.finished&&!o.out&&!(TAG&&o.team===r.team);
+  if(r.def.id==='hunter'){ const l=leaderOf(r); if(l) return l; }                     // the Hunter always jams the leader
+  if(r.def.id==='grudge'&&r.grudge&&ok(r.grudge)) return r.grudge;                    // the Grudge jams whoever passed it
+  if(br==='chase'){ for(const o of standings()) if(ok(o)) return o; return null; }    // from the back: the leader
+  let best=null, bd=br==='front'?70:100;
+  for(const o of racers){ if(!ok(o)) continue; const g=br==='front'?r.dist-o.dist:o.dist-r.dist; if(g>2&&g<bd){ bd=g; best=o; } }   // front: the chaser, pack: the car ahead
+  return best;
+}
+const slicks=[], slickGeo=new THREE.CircleGeometry(2.2,28), slickRingGeo=new THREE.RingGeometry(1.95,2.2,28);
+const slF=mkF(), slQ=new THREE.Quaternion(), slB=new THREE.Matrix4(), slN=new THREE.Vector3();
+function dropSlick(r,n,wide){
+  const L=TR.L, scene=EV.scene||RS;
+  for(let i=0;i<n;i++){
+    const s=(((r.dist-9-i*16)%L)+L)%L; frame(s,slF);
+    const body=new THREE.Mesh(slickGeo,new THREE.MeshBasicMaterial({color:0x0a0910,transparent:true,opacity:.86,depthWrite:false,side:THREE.DoubleSide}));
+    const ring=new THREE.Mesh(slickRingGeo,new THREE.MeshBasicMaterial({color:0xe8ecf5,transparent:true,opacity:.45,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}));
+    const g=new THREE.Group(); g.add(body); g.add(ring); g.scale.setScalar(wide?1.3:1);
+    orientQ(slF,slQ,slB,slN); g.quaternion.copy(slQ); g.rotateX(-Math.PI/2);        // lay the disc flat on the road
+    g.position.copy(slF.p).addScaledVector(slF.r,r.x); g.position.y+=.07; scene.add(g);
+    slicks.push({s,x:r.x,t:r.mass>=1.35?20:14,wide:!!wide,owner:r,g,body,ring,scene});
+  }
+}
+function clearSlicks(){ slicks.splice(0).forEach(h=>{ h.scene.remove(h.g); h.body.material.dispose(); h.ring.material.dispose(); }); }
+function updateSlicks(dt){
+  if(!slicks.length) return;
+  const L=TR.L, racing=mode==='race';
+  for(let i=slicks.length-1;i>=0;i--){ const h=slicks[i];
+    h.t-=dt; const fade=clamp(h.t/2,0,1); h.body.material.opacity=.86*fade; h.ring.material.opacity=(.35+.15*Math.sin(ghostT*5))*fade;
+    if(h.t<=0){ h.scene.remove(h.g); h.body.material.dispose(); h.ring.material.dispose(); slicks.splice(i,1); continue; }
+    if(!racing) continue;
+    const half=h.wide?2.7:2.1;
+    for(const o of racers){ if(o===h.owner||o.finished||o.out||(o.slickCd||0)>ghostT||(o.fxShield>0&&o.shieldMode!=='rear')) continue;
+      const dd=Math.abs((((o.dist-h.s)%L)+L*1.5)%L-L*.5);
+      if(dd<3.2&&Math.abs(o.x-h.x)<half){ o.slickCd=ghostT+1.6; o.v*=.72; o.vx+=(o.x>=h.x?1:-1)*7;
+        if(o.isP){ toast(`Oil. ${h.owner.def.tag||h.owner.def.name}'s slick got you.`); shake=.8; sfx.hit(.5,0); }
+        else if(player&&Math.abs(o.dist-player.dist)<70&&o.def.tag) persona(o,`${o.def.tag} hit the oil.`); } } }
 }
 function nextTurn(r){ if(!EV.turns||!EV.turns.length) return null; const L=TR.L, s0=((r.dist%L)+L)%L; let best=null;
   for(const t of EV.turns){ let d=t.s0-s0; if(d<-t.len) d+=L; if(d>L-t.len) d-=L; if(d<150&&d>-t.len*.8&&(!best||d<best.d)) best={d,dir:t.dir}; } return best; }
@@ -6746,7 +6875,8 @@ function kAhead(s,span){ let m=0; for(let i=0;i<6;i++){ const k=frame(s+10+span*
    TEMPER says how each persona bends: temper scales D, bank is the boost it tries to keep in reserve,
    defend is how hard it covers a chaser. */
 const TEMPER={apex:{temper:.55,bank:.35,defend:.45},wall:{temper:.7,bank:.45,defend:1},leech:{temper:.8,bank:.25,defend:.3},
-  bruiser:{temper:1,bank:.15,defend:.6},closer:{temper:.6,bank:.6,defend:.5},wild:{temper:1.1,bank:.05,defend:.2}};
+  bruiser:{temper:1,bank:.15,defend:.6},closer:{temper:.6,bank:.6,defend:.5},wild:{temper:1.1,bank:.05,defend:.2},
+  grudge:{temper:1,bank:.2,defend:.3},hunter:{temper:.85,bank:.3,defend:.4},rabbit:{temper:.4,bank:.5,defend:.7},weaver:{temper:.6,bank:.3,defend:.3}};
 const MOOD_TAG={lead:'LEAD',defend:'DEFEND',attack:'ATTACK',push:'PUSH',allin:'ALL-IN'};
 function updateMood(r,order){
   const T=TEMPER[r.def.id]||TEMPER.apex, n=EV.knockout?order.filter(o=>!o.out).length:order.length, place=order.indexOf(r)+1, vRef=Math.max(r.v,30);
@@ -6784,7 +6914,11 @@ function moodPickup(r,p,M,s0,L){
     case 'shield': v+=M.mood==='defend'?6:(M.mood==='lead'&&M.gapB<1.6?4:0); break;
     case 'grip': v+=Math.abs(kAhead(r.dist+dd,40))>.006?3:0; break;
     case 'refill': v+=r.nitro<.3&&(M.mood==='allin'||M.mood==='attack'||M.mood==='push')?5:0; break;
-    case 'long': v+=M.mood==='lead'||M.mood==='defend'?3:0; break; }
+    case 'long': v+=M.mood==='lead'||M.mood==='defend'?3:0; break;
+    case 'jam': v+=near?(M.mood==='attack'||M.mood==='allin'?7:3):-5; if(r.def.id==='hunter'||r.def.id==='grudge') v+=4; break;
+    case 'slick': v+=M.mood==='defend'?8:(M.gapB<1.2?4:-3); if(r.def.id==='wall'||r.def.id==='rabbit') v+=3; break;
+    case 'payback': v+=(r.stung>0?8:1); if(r.def.id==='grudge') v+=5; else if(r.def.id==='bruiser') v+=3; break;
+    case 'ghost': { let n=0; for(const t of traffic){ const g=t.dist-r.dist; if(g>0&&g<110) n++; } v+=n>3?6:-2; if(r.def.id==='weaver') v+=4; break; } }
   const nA=EV.knockout?koActive().length:racers.length, br=M.place<=2?'front':(M.place>=nA-1?'chase':'pack');
   if(br==='chase'){ if(p.type==='shock') v+=10; if(p.type==='sling') v+=5; if(p.type==='refill') v+=3; }   // lightning, catapult, overflow
   else if(br==='front'){ if(p.type==='shock') v+=M.gapB<1.2?6:-4; if(p.type==='shield') v+=3; }           // wake, rear guard
@@ -6843,6 +6977,33 @@ function stepRacer(r,dt,inp){
         if(Math.random()<.36*dt) r.burst=1.2+Math.random();
         if(pl&&gapP>-14&&gapP<0) persona(r,`${d.tag} is coming up the outside.`);
         break;
+      case 'grudge': { // remembers whoever just passed it, then runs that car down and leans on it
+        if(r.stung>2&&r.stungBy&&!r.stungBy.finished) r.grudge=r.stungBy;
+        const g=r.grudge;
+        if(g&&!g.finished){ const gap=g.dist-r.dist;
+          if(gap<-8){ if(g===pl) persona(r,`${d.tag} got even with you.`,true); r.grudge=null; }
+          else if(gap<60){ tx=g.x; gain=.58; chasing=g; if(gap<45&&r.nitro>.1) wantN=true;
+            if(g===pl) persona(r,`${d.tag} is coming for you.`); } }
+        break; }
+      case 'hunter': { // always goes after whoever is leading: trails it, then pulls out alongside
+        const lead=leaderOf(r);
+        if(lead){ const gap=lead.dist-r.dist;
+          if(gap<110){ if(gap<90&&r.nitro>.05) wantN=true;
+            if(gap<45){ tx=gap<14?lead.x+(lead.x>0?-3.2:3.2):lead.x; gain=.46; chasing=lead;
+              if(lead===pl) persona(r,`${d.tag} has locked onto you.`); } } }
+        break; }
+      case 'rabbit': { // bolts early to build a gap, then fades so the pack can reel it in
+        const prog=r.dist/(laps()*TR.L);
+        if(prog<.3){ vF=1.065; wantN=Math.abs(ka)<.004; }
+        else if(prog>.6) vF=.975;
+        break; }
+      case 'weaver': { // threads the clearest lane through traffic and slower cars
+        if(!(r.fxGhost>0)){
+          const obs=traffic.concat(racers.filter(o=>o!==r&&!o.finished));
+          const lane=pickClearLane([-5.2,-2.6,0,2.6,5.2].map(x=>clamp(x,-W+1.6,W-1.6)),obs,((r.dist%L)+L)%L,L,70,r.x);
+          tx=lerp(tx,lane,.8); gain=.5; vF=1.02;
+          if(pl&&gapP<0&&gapP>-12&&Math.random()<.006) persona(r,`${d.tag} is threading through.`); }
+        break; }
       case 'apex': // pure line; takes the inside when it's reeling you in
         if(pl&&gapP<0&&gapP>-16&&Math.abs(kn)>.002){ tx=clamp(line*1.3,-5.2,5.2); persona(r,`${d.tag} is diving to the inside.`); }
         break;
@@ -6861,8 +7022,10 @@ function stepRacer(r,dt,inp){
       for(const p of EV.pickups){ if(r.puCd&&r.puCd[EV.pickups.indexOf(p)]>ghostT) continue; const sc=scorePickup(r,{...p,cd:0},P,s0,L)+(M?moodPickup(r,p,M,s0,L):0); if(sc>bestSc){ bestSc=sc; bestP=p; } }
       if(bestP){ tx=bestP.x; puDD=((bestP.s-s0)%L+L)%L; } }
     // avoidance: traffic always; other racers unless you're the one this persona is attacking
-    for(const o of racers.concat(traffic)){ if(o===r||o===chasing) continue; const dd=o.dist-r.dist, dx=o.x-r.x;
+    for(const o of racers.concat(traffic)){ if(o===r||o===chasing||(o.tr&&r.fxGhost>0)) continue; const dd=o.dist-r.dist, dx=o.x-r.x;
       if(dd>0&&dd<(o.tr?26:15*(1-.45*D))&&Math.abs(dx)<2.8&&(o.tr||dd<puDD)){ tx=o.x+(o.x>0?-3.4:3.4); } }  // a pickup closer than the car ahead wins
+    for(const h of slicks){ if(h.owner===r) continue; const dd=(((h.s-r.dist)%L)+L)%L;   // steer around oil
+      if(dd<22&&Math.abs(h.x-r.x)<2.9) tx=h.x+(h.x>0?-3.4:3.4); }
     let xCap; if(EV.pads||EV.pillars||EV.crossing){ const lv=levelAI(r,tx); tx=lv.tx; xCap=lv.vCap; }
     let rubber=1; if(pl) rubber=1+clamp((pl.dist-r.dist)/420,-.08,.1)*P.rubber;
     const corner=aiCornerPlan(r,d,P,ka,turnHint,evB,rubber,vF,G,M);
@@ -6895,7 +7058,7 @@ function stepRacer(r,dt,inp){
   }
   // digital steering: build lock at a steady rate, but let go and counter-steer quicker so corrections feel crisp
   r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*(Math.abs(steer)<Math.abs(r.steer)||steer*r.steer<0?16:10))):steer;
-  if(d.noBoost) nitro=false;
+  if(d.noBoost||r.fxJam>0) nitro=false;
   const cap=d.vcap||VCAP;
   const nosVmax=d.nosVmax||1.22, nosV=nitro?nosVmax*(r.fxWisp>0?1.1:1):1;
   let vmax0=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
@@ -6930,7 +7093,7 @@ function stepRacer(r,dt,inp){
   if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(d.nosDrainMul||1)*(r.fxLong>0?(r.drainMul!==undefined?r.drainMul:.35):1));
   else if(r.nitro>1) r.nitro=Math.max(1,r.nitro-.015*dt);
   r.nosOn=nitro;
-  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','fxEcho','towT','fxTempest','mantisT'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
+  ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','fxEcho','towT','fxTempest','mantisT','fxJam','fxGhost'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
   const ac=r.v*r.v*k*.5;
   const latDamp=inp?2.7:3.2, vSteer=inp?17:18, steerMul=inp?1.05:1;
   const sa=r.steer*G*Math.min(1,r.v/vSteer)*steerMul;
@@ -6971,6 +7134,7 @@ function collide(){
     let dd=a.dist-b.dist; const L=TR.L; dd=((dd%L)+L*1.5)%L-L*.5;
     const dx=a.x-b.x;
     if(Math.abs(dd)<4.5&&Math.abs(dx)<2.05){
+      if((a.tr||b.tr)&&(a.tr?b:a).fxGhost>0) continue;   // Ghost Lane: traffic passes straight through
       if(a.tr||b.tr){ const car=a.tr?b:a, t=a.tr?a:b, ddx=car.x-t.x, sgn=ddx>=0?1:-1;
         car.x=t.x+sgn*2.06; car.vx=sgn*4; const behind=((car.dist-t.dist)%L+L*1.5)%L-L*.5<0;
         if(shieldVs(car,t)) t.v=Math.max(t.v,car.v*.6); else if(behind) car.v=Math.min(car.v,t.v*.85+1); else car.v*=.97;
@@ -7351,7 +7515,7 @@ function renderEvent(dir,force){
   $('#eSpecs').textContent=e.specs; $('#eCap').textContent=e.caption;
   const g=loadGhost();
   $('#eGhost').textContent=g?`Your ghost: ${fmt(g.t)} in the ${(CARS.find(c=>c.id===g.car)||CARS[0]).name}. Beat it and it gets replaced.`:'No ghost yet. Your first finish becomes the one to beat.';
-  $('#eGhost').textContent+=' On the grid: Apex, The Wall, Leech, Bruiser, The Closer, Wildcard. '+PU_DESC;
+  $('#eGhost').textContent+=' On the grid: Apex, The Wall, Leech, Bruiser, The Closer, Wildcard. Big grids add Grudge, Hunter, Rabbit and Weaver. '+PU_DESC;
   $('#eTag').style.display=e.knockout?'none':'';
   if(e.knockout){ bindKoTrack(koMapI); $('#eGhost').textContent='Pick a map on the next screen. Short loops use lap checkpoints; long courses knock out at sectors so you are not running 110 km. Round rules: '+KO_MODS.filter(m=>m.id!=='clean').map(m=>m.name).join(', ')+', and a Final Duel for the last two.'; }
   $('#ePg').innerHTML=eventPageHtml();
@@ -7487,19 +7651,19 @@ function startRace(){
   const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id]; RIVAL_BOSS=Math.random()<.15; TAG=null;
   if(tagPick&&!EV.knockout) tagGrid(me);
   else if(EV.knockout){ // every car in the archive on one grid; the six personas spread across the eleven rivals
-    const others=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5), per=['apex','wall','leech','bruiser','closer','wild'], pSlot=6+Math.floor(Math.random()*4);
+    const others=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5), per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5), pSlot=6+Math.floor(Math.random()*4);
     for(let i=0,oi=0;i<12;i++){ const dist=-5-i*5.5, x=i%2?2.6:-2.6;
       if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
-      const car=others[oi], P=R_(per[oi%6]); oi++;
+      const car=others[oi], P=R_(per[oi%per.length]); oi++;
       addRacer(Object.assign({},car,{id:P.id,chassisId:car.id,tag:car.name,color:P.color,car:car.name,P:Object.assign({},P.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.02); }
   } else if(EV.fullGrid){
     const lineup=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5);
     const pSlot=4+Math.floor(Math.random()*Math.max(1,lineup.length-8));
     lineup.splice(pSlot,0,me);
-    const per=['apex','wall','leech','bruiser','closer','wild'];
+    const per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5);
     lineup.forEach((car,i)=>{ const dist=-5-i*5.2, x=i%2?2.8:-2.8;
       if(car.id===me.id){ player=addRacer(me,true,dist,x,1); return; }
-      const shell=R_(per[i%6]);
+      const shell=R_(per[i%per.length]);
       addRacer(Object.assign({},car,{chassisId:car.id,tag:car.name,car:car.name,P:Object.assign({},shell.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.025); });
   } else {
   const grid=[
@@ -7512,7 +7676,7 @@ function startRace(){
    const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
    addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012);
   }); }
-  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.clean=0; r._hits=r.hits; r.fxName={}; });
+  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.fxJam=r.fxGhost=r.clean=0; r._hits=r.hits; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
   const boss=racers.find(r=>!r.isP&&['overload','volcano','zephyr','hikari'].includes(r.def.chassisId));
   if(boss&&!EV.knockout) setTimeout(()=>{ if(mode!=='race') return; const id=boss.def.chassisId;
@@ -7899,7 +8063,7 @@ function loop(now){
       { const nw=Math.min(100,Math.round(player.nitro*1000)/10)+'%', nb=$('#hNos'); if(nb.style.width!==nw) nb.style.width=nw; nb.classList.toggle('over',player.nitro>1.001); }
       const nt=nextTurn(player), tw=$('#hTurn');
       if(nt&&countdown<=0){ const tc='turn on '+(nt.dir>0?'l':'r'); if(tw.className!==tc) tw.className=tc; setH(tw,`<i>${nt.dir>0?'‹‹‹':'›››'}</i><span>${nt.d>0?Math.round(nt.d)+' m':'now'}</span>`); } else if(tw.className!=='turn') tw.className='turn';
-      const fx=[], FN=player.fxName||{}, FXL=[['fxLong','long','#b28cff'],['fxOver','over','#ffb020'],['fxSling','sling','#ff3b4a'],['fxShield','shield','#7dff9a'],['fxGrip','grip','#4f7bff'],['fxRegen','refill','#5fe6ff'],['fxNosMul','refill','#5fe6ff'],['towT','sling','#ff3b4a']];
+      const fx=[], FN=player.fxName||{}, FXL=[['fxLong','long','#b28cff'],['fxOver','over','#ffb020'],['fxSling','sling','#ff3b4a'],['fxShield','shield','#7dff9a'],['fxGrip','grip','#4f7bff'],['fxRegen','refill','#5fe6ff'],['fxNosMul','refill','#5fe6ff'],['towT','sling','#ff3b4a'],['fxJam','jam','#f2f04a'],['fxGhost','ghost','#d13bff']];
       FXL.forEach(([k,n,c])=>{ if(player[k]>0) fx.push(`<b style="color:${c}">${esc((k==='fxNosMul'?'Supercharged':k==='towT'?'Tow':FN[n])||PU_TYPES[n].label)} ${Math.ceil(player[k])}s</b>`); });
       if(player.nitro>1.001) fx.push(`<b style="color:#ffe08a">Overflow ${Math.round(player.nitro*100)}%</b>`);
       if(TAG&&player.teamDraft>raceT) fx.push('<b style="color:#f4f7ff">Team draft</b>');

@@ -269,3 +269,40 @@ export function eventAiBias(evOpen) {
     ? { straight: 1.06, tight: 0.93, line: 0.85 }
     : { straight: 0.97, tight: 1.06, line: 1.12 };
 }
+
+/* WEAVER lane choice: the lane with the most open road ahead, with a small pull toward where it already is.
+   Duplicated in logic.mjs for the unit tests. */
+export function pickClearLane(lanes,obs,s0,L,span,x0){
+ let best=lanes[0];
+ let bestScore=-1e9;
+ for(let i=0;i<lanes.length;i++){
+  const lx=lanes[i];
+  let clear=span;
+  for(let j=0;j<obs.length;j++){
+   let dd=obs[j].dist-s0;
+   dd=((dd%L)+L)%L;
+   if(dd>3&&dd<clear&&Math.abs(obs[j].x-lx)<2.3) clear=dd;
+  }
+  const score=clear-Math.abs(lx-x0)*1.5;
+  if(score>bestScore){ bestScore=score; best=lx; }
+ }
+ return best;
+}
+
+/* Power-ups that go on every map automatically (same idea as the Tempest gem): [type, fraction of the lap, lane x]. */
+export const NEW_PU_SPOTS=[['jam',.16,-2.4],['slick',.36,2.4],['payback',.6,-2.4],['ghost',.8,2.4]];
+export function autoPickupSpots(list,L){
+ const out=list.slice();
+ for(let i=0;i<NEW_PU_SPOTS.length;i++){
+  const type=NEW_PU_SPOTS[i][0];
+  if(out.some(it=>it[2]===type)) continue;
+  let s=(L*NEW_PU_SPOTS[i][1])%L;
+  for(let k=0;k<8;k++){
+   const crowded=out.some(it=>{ const d=Math.abs(it[0]-s); return Math.min(d,L-d)<45; });
+   if(!crowded) break;
+   s=(s+50)%L;
+  }
+  out.push([s,NEW_PU_SPOTS[i][2],type]);
+ }
+ return out;
+}

@@ -5487,19 +5487,24 @@ function setWorld(w){
 const cam=new THREE.PerspectiveCamera(60,1,.1,1600);
 function aspect(){ return innerWidth/innerHeight; }
 let composer=null, renderPass=null, bloomPass=null, gradePass=null, glowOn=true;
+/* LOOK: "Clear" (default) tones the haze down in every race: no grain, half bloom, thinner fog, neutral tint, lighter vignette and fringing.
+   "Cinematic" keeps each level's authored look. The car-select studio always keeps its magazine grade. Saved in SAVE.look. */
+let CLEAR=SAVE.look!=='cine';
+const CLR={bloom:.5,bloomR:.8,bloomT:.14,fog:.6,shadow:.15,high:.4,sat:.5,vig:.4,ca:.3,wet:.3};
+document.body.classList.toggle('clear',CLEAR);
 /* final grade: radial speed blur, edge chromatic aberration, split-tone color grade and vignette (runs in linear space) */
 const GRADE_DEF={shadow:[.9,1,1.14],high:[1.1,1.02,.9],sat:1.12,vig:.42,grain:0}; // scenes override with userData.grade
 const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{value:0},uHit:{value:0},uWet:{value:0},
-  uShadow:{value:new THREE.Vector3(.9,1,1.14)},uHigh:{value:new THREE.Vector3(1.1,1.02,.9)},uSat:{value:1.12},uVig:{value:.42},uGrain:{value:0},uTime:{value:0}},
+  uShadow:{value:new THREE.Vector3(.9,1,1.14)},uHigh:{value:new THREE.Vector3(1.1,1.02,.9)},uSat:{value:1.12},uVig:{value:.42},uGrain:{value:0},uTime:{value:0},uCA:{value:1}},
   vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader:`uniform sampler2D tDiffuse; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime; uniform vec3 uShadow,uHigh; varying vec2 vUv;
+  fragmentShader:`uniform sampler2D tDiffuse; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime,uCA; uniform vec3 uShadow,uHigh; varying vec2 vUv;
   void main(){
     vec2 c=vUv-.5; float r=length(c);
     float bl=(uSpeed*.022+uBoost*.03)*smoothstep(.12,.75,r);
     vec3 col;
     if(bl<.0004) col=texture2D(tDiffuse,vUv).rgb; // perf: no speed blur, one tap instead of eight
     else { col=vec3(0.); for(int i=0;i<8;i++){ float t=float(i)/7.; col+=texture2D(tDiffuse,vUv-c*bl*t).rgb; } col/=8.; }
-    float ca=(.0035+uBoost*.006+uHit*.012)*r*r*4.;
+    float ca=(.0035+uBoost*.006+uHit*.012)*r*r*4.*uCA;
     col.r=mix(col.r,texture2D(tDiffuse,vUv+c*ca).r,.85); col.b=mix(col.b,texture2D(tDiffuse,vUv-c*ca).b,.85);
     float l=dot(col,vec3(.2126,.7152,.0722));
     vec3 shadowTint=mix(uShadow,vec3(.86,.98,1.18),uWet), highTint=uHigh;
@@ -5540,16 +5545,22 @@ const CULL_V=new THREE.Vector3(); let DRAW_RACING=false;
 function draw(scene){
   if(DEV&&DEV.hold&&scene!==studio){ const H=DEV.hold; cam.position.fromArray(H.p); cam.lookAt(H.l[0],H.l[1],H.l[2]); if(H.fov&&cam.fov!==H.fov){ cam.fov=H.fov; cam.updateProjectionMatrix(); } }
   if(scene.userData.dome) scene.userData.dome.position.copy(cam.position);
+  const clr=CLEAR&&scene!==studio, fog0=scene.fog, fd0=clr&&fog0&&fog0.isFogExp2?fog0.density:0; if(fd0) fog0.density=fd0*CLR.fog; // Clear: thinner fog for this frame only (restored after the render, so levels that animate their fog are unaffected)
   { const f=scene.fog; CULL.far=!f?Infinity:f.isFogExp2?(f.density>0?2.6/f.density:Infinity):f.far; cam.getWorldPosition(CULL_V); CULL.x=CULL_V.x; CULL.y=CULL_V.y; CULL.z=CULL_V.z; cam.getWorldDirection(CULL_V); CULL.fx=CULL_V.x; CULL.fy=CULL_V.y; CULL.fz=CULL_V.z; }
   const racing=mode==='race'&&!!composer&&glowOn; if(racing!==DRAW_RACING){ DRAW_RACING=racing; document.body.classList.toggle('racing',racing); } // CSS grain off while racing, shader grain instead
   if(gradePass){ const u=gradePass.uniforms, pl=mode==='race'&&player?player:null;
     u.uSpeed.value=lerp(u.uSpeed.value,pl?STAGE.blur[pl.stage||0]*.85:0,.06); u.uBoost.value=lerp(u.uBoost.value,pl&&pl.nosOn?1:0,.12);
-    u.uHit.value=Math.min(1,shake); u.uWet.value=LOOK.wet&&scene!==studio?1:0;
-    const gd=scene.userData.grade||GRADE_DEF; u.uShadow.value.fromArray(gd.shadow||GRADE_DEF.shadow); u.uHigh.value.fromArray(gd.high||GRADE_DEF.high);
-    u.uSat.value=gd.sat!==undefined?gd.sat:GRADE_DEF.sat; u.uVig.value=gd.vig!==undefined?gd.vig:GRADE_DEF.vig; u.uGrain.value=Math.max(gd.grain||0,DRAW_RACING?.022:0); u.uTime.value=(u.uTime.value+.137)%1; }
+    u.uHit.value=Math.min(1,shake); u.uWet.value=(LOOK.wet&&scene!==studio?1:0)*(clr?CLR.wet:1); u.uCA.value=clr?CLR.ca:1;
+    const gd=scene.userData.grade||GRADE_DEF, sh=gd.shadow||GRADE_DEF.shadow, hi=gd.high||GRADE_DEF.high;
+    const sat=gd.sat!==undefined?gd.sat:GRADE_DEF.sat, vig=gd.vig!==undefined?gd.vig:GRADE_DEF.vig;
+    if(clr){ u.uShadow.value.set(1+(sh[0]-1)*CLR.shadow,1+(sh[1]-1)*CLR.shadow,1+(sh[2]-1)*CLR.shadow); u.uHigh.value.set(1+(hi[0]-1)*CLR.high,1+(hi[1]-1)*CLR.high,1+(hi[2]-1)*CLR.high);
+      u.uSat.value=1+(sat-1)*CLR.sat; u.uVig.value=vig*CLR.vig; u.uGrain.value=0; }
+    else { u.uShadow.value.fromArray(sh); u.uHigh.value.fromArray(hi); u.uSat.value=sat; u.uVig.value=vig; u.uGrain.value=Math.max(gd.grain||0,DRAW_RACING?.022:0); }
+    u.uTime.value=(u.uTime.value+.137)%1; }
   if(composer&&glowOn){ renderPass.scene=scene; const b=scene.userData.bloom||{strength:.5,radius:.4,threshold:.85};
-    bloomPass.strength=b.strength; bloomPass.radius=b.radius; bloomPass.threshold=b.threshold; composer.render(); }
+    bloomPass.strength=clr?b.strength*CLR.bloom:b.strength; bloomPass.radius=clr?b.radius*CLR.bloomR:b.radius; bloomPass.threshold=clr?Math.min(.95,b.threshold+CLR.bloomT):b.threshold; composer.render(); }
   else renderer.render(scene,cam);
+  if(fd0) fog0.density=fd0;
 }
 function resize(){ renderer.setSize(innerWidth,innerHeight,false); if(composer) composer.setSize(innerWidth,innerHeight); cam.aspect=aspect(); cam.updateProjectionMatrix(); }
 addEventListener('resize',resize); resize();
@@ -5558,7 +5569,7 @@ addEventListener('resize',resize); resize();
    If frames run long (under ~55 fps) for half a second the pixel ratio steps down; after 4 s of clean 60 fps it steps
    back up (to 1.5x on high-DPI screens when the GPU has room). A step up that immediately causes drops becomes a ceiling for 2 min,
    so it never see-saws. Loading, boot and tab switches (huge gaps) are ignored. */
-const PR_MAX=PHONE?Math.min(window.devicePixelRatio||1,1):Math.min(window.devicePixelRatio||1,1.5), PR_MIN=Math.min(PR_MAX,PHONE?.6:.7);
+const PR_MAX=PHONE?Math.min(window.devicePixelRatio||1,1):Math.min(window.devicePixelRatio||1,1.5), PR_MIN=Math.min(PR_MAX,PHONE?.75:.7); // phone floor was .6, which upscaled everything into soft blocks
 const PACE={ema:16.7,over:0,hold:0,ceil:PR_MAX,ceilT:0,lastUp:-1e9,clock:0};
 function setPR(pr){ pr=Math.round(clamp(pr,PR_MIN,PACE.ceil)*20)/20; if(Math.abs(pr-renderer.getPixelRatio())<.01) return false;
   renderer.setPixelRatio(pr); if(composer&&composer.setPixelRatio) composer.setPixelRatio(pr); resize(); return true; }
@@ -6560,6 +6571,8 @@ const trackLabel=()=>{ const b=$('#track'); if(b) b.textContent='Track: '+MUS_TH
 trackLabel();
 if($('#track')) $('#track').onclick=()=>{ setMusicTheme(musTheme==='ice'?'night':'ice'); trackLabel(); };
 $('#glow').onclick=()=>{ glowOn=!glowOn; $('#glow').textContent=glowOn?'Glow on':'Glow off'; };
+if($('#look')){ const lookLabel=()=>{ $('#look').textContent='Look: '+(CLEAR?'Clear':'Cinematic'); document.body.classList.toggle('clear',CLEAR); };
+  lookLabel(); $('#look').onclick=()=>{ CLEAR=!CLEAR; SAVE.look=CLEAR?'clear':'cine'; persist(); lookLabel(); }; }
 $('#tap').onclick=()=>{ if(bootReady) enter(); };
 function bindTap(id,fn){ // fires on pointerup so a canvas swipe can't swallow the tap; click still covers keyboard (Enter/Space)
   const el=$(id); let tapT=0;

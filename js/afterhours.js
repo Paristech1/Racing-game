@@ -3221,7 +3221,7 @@ function kitMats(){ if(KIT_MATS) return KIT_MATS;
     BARK:new THREE.MeshStandardMaterial({color:0x2a2119,roughness:1}),LEAF:new THREE.MeshStandardMaterial({color:0x1f3d1f,roughness:.95,flatShading:true}),
     NEEDLE:new THREE.MeshStandardMaterial({color:0x13301d,roughness:.95,flatShading:true}),SIGNBACK:new THREE.MeshStandardMaterial({color:0x7c838c,metalness:.7,roughness:.4}),
     CARPAINT:new THREE.MeshStandardMaterial({color:0xffffff,metalness:.55,roughness:.3,envMapIntensity:1.2}),CARGLASS:new THREE.MeshStandardMaterial({color:0x07090c,metalness:.8,roughness:.08}),
-    TYRE:new THREE.MeshStandardMaterial({color:0x0b0b0c,roughness:.9}),TRIM:new THREE.MeshStandardMaterial({color:0x101113,metalness:.3,roughness:.5}),
+    TYRE:new THREE.MeshStandardMaterial({color:0x0b0b0c,roughness:.9}),TRIM_DARK:new THREE.MeshStandardMaterial({color:0x101113,metalness:.3,roughness:.5}),
     LENSW:new THREE.MeshStandardMaterial({color:0xc8ccd2,metalness:.3,roughness:.15}),LENSR:new THREE.MeshStandardMaterial({color:0x5a0a0e,roughness:.3,emissive:0x2a0206}),
     STONE:new THREE.MeshStandardMaterial({color:0x6b6258,roughness:.95}),WHITE:new THREE.MeshStandardMaterial({color:0xdfe3e8,metalness:.1,roughness:.5}),
     PUMP:new THREE.MeshStandardMaterial({color:0x12151a,metalness:.4,roughness:.4}),SCREEN:new THREE.MeshBasicMaterial({color:0x8fd0ff,toneMapped:false}),
@@ -3229,7 +3229,7 @@ function kitMats(){ if(KIT_MATS) return KIT_MATS;
     FASCIA:new THREE.MeshStandardMaterial({color:0x17181b,metalness:.2,roughness:.6}),PRECAST:new THREE.MeshStandardMaterial({color:0x9d9282,roughness:.85}),
     ENTRY:new THREE.MeshBasicMaterial({color:0xd8ecff,toneMapped:false}),ROOF:new THREE.MeshStandardMaterial({color:0x0b0b0d,roughness:1}),
     SCHIST:new THREE.MeshStandardMaterial({color:0x4a4841,roughness:.95}),BUFF:new THREE.MeshStandardMaterial({color:0x9c8566,roughness:.85}),
-    LIMESTONE:new THREE.MeshStandardMaterial({color:0xa9a193,roughness:.8}),TRIM:new THREE.MeshStandardMaterial({color:0xd9d4c8,roughness:.6}),
+    LIMESTONE:new THREE.MeshStandardMaterial({color:0xa9a193,roughness:.8}),TRIM_LIGHT:new THREE.MeshStandardMaterial({color:0xd9d4c8,roughness:.6}),
     SLATE:new THREE.MeshStandardMaterial({color:0x22262d,metalness:.15,roughness:.6}),WOOD:new THREE.MeshStandardMaterial({color:0x3a2618,roughness:.8}),
     WINLIT:new THREE.MeshBasicMaterial({color:0xffc98a,toneMapped:false}),WINDARK:new THREE.MeshStandardMaterial({color:0x0a0d12,metalness:.6,roughness:.12}),
     AWNING:new THREE.MeshStandardMaterial({color:0xffffff,roughness:.85,side:THREE.DoubleSide})}; }

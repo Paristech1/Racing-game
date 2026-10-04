@@ -30,7 +30,7 @@ def mat(name, col, metal=0., rough=.5, emit=None, es=6.):
     if emit: b.inputs['Emission Color'].default_value = (*emit, 1); b.inputs['Emission Strength'].default_value = es
     MATS[name] = m
 mat('SCHIST', (.3, .3, .28), 0, .95); mat('BRICK', (.33, .15, .1), 0, .9); mat('BUFF', (.55, .45, .32), 0, .85); mat('LIMESTONE', (.62, .58, .5), 0, .8)
-mat('TRIM', (.85, .83, .78), 0, .6); mat('SLATE', (.1, .11, .13), .1, .7); mat('DARK', (.03, .03, .035), .3, .5); mat('FASCIA', (.06, .06, .07), .2, .6)
+mat('TRIM_LIGHT', (.85, .83, .78), 0, .6); mat('SLATE', (.1, .11, .13), .1, .7); mat('DARK', (.03, .03, .035), .3, .5); mat('FASCIA', (.06, .06, .07), .2, .6)
 mat('STOREGLASS', (1, .85, .6), 0, .2, emit=(1., .8, .5)); mat('WINLIT', (1, .8, .5), 0, .3, emit=(1., .72, .42), es=3.); mat('WINDARK', (.02, .025, .03), .5, .1)
 mat('AWNING', (.8, .8, .8), 0, .8); mat('LAMP', (1, .95, .8), 0, .3, emit=(1., .9, .7), es=10.); mat('WOOD', (.25, .16, .1), 0, .8)
 
@@ -51,7 +51,7 @@ def box(sx, sy, sz, gx=0, gy=0, gz=0, bevel=0., seg=2):  # game-space size (x, y
     bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
     for v in bm.verts: v.co = Vector((v.co.x * sx, v.co.y * sz, v.co.z * sy)) + G(gx, gy, gz)
     return bevel_bm(bm, min(bevel, .45 * min(sx, sy, sz)), seg)
-TRIM_BV = {'SCHIST', 'BRICK', 'BUFF', 'LIMESTONE', 'TRIM', 'WOOD'}   # masonry and trim get a small chamfer by default; glass, lamps, fascia stay crisp
+TRIM_BV = {'SCHIST', 'BRICK', 'BUFF', 'LIMESTONE', 'TRIM_LIGHT', 'WOOD'}   # masonry and trim get a small chamfer by default; glass, lamps, fascia stay crisp
 def B(a, name, m, sx, sy, sz, gx, gy, gz, bevel=None, seg=1):
     if bevel is None: bevel = .03 if m in TRIM_BV else 0.
     return add(name, box(sx, sy, sz, gx, gy, gz, bevel, seg), m, a)
@@ -74,7 +74,7 @@ def prism_z(poly_xy, z0, z1):
 
 def window(a, tag, x, y, z, w=1.05, h=1.7, lit=True, lintel='LIMESTONE'):
     B(a, f'{tag}w', 'WINLIT' if lit else 'WINDARK', .06, h, w, x + .02, y, z)
-    B(a, f'{tag}mul', 'TRIM', .08, .06, w, x + .05, y + h * .08, z)                      # meeting rail of a double-hung sash
+    B(a, f'{tag}mul', 'TRIM_LIGHT', .08, .06, w, x + .05, y + h * .08, z)                      # meeting rail of a double-hung sash
     B(a, f'{tag}lin', lintel, .16, .22, w + .3, x + .06, y + h / 2 + .14, z)              # stone lintel
     B(a, f'{tag}sil', lintel, .22, .1, w + .24, x + .09, y - h / 2 - .06, z)              # sill
 
@@ -91,8 +91,8 @@ def shop(a, wall):
     for fl, y in enumerate((5.6, 8.6)):
         for k, z in enumerate((-2.9, 0, 2.9)): window(a, f'f{fl}{k}', 0, y, z, lit=random.random() < .55)
     B(a, 'belt', 'LIMESTONE', .2, .18, Wd, .08, 4.2, 0)
-    B(a, 'cornice', 'TRIM', .55, .35, Wd + .2, .2, H - .3, 0, bevel=.05, seg=2)
-    for z in [-4.2 + k * .7 for k in range(13)]: B(a, f'dent{z}', 'TRIM', .2, .16, .2, .45, H - .56, z)   # dentils under the cornice
+    B(a, 'cornice', 'TRIM_LIGHT', .55, .35, Wd + .2, .2, H - .3, 0, bevel=.05, seg=2)
+    for z in [-4.2 + k * .7 for k in range(13)]: B(a, f'dent{z}', 'TRIM_LIGHT', .2, .16, .2, .45, H - .56, z)   # dentils under the cornice
     B(a, 'parapet', wall, .4, .6, Wd, -.2, H + .3, 0, bevel=.05, seg=2); B(a, 'cope', 'LIMESTONE', .5, .12, Wd + .05, -.2, H + .64, 0)
     B(a, 'roof', 'SLATE', D, .05, Wd, -D / 2, H + .02, 0)
 shop('ShopSchist', 'SCHIST'); shop('ShopBrick', 'BRICK')
@@ -121,18 +121,18 @@ for z in (-3.4, 3.4):                                                           
     add(f'gab{z}', bevel_bm(prism_x([(z - 2.2, H - .2), (z + 2.2, H - .2), (z, H + 3.6)], -2.2, .15), .05), 'SCHIST', A)
     add(f'gabr{z}', bevel_bm(prism_x([(z - 2.6, H - .3), (z + 2.6, H - .3), (z, H + 3.95)], -2.6, .5), .06), 'SLATE', A)
     B(A, f'gabw{z}', 'WINLIT' if random.random() < .5 else 'WINDARK', .06, 1.4, .9, .17, H + 1.2, z)
-    B(A, f'gabt{z}', 'TRIM', .1, .12, 4.4, .2, H - .1, z)
-    for k, zz in enumerate((z - 1.3, z + 1.3)): window(A, f'up{z}{k}', 0, 5.2, zz, w=.95, h=1.6, lit=random.random() < .45, lintel='TRIM')
-    window(A, f'dn{z}', 0, 2.1, z - 1.2, w=1.5, h=1.9, lit=random.random() < .6, lintel='TRIM')
+    B(A, f'gabt{z}', 'TRIM_LIGHT', .1, .12, 4.4, .2, H - .1, z)
+    for k, zz in enumerate((z - 1.3, z + 1.3)): window(A, f'up{z}{k}', 0, 5.2, zz, w=.95, h=1.6, lit=random.random() < .45, lintel='TRIM_LIGHT')
+    window(A, f'dn{z}', 0, 2.1, z - 1.2, w=1.5, h=1.9, lit=random.random() < .6, lintel='TRIM_LIGHT')
     B(A, f'door{z}', 'WOOD', .08, 2.3, 1.05, .03, 1.35, z + 1.4)
     B(A, f'fan{z}', 'WINLIT', .06, .3, 1.05, .03, 2.65, z + 1.4)
 B(A, 'party', 'SCHIST', .6, 1.2, .5, .1, H + 3.6, 0)                                    # chimneys at the party wall and ends
 for z in (0, -5.8, 5.8): B(A, f'chim{z}', 'BRICK', .9, 2.6, .9, -D / 2, H + 4.6, z, bevel=.06, seg=2)
 B(A, 'porchfl', 'WOOD', 2.8, .3, Wd - .4, 1.4, .55, 0); B(A, 'porchst', 'LIMESTONE', 2.9, .4, Wd - .3, 1.45, .2, 0)
 add('porchroof', bevel_bm(prism_z([(0, 3.25), (2.9, 3.0), (2.9, 3.15), (0, 3.55)], -Wd / 2 + .2, Wd / 2 - .2), .04), 'SLATE', A)
-B(A, 'porchbeam', 'TRIM', .25, .3, Wd - .4, 2.7, 2.9, 0)
-for z in (-6., -2.2, 2.2, 6.): add(f'col{z}', cylv(.14, 2.3, 2.65, .7, z), 'TRIM', A)
-for z in (-4.1, 4.1): B(A, f'rail{z}', 'TRIM', .08, .08, 3.2, 2.7, 1.55, z); B(A, f'bal{z}', 'TRIM', .05, .8, 3.2, 2.7, 1.1, z)
+B(A, 'porchbeam', 'TRIM_LIGHT', .25, .3, Wd - .4, 2.7, 2.9, 0)
+for z in (-6., -2.2, 2.2, 6.): add(f'col{z}', cylv(.14, 2.3, 2.65, .7, z), 'TRIM_LIGHT', A)
+for z in (-4.1, 4.1): B(A, f'rail{z}', 'TRIM_LIGHT', .08, .08, 3.2, 2.7, 1.55, z); B(A, f'bal{z}', 'TRIM_LIGHT', .05, .8, 3.2, 2.7, 1.1, z)
 B(A, 'steps', 'LIMESTONE', 1.2, .35, 1.8, 3.4, .17, 0)
 for z in (-3.4, 3.4): B(A, f'plamp{z}', 'LAMP', .18, .25, .18, .3, 2.75, z + .7)       # porch lamps
 

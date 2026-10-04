@@ -139,7 +139,7 @@ for x in (-1.1, 1.1): add_mesh(f'gs_brk{x}', boxbm(.08, 1.7, .1, x, 5.1, -.12), 
 
 # ---------------------------------------------------------------- ROADSIDE (v2): cars, gas station, strip-mall bays, mall anchor, lot lights
 # Buildings face +x (toward the road on the left side of the Blvd; the game rotates them 180° for the right side).
-mat('CARPAINT', (.9, .9, .9), .55, .3); mat('CARGLASS', (.02, .025, .03), .3, .06); mat('TYRE', (.02, .02, .02), 0, .85); mat('TRIM', (.05, .05, .055), .3, .5)
+mat('CARPAINT', (.9, .9, .9), .55, .3); mat('CARGLASS', (.02, .025, .03), .3, .06); mat('TYRE', (.02, .02, .02), 0, .85); mat('TRIM_DARK', (.05, .05, .055), .3, .5)
 mat('LENSW', (.8, .82, .85), .2, .1); mat('LENSR', (.35, .02, .02), .1, .2)
 mat('STONE', (.36, .33, .3), 0, .95); mat('WHITE', (.85, .86, .88), .1, .5); mat('PUMP', (.05, .06, .07), .4, .4); mat('SCREEN', (.6, .8, 1.), 0, .3, emit=(.4, .7, 1.))
 mat('BRICK', (.33, .16, .11), 0, .9); mat('STOREGLASS', (.95, .85, .65), 0, .2, emit=(1., .82, .55)); mat('FASCIA', (.1, .1, .11), .2, .6)
@@ -173,7 +173,7 @@ def car(asset, L, W, H, belt, hood, roofL, roofZ, ride=.16, wr=.34, wb=1.38, suv
         lb = bmesh.new(); bmesh.ops.create_cone(lb, cap_ends=False, segments=36, radius1=wr + .055, radius2=wr + .055, depth=W - .1)
         xform(lb, Matrix.Rotation(math.pi / 2, 4, 'Y')); xform(lb, Matrix.Translation(G(0, wr, zw))); merge_into(wl, lb)
     bmesh.ops.delete(wl, geom=[v for v in wl.verts if v.co.z < wr - .02], context='VERTS')
-    add_mesh(asset + '_liner', wl, 'TRIM', asset, smooth=False)
+    add_mesh(asset + '_liner', wl, 'TRIM_DARK', asset, smooth=False)
     cs = []
     zf, zr = roofZ + roofL / 2, roofZ - roofL / 2
     for z, k in ((zr - (.35 if not suv else .08), 0), (zr, 1), (zf, 1), (zf + (.75 if not suv else .5), 0)):
@@ -186,11 +186,11 @@ def car(asset, L, W, H, belt, hood, roofL, roofZ, ride=.16, wr=.34, wb=1.38, suv
             b = cyl(wr, wr, .22, 32); xform(b, Matrix.Translation((0, 0, -.11))); xform(b, Matrix.Rotation(math.pi / 2, 4, 'Y')); xform(b, Matrix.Translation(G(sx * (W / 2 - .12), wr, zw)))
             add_mesh(f'{asset}_t{sx}{zw}', b, 'TYRE', asset, smooth=False)
             h = cyl(wr * .62, wr * .62, .02, 24); xform(h, Matrix.Rotation(math.pi / 2, 4, 'Y')); xform(h, Matrix.Translation(G(sx * (W / 2 - .01), wr, zw)))
-            add_mesh(f'{asset}_h{sx}{zw}', h, 'TRIM', asset, smooth=False)
+            add_mesh(f'{asset}_h{sx}{zw}', h, 'TRIM_DARK', asset, smooth=False)
         add_mesh(f'{asset}_hl{sx}', boxbm(.4, .1, .03, sx * (W / 2 - .3), hood - .12, L / 2 + .005), 'LENSW', asset, smooth=False)
         add_mesh(f'{asset}_tl{sx}', boxbm(.36, .12, .03, sx * (W / 2 - .28), belt - .12, -L / 2 - .005), 'LENSR', asset, smooth=False)
-    add_mesh(asset + '_grille', boxbm(W * .5, .16, .03, 0, hood - .26, L / 2 + .004), 'TRIM', asset, smooth=False)
-    add_mesh(asset + '_bumpr', boxbm(W * .96, .14, .06, 0, ride + .16, -L / 2), 'TRIM', asset, smooth=False)
+    add_mesh(asset + '_grille', boxbm(W * .5, .16, .03, 0, hood - .26, L / 2 + .004), 'TRIM_DARK', asset, smooth=False)
+    add_mesh(asset + '_bumpr', boxbm(W * .96, .14, .06, 0, ride + .16, -L / 2), 'TRIM_DARK', asset, smooth=False)
 car('ParkSedan', 4.7, 1.84, 1.44, .92, .84, 1.7, -.2)
 car('ParkSUV', 4.8, 1.92, 1.76, 1.08, 1.04, 2.5, -.35, ride=.22, wr=.37, wb=1.42, suv=True)
 
@@ -234,7 +234,7 @@ add_mesh('gs_sroof', boxbm(12, .05, 20, SX - 6, 4.63, 0), 'ROOF', A, smooth=Fals
 A = 'StripBay'
 add_mesh('sb_box', boxbm(18, 6., 10, -9, 3., 0, bevel=.12), 'BRICK', A, smooth=False)
 add_mesh('sb_glass', boxbm(.05, 3.0, 7.6, .02, 1.65, .4), 'STOREGLASS', A, smooth=False)
-add_mesh('sb_door', boxbm(.06, 2.4, 1.6, .03, 1.2, -3.8), 'TRIM', A, smooth=False)
+add_mesh('sb_door', boxbm(.06, 2.4, 1.6, .03, 1.2, -3.8), 'TRIM_DARK', A, smooth=False)
 add_mesh('sb_fascia', boxbm(.25, 1.4, 10, .12, 4.4, 0, bevel=.04), 'FASCIA', A, smooth=False)
 add_mesh('sb_cope', boxbm(.5, .18, 10, .1, 6.05, 0, bevel=.04), 'CONCRETE', A, smooth=False)
 add_mesh('sb_pier', boxbm(.4, 6.2, .5, .15, 3.1, 4.75, bevel=.05), 'BRICK', A, smooth=False)

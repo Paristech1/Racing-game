@@ -35,11 +35,11 @@ M = {'STONE': mat('STONE', (.78, .72, .6), 0, .75, (.35, .26, .15), .6), 'STONEH
      'BRONZE': mat('BRONZE', (.3, .2, .1), .8, .4), 'GOLD': mat('GOLD', (.85, .65, .3), 1, .3),
      'SAND': mat('SAND', (.85, .68, .42), 0, .7, (.5, .32, .12), .9), 'ROOFBLUE': mat('ROOFBLUE', (.12, .3, .42), .2, .45),
      'LED': mat('LED', (1, 1, 1), 0, .3, (1, 1, 1), 8.), 'WOOD': mat('WOOD', (.13, .12, .12), 0, .8),
-     'TRIM': mat('TRIM', (.75, .75, .72), 0, .6), 'STEEL': mat('STEEL', (.18, .36, .62), .6, .45)}
+     'TRIM_LIGHT': mat('TRIM_LIGHT', (.75, .75, .72), 0, .6), 'STEEL': mat('STEEL', (.18, .36, .62), .6, .45)}
 
 SEG_DETAIL = 2.25   # round parts (columns, urns, statue, LED tubes) get this many times the segments they ask for;
                     # deliberately faceted ones (sides=, n<=4 steel sections, the square/octagonal slate domes) are left alone
-BEVEL_MATS = {'STONE', 'STONEHI', 'GRANITE', 'SAND', 'WOOD', 'TRIM', 'SLATE', 'ROOFBLUE', 'STEEL'}   # windows, gaps, LEDs stay crisp
+BEVEL_MATS = {'STONE', 'STONEHI', 'GRANITE', 'SAND', 'WOOD', 'TRIM_LIGHT', 'SLATE', 'ROOFBLUE', 'STEEL'}   # windows, gaps, LEDs stay crisp
 def _bevel(verts, faces, off, seg=2):
     """Bevel the hard edges of a closed polyhedron (game coords) with the same bmesh call as volcano_p1.py; returns (verts, faces)."""
     bm = bmesh.new(); vs = [bm.verts.new(v) for v in verts]
@@ -269,8 +269,8 @@ def boathouse(name, w, d, wall, roof_h, kind):
     H = Acc(name); x0, x1, z0, z1 = -w / 2, w / 2, -d / 2, d / 2
     H.bx('WOOD', x0, x1, 0, wall, z0, z1, bevel=.12, seg=2)
     for i in range(int(w // 1.2)):                                                                        # battens
-        x = x0 + .6 + i * 1.2; H.box('TRIM', x, wall / 2, z1 + .05, .12, wall - .2, .1)
-    H.bx('TRIM', x0 - .1, x1 + .1, wall / 2 - .15, wall / 2 + .15, z0 - .1, z1 + .1)                      # belt course
+        x = x0 + .6 + i * 1.2; H.box('TRIM_LIGHT', x, wall / 2, z1 + .05, .12, wall - .2, .1)
+    H.bx('TRIM_LIGHT', x0 - .1, x1 + .1, wall / 2 - .15, wall / 2 + .15, z0 - .1, z1 + .1)                      # belt course
     for i in range(int(w // 5)):                                                                          # boat doors below, windows above
         x = x0 + 2.5 + i * 5
         if x > x1 - 2: break
@@ -304,7 +304,7 @@ def boathouse(name, w, d, wall, roof_h, kind):
             H.prism_z('WOOD', z1 - .1, z1 + .2, [(xc - 2.2, wall + .8), (xc + 2.2, wall + .8), (xc, wall + 3.4)]); H.box('WIN', xc, wall + 1.8, z1 + .22, 1.4, 1.2, .06)
             led_gable_z(H, xc - 2.5, xc + 2.5, z1 + .5, wall + .6, 3.0)
         H.frustum('SLATE', 0, z1 + 1.8, w + 1, 3.8, wall * .5, w + .2, 1.2, wall * .5 + 1.3)
-        for x in (x0 + .5, x0 + w / 3, x1 - w / 3, x1 - .5): H.box('TRIM', x, wall * .25, z1 + 3.3, .3, wall * .5, .3)
+        for x in (x0 + .5, x0 + w / 3, x1 - w / 3, x1 - .5): H.box('TRIM_LIGHT', x, wall * .25, z1 + 3.3, .3, wall * .5, .3)
         H.tube('LED', [(x0 - .5, wall - .2, z1 + .5), (x1 + .5, wall - .2, z1 + .5)], .08)
         H.tube('LED', [(-(w - 10) / 2, wall + roof_h * 1.1 + .1, 0), ((w - 10) / 2, wall + roof_h * 1.1 + .1, 0)], .08)
         for sx in (-1, 1): H.tube('LED', [(sx * (w / 2 + .5), wall, z1 + .5), (sx * (w - 10) / 2, wall + roof_h * 1.1 + .1, 0)], .08)
@@ -316,7 +316,7 @@ def boathouse(name, w, d, wall, roof_h, kind):
             H.box('WIN', xc, wall + roof_h * .4, z1 + .35, 2.2, 2.4, .06)
         H.tube('LED', [(x0 - .5, wall - .3, z1 + .5), (x1 + .5, wall - .3, z1 + .5)], .08)
         for xx in (x0 - .5, 0, x1 + .5): H.tube('LED', [(xx, .2, z1 + .5), (xx, wall - .3, z1 + .5)], .08)
-    H.bx('TRIM', x0 - 1, x1 + 1, -.6, 0, z0 - 3, z1 + 1)                                                  # dock / plinth
+    H.bx('TRIM_LIGHT', x0 - 1, x1 + 1, -.6, 0, z0 - 3, z1 + 1)                                                  # dock / plinth
     return H.build()
 for nm, w, d, wall, rh, kind in (('Boathouse_A', 34, 16, 6.5, 5.2, 'A'), ('Boathouse_B', 36, 16, 7, 5, 'B'),
                                   ('Boathouse_C', 40, 16, 6, 5, 'C'), ('Boathouse_D', 36, 16, 6.8, 5, 'D')):

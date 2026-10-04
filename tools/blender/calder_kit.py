@@ -1,15 +1,22 @@
 """AFTERHOURS — Calder Basin kit, built in Blender (bpy). Game coords: x right, y up, z forward. Blender: (x, -z, y).
 Assets (Empty + parented parts, one material per part; origin at grade):
   GantryCrane  — ship-to-shore container crane, red steel, boom reaching out over +x, legs straddling z = +-14
-  TrussArch    — one 120 m span of the Steel Bridge: two red tied-arch ribs at x = +-9.6 with hangers and portal braces,
-                 span along z (-60..60), deck level y = 0. js/afterhours.js scales x to the road width.
-  ClockTower   — old-town stone clock tower, 9 x 9 m, 40 m, lit clock faces, copper pyramid roof
-  Belvedere    — the finish pavilion: thin white roof slab on slender columns over a lit glass box, LED edge
-  Container    — 40 ft shipping container (12.2 x 2.9 x 2.6, long side along z), corrugated sides; PAINT is tinted per instance
+  TrussArch    — one 120 m span of the Steel Bridge: K-truss through-arch, top and bottom chords, X bracing overhead,
+                 portal frames; span along z (-60..60), deck level y = 0. js/afterhours.js scales x to the road width.
+  ClockTower   — slender honey-stone bell tower, 7 x 7 m, 52 m, arched belfry, clock faces, tile pyramid roof
+  OTHouse      — old-town house, facade on +x, 9 m frontage: arched door, shutters, iron balcony, outside stair, lantern
+  Belvedere    — the ridge pavilion: elliptical white roof slabs over a lit glass drum, LED edge
+  TunnelRing   — 6 m segment of the futuristic tunnel: white panel shell, ribs, three light lines, amber road-level strips
+  TunnelHex    — 6 m segment of the hex-lattice gallery: steel hexagon frames and lattice over a warm light skin
+  TunnelPortal — sculpted white tunnel mouth with an LED ring and wing walls (tunnel runs +z, face at z = 0)
+  PierColumn, PierCap — highway viaduct pier (column is 1 m tall, the game scales it), hammerhead cap under a 24 m deck
+  FloodMast, Cypress — container-yard flood-light mast; tall Mediterranean cypress for the ridge
+  Container    — 40 ft shipping container (12.2 x 2.9 x 2.6, long side along z); PAINT is tinted per instance
 CLI:  python3 calder_kit.py --out ../../models/calder_kit.glb [--render prefix]     Live: run inside Blender ('Calder Kit' scene)
 Detail policy (tools/blender/README.md): boxes and prisms go through a bmesh bevel so corners catch the night rig.
-Built from the level doc (levels/calder-basin-quay-to-ridge.md). Midjourney key frames (asset pack prompts A1a-A1e) were
-queued but not yet used: the next pass reworks these assets to match the picked frames.
+Look references: the Midjourney key frames in levels/calder-basin-asset-pack.md (ridge pavilion and cypresses, honey-stone
+old town with outside stairs and a bell tower, red K-truss arch bridge, container yard with tall stacks and flood masts,
+futuristic tunnel interior / portal / hex gallery, elevated highway). Each asset below says which frames it follows.
 """
 import bpy, bmesh, math, os, sys
 from mathutils import Vector, Matrix
@@ -109,66 +116,184 @@ for p in ((-2, 63, 0), (52, 39.6, -4.2), (52, 39.6, 4.2), (-26, 46, 0)):
     add(f'av{p}', cylv(.45, .45, *p, seg=8), 'REDLAMP', A)                                             # aviation lights
 for sx in (-1, 1): B(A, f'flood{sx}', 'LAMP', 1.6, .5, 1.2, sx * LX * .8, 33, 0, 0.)
 
-# ---------------- TrussArch: one 120 m bridge span ----------------
+
+# ---------------- extra materials for the Midjourney-driven pass ----------------
+mat('HONEY', (.62, .5, .34), 0, .85); mat('TILE', (.42, .2, .12), 0, .8); mat('IRON', (.04, .04, .045), .7, .45)
+mat('PANEL', (.86, .88, .9), .1, .3); mat('AMBER', (1, .6, .2), 0, .3, emit=(1., .55, .15), es=8.); mat('WARM', (1, .9, .72), 0, .3, emit=(1., .88, .66), es=6.)
+mat('CONCRETE', (.5, .5, .49), 0, .85); mat('WOODSH', (.12, .22, .2), 0, .8); mat('LEAF', (.08, .16, .09), 0, .95); mat('BARK', (.16, .12, .09), 0, 1)
+
+def lathe(prof, n, gx, gy, gz, sx=1., sz=1.):
+    """surface of revolution around the vertical axis; prof = [(r, y)] bottom -> top"""
+    bm = bmesh.new(); rings = []
+    for r, y in prof:
+        rings.append([bm.verts.new(G(gx + sx * r * math.cos(TAU * k / n), gy + y, gz + sz * r * math.sin(TAU * k / n))) for k in range(n)])
+    for a, b in zip(rings[:-1], rings[1:]):
+        for k in range(n): bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
+    bm.normal_update(); return bm
+def disc(rx, rz, y0, y1, gx, gz, n=40):
+    """elliptical slab (plan rx by rz), y0..y1"""
+    bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=n, radius1=1, radius2=1, depth=1)
+    for v in bm.verts: v.co = Vector((gx + v.co.x * rx, -(gz + v.co.y * rz), (y0 + y1) / 2 + v.co.z * (y1 - y0)))
+    return bm
+def strip(a, name, m, pts, w, t, z0, z1):
+    """extrude a 2D cross-section polyline (x, y) into a shell along z (game), thickness t inward"""
+    for i, (p, q) in enumerate(zip(pts[:-1], pts[1:])):
+        bm = bmesh.new(); dx, dy = q[0] - p[0], q[1] - p[1]; L = math.hypot(dx, dy); nx, ny = -dy / L * t, dx / L * t
+        V = [bm.verts.new(G(x, y, z)) for z in (z0, z1) for (x, y) in (p, q, (q[0] + nx, q[1] + ny), (p[0] + nx, p[1] + ny))]
+        for f in ((0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)): bm.faces.new([V[k] for k in f])
+        bm.normal_update(); add(f'{name}{i}', bm, m, a)
+
+# ---------------- TrussArch: one 120 m span, K-truss through-arch (Midjourney bridge frames: deep red-orange truss arch,
+# lower chord following the arch, K web between the chords, X bracing overhead, portal frames at the ends) ----------------
 A = 'TrussArch'
-HALF, RISE, X = 60., 24., 9.6
-def arch_y(z): return RISE * (1 - (z / HALF) ** 2)
-NS = 16
+HALF, RISE, DEPTH, X = 60., 26., 5.2, 9.6
+def up(z): return RISE * (1 - (z / HALF) ** 2) + 1.2                      # top chord
+def lo(z): return max(1.2, up(z) - DEPTH * (1 - .55 * (abs(z) / HALF) ** 2))  # bottom chord, meets the deck at the ends
+NS = 20; zs = [-HALF + 2 * HALF * i / NS for i in range(NS + 1)]
 for sx in (-1, 1):
-    zs = [-HALF + 2 * HALF * i / NS for i in range(NS + 1)]
+    x = sx * X
     for z0, z1 in zip(zs[:-1], zs[1:]):
-        beam(A, f'rib{sx}{z0:.0f}', 'CRANE', (sx * X, arch_y(z0) + 1.2, z0), (sx * X, arch_y(z1) + 1.2, z1), 1.3, 1.9)
-    beam(A, f'tie{sx}', 'CRANE', (sx * X, .4, -HALF), (sx * X, .4, HALF), 1.1, 1.6)                     # tie girder at deck level
-    for z in zs[1:-1]:
-        beam(A, f'hg{sx}{z:.0f}', 'STEEL', (sx * X, 1.2, z), (sx * X, arch_y(z) + .4, z), .22)         # hangers
-    for z0, z1 in zip(zs[1:-2], zs[2:-1]):
-        beam(A, f'dg{sx}{z0:.0f}', 'STEEL', (sx * X, 1.2, z0), (sx * X, arch_y(z1) + .3, z1), .16)    # diagonal web
-    for z in (-HALF, HALF): B(A, f'bear{sx}{z:.0f}', 'STONE', 2.6, 1.2, 3.4, sx * X, -.6, z, .08)
-for z in (-36, -18, 0, 18, 36):
-    y = arch_y(z) + 1.8
-    beam(A, f'wind{z}', 'CRANE', (-X, y, z), (X, y, z), .8, 1.)                                        # top lateral braces over the road
-    for sx in (-1, 1): beam(A, f'kb{z}{sx}', 'CRANE', (sx * X, y - 2.5, z), (sx * X * .55, y, z), .4)
-for z in (-30, 30):
-    beam(A, f'xw{z}', 'CRANE', (-X, arch_y(z - 9) + 1.8, z - 9), (X, arch_y(z + 9) + 1.8, z + 9), .5)
-    beam(A, f'xw2{z}', 'CRANE', (X, arch_y(z - 9) + 1.8, z - 9), (-X, arch_y(z + 9) + 1.8, z + 9), .5)
-for sx in (-1, 1):
-    add(f'crown{sx}', cylv(.4, .4, sx * X, RISE + 2.2, 0, seg=8), 'REDLAMP', A)
-    for z in range(-50, 51, 20): B(A, f'deckl{sx}{z}', 'LAMP', .25, .25, 1.8, sx * (X - .9), .9, z, 0.)  # lamps on the tie girder
+        beam(A, f'top{sx}{z0:.0f}', 'CRANE', (x, up(z0), z0), (x, up(z1), z1), 1.3, 1.6)
+        beam(A, f'bot{sx}{z0:.0f}', 'CRANE', (x, lo(z0), z0), (x, lo(z1), z1), 1.0, 1.2)
+    for i, z in enumerate(zs[1:-1]):
+        beam(A, f'vert{sx}{z:.0f}', 'CRANE', (x, lo(z), z), (x, up(z), z), .55)
+        zm = (z + zs[i + 2]) / 2 if i + 2 < len(zs) else z
+        beam(A, f'k{sx}{z:.0f}', 'CRANE', (x, (lo(z) + up(z)) / 2, z), (x, up(zs[i + 2]) if i + 2 <= NS else up(z), zs[i + 2] if i + 2 <= NS else z), .4)
+        beam(A, f'k2{sx}{z:.0f}', 'CRANE', (x, (lo(z) + up(z)) / 2, z), (x, lo(zs[i + 2]) if i + 2 <= NS else lo(z), zs[i + 2] if i + 2 <= NS else z), .4)
+        if lo(z) > 2.5: beam(A, f'hg{sx}{z:.0f}', 'STEEL', (x, 1.2, z), (x, lo(z), z), .2)
+    beam(A, f'tie{sx}', 'CRANE', (x, .5, -HALF), (x, .5, HALF), 1.1, 1.8)
+    for z in (-HALF, HALF): B(A, f'bear{sx}{z:.0f}', 'CONCRETE', 2.6, 1.2, 3.4, x, -.6, z, .08)
+    for z in range(-54, 55, 12): B(A, f'deckl{sx}{z}', 'LAMP', .25, .25, 1.6, sx * (X - .9), 1.1, z, 0.)
+for z in zs[2:-2:2]:
+    y = up(z); beam(A, f'strut{z:.0f}', 'CRANE', (-X, y, z), (X, y, z), .7, .9)
+for z0, z1 in zip(zs[2:-3:2], zs[4:-1:2]):
+    beam(A, f'xa{z0:.0f}', 'CRANE', (-X, up(z0), z0), (X, up(z1), z1), .35); beam(A, f'xb{z0:.0f}', 'CRANE', (X, up(z0), z0), (-X, up(z1), z1), .35)
+for z in (-HALF + 9, HALF - 9):                                             # portal frames where the arch clears the trucks
+    y = lo(z) - .2; beam(A, f'portal{z:.0f}', 'CRANE', (-X, y, z), (X, y, z), 1.1, 1.6)
+    for sx in (-1, 1): beam(A, f'pk{z:.0f}{sx}', 'CRANE', (sx * X, y - 3, z), (sx * X * .6, y, z), .5)
+for sx in (-1, 1): add(f'crown{sx}', cylv(.4, .4, sx * X, RISE + 2.4, 0, seg=8), 'REDLAMP', A)
 
-# ---------------- ClockTower ----------------
+# ---------------- ClockTower (Midjourney old town: slender honey-stone bell tower, arched belfry, stone pyramid roof, clock) ----------------
 A = 'ClockTower'
-B(A, 'plinth', 'STONE', 11, 3, 11, 0, 1.5, 0, .1)
-B(A, 'shaft', 'STONE', 9, 28, 9, 0, 17, 0, .08)
-for y in (10, 20): B(A, f'band{y}', 'TRIM_LIGHT', 9.5, .5, 9.5, 0, y, 0, .05)
-B(A, 'belfry', 'STONE', 9.6, 7, 9.6, 0, 34.5, 0, .1)
-for k, (dx, dz, ry) in enumerate(((4.85, 0, 0), (-4.85, 0, 0), (0, 4.85, 1), (0, -4.85, 1))):
-    sx, sz = (.3, 4.6) if not ry else (4.6, .3)
-    B(A, f'face{k}', 'CLOCK', sx, 4.6, sz, dx, 34.5, dz, 0.)                                           # lit clock face
-    for y in (8, 14, 22): B(A, f'win{k}{y}', 'WINLIT', sx if not ry else 1.4, 2.2, sz if ry else 1.4, dx * 1.003, y, dz * 1.003, 0.)
-    B(A, f'arch{k}', 'DARK', sx if not ry else 3.4, 3.6, sz if ry else 3.4, dx * 1.004, 4.8, dz * 1.004, 0.)
-B(A, 'cornice', 'TRIM_LIGHT', 10.6, .8, 10.6, 0, 38.4, 0, .1)
-add('roof', pyramid(10.4, 9, 0, 38.8, 0), 'COPPER', A)
-add('finial', cylv(.18, 3, 0, 47.6, 0, seg=6), 'STEEL', A)
-for dx in (-4.5, 4.5):
-    for dz in (-4.5, 4.5): add(f'pin{dx}{dz}', cylv(.5, 2.4, dx, 38.8, dz, seg=8, r2=.05), 'COPPER', A)
+T = 7.
+B(A, 'plinth', 'HONEY', T + 1.6, 3, T + 1.6, 0, 1.5, 0, .1)
+B(A, 'shaft', 'HONEY', T, 30, T, 0, 18, 0, .06)
+for y in (12, 22, 33): B(A, f'band{y}', 'TRIM_LIGHT', T + .5, .45, T + .5, 0, y, 0, .05)
+B(A, 'belfry', 'HONEY', T + .3, 8, T + .3, 0, 37, 0, .08)
+for k, (dx, dz) in enumerate(((1, 0), (-1, 0), (0, 1), (0, -1))):
+    ox, oz = dx * (T / 2 + .17), dz * (T / 2 + .17); wx, wz = (.12, 2.6) if dx else (2.6, .12)
+    B(A, f'bell{k}', 'DARK', wx, 4.6, wz, ox, 37.4, oz, 0.)                                           # belfry arch opening
+    B(A, f'face{k}', 'CLOCK', .12 if dx else 3.2, 3.2, 3.2 if dx else .12, ox, 28, oz, 0.)            # lit clock face
+    for y in (8, 16): B(A, f'win{k}{y}', 'WINLIT', .12 if dx else 1, 2, 1 if dx else .12, ox, y, oz, 0.)
+    B(A, f'door{k}', 'DARK', .12 if dx else 2.6, 3.6, 2.6 if dx else .12, ox * 1.12, 4.8, oz * 1.12, 0.)
+B(A, 'cornice', 'TRIM_LIGHT', T + 1.2, .7, T + 1.2, 0, 41.3, 0, .1)
+add('roof', pyramid(T + 1.1, 10, 0, 41.6, 0), 'TILE', A)
+add('finial', cylv(.15, 2.5, 0, 51.4, 0, seg=6), 'IRON', A)
 
-# ---------------- Belvedere pavilion (finish) ----------------
+# ---------------- OTHouse: old-town house, honey stone, facade on +x, 9 m frontage along z, 13 m tall
+# (Midjourney frames: arched doors, outside stair flights, iron balconies, shutters, lanterns, tile cornice) ----------------
+A = 'OTHouse'
+W9, D9, H9 = 9., 10., 13.
+B(A, 'mass', 'HONEY', D9, H9, W9, -D9 / 2, H9 / 2, 0, .05)
+B(A, 'cornice', 'TRIM_LIGHT', .8, .5, W9 + .4, .1, H9 - .4, 0, .05)
+add('roof', bevel_bm(box(D9 + .6, .5, W9 + .6, -D9 / 2, H9 + .25, 0), .05), 'TILE', A)
+B(A, 'door', 'DARK', .14, 2.4, 1.8, .05, 1.2, -2.2, 0.)
+B(A, 'doorarch', 'DARK', .14, .5, 1.3, .05, 2.6, -2.2, 0.)
+B(A, 'transom', 'WARM', .16, .5, 1.2, .06, 2.7, -2.2, 0.)
+for z in (-2.2, 1.0, 3.4):
+    for fl, y in enumerate((5.6, 9.4)):
+        lit = (z * 7 + fl * 3) % 3 != 0
+        B(A, f'w{z}{y}', 'WINLIT' if lit else 'DARK', .12, 1.8, 1.0, .05, y, z, 0.)
+        for s in (-1, 1): B(A, f'sh{z}{y}{s}', 'WOODSH', .1, 1.9, .5, .12, y, z + s * .8, 0.)
+B(A, 'shop', 'WARM', .12, 2.2, 2.6, .05, 1.5, 2.6, 0.)
+B(A, 'balcony', 'HONEY', 1.3, .2, 3.2, .65, 4.5, 1.0, .03)
+for k in range(9): B(A, f'bal{k}', 'IRON', .05, 1, .05, 1.28, 5.1, -.5 + k * .375, 0.)
+B(A, 'balrail', 'IRON', .07, .07, 3.2, 1.28, 5.6, 1.0, 0.)
+for k in range(7): B(A, f'step{k}', 'HONEY', 1.2, .3 + k * .55, .45, .6, (.3 + k * .55) / 2, -3.9 + k * .45, .02)   # outside stair up to the first floor
+B(A, 'landing', 'HONEY', 1.2, .2, 1.4, .6, 3.95, -.0, .02)
+B(A, 'lantern', 'LAMP', .25, .4, .25, .4, 3.3, -3.3, 0.)
+
+# ---------------- Belvedere (Midjourney ridge frames: white organic pavilion, a sweeping elliptical roof slab cantilevered
+# over a lit glass drum, LED edge) ----------------
 A = 'Belvedere'
-B(A, 'podium', 'STONE', 30, 1, 44, 0, .5, 0, .1)
-B(A, 'glassbox', 'GLASS', 16, 6, 26, -3, 4, 0, 0.)
-for z in (-12, -6, 0, 6, 12): B(A, f'mull{z}', 'DARK', 16.2, 6, .25, -3, 4, z, 0.)
-B(A, 'slab', 'WHITE', 36, .9, 50, 0, 10, 0, .3)
-B(A, 'fascia', 'LED', 36.3, .2, 50.3, 0, 9.5, 0, 0.)
-for x in (-16, 16):
-    for z in range(-22, 23, 11): add(f'col{x}{z}', cylv(.28, 8.6, x, 1, z, seg=12), 'WHITE', A, smooth=True)
-for z in range(-20, 21, 5): B(A, f'dl{z}', 'LAMP', 1.2, .1, 1.2, 8, 9.5, z, 0.)
-B(A, 'stair', 'STONE', 6, .5, 20, 17, .25, 0, .05)
+add('podium', disc(20, 30, 0, 1, 0, 0), 'STONE', A)
+add('drum', lathe([(10.5, 1), (10.5, 7.5)], 40, -3, 0, 0, 1, 1.5), 'GLASS', A)
+add('roof', disc(22, 34, 8.4, 9.4, 3, 2, 48), 'WHITE', A)
+add('roof2', disc(17, 26, 9.4, 10.0, 1, 0, 48), 'WHITE', A)
+add('edge', disc(22.25, 34.25, 8.6, 8.9, 3, 2, 48), 'LED', A)
+for k in range(10):
+    a = TAU * k / 10; add(f'col{k}', cylv(.3, 7.4, -3 + 9.6 * math.cos(a), 1, 14.4 * math.sin(a), seg=10), 'WHITE', A, smooth=True)
+for k in range(14):
+    a = TAU * k / 14; B(A, f'dl{k}', 'LAMP', .9, .1, .9, 3 + 16 * math.cos(a), 8.3, 2 + 24 * math.sin(a), 0.)
 
-# ---------------- Container (40 ft) ----------------
+# ---------------- TunnelRing: one 6 m segment of the futuristic tunnel (Midjourney: smooth white composite panels, ribs,
+# continuous light lines overhead, amber at road level). Road 2W = 14 m; shell clears it with sidewalks: x = +-10.6 ----------------
+A = 'TunnelRing'
+RT, YC = 10.6, 1.8
+arc = [(RT * math.cos(math.radians(a)), YC + RT * .78 * math.sin(math.radians(a))) for a in range(0, 181, 12)]
+prof = [(RT, 0)] + arc + [(-RT, 0)]
+strip(A, 'shell', 'PANEL', prof, 0, -.35, -2.95, 2.75)
+strip(A, 'rib', 'DARK', [(x * 1.0, y) for x, y in prof], 0, -.6, 2.75, 3.0)
+for a in (72, 90, 108):                                                    # three light lines overhead
+    x, y = RT * .985 * math.cos(math.radians(a)), YC + RT * .78 * .985 * math.sin(math.radians(a))
+    B(A, f'led{a}', 'LED', .45, .12, 5.7, x, y - .05, -.1, 0.)
+for sx in (-1, 1):
+    B(A, f'amber{sx}', 'AMBER', .1, .16, 5.7, sx * (RT - .05), .9, -.1, 0.)
+    B(A, f'walk{sx}', 'CONCRETE', 3.4, .3, 6, sx * (RT - 1.7), .15, -.1, .02)
+
+# ---------------- TunnelHex: 6 m of the hex-lattice gallery (Midjourney: hexagon ribs with warm light between them) ----------------
+A = 'TunnelHex'
+hexp = [(10.8, 0), (10.8, 4.6), (6.2, 10.4), (-6.2, 10.4), (-10.8, 4.6), (-10.8, 0)]
+strip(A, 'glow', 'WARM', hexp, 0, -.15, -3, 3)
+for z in (-3, 0, 3):
+    for p, q in zip(hexp[:-1], hexp[1:]): beam(A, f'f{z}{p[0]:.0f}{p[1]:.0f}', 'STEEL', (p[0] * .985, p[1] * .985, z), (q[0] * .985, q[1] * .985, z), .45, .7)
+for p, q in zip(hexp[1:-2], hexp[2:-1]):
+    for k in range(3):
+        t0, t1 = k / 3, (k + 1) / 3
+        P0 = (p[0] + (q[0] - p[0]) * t0, p[1] + (q[1] - p[1]) * t0); P1 = (p[0] + (q[0] - p[0]) * t1, p[1] + (q[1] - p[1]) * t1)
+        beam(A, f'la{p[0]:.0f}{k}', 'STEEL', (P0[0] * .975, P0[1] * .975, -3), (P1[0] * .975, P1[1] * .975, 0), .22)
+        beam(A, f'lb{p[0]:.0f}{k}', 'STEEL', (P1[0] * .975, P1[1] * .975, 0), (P0[0] * .975, P0[1] * .975, 3), .22)
+for sx in (-1, 1): B(A, f'hwalk{sx}', 'CONCRETE', 3.6, .3, 6, sx * 9, .15, 0, .02)
+
+# ---------------- TunnelPortal: sculpted white mouth with a light ring (Midjourney portal frame); tunnel runs +z, face at z = 0 ----------------
+A = 'TunnelPortal'
+outer = [(RT + 3.2, -1)] + [((RT + 3.2) * math.cos(math.radians(a)), YC + (RT * .78 + 3.4) * math.sin(math.radians(a))) for a in range(0, 181, 9)] + [(-(RT + 3.2), -1)]
+inner = [(RT + .2, 0)] + [((RT + .2) * math.cos(math.radians(a)), YC + (RT * .78 + .2) * math.sin(math.radians(a))) for a in range(0, 181, 9)] + [(-(RT + .2), 0)]
+for i in range(len(outer) - 1):                                             # thick hood between the outer and inner arcs, flared back
+    bm = bmesh.new(); o0, o1, i0, i1 = outer[i], outer[i + 1], inner[i], inner[i + 1]
+    V = [bm.verts.new(G(x, y, z)) for (x, y, z) in ((o0[0], o0[1], -2.5), (o1[0], o1[1], -2.5), (i1[0], i1[1], 0), (i0[0], i0[1], 0),
+                                                       (o0[0] * 1.02, o0[1] * 1.02, 6), (o1[0] * 1.02, o1[1] * 1.02, 6), (i1[0], i1[1], 6), (i0[0], i0[1], 6))]
+    for f in ((0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (3, 2, 6, 7)): bm.faces.new([V[k] for k in f])
+    bm.normal_update(); add(f'hood{i}', bm, 'WHITE', A)
+strip(A, 'ring', 'LED', [(x * 1.004, y * 1.004 if y > .5 else y) for x, y in inner], 0, .25, -.15, .05)
+for sx in (-1, 1):
+    add(f'wing{sx}', bevel_bm(box(9, 7, 1.4, sx * (RT + 7.5), 3.5, -1.2), .2), 'WHITE', A)
+    B(A, f'wled{sx}', 'LED', 8, .12, .1, sx * (RT + 7.5), 6.2, -1.95, 0.)
+
+# ---------------- highway viaduct: PierColumn (1 m tall, scaled in y by the game), PierCap (hammerhead under a 22 m deck) ----------------
+A = 'PierColumn'
+add('col', bevel_bm(box(3.2, 1, 2.2, 0, .5, 0), .4), 'CONCRETE', A)
+A = 'PierCap'
+bm = bmesh.new(); V = [bm.verts.new(G(x, y, z)) for z in (-1.4, 1.4) for (x, y) in ((-12, 0), (12, 0), (12, -.8), (2.2, -2.8), (-2.2, -2.8), (-12, -.8))]
+bm.faces.new(V[:6]); bm.faces.new(V[6:][::-1])
+for k in range(6): bm.faces.new((V[k], V[(k + 1) % 6], V[6 + (k + 1) % 6], V[6 + k]))
+bm.normal_update(); add('cap', bevel_bm(bm, .08), 'CONCRETE', A)
+
+# ---------------- yard + ridge props ----------------
+A = 'FloodMast'                                                            # yard flood-light mast (Midjourney container frames)
+add('pole', cylv(.45, 30, 0, 0, 0, seg=10, r2=.3), 'STEEL', A, smooth=True)
+B(A, 'frame', 'STEEL', 1.2, 2.4, 5.4, 0, 30.6, 0, .03)
+for z in (-2, -.7, .7, 2):
+    for y in (30, 31.2): B(A, f'fl{z}{y}', 'LAMP', .3, .9, 1.1, .55, y, z, 0.)
+A = 'Cypress'                                                              # tall narrow Mediterranean cypress (ridge frames)
+add('trunk', cylv(.22, 2.2, 0, 0, 0, seg=6), 'BARK', A)
+add('crown', lathe([(.2, 1.2), (1.3, 3), (1.6, 6), (1.3, 10), (.7, 13), (0, 15)], 9, 0, 0, 0), 'LEAF', A)
+
+# ---------------- Container (40 ft), unchanged from the first pass: the Midjourney yard frames match it ----------------
 A = 'Container'
 CW, CH, CL = 2.44, 2.59, 12.19
 B(A, 'body', 'PAINT', CW, CH, CL, 0, CH / 2, 0, .04)
-for z in [-CL / 2 + 1.2 + i * 1.95 for i in range(6)]:   # six stiffener ribs a side (full corrugation was 500 tris; a yard holds ~2000 of these)
+for z in [-CL / 2 + 1.2 + i * 1.95 for i in range(6)]:
     for sx in (-1, 1): B(A, f'rib{sx}{z:.1f}', 'PAINT', .1, CH - .3, .4, sx * (CW / 2 + .04), CH / 2, z, 0.)
 for sx in (-1, 1):
     for sz in (-1, 1): B(A, f'cast{sx}{sz}', 'DARK', .2, CH + .02, .2, sx * (CW / 2 - .08), CH / 2, sz * (CL / 2 - .08), 0.)
@@ -182,9 +307,12 @@ if CLI:
                               export_normals=True, export_materials='EXPORT', export_lights=False, export_cameras=False)
     print('wrote', OUT, os.path.getsize(OUT))
 
-def preview():  # the kit laid out at dusk: crane on the quay, a bridge span, the tower and the pavilion beyond
-    roots['GantryCrane'].location = G(-40, 0, -20); roots['TrussArch'].location = G(40, 0, 20); roots['ClockTower'].location = G(-30, 0, 90)
-    roots['Belvedere'].location = G(50, 0, 120)
+def preview():  # the kit laid out at dusk: crane on the quay, a bridge span, tower and houses, the pavilion, a tunnel run
+    lay = {'GantryCrane': (-60, 0, -40, 0), 'TrussArch': (40, 0, 20, 0), 'ClockTower': (-40, 0, 95, 0), 'OTHouse': (-70, 0, 70, 0),
+           'Belvedere': (90, 0, 150, 0), 'TunnelPortal': (150, 0, -60, 0), 'TunnelRing': (150, 0, -54, 0), 'TunnelHex': (150, 0, -42, 0),
+           'PierCap': (-120, 14, 30, 0), 'FloodMast': (-30, 0, -70, 0), 'Cypress': (70, 0, 120, 0)}
+    for k, (x, y, z, r) in lay.items(): roots[k].location = G(x, y, z); roots[k].rotation_euler = (0, 0, r)
+    roots['PierColumn'].location = G(-120, 0, 30); roots['PierColumn'].scale = (1, 1, 14)
     cols = [(.6, .1, .08), (.08, .25, .5), (.75, .5, .1), (.15, .4, .2), (.5, .5, .52)]
     for i in range(12):
         e = bpy.data.objects.new(f'ct{i}', None); scene.collection.objects.link(e); e.location = G(-14 + (i % 4) * 2.6, (i // 4) * 2.6, -40)
@@ -195,7 +323,7 @@ def preview():  # the kit laid out at dusk: crane on the quay, a bridge span, th
     w = bpy.data.worlds.new('Dusk'); scene.world = w; w.use_nodes = True; w.node_tree.nodes['Background'].inputs['Color'].default_value = (.12, .07, .06, 1)
     sun = bpy.data.lights.new('sun', 'SUN'); sun.energy = 1.2; sun.color = (1, .62, .4); so = bpy.data.objects.new('sun', sun); scene.collection.objects.link(so); so.rotation_euler = (math.radians(80), 0, math.radians(-60))
     cam = bpy.data.cameras.new('C'); cam.lens = 24; co = bpy.data.objects.new('KitCam', cam); scene.collection.objects.link(co); scene.camera = co
-    co.location = G(100, 30, -120); co.rotation_euler = (G(0, 15, 30) - co.location).to_track_quat('-Z', 'Y').to_euler()
+    co.location = G(140, 45, -170); co.rotation_euler = (G(20, 10, 40) - co.location).to_track_quat('-Z', 'Y').to_euler()
     scene.render.resolution_x = 1280; scene.render.resolution_y = 720
 if not CLI:
     preview()

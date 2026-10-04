@@ -8058,9 +8058,10 @@ function loop(now){
   requestAnimationFrame(loop);
   const rawMs=now-last;
   let dt=Math.min(.033,rawMs/1000); last=now;
+  const uiDt=Math.min(.25,rawMs/1000); // wall-clock (capped) for loading/countdown/highlight/toast timers so slow frames don't stretch them
   if(mode!=='boot'&&mode!=='loading') pace(rawMs);
-  modeT+=dt; ghostT+=dt;
-  if(toastT>0){ toastT-=dt; if(toastT<=0) $('#hToast').style.opacity=0; }
+  modeT+=uiDt; ghostT+=dt;
+  if(toastT>0){ toastT-=uiDt; if(toastT<=0) $('#hToast').style.opacity=0; }
 
   if(mode==='boot'||mode==='loading'||mode==='events'||mode==='gauntlet'||mode==='tagteam'){
     attractStep(dt);
@@ -8070,7 +8071,7 @@ function loop(now){
     if(mode!=='race'&&mode!=='highlight') draw(RS);
   }
   else if(mode==='highlight'){
-    highlightStep(dt);
+    highlightStep(uiDt);
   }
   else if(mode==='showcase'){
     const oc=ensureShowcaseOrbit();
@@ -8090,7 +8091,7 @@ function loop(now){
     const sdt=dt*slowmo;
     if(EV.update) EV.update(sdt); worldFx(sdt);
     if(countdown>0){
-      const prev=Math.ceil(countdown-.6); countdown-=dt; const c=Math.ceil(countdown-.6);
+      const prev=Math.ceil(countdown-.6); countdown-=uiDt; const c=Math.ceil(countdown-.6);
       if(c!==prev){ if(c>0){ $('#hMsg').textContent=c; sfx.beep(false); } else { $('#hMsg').textContent='Go'; sfx.beep(true); } }
       if(countdown<=0) $('#hMsg').textContent='';
       racers.forEach(r=>{ if(!r.out) poseRacer(r,0); }); traffic.forEach(o=>poseTraffic(o,0));
@@ -8101,7 +8102,7 @@ function loop(now){
       engine(player.v,true); screech(clamp(player.slip,0,1));
       if(!player.finished) tapeSample(sdt);
       if(TAG&&player.finished&&!TAG.anchor&&player.mateR&&!player.mateR.finished){ TAG.anchor=true; tagSwap(true); }
-      if(player.finished){ if(finishHold===0){ $('#hMsg').textContent=EV.knockout?(player.out?'Out':'Winner'):'Finish'; sfx.beep(true); } finishHold+=dt; slowmo=lerp(slowmo,EV.knockout&&player.out?.8:.3,1-Math.exp(-dt*3)); if(finishHold>(EV.knockout&&player.out?3.4:2.2)) finishRace(); }
+      if(player.finished){ if(finishHold===0){ $('#hMsg').textContent=EV.knockout?(player.out?'Out':'Winner'):'Finish'; sfx.beep(true); } finishHold+=uiDt; slowmo=lerp(slowmo,EV.knockout&&player.out?.8:.3,1-Math.exp(-uiDt*3)); if(finishHold>(EV.knockout&&player.out?3.4:2.2)) finishRace(); }
       for(const o of racers){ if(o===player||o.out) continue; const dd=o.dist-player.dist; if(dd>3&&dd<(player.fxOver>0&&player.draftRange?player.draftRange:18)&&Math.abs(o.x-player.x)<2.2){ player.nitro=Math.min(Math.max(1,player.nitro),player.nitro+.12*sdt); } }
     }
     if(mode==='race'){
@@ -8112,7 +8113,7 @@ function loop(now){
       const focus=EV.knockout&&player.out?(koLeader()||player):player;
       updateFx(sdt,focus); chaseCam(dt,focus,player.out?null:inp);
       if(countdown>0&&EV.introCrane&&focus===player) craneIntro(player);
-      if(EV.knockout&&KO&&KO.bannerT>0){ KO.bannerT-=dt; if(KO.bannerT<=0) $('#hRound').className='round'; }
+      if(EV.knockout&&KO&&KO.bannerT>0){ KO.bannerT-=uiDt; if(KO.bannerT<=0) $('#hRound').className='round'; }
       const place=standings().indexOf(player)+1, nOn=EV.knockout?koActive().length:racers.length;
       setH($('#hPos'),`${place}<small>/${nOn}</small>`);
       const danger=EV.knockout&&KO&&!KO.done&&!player.out&&countdown<=0&&place>=nOn-(koMod('double')?1:0);

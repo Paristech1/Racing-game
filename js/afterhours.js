@@ -361,12 +361,12 @@ function buildRivalForEvent(rival,eventId,taken){
 function eventAiBias(){ return EV.open?{straight:1.06,tight:.93,line:.85}:{straight:.97,tight:1.06,line:1.12}; }
 function nearestChaser(r,maxG){
  let best=null,bd=maxG||34;
- for(const o of racers){ if(o===r||o.finished||(TAG&&o.team===r.team)) continue; const gap=r.dist-o.dist; if(gap>1.5&&gap<bd){ bd=gap; best=o; } }
+ for(const o of racers){ if(o===r||o.finished||o.out||(TAG&&o.team===r.team)) continue; const gap=r.dist-o.dist; if(gap>1.5&&gap<bd){ bd=gap; best=o; } }
  return best;
 }
 function nearestAlongside(r,span){
  let best=null,bd=span||9;
- for(const o of racers){ if(o===r||o.finished||(TAG&&o.team===r.team)) continue; const gap=Math.abs(r.dist-o.dist); if(gap<bd){ bd=gap; best=o; } }
+ for(const o of racers){ if(o===r||o.finished||o.out||(TAG&&o.team===r.team)) continue; const gap=Math.abs(r.dist-o.dist); if(gap<bd){ bd=gap; best=o; } }
  return best;
 }
 /* The race leader as seen from r (null if r is already ahead of everyone): the HUNTER's target. */
@@ -5513,7 +5513,7 @@ function releaseEvent(e){ const S=e.scene; if(!S) return; if(fxGroup.parent===S)
   S.traverse(o=>{ if(o.geometry) o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(!m) return;
     ['map','emissiveMap','normalMap','roughnessMap','bumpMap'].forEach(k=>{ if(m[k]&&m[k].dispose) m[k].dispose(); }); m.dispose(); }); });
   if(S.background&&S.background.dispose) S.background.dispose();
-  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','dawn'].forEach(k=>delete e[k]); e._ready=false; }
+  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','dawn','introCrane','legS','padsHit'].forEach(k=>delete e[k]); e._ready=false; }
 function releaseOthers(){ EVENTS.forEach(e=>{ if(e.scene&&e.scene!==RS) releaseEvent(e); }); }
 ensureEvent(EVENTS[0]);
 const KO_MAPS=[
@@ -6110,7 +6110,7 @@ const wispLights=[[0xff3fb4,2.4,9,-3.4,1.4,3.4],[0xff55d0,1.1,10,-.6,3.6,-3.6],[
 })();
 
 function setWorld(w){
-  const W={
+  const WT={
     flash:{env:ENV.flash,bg:0x0b0705,hemi:[0xffd9b0,.5],key:[0xfff0dc,2.6],rim:[0xff8a3a,1.2],floor:[0x2a2622,.7],strips:0,bokeh:1,streaks:0,dust:0,hz:0,exp:1.15,near:10,far:34},
     ice:  {env:ENV.ice,bg:0x070a0f,hemi:[0xcfe0ff,.6],key:[0xdfeaff,1.1],rim:[0x9fc4ff,1.6],floor:[0x10141a,.28],strips:1,bokeh:0,streaks:1,dust:0,hz:0,exp:1.05,near:10,far:34},
     wisp: {env:ENV.pinkcity,bg:0x140c26,hemi:[0x8a70ff,.32],key:[0xffe6f4,.45],rim:[0x7a8cff,1.3],floor:[0x120c18,.2],strips:0,bokeh:0,streaks:0,dust:0,hz:0,exp:1.0,near:16,far:90,set:1,
@@ -6118,7 +6118,7 @@ function setWorld(w){
     neon: {env:ENV.ice,bg:0x0a0612,hemi:[0xe0c8ff,.5],key:[0xf2e8ff,1.3],rim:[0xc04cff,1.1],floor:[0x120c18,.2],strips:1,bokeh:1,streaks:1,dust:0,hz:0,exp:1.08,near:10,far:34},
     white:{env:ENV.ice,bg:0x8d9cae,hemi:[0xe6eef8,.7],key:[0xffffff,1.2],rim:[0xcfe0ff,1.4],floor:[0x7f8c9b,.5],strips:0,bokeh:0,streaks:0,dust:0,hz:0,exp:.95,near:12,far:48},
     desert:{env:ENV.street,bg:0x2b3a44,hemi:[0xbcd0e0,.9],key:[0xfff1e0,1.6],rim:[0x9fc0d8,.8],floor:[0xb3aa9e,.95],strips:0,bokeh:0,streaks:0,dust:1,hz:1,exp:1.0,near:14,far:60}
-  }[w]||null; const c=W||{};
+  }; const W=WT[w]||WT.ice; const c=W;   // unknown world key falls back to ice
   studio.environment=c.env; studio.fog.color.set(c.bg); studio.background.set(c.bg); studio.fog.near=c.near; studio.fog.far=c.far;
   sHemi.color.set(c.hemi[0]); sHemi.intensity=c.hemi[1]; sKey.color.set(c.key[0]); sKey.intensity=c.key[1]; sRim.color.set(c.rim[0]); sRim.intensity=c.rim[1];
   floorM.color.set(c.floor[0]); floorM.roughness=c.floor[1]; floorM.metalness=w==='desert'?0:.6;
@@ -6981,7 +6981,7 @@ function moodPickup(r,p,M,s0,L){
   let dd=p.s-s0; if(dd<0) dd+=L; if(dd<5||dd>72) return 0;
   const D=M.D, lat=Math.abs(p.x-r.x);
   let v=3.5+D*6+lat*1.35*D*.6;                          // every rival wants a reachable pickup; desperate ones accept bigger detours
-  const near=racers.filter(o=>o!==r&&!o.finished&&o.dist-r.dist>-8&&o.dist-r.dist<45).length;
+  const near=racers.filter(o=>o!==r&&!o.finished&&!o.out&&o.dist-r.dist>-8&&o.dist-r.dist<45).length;
   switch(p.type){
     case 'shock': v+=near?(M.mood==='attack'||M.mood==='allin'?9:4):-6; break;
     case 'sling': case 'over': v+=D*5+(M.mood==='attack'?3:0); break;
@@ -8074,7 +8074,7 @@ function loop(now){
     highlightStep(uiDt);
   }
   else if(mode==='showcase'){
-    const oc=ensureShowcaseOrbit();
+    const oc=showcaseOrbit;   // created once in openShowcase
     if(oc){ oc.enabled=true; oc.update(); }
     sKey.position.copy(cam.position).add(new THREE.Vector3(0,2,0));
     floorStreaks.children.forEach((b,i)=>{ b.position.z+=dt*(2+i%4); if(b.position.z>12) b.position.z=-12; });
@@ -8082,7 +8082,7 @@ function loop(now){
     draw(studio);
   }
   else if(mode==='select'||mode==='results'){
-    const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false;
+    if(showcaseOrbit&&showcaseOrbit.enabled) showcaseOrbit.enabled=false;
     studioCam(dt,CARS[page],mode==='results');
     draw(studio);
   }

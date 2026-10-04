@@ -170,7 +170,7 @@ CARS.push(
 );
 CARS.push(
  {id:'lumen',sculpt:'lumen',name:'LUMEN SP',body:'lumen',lowPro:true,paint:0x1f5f8f,metal:.5,rough:.14,rim:0x121416,caliper:0xff6080,wing:false,world:'ice',
-  top:88,acc:25,grip:31,nitro:1.08,mass:.92,
+  top:91,acc:26,grip:31,nitro:1.12,mass:.92,
   kick:'Garage find',loc:'Spring Garden St',when:'Blue hour, 05:22',
   caption:'Top down in a parking garage on Spring Garden. Keys still in the ignition.',
   specs:'3.0L TWIN-TURBO I6 / 520 HP / ROADSTER / 7-SPEED DUAL-CLUTCH',
@@ -178,7 +178,7 @@ CARS.push(
   note:'top down.\nno story.', notePos:{l:'58%',t:'34%'},
   cam:{p:[-4.2,.95,4.0],l:[0,.55,.35],roll:-.05,fov:32}},
  {id:'brigline',sculpt:'brigline',name:'BRIG LINE W',body:'brigline',lowPro:true,paint:0x1d3a2a,metal:.45,rough:.2,rim:0x1a1c20,caliper:0xc8a060,wing:false,accent:0xc8a060,world:'ice',
-  top:85,acc:23,grip:30,nitro:1.05,mass:1.58,
+  top:88,acc:24,grip:30,nitro:1.08,mass:1.58,
   kick:'Estate issue',loc:'Forest Hills',when:'After rain, 05:45',
   caption:'Four seats, full carpet in the back. Still faster than your excuses.',
   specs:'3.0L TWIN-TURBO I6 / 580 HP / SHOOTING BRAKE / AWD',
@@ -186,7 +186,7 @@ CARS.push(
   note:'matte wagon.\nquiet power.', notePos:{l:'56%',t:'33%'},
   cam:{p:[4.6,.85,3.6],l:[0,.65,.25],roll:.08,fov:32}},
  {id:'pulse2',sculpt:'pulse2',name:'PULSE 2',body:'pulse2',lowPro:true,paint:0x181e24,metal:.5,rough:.12,rim:0x0e1012,caliper:0x5fe6c8,wing:false,accent:0x5fe6c8,world:'neon',
-  top:87,acc:24,grip:29,nitro:1.18,mass:1.02,
+  top:90,acc:26,grip:29,nitro:1.22,mass:1.02,
   kick:'Wall charge',loc:'Neon Core, Data Port',when:'Tuesday, 02:30',
   caption:'Charged on a laundromat outlet. Range unknown. Attitude sufficient.',
   specs:'DUAL E-MOTOR / 640 HP / 62 KWH / SINGLE-SPEED',
@@ -194,7 +194,7 @@ CARS.push(
   note:'quiet zap.\nloud exit.', notePos:{l:'60%',t:'35%'},
   cam:{p:[3.8,.7,4.4],l:[0,.5,.3],roll:-.06,fov:33}},
  {id:'vandal',sculpt:'vandal',name:'VANDAL SS',body:'muscle',lowPro:true,paint:0x24103c,metal:.6,rough:.1,rim:0xf0f2f5,chrome:true,caliper:0xd42020,wing:false,widebody:true,spokes:5,world:'flash',
-  top:92,acc:22,grip:27,nitro:1.28,mass:1.28,
+  top:94,acc:23,grip:27,nitro:1.32,mass:1.28,
   kick:'Back-alley',loc:'Kensington Ave',when:'Friday, 00:48',
   caption:'SS badges are fake. The blower whine is not.',
   specs:'6.2L SUPERCHARGED V8 / 820 HP / WIDEBODY / 6-SPEED MANUAL',
@@ -202,7 +202,7 @@ CARS.push(
   note:'fake badges.\nreal pull.', notePos:{l:'58%',t:'34%'},
   cam:{p:[4.5,.88,4.4],l:[0,.58,.35],roll:-.05,fov:32}},
  {id:'needle',sculpt:'needle',name:'NEEDLE MK1',body:'needle',lowPro:true,paint:0x2a7fb5,metal:.4,rough:.18,rim:0x17181b,rimLip:0x0e0f11,caliper:0xff5a1f,wing:false,world:'flash',
-  top:83,acc:27,grip:33,nitro:1.0,mass:.8,
+  top:86,acc:28,grip:33,nitro:1.05,mass:.8,
   kick:'Parallel park',loc:'Dockside, Pier 12',when:'Wednesday, 01:15',
   caption:'Parallel-parked across two meters. Still made the start.',
   specs:'1.6L TURBO I4 / 310 HP / KEI-WIDE / 2,180 LB',
@@ -269,11 +269,11 @@ const SHEETS={
  stratos:{engine:'4.0L twin-turbo V8 + rear e-axle',power:'1,180 hp',torque:'920 lb-ft',zero:'2.0 s',vmax:'248 mph',weight:'3,050 lb',drive:'All-wheel drive',gearbox:'8-speed dual-clutch'},
  hikari:{engine:'2.4L stroked turbo inline-four, built',power:'1,020 hp',torque:'760 lb-ft',zero:'2.0 s',vmax:'286 mph',weight:'2,480 lb',drive:'Rear-wheel drive, welded diff',gearbox:'6-speed sequential'},
  zephyr:{engine:'Twin axial-flux e-motors, carbon monocoque',power:'1,640 hp',torque:'1,280 lb-ft',zero:'1.1 s',vmax:'960 mph',weight:'1,180 lb',drive:'All-wheel drive, torque vectoring',gearbox:'Single-speed'},
- lumen:{engine:'3.0L twin-turbo inline-six',power:'520 hp',torque:'480 lb-ft',zero:'3.4 s',vmax:'186 mph',weight:'3,150 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
- brigline:{engine:'3.0L twin-turbo inline-six',power:'580 hp',torque:'520 lb-ft',zero:'3.6 s',vmax:'178 mph',weight:'4,200 lb',drive:'All-wheel drive',gearbox:'8-speed automatic'},
- pulse2:{engine:'Dual e-motors, 62 kWh pack',power:'640 hp',torque:'580 lb-ft',zero:'3.2 s',vmax:'192 mph',weight:'3,450 lb',drive:'All-wheel drive',gearbox:'Single-speed'},
- vandal:{engine:'6.2L supercharged V8',power:'820 hp',torque:'780 lb-ft',zero:'3.1 s',vmax:'204 mph',weight:'3,680 lb',drive:'Rear-wheel drive',gearbox:'6-speed manual'},
- needle:{engine:'1.6L turbo inline-four',power:'310 hp',torque:'280 lb-ft',zero:'4.1 s',vmax:'158 mph',weight:'2,180 lb',drive:'Front-wheel drive',gearbox:'6-speed manual'}
+ lumen:{engine:'3.0L twin-turbo inline-six',power:'520 hp',torque:'480 lb-ft',zero:'3.2 s',vmax:'198 mph',weight:'3,150 lb',drive:'Rear-wheel drive',gearbox:'7-speed dual-clutch'},
+ brigline:{engine:'3.0L twin-turbo inline-six',power:'580 hp',torque:'520 lb-ft',zero:'3.4 s',vmax:'184 mph',weight:'4,200 lb',drive:'All-wheel drive',gearbox:'8-speed automatic'},
+ pulse2:{engine:'Dual e-motors, 62 kWh pack',power:'640 hp',torque:'580 lb-ft',zero:'3.0 s',vmax:'202 mph',weight:'3,450 lb',drive:'All-wheel drive',gearbox:'Single-speed'},
+ vandal:{engine:'6.2L supercharged V8',power:'820 hp',torque:'780 lb-ft',zero:'2.9 s',vmax:'212 mph',weight:'3,680 lb',drive:'Rear-wheel drive',gearbox:'6-speed manual'},
+ needle:{engine:'1.6L turbo inline-four',power:'310 hp',torque:'280 lb-ft',zero:'3.8 s',vmax:'168 mph',weight:'2,180 lb',drive:'Front-wheel drive',gearbox:'6-speed manual'}
 };
 const GHOST_CAR={id:'ghost',name:'THE GHOST',paint:0x2b3038,metal:.7,rough:.35,rim:0x0d0e10,caliper:0xff5a1f,wing:true,top:89,acc:22,grip:30,nitro:1};
 const LAPS=2; // default; an event can set its own laps

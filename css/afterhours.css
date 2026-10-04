@@ -15,7 +15,6 @@ html,body{margin:0;background:var(--black);color:var(--ink);overflow:hidden;over
   -webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
 body{height:100%;font-family:var(--display);font-stretch:100%}
 #gl{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:block;transition:filter .45s ease}
-#gl.blur{filter:blur(10px) brightness(1.4);transition:none}
 
 /* film grain + vignette */
 #grain{position:fixed;inset:-60%;pointer-events:none;opacity:.13;mix-blend-mode:overlay;z-index:40;

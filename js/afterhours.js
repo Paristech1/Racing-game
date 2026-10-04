@@ -5505,13 +5505,19 @@ const EVENTS=[
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
 let SETUP_READY=false;
-function finishEvent(e){ if(e._ready||!e.scene) return; e._ready=true; if(e.setup) e.setup(); addChevrons(e); }
-function ensureEvent(e){ if(!e.scene){ Object.assign(e,e.build()); e._ready=false; } if(SETUP_READY) finishEvent(e); return e; }
+/* A3: three.js hands out monotonically increasing ids per resource type, so anything created while an event builds falls in an id
+   window. releaseEvent only disposes resources inside those windows; module-level shared geometry/materials/textures are never freed. */
+function idMark(){ return [new THREE.MeshBasicMaterial().id,new THREE.BufferGeometry().id,new THREE.Texture().id]; }
+function ownWindow(e,a){ const b=idMark(); (e._own||(e._own=[])).push([a,b]); }
+function inOwn(e,k,id){ return !!e._own&&e._own.some(w=>id>w[0][k]&&id<=w[1][k]); }
+function finishEvent(e){ if(e._ready||!e.scene) return; e._ready=true; const a=idMark(); if(e.setup) e.setup(); addChevrons(e); ownWindow(e,a); }
+function ensureEvent(e){ if(!e.scene){ const a=idMark(); Object.assign(e,e.build()); ownWindow(e,a); e._ready=false; } if(SETUP_READY) finishEvent(e); return e; }
 function releaseEvent(e){ const S=e.scene; if(!S) return; if(fxGroup.parent===S) S.remove(fxGroup);
-  S.traverse(o=>{ if(o.geometry) o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(!m) return;
-    ['map','emissiveMap','normalMap','roughnessMap','bumpMap'].forEach(k=>{ if(m[k]&&m[k].dispose) m[k].dispose(); }); m.dispose(); }); });
-  if(S.background&&S.background.dispose) S.background.dispose();
-  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','dawn'].forEach(k=>delete e[k]); e._ready=false; }
+  const disp=(t)=>{ if(t&&t.dispose&&inOwn(e,2,t.id)&&!(t.userData&&t.userData.shared)) t.dispose(); };
+  S.traverse(o=>{ if(o.geometry&&inOwn(e,1,o.geometry.id)&&!o.geometry.userData.shared) o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(!m||!inOwn(e,0,m.id)||(m.userData&&m.userData.shared)) return;
+    ['map','emissiveMap','normalMap','roughnessMap','bumpMap'].forEach(k=>disp(m[k])); m.dispose(); }); });
+  disp(S.background);
+  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','dawn','_own'].forEach(k=>delete e[k]); e._ready=false; }
 function releaseOthers(){ EVENTS.forEach(e=>{ if(e.scene&&e.scene!==RS) releaseEvent(e); }); }
 ensureEvent(EVENTS[0]);
 const KO_MAPS=[
@@ -7454,8 +7460,7 @@ function readInput(){
 
 /* ---------------- UI HELPERS ---------------- */
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id)); }
-function flash(strength){ const f=$('#flash'); f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0;
-  canvas.classList.add('blur'); requestAnimationFrame(()=>requestAnimationFrame(()=>canvas.classList.remove('blur'))); }
+function flash(strength){ const f=$('#flash'); f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0; }
 function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
 let toastT=0; function toast(s){ const t=$('#hToast'); t.textContent=s; t.style.opacity=1; toastT=1.8; }
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
@@ -7477,7 +7482,8 @@ function setupAttract(def){
   resetPickups();
   camSnap=true; renderer.toneMappingExposure=1.05; if(mode!=='loading') setWeather(false);
 }
-function enter(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='select'; show('select'); renderPage(0); }
+let STUDIO_WARM=false;
+function enter(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='select'; show('select'); if(!STUDIO_WARM){ STUDIO_WARM=true; try{ renderer.compile(studio,cam); }catch(err){} } renderPage(0); } // A3: studio shaders compile once, behind the flash
 function renderPage(dir){
   const d=CARS[page], h=hist(d.id);
   setWorld(d.world);
@@ -7578,7 +7584,7 @@ function renderEventRoster(){
   el.querySelectorAll('.epick').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(i===EVI) return; EVI=i; sfx.page(); renderEvent(0,true); });
 }
 function renderEvent(dir,force){
-  if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); }
+  if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); try{ renderer.compile(RS,cam); }catch(err){} } // A3: build this city's shaders now, behind the page-turn flash, not on the first visible frame
   const e=EV;
   $('#eHead').innerHTML=`<span class="k">${esc(e.kick)}</span><span>${esc(e.name)}</span>`;
   $('#eStamp').innerHTML=`${esc(e.loc)}<small>${esc(e.when)}</small>`;
@@ -8054,7 +8060,7 @@ function loop(now){
   requestAnimationFrame(loop);
   const rawMs=now-last;
   let dt=Math.min(.033,rawMs/1000); last=now;
-  if(mode!=='boot'&&mode!=='loading') pace(rawMs);
+  if(mode==='race'||mode==='highlight'){ if(PACE.mode!==mode){ PACE.mode=mode; PACE.ema=16.7; PACE.over=PACE.hold=0; } pace(rawMs); } else if(PACE.mode){ PACE.mode=null; PACE.ema=16.7; PACE.over=PACE.hold=0; } // A3: menu/transition frames never count toward pixel-ratio steps
   modeT+=dt; ghostT+=dt;
   if(toastT>0){ toastT-=dt; if(toastT<=0) $('#hToast').style.opacity=0; }
 

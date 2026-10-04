@@ -7380,18 +7380,25 @@ function renderRaceReport(rep){
   $('#rHiList').querySelectorAll('button').forEach(b=>b.onclick=()=>playHighlight(rep.items[+b.dataset.hi]));
   const rw=$('#rWatch'); if(rw) rw.style.display=(raceTape&&raceTape.snaps&&raceTape.snaps.length>=2)?'':'none';
 }
+function dropHiCars(){ // borrowed racer meshes stay owned by clearRacers; only cars built for the replay are removed and freed
+  hiCars.forEach(c=>{ if(c.own){ if(c.group.parent) c.group.parent.remove(c.group); c.group.traverse(o=>{ if(o.geometry&&!o.isSprite&&!o.geometry.userData.shared) o.geometry.dispose(); }); } });
+  hiCars=[];
+  racers.forEach(r=>{ r.m.group.visible=true; if(r.trail) r.trail.mesh.visible=true; });
+}
 function endHighlight(){
-  hiCars.forEach(c=>{ if(c.group.parent) c.group.parent.remove(c.group); });
-  hiCars=[]; hiPlay=null; mode='results'; show('results'); draw(studio);
+  dropHiCars();
+  hiPlay=null; mode='results'; $('#hMsg').textContent=''; show('results'); draw(studio);
 }
 function playHighlight(h){
   if(!raceTape||!h) return;
   hiPlay={t0:Math.max(0,h.t-2.2),t1:h.t+3.8,t:Math.max(0,h.t-2.2),ids:h.ids&&h.ids.length?h.ids:['player']};
-  hiCars.forEach(c=>{ if(c.group.parent) c.group.parent.remove(c.group); }); hiCars=[];
+  dropHiCars();
+  racers.forEach(r=>{ r.m.group.visible=false; if(r.trail) r.trail.mesh.visible=false; });
   const idSet=new Set(hiPlay.ids);
   idSet.forEach(id=>{
-    const def=id==='player'?player.def:(racers.find(r=>r.def.id===id)||{}).def||CARS[0];
-    const m=buildCar(def); RS.add(m.group); hiCars.push({id,group:m.group,wheels:m.wheels});
+    const r=id==='player'?player:racers.find(x=>x.def.id===id);
+    if(r&&r.m){ r.m.group.visible=true; hiCars.push({id,group:r.m.group,wheels:r.m.wheels}); return; }
+    const m=buildCar(CARS[0]); RS.add(m.group); hiCars.push({id,group:m.group,wheels:m.wheels,own:true});
   });
   mode='highlight'; show('hud'); $('#hMsg').textContent=h.title; camSnap=true;
 }
@@ -7647,9 +7654,11 @@ function bindTap(id,fn){ // fires on pointerup so a canvas swipe can't swallow t
   });
   el.addEventListener('click',e=>{ e.stopPropagation(); if(performance.now()-tapT>600) fn(); });
 }
-bindTap('#quit',()=>{ endGhost(); hiCars.forEach(c=>{ if(c.group.parent) c.group.parent.remove(c.group); }); hiCars=[]; hiPlay=null; backToArchive(); });
+bindTap('#quit',()=>{ endGhost(); dropHiCars(); hiPlay=null; backToArchive(); });
 bindTap('#rBack',()=>backToArchive());
 bindTap('#rAgain',()=>startLoading());
+bindTap('#rBack2',()=>backToArchive());
+bindTap('#rAgain2',()=>startLoading());
 bindTap('#rSkip',()=>{ reportSkip=true; showResultsClassic(true); });
 bindTap('#rView',()=>{ reportSkip=false; showResultsClassic(false); });
 bindTap('#rWatch',()=>{ const b=$('#rHiList button'); if(b) b.click(); else showResultsClassic(true); });

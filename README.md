@@ -80,6 +80,13 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - **Harbor Line tunnel:** a short **neon tube** with magenta/cyan strip lights and reduced grip.
   - **Pulse Grid** boost pads (cyan, magenta, violet) on alternating lanes, like Game Night’s crowd pads but tuned for night racing.
 
+- **Event 15: Calder Basin.** An original port city at dusk (~5.6 km), 2 laps, light traffic. Designed from what racers say makes a map stick (long readable straights, one technical sector, a landmark for every sector), with the look taken from Midjourney key frames and the landmarks built in Blender (`tools/blender/calder_kit.py` -> `models/calder_kit.glb`):
+  - **Quay Run:** a 600 m straight under four ship-to-shore cranes, then the **Container Maze** chicane between tall stacks, red/white kerbs and flood masts.
+  - **Steel Bridge:** 970 m flat out under five red K-truss arch spans on a steel-grating deck (slightly less grip), with a crest at mid-span that throws you in the air.
+  - **Old Town:** cobbled switchbacks (less grip) between honey-stone houses with outside stairs and iron balconies, round the bell-tower hairpin.
+  - **Highway 9:** an elevated viaduct along the ridge past the white Belvedere pavilion, a 360 m straight and a big 180-degree sweeper behind sound walls.
+  - **Calder Tunnel:** 600 m through the hill in a long curve, white panel tube with light lines and amber kerbs, a hex-lattice gallery in the middle, sculpted portals with light rings; then the S-bends back to the quay.
+
 - **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
 
   | Rule | What happens |

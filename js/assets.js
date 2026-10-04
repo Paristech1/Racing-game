@@ -11,7 +11,7 @@
 'use strict';
 const ORDER=[ // [key, file]: first car on the select screen first, then the other cars, then the track kits
   ['kage','kage_r.glb'],['wisp','wisp_07.glb'],['autobahn','autobahn_63.glb'],['granfour','gran_four.glb'],['volcano','volcano_p1.glb'],['overload','overload_3k.glb'],
-  ['blvd','blvd_kit.glb'],['philly','philly_kit.glb'],['mtairy','mtairy_kit.glb']];
+  ['blvd','blvd_kit.glb'],['philly','philly_kit.glb'],['mtairy','mtairy_kit.glb'],['calder','calder_kit.glb']];
 const MAN=window.AH_MANIFEST||{};
 const url=f=>'models/'+f+(MAN[f]?'?v='+MAN[f].v:'');
 const A=window.AH_ASSETS={ order:ORDER, bytes:0, total:ORDER.reduce((s,o)=>s+((MAN[o[1]]||{}).bytes||0),0)||ORDER.length*1.2e6,

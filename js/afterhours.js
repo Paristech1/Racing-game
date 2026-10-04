@@ -327,7 +327,8 @@ const EVENT_CAR_BIAS={
  manayunk:{gripW:1.08,topW:1.02,nitroW:1.08},
  el:{gripW:1.14,topW:.98,nitroW:1.04},
  firstlight:{gripW:1,topW:1.12,nitroW:1.12},
- neoncore:{gripW:1.1,topW:1.06,nitroW:1.12}
+ neoncore:{gripW:1.1,topW:1.06,nitroW:1.12},
+ calder:{gripW:1.04,topW:1.12,nitroW:1.14}
 };
 const RIVAL_CAR_PREF={
  apex:{gripW:1.18,topW:.98,ids:['vanta','kage','kern','granfour','passyunk','needle','lumen']},
@@ -3153,7 +3154,7 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
    kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
 const KIT_CACHE={};
 function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
-  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (null);
+  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly','calder']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (null);
   src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
   root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
   // perf: fold every part that shares a material slot into one geometry, so an asset costs one draw call per material
@@ -3784,7 +3785,7 @@ function levelPhysics(r,prevDist){
   if(EV.pads) for(const p of EV.pads){ if(!hazardCrossed(s0,s1,p.s,2)||Math.abs(r.x-p.x)>p.hw||r.airT>0) continue; r.padCd=r.padCd||{}; if((r.padCd[p.s]||-1)>ghostT) continue; r.padCd[p.s]=ghostT+3;
     const br=bracketOf(r), kick=br==='chase'?11:(br==='pack'?8:6); r.v=Math.min(r.v+kick,Math.max(r.v,r.def.top*1.22)); r.nitro=Math.min(Math.max(1,r.nitro),r.nitro+.18); r.fxSling=Math.max(r.fxSling,.35);
     if(r.isP&&mode==='race'){ const T=padSport(p.team); toast(`${T.chant}! The grid pushes you on.`); flash(.12); burst(.9,'bandpass',520,900,.42,.6,0,pinkBuf); shake=Math.max(shake,.25); } }
-  if(EV.surf&&r.isP&&mode==='race'&&levelGrip(r)<1&&!(r.airT>0)){ const lap=Math.floor(r.dist/TR.L); if(r.iceLap!==lap){ r.iceLap=lap; toast('Ice on the road. Easy on the wheel.'); } }
+  if(EV.surf&&r.isP&&mode==='race'&&levelGrip(r)<1&&!(r.airT>0)){ const s=trackS(r.dist), z=EV.surf.find(q=>s>=q.s0&&s<=q.s1)||EV.surf[0], key=Math.floor(r.dist/TR.L)+':'+(z.name||''); if(r.iceLap!==key){ r.iceLap=key; toast(z.msg||'Ice on the road. Easy on the wheel.'); } }
   if(EV.pillars) for(const c of EV.pillars){ if(!hazardCrossed(s0,s1,c.s,1.2)||Math.abs(r.x-c.x)>c.hw+.95||r.airT>0||(r.pillarS===c.s&&r.pillarT>ghostT)) continue;
     const sd=r.x>=c.x?1:-1, sh=r.fxShield>0&&r.shieldMode!=='rear'; r.pillarS=c.s; r.pillarT=ghostT+1; // one hit per column, then you're bounced clear
     r.x=c.x+sd*(c.hw+1.1); r.vx=sd*8; if(!sh){ r.v*=.6; if(r.isP) r.hits++; } r.slip+=.5;
@@ -5442,6 +5443,146 @@ function buildNeonCore(){
     resetTraffic(){ xt=Math.random()*12; [.14,.32,.55,.78].forEach((u,i)=>{ const o=obst[i]; o.dist=u*tr.L; o.x=i%2?3.6:-3.6; o.v=11+Math.random()*5; }); }};
 }
 
+/* ---- Event 15: Calder Basin, an original port city (≈4.4 km / lap) ----
+   Designed from what racers say makes a map stick (Midnight Club II's Paris and Tokyo, Burnout Paradise, Trackmania):
+   long, readable straights where top speed matters, one technical sector that rewards skill, a landmark for every sector so
+   you always know where you are, and a pace curve of fast -> technical -> fastest -> hardest -> payoff.
+   Quay Run (600 m straight past the cranes) -> Container Maze chicane -> Steel Bridge (970 m flat out, a crest at mid-span
+   that throws you in the air) -> Old Town cobbled switchbacks and the clock-tower hairpin -> Ridge Boulevard, a 650 m
+   downhill straight and two flat-out sweepers back to the quay. Landmarks come from the Blender kit (models/calder_kit.glb,
+   tools/blender/calder_kit.py); everything has a procedural fallback so the level still builds if the kit has not loaded. */
+const CB_CORNERS=[[0,-700,60],[170,-700,26],[215,-655,26],[300,-655,26],[345,-700,26],[560,-700,70],[560,400,60],[430,400,28],[430,540,28],[300,540,28],
+  [300,690,24],[230,690,22],[230,630,22],[110,630,35],[110,900,50],[-120,900,60],[-120,260,120],[0,60,90]];
+const CB_KEYS=[[0,-40,0],[0,-700,0],[345,-700,0],[560,-640,0],[560,-480,13],[560,-250,13],[560,-220,15.5],[560,-190,13],[560,120,13],[560,300,2],[560,400,2.5],
+  [430,400,5],[430,540,9],[300,540,13],[300,690,18],[230,690,19.5],[230,630,21],[110,630,24],[110,900,30],[-120,900,30],[-120,260,5],[0,60,.5]];
+const CB_SPAN=p=>Math.abs(p.x-560)<4&&p.z>-472&&p.z<112; // the bridge deck over the channel (no sidewalks, no lamp posts)
+function buildCalder(){
+  const K=sceneKit({bg:0x1a1626,fog:0x3a2c36,fogD:.0014,hemi:.72,sky:0xffb88a,ground:0x0c0d12,moon:0xffc08a,moonI:.5,seed:1515,dome:false,bloom:{strength:.8,threshold:.74}}), S=K.S, V=(x,z)=>new THREE.Vector2(x,z);
+  // dusk sky: deep blue overhead to an orange band on the horizon, following the camera so the far plane never clips it
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(1300,32,16),new THREE.MeshBasicMaterial({side:THREE.BackSide,depthWrite:false,fog:false,map:CT(canvasTex(16,512,(g,w,h)=>{
+    const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#070b1e'); gr.addColorStop(.28,'#16193a'); gr.addColorStop(.4,'#3a2a4c'); gr.addColorStop(.46,'#9a4a48');
+    gr.addColorStop(.49,'#f08a4c'); gr.addColorStop(.505,'#ffc27a'); gr.addColorStop(.52,'#3a2a30'); gr.addColorStop(1,'#120e12'); g.fillStyle=gr; g.fillRect(0,0,w,h); }))}));
+  sky.renderOrder=-10; S.add(sky); S.userData.dome=sky;
+  // the lap: exact straights from the fillet path, heights from the keys (sharp around the bridge crest, smooth everywhere else)
+  const pts=resample3(filletPath(V(0,-40),CB_CORNERS.map(([x,z,r])=>[V(x,z),r]),1),()=>0), n=pts.length;
+  const near=(x,z)=>{ let bi=0,bd=1e18; pts.forEach((p,i)=>{ const d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bi=i; } }); return bi; };
+  const keys=CB_KEYS.map(([x,z,y])=>[near(x,z),y]).sort((a,b)=>a[0]-b[0]), raw=new Float32Array(n), crest=near(560,-220);
+  for(let i=0;i<n;i++){ let j=keys.findIndex(k=>k[0]>i); const a=j<=0?keys[keys.length-1]:keys[j-1], b=j<0?keys[0]:keys[j];
+    let span=b[0]-a[0]; if(span<=0) span+=n; let u=i-a[0]; if(u<0) u+=n; raw[i]=lerp(a[1],b[1],u/span); }
+  pts.forEach((p,i)=>{ const w=Math.abs(i-crest)<45?4:18; let s=0; for(let j=-w;j<=w;j++) s+=raw[(i+j+n)%n]; p.y=s/(2*w+1); });
+  const tr=K.track(pts,7,6), W=tr.W, L=tr.L, f=K.f, pv=K.pv, m4=K.m4, one=K.one;
+  const sYard0=K.sNear(0,-640), sBr0=K.sNear(560,-472), sBr1=K.sNear(560,112), sOT0=K.sNear(500,400), sOT1=K.sNear(110,860), sRidge=K.sNear(-120,840);
+  const sub=pts.filter((p,i)=>i%8===0), land=sub.filter(p=>!CB_SPAN(p));
+  const nearRoad=(x,z)=>{ let bd=1e18,bi=0; for(let i=0;i<sub.length;i++){ const p=sub[i], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bi=i; } } return {d:Math.sqrt(bd),p:sub[bi]}; };
+  const water=(x,z)=>z<-833||(x>433&&z>-468&&z<108);
+
+  // ---- terrain: hugs the road (embankments up to the bridge, the old-town hill, the ridge), drops into the harbor and the channel ----
+  const tg=new THREE.PlaneGeometry(2600,2700,150,156); tg.rotateX(-Math.PI/2); tg.translate(500,0,-100);
+  const tp=tg.attributes.position, tcol=[];
+  for(let i=0;i<tp.count;i++){ const x=tp.getX(i), z=tp.getZ(i); let ws=0, ys=0;
+    for(const p of land){ const d=Math.hypot(p.x-x,p.z-z); if(d>420) continue; const w=1/Math.pow(d+4,3); ws+=w; ys+=w*p.y; }
+    const nr=nearRoad(x,z); let y=(ws?ys/ws:0)-.5;
+    if(!CB_SPAN(nr.p)) y=Math.min(y,nr.p.y-.45+Math.max(0,nr.d-(W+1))*.1);
+    if(water(x,z)) y=-7;
+    tp.setY(i,y); const yard=z<-470&&!water(x,z), g=.05+.03*Math.sin(x*.05)*Math.cos(z*.04);
+    if(yard) tcol.push(.11,.11,.12); else tcol.push(g*.95,g*1.15,g*.8); }
+  tg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tg.computeVertexNormals();
+  K.mesh(tg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95}),0,0,0);
+  const waterN=WETMAPS.normal.clone(); waterN.needsUpdate=true; waterN.repeat.set(60,60);
+  const waterM=new THREE.MeshStandardMaterial({color:0x0a0c14,metalness:.9,roughness:.1,normalMap:waterN,normalScale:new THREE.Vector2(.4,.4),envMapIntensity:1.5});
+  K.flat(-900,1900,-1500,-831,-2.5,waterM); K.flat(431,1900,-470,110,-2.5,waterM);
+  const concrete=new THREE.MeshStandardMaterial({color:0x6c6a66,roughness:.9}), stoneM=new THREE.MeshStandardMaterial({color:0x6b6258,roughness:.95});
+  K.box(2800,4,2,concrete,500,-1.6,-832); K.box(2,4,580,concrete,432,-1.6,-180); K.box(1470,4,2,concrete,1166,-1.6,-470); K.box(1470,4,2,concrete,1166,-1.6,110);
+  K.box(34,15,14,stoneM,560,5.6,-478); K.box(34,15,14,stoneM,560,5.6,118); // bridge abutments
+
+  // ---- road: double yellow, sidewalks everywhere but the bridge deck; steel grating on the deck, cobbles in the old town ----
+  K.road({tex:{center:'rgba(255,205,60,.85)'},walk:0x55524c,curb:0x7a7e84,skip:CB_SPAN});
+  K.start('EVENT 15 · CALDER BASIN');
+  const gratT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#1d2024'; g.fillRect(0,0,w,h); g.strokeStyle='rgba(120,128,138,.55)'; g.lineWidth=1;
+    for(let k=0;k<w;k+=6){ g.beginPath(); g.moveTo(k+.5,0); g.lineTo(k+.5,h); g.stroke(); } g.strokeStyle='rgba(80,86,94,.6)'; for(let k=0;k<h;k+=16){ g.beginPath(); g.moveTo(0,k+.5); g.lineTo(w,k+.5); g.stroke(); }
+    g.fillStyle='rgba(240,240,236,.85)'; g.fillRect(w*.25-2,0,4,h*.5); g.fillRect(w*.75-2,0,4,h*.5); g.fillStyle='rgba(255,205,60,.9)'; g.fillRect(w*.5-5,0,3,h); g.fillRect(w*.5+2,0,3,h); }),true);
+  const gratM=new THREE.MeshStandardMaterial({map:gratT,metalness:.75,roughness:.35,side:THREE.DoubleSide});
+  ribbonF(tr,S,gratM,(k,p)=>CB_SPAN(p)?[-W,p.y+.02,W,p.y+.02]:null,8);
+  const deckM=new THREE.MeshStandardMaterial({color:0x2a2c30,roughness:.8,side:THREE.DoubleSide}), barrierM=new THREE.MeshStandardMaterial({color:0x8a8780,roughness:.85,side:THREE.DoubleSide});
+  ribbonF(tr,S,deckM,(k,p)=>CB_SPAN(p)?[-W-1.2,p.y-1.9,W+1.2,p.y-1.9]:null);
+  [-1,1].forEach(sd=>{ ribbonF(tr,S,deckM,(k,p)=>CB_SPAN(p)?[sd*(W+1.2),p.y-1.9,sd*(W+1.2),p.y+.05]:null);
+    ribbonF(tr,S,barrierM,(k,p)=>CB_SPAN(p)?[sd*(W+.3),p.y,sd*(W+.3),p.y+.95]:null); ribbonF(tr,S,barrierM,(k,p)=>CB_SPAN(p)?[sd*(W+.3),p.y+.95,sd*(W+.75),p.y+.95]:null); });
+  for(let z=-360;z<=0;z+=120){ K.at(K.sNear(560,z),0); const y=K.f.p.y-1.9; [-5,5].forEach(dx=>K.box(4,y+7,5,stoneM,560+dx,(y-7)/2,z)); }
+  const cobT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#262422'; g.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=8) for(let x=-((y/8)%2)*6;x<w;x+=12){ const v=58+((x*31+y*17)%34); g.fillStyle=`rgb(${v},${v-3},${v-7})`; g.fillRect(x+1,y+1,10,6); } }),true);
+  const cobM=wetRoad(new THREE.MeshStandardMaterial({map:cobT,roughness:.5,metalness:.1,side:THREE.DoubleSide}));
+  const inOT=k=>{ const s=k*tr.ds; return s>sOT0+20&&s<sOT1-20; };
+  ribbonF(tr,S,cobM,(k,p)=>inOT(k)?[-W,p.y+.02,W,p.y+.02]:null,3);
+  K.lights({every:36,color:0xffc27a,pool:0xa87848,pole:0x23262b,skip:CB_SPAN});
+
+  // ---- the Blender kit: materials for its slots (CRANE red steel, PAINT tinted per container, lamps unlit so they bloom) ----
+  const km=Object.assign({},kitMats(),{CRANE:new THREE.MeshStandardMaterial({color:0x8e1a12,metalness:.55,roughness:.42,envMapIntensity:1.1}),
+    STEEL:new THREE.MeshStandardMaterial({color:0x4a4f56,metalness:.85,roughness:.35}),REDLAMP:new THREE.MeshBasicMaterial({color:0xff2a1a,toneMapped:false}),
+    COPPER:new THREE.MeshStandardMaterial({color:0x3f7a68,metalness:.45,roughness:.55}),CLOCK:new THREE.MeshBasicMaterial({color:0xfff0d0,toneMapped:false}),
+    GLASS:new THREE.MeshBasicMaterial({color:0xffe2b0,toneMapped:false}),LED:new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}),
+    PAINT:new THREE.MeshStandardMaterial({color:0xffffff,metalness:.35,roughness:.6})});
+  const KIT=!!(kitParts('GantryCrane')&&kitParts('TrussArch')&&kitParts('Container'));
+  const place=(x,y,z,yaw,sx)=>new THREE.Matrix4().makeTranslation(x,y,z).multiply(new THREE.Matrix4().makeRotationY(yaw||0)).multiply(new THREE.Matrix4().makeScale(sx||1,1,1));
+  const redAv=[], aviation=[];
+  // ship-to-shore cranes along the quay, booms out over the harbor: the first thing you see off the grid
+  const cranes=[-80,100,280,460].map(x=>place(x,0,-812,kitYawTo(0,-1)));
+  if(KIT) kitInst(S,'GantryCrane',km,cranes);
+  else cranes.forEach((m,i)=>{ const x=[-80,100,280,460][i]; [-9,9].forEach(dz=>[-14,14].forEach(dx=>K.box(1.6,34,1.6,km.CRANE,x+dx,17,-812+dz))); K.box(8,2.6,80,km.CRANE,x,38,-830); });
+  [-80,100,280,460].forEach(x=>{ aviation.push(K.glow(0xff3020,5,x,63,-814)); K.glow(0xffd8a0,22,x,33,-812); });
+  // container ship alongside the quay
+  K.box(250,9,30,new THREE.MeshStandardMaterial({color:0x1a1d22,metalness:.4,roughness:.6}),190,1.5,-858); K.box(250,1.2,30.4,new THREE.MeshStandardMaterial({color:0x6a1a14,roughness:.8}),190,-2.4,-858);
+  K.box(18,16,26,new THREE.MeshStandardMaterial({color:0xd8d8d2,roughness:.7}),310,14,-858); K.box(18.2,1.2,26.2,km.GLASS,310,20,-858);
+  // the yard: stacks in blocks either side of the road, tinted per box; the tall stack with the orange stripe marks the chicane
+  const CC=[0x8a2a1e,0x1f4a7a,0x2f6a3a,0x6a6e74,0xc0661e,0xd8d8d2,0x7a1e3a,0x0f5a6a,0x9a7a2a], boxes=[], cols=[];
+  const stack=(x,z,yaw,h,y0)=>{ for(let k=0;k<h;k++){ boxes.push(place(x,(y0||0)+k*2.62,z,yaw)); cols.push(CC[(K.R()*CC.length)|0]); } };
+  for(let bx=30;bx<500;bx+=17) for(let bz=-790;bz<-490;bz+=42){ const c=nearRoad(bx+6,bz+19); if(c.d<W+12||c.d>75||K.R()<.25) continue;
+    for(let r=0;r<5;r++) for(let l=0;l<3;l++){ const x=bx+r*2.8, z=bz+l*12.8, d=nearRoad(x,z).d; if(d<W+9) continue; stack(x,z,0,1+((K.R()*(d<30?3:4.5))|0)); } }
+  for(let r=0;r<10;r++) for(let l=0;l<12;l++) stack(80+l*12.8,-846-r*2.6,Math.PI/2,2+((K.R()*2)|0),6); // on deck
+  for(let r=0;r<2;r++) stack(262+r*2.8,-590,0,7);
+  if(KIT) kitInst(S,'Container',km,boxes,cols,'PAINT',{far:110,keys:['PAINT']});
+  else { const im=K.inst(new THREE.BoxGeometry(2.44,2.59,12.19).translate(0,1.3,0),km.PAINT,boxes); if(im){ const c=new THREE.Color(); cols.forEach((h,i)=>im.setColorAt(i,c.setHex(h))); im.instanceColor.needsUpdate=true; } }
+  K.box(6.2,.7,12.6,new THREE.MeshBasicMaterial({color:0xff7a1a,toneMapped:false}),263.4,15.2,-590); K.glow(0xff8a2a,26,263,16,-590);
+  // the Steel Bridge: five 120 m red arch spans, scaled to the deck width and pitched with the deck
+  const spans=[-420,-300,-180,-60,60].map(z=>{ K.at(K.sNear(560,z),0); const y=K.f.p.y; K.at(K.sNear(560,z-50),0); const y0=K.f.p.y; K.at(K.sNear(560,z+50),0); const y1=K.f.p.y;
+    return new THREE.Matrix4().makeTranslation(560,y-.4,z).multiply(new THREE.Matrix4().makeRotationX(-Math.atan2(y1-y0,100))).multiply(new THREE.Matrix4().makeScale((W+2.6)/9.6,1,1)); });
+  if(KIT) kitInst(S,'TrussArch',km,spans);
+  else spans.forEach(m=>{ const p=new THREE.Vector3().setFromMatrixPosition(m); [-1,1].forEach(sd=>{ const a=K.mesh(new THREE.TorusGeometry(60,.9,6,40,Math.PI),km.CRANE,p.x+sd*(W+2.6),p.y,p.z); a.rotation.y=Math.PI/2; a.scale.y=.4; }); });
+  [-420,-300,-180,-60,60].forEach(z=>{ K.at(K.sNear(560,z),0); [-1,1].forEach(sd=>aviation.push(K.glow(0xff3020,4,560+sd*(W+2.6),K.f.p.y+26,z))); });
+  // Old Town: tight stone and brick frontage on both sides of the switchbacks, the clock tower over the plaza
+  K.frontage(sOT0+30,sOT1-20,-1,{set:5,h:[10,19],dep:[10,15],len:[8,14],space:.3,gap:.1,styles:['stone','brick','stone']});
+  K.frontage(sOT0+30,sOT1-20,1,{set:5,h:[10,19],dep:[10,15],len:[8,14],space:.3,gap:.1,styles:['stone','brick']});
+  { const ty=pts[near(300,620)].y; if(kitParts('ClockTower')) kitInst(S,'ClockTower',km,[place(365,ty-1,615,0)]);
+    else { K.box(9,40,9,stoneM,365,ty+19,615); K.box(9.4,4.6,9.4,km.CLOCK,365,ty+34,615); }
+    K.glow(0xfff0d0,18,365,ty+34,615); K.flat(330,400,585,650,ty-.4,new THREE.MeshStandardMaterial({map:cobT,roughness:.6})); }
+  const BARS=['TRATTORIA','OYSTER BAR','CAFE','TAVERN','BAKERY','WINE','RECORDS','PIZZA'], BC=['#ffcf6a','#ff8a5a','#6fe3ff','#f4f7ff','#7dff9a'];
+  for(let s=sOT0+60,i=0;s<sOT1-60;s+=70,i++){ const sd=i%2?1:-1; K.at(s,sd*(W+4.9),3.6); const r=K.f.r.clone();
+    K.sign(signCanvas(BARS[i%BARS.length],{bg:'#07080a',color:BC[i%BC.length],size:52,glow:12}),4.6,1,K.pv.x,K.pv.y,K.pv.z,Math.atan2(-sd*r.x,-sd*r.z)); }
+  // Ridge Boulevard: low stone walls, pines down the hillside, the Belvedere pavilion lit white at the top
+  ribbonF(tr,S,stoneM,(k,p)=>{ const s=k*tr.ds; return s>sOT1+40&&s<L-40?[W+4.5,p.y+.16,W+4.5,p.y+1.1]:null; },6);
+  if(kitParts('Belvedere')){ const y=pts[near(-120,900)].y; kitInst(S,'Belvedere',km,[place(-185,y-.6,962,kitYawTo(1,-1))]); K.glow(0xffffff,30,-185,y+10,962); }
+  const trunks=[], crowns=[], pineG=new THREE.ConeGeometry(2.6,9,7); pineG.translate(0,4.5,0);
+  for(let i=0;i<520;i++){ const x=-520+K.R()*620, z=140+K.R()*900, nr=nearRoad(x,z); if(nr.d<W+9||nr.d>200) continue; const y=nr.p.y-.5-Math.max(0,nr.d-(W+1))*.05;
+    K.pv.set(x,y+1.4,z); K.m4.compose(K.pv,new THREE.Quaternion(),one); trunks.push(K.m4.clone()); K.pv.y+=1.6; K.m4.compose(K.pv,new THREE.Quaternion(),new THREE.Vector3(1,1,1).multiplyScalar(.8+K.R()*.7)); crowns.push(K.m4.clone()); }
+  K.inst(new THREE.CylinderGeometry(.22,.3,3,6),new THREE.MeshStandardMaterial({color:0x2a2119,roughness:1}),trunks);
+  K.inst(pineG,new THREE.MeshStandardMaterial({color:0x16281c,roughness:1,flatShading:true}),crowns);
+  // city across the harbor, straight ahead off the grid and off the bridge
+  K.skyline({cx:420,cz:-1420,sx:560,sz:110,n:46,h:[28,170],seed:1516});
+  // brake boards into the two big stops (quay corner, bridge exit): 150 / 100 / 50 m
+  [[K.sNear(0,-640),1],[K.sNear(560,340),-1]].forEach(([s0,sd])=>[150,100,50].forEach(d=>{ K.at(s0-d,sd*(W+2.2)); const t=K.f.t, p=K.pv.clone();
+    K.box(.16,2.2,.16,blackM,p.x,K.f.p.y+1.1,p.z); K.sign(signCanvas(String(d),{bg:'#f4f7ff',color:'#101114',size:70}),1.7,1,p.x,K.f.p.y+2.6,p.z,Math.atan2(-t.x,-t.z)); }));
+  K.gantry(K.sNear(0,-300),'CALDER QUAY','CONTAINER YARD  →',{bg:'#7a1a12'});
+  K.gantry(K.sNear(560,-580),'STEEL BRIDGE','1 KM · FULL THROTTLE',{bg:'#0f5a32'});
+  K.gantry(K.sNear(530,400),'OLD TOWN','COBBLES · HAIRPINS',{bg:'#2a1c06',color:'#ffd9a0'});
+  K.gantry(sRidge,'RIDGE BOULEVARD','DOWNHILL · KEEP IT PINNED',{bg:'#0f5a32'});
+  K.flush();
+  const obst=K.traffic(4); let bt=0;
+  const update=dt=>{ sky.position.copy(cam.position); waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; bt+=dt;
+    const on=(bt%1.6)<.8; km.REDLAMP.color.setHex(on?0xff2a1a:0x3a0806); aviation.forEach(g=>{ g.visible=on; }); };
+  return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[],slopeG:1.2,airtime:true,
+    surf:[{s0:sBr0,s1:sBr1,grip:.94,name:'grating',msg:'Steel grating on the bridge. Light hands.'},{s0:sOT0+20,s1:sOT1-20,grip:.86,name:'cobble',msg:'Cobbles in the Old Town. Less grip.'}],
+    resetTraffic(){ [.06,.3,.62,.9].forEach((u,i)=>{ const o=obst[i]; o.dist=u*tr.L; o.x=i%2?3.6:-3.6; o.v=o.v0=12+Math.random()*4; }); }};
+}
+
 /* ---------------- EVENTS ---------------- */
 const EVENTS=[
   {id:'tunnel',build:buildTunnel,name:'Harbor Line',kick:'Event 01',loc:'Tunnel 7',when:'Harbor Line, 03:00',
@@ -5501,7 +5642,11 @@ const EVENTS=[
   {id:'neoncore',build:buildNeonCore,open:true,laps:2,name:'Neon Core',kick:'Event 14',loc:'Synth District',when:'Mag-deck, data port, hyperloop, neon tube',
    caption:'A cyberpunk circuit stitched from the best of the city: a Skyline-style elevated mag-deck straight, a Dockside-tight container chicane, Under-the-El hyperloop columns down the middle, and a Harbor-style neon tube with low grip. Pulse Grid pads and a timed cargo lock keep the lap rhythm changing.',
    specs:'3.1 KM LOOP / 2 LAPS / 7 CARS / LIVE TRAFFIC / PULSE GRID PADS / MEDIAN POSTS / CARGO LOCK / NEON TUBE',
-   note:'deck.\nchicane.\ntube.',load:'Neon Core. Two laps through the Synth District.'}
+   note:'deck.\nchicane.\ntube.',load:'Neon Core. Two laps through the Synth District.'},
+  {id:'calder',build:buildCalder,open:true,laps:2,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Ridge Blvd',
+   caption:'An original port city at dusk. Flat out down the quay under the gantry cranes, through the container chicane, then a full kilometer over the red Steel Bridge with a crest at mid-span that throws you in the air. Climb the cobbled switchbacks of Old Town past the clock tower, then run Ridge Boulevard downhill back to the water.',
+   specs:'4.4 KM LOOP / 2 LAPS / 7 CARS / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / COBBLES / BRIDGE CREST AIR',
+   note:'save boost\nfor the\nbridge',load:'Calder Basin. The quay, the bridge, the old town and the ridge. Two laps.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
@@ -5643,6 +5788,11 @@ evById('firstlight').setup=()=>{ const E=evById('firstlight'), at=E.sNear;
   addPickups(E,[[at(190,380),-3.6,'refill'],[at(90,100),3.6,'over'],[at(160,-240),0,'sling'],[at(60,-580),-3.6,'grip'],[at(130,-880),3.6,'long'],[at(0,-1005),0,'shield'],
     [at(-170,-600),-3.6,'shock'],[at(-80,-250),3.6,'refill'],[at(-160,100),0,'over'],[at(-60,390),-3.6,'sling'],[at(10,765),3.6,'grip'],
     [at(150,520),0,'desperate',{last:1}],[at(-120,-900),0,'echoboost',{lastTwo:1}],[at(120,-60),-3.6,'wispflux',{car:'wisp',sig:1}],[at(-120,-80),3.6,'stratossurge',{car:'stratos',sig:1}]]); };
+evById('calder').setup=()=>{ const E=evById('calder'), at=E.sNear;
+  addPickups(E,[[at(0,-300),-3.6,'refill'],[at(0,-560),3.6,'sling'],[at(110,-700),0,'grip'],[at(258,-655),0,'shield'],[at(460,-700),-3.6,'over'],
+    [at(560,-560),3.6,'long'],[at(560,-330),-3.6,'sling'],[at(560,-60),3.6,'refill'],[at(560,250),0,'shock'],[at(430,470),-3.2,'grip'],[at(300,610),3.2,'over'],
+    [at(110,760),0,'refill'],[at(-120,700),-3.6,'long'],[at(-120,420),3.6,'sling'],[at(-60,160),0,'shield'],
+    [at(0,-200),0,'desperate',{last:1}],[at(560,-420),0,'echoboost',{lastTwo:1}],[at(560,-150),-3.6,'wispflux',{car:'wisp',sig:1}],[at(-120,560),3.6,'stratossurge',{car:'stratos',sig:1}]]); };
 SETUP_READY=true; EVENTS.forEach(e=>{ if(e.scene) finishEvent(e); });
 const puHomF=mkF(), puHomT=new THREE.Vector3();
 function raceFieldN(){ return EV.knockout?koActive().length:racers.filter(x=>!x.finished&&!x.out).length; }

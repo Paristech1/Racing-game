@@ -306,3 +306,6 @@ export function autoPickupSpots(list,L){
  }
  return out;
 }
+
+/* Which loader startLoading() must use: a knockout event keeps the Gauntlet map the player picked. */
+export function resolveEventForStart(ev,koMap){ return ev&&ev.knockout?{bindKo:true,koMap:koMap}:{bindKo:false}; }

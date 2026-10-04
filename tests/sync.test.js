@@ -23,6 +23,7 @@ const SAME_NAME_PAIRS = [
   'makeTrack',
   'pickClearLane',
   'autoPickupSpots',
+  'resolveEventForStart',
 ];
 
 function normalizePair(name, ahSrc, logicSrc) {

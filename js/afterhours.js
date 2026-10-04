@@ -5523,6 +5523,7 @@ const KO_MAPS=[
  {id:'midnight',eventId:'midnight',name:'Midnight Express',km:'10.6'}
 ];
 let koMapI=0;
+function resolveEventForStart(ev,koMap){ return ev&&ev.knockout?{bindKo:true,koMap:koMap}:{bindKo:false}; }
 function bindKoTrack(i){
   koMapI=(i+KO_MAPS.length)%KO_MAPS.length;
   const map=KO_MAPS[koMapI], base=EVENTS.find(e=>e.id==='ko'), track=EVENTS.find(e=>e.id===map.eventId);
@@ -7713,7 +7714,7 @@ $('#results').addEventListener('pointercancel',studioPtrUp);
 
 function startLoading(){
   initAudio(); sfx.shutter(); flash(1);
-  if(mode!=='events') { setEvent(EVI); setupAttract(CARS[sel]); }
+  if(mode!=='events') { const rs=resolveEventForStart(EVENTS[EVI],koMapI); if(rs.bindKo) bindKoTrack(rs.koMap); else setEvent(EVI); setupAttract(CARS[sel]); }
   mode='loading'; modeT=0; show('loading');
   setWeather(EV.id!=='tunnel'&&Math.random()<.45);
   const mate=tagPick&&!EV.knockout?CARS.find(c=>c.id===tagPick.partner):null;

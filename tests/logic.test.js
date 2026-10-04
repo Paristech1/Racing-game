@@ -19,6 +19,7 @@ import {
   NEW_PU_SPOTS,
   autoPickupSpots,
   pickClearLane,
+  resolveEventForStart,
   rng,
   scorePickup,
   Vec3,
@@ -448,5 +449,15 @@ describe('autoPickupSpots (new power-up gems)', () => {
         assert.ok(Math.min(d, L - d) >= 45, `${a[2]} sits ${Math.min(d, L - d)} m from ${o[2]}`);
       }
     }
+  });
+});
+
+describe("resolveEventForStart", () => {
+  it("knockout events rebind the picked Gauntlet map instead of setEvent", () => {
+    assert.deepEqual(resolveEventForStart({ knockout: true }, 2), { bindKo: true, koMap: 2 });
+  });
+  it("normal events use setEvent", () => {
+    assert.deepEqual(resolveEventForStart({ id: "dockside" }, 2), { bindKo: false });
+    assert.deepEqual(resolveEventForStart(undefined, 1), { bindKo: false });
   });
 });

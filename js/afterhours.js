@@ -2867,7 +2867,9 @@ function buildCar(def,opts){
     const lip=new THREE.Mesh(new THREE.TorusGeometry(.29,.025,6,28),def.rimLip?new THREE.MeshStandardMaterial({color:def.rimLip,roughness:.35,metalness:.3}):rimM); lip.rotation.y=Math.PI/2; lip.position.x=side*.155; spin.add(lip);
     wheelStyle(spin,side,(STREET[cid]||{}).wheel,rimM,def);
     if(def.lowPro) spin.children.forEach(o=>{ if(o!==tire&&o!==barrel&&o!==rotor){ o.scale.y*=1.2; o.scale.z*=1.2; } }); // bigger rim inside the same tire: thin sidewall
-    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,12),cid==='hikari'?rimM:calM); // hikari: gunmetal centre, the red is on the calipers hub.rotation.z=Math.PI/2; hub.position.x=side*.17; spin.add(hub);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.04,12),cid==='hikari'?rimM:calM);
+    // hikari: gunmetal centre, the red is on the calipers
+    hub.rotation.z=Math.PI/2; hub.position.x=side*.17; spin.add(hub);
     if(cid!=='wisp') for(let k=0;k<5;k++){ const a=k/5*Math.PI*2, nut=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.03,6),chromeTrimM); nut.rotation.z=Math.PI/2; nut.position.set(side*(cid==='hikari'?.184:.165),Math.cos(a)*.085,Math.sin(a)*.085); spin.add(nut); }
     if(cid==='autobahn'){ // big red monobloc caliper hugging the rotor at the trailing edge, as in the wheel reference
       const cg=WHEEL_GEO.wispCal||(WHEEL_GEO.wispCal=(()=>{ const sh=new THREE.Shape(); sh.absarc(0,0,.255,.55,1.45,false); sh.absarc(0,0,.175,1.45,.55,true);

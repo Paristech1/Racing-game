@@ -7220,7 +7220,7 @@ function collide(){
         if(fore.isP){ toast(`Rammed by ${back.def.tag}. It took your speed.`); shake=1; } else if(back.isP) toast(`Rammed ${fore.def.tag}. Speed stolen.`); }
       if((a.isP||b.isP)&&(a.hitCd<=0)){ a.hitCd=.3; b.hitCd=.3; sfx.hit(clamp((a.isP?a:b).v/70,.4,1),clamp(((a.isP?b:a).x-(a.isP?a:b).x)*.35,-.8,.8)); shake=.5;
         frame((a.dist+b.dist)/2,F); tmpV.copy(F.p).addScaledVector(F.r,(a.x+b.x)/2); tmpV.y+=.5; emitSparks(tmpV,F.t,30,a.v*.3); if(a.isP&&!shieldVs(a,b)) a.hits++; if(b.isP&&!shieldVs(b,a)) b.hits++; }
-      if(!a.tr&&!b.tr&&raceT<9&&raceT>0&&!raceTape.battle){ raceTape.battle=true; tapeLog('battle',{a:a.def.tag,b:b.def.tag}); }
+      if(!a.tr&&!b.tr&&raceT<9&&raceT>0&&raceTape&&!raceTape.battle){ raceTape.battle=true; tapeLog('battle',{a:a.def.tag,b:b.def.tag}); }
     }
   }
 }

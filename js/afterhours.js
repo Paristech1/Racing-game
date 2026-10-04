@@ -7375,6 +7375,7 @@ function renderRaceReport(rep){
   $('#rMagQuote').textContent=rep.quote?`“${rep.quote}”`:'';
   $('#rHiList').innerHTML=rep.items.map((it,i)=>`<li><button type="button" data-hi="${i}"><b>${String(i+1).padStart(2,'0')}</b> ${esc(it.title)}<span>${esc(it.body)}</span></button></li>`).join('');
   $('#rHiList').querySelectorAll('button').forEach(b=>b.onclick=()=>playHighlight(rep.items[+b.dataset.hi]));
+  const rw=$('#rWatch'); if(rw) rw.style.display=(raceTape&&raceTape.snaps&&raceTape.snaps.length>=2)?'':'none';
 }
 function endHighlight(){
   hiCars.forEach(c=>{ if(c.group.parent) c.group.parent.remove(c.group); });
@@ -7394,7 +7395,7 @@ function playHighlight(h){
 function highlightStep(dt){
   if(!hiPlay) return;
   hiPlay.t+=dt;
-  const row=snapAt(hiPlay.t); if(!row) return;
+  const row=snapAt(hiPlay.t); if(!row){ endHighlight(); return; }
   snapDecode(row).forEach(s=>{
     if(!hiPlay.ids.includes(s.id)) return;
     const car=hiCars.find(c=>c.id===s.id); if(!car) return;

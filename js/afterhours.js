@@ -905,9 +905,9 @@ const BODIES={
  classic:{pts:[[-2.2,.42],[-2.3,.7],[-2.2,.86],[-1.6,.94],[-.9,.98],[-.2,.9],[.6,.86],[1.4,.8],[2.0,.66],[2.3,.5],[2.36,.4]],base:.22,
    cab:[[-1.95,.92],[-1.2,1.3],[-.55,1.34],[-.1,1.14],[.25,.9]],cabBase:[-1.95,.9,.25,.86],w:1.82,cw:1.3,wr:.36,wb:1.28,tr:.9,front:2.36,rear:2.3,headY:.64,tailY:.78,wingY:1.1,wingZ:-2.1},
  hyper:{pts:[[-2.5,.34],[-2.56,.64],[-2.42,.8],[-1.6,.9],[-.6,.94],[.4,.86],[1.3,.66],[1.95,.5],[2.4,.38],[2.46,.3]],base:.2,
-   cab:[[-1.35,.9],[-.8,1.2],[.1,1.25],[.7,1.03],[1.15,.74]],cabBase:[-1.35,.88,1.15,.72],w:2.02,cw:1.28,wr:.37,wb:1.5,tr:1.02,front:2.46,rear:2.56,headY:.5,tailY:.72,wingY:1.5,wingZ:-2.2,swan:true},
+   cab:[[-1.35,.9],[-.8,1.2],[.1,1.25],[.7,1.03],[1.15,.74]],cabBase:[-1.35,.88,1.15,.72],w:2.02,cw:1.28,wr:.37,wb:1.5,tr:.87,front:2.55,rear:2.45,headY:.5,tailY:.72,wingY:1.5,wingZ:-2.2,swan:true},
  p1:{pts:[[-2.24,.34],[-2.3,.66],[-2.2,.82],[-1.6,.9],[-.9,.92],[-.1,.84],[.8,.68],[1.6,.52],[2.14,.36],[2.22,.26]],base:.18,
-   cab:[[-1.55,.96],[-1.0,1.16],[-.2,1.22],[.5,1.02],[.98,.7]],cabBase:[-1.55,.94,.98,.68],w:2.0,cw:1.22,wr:.36,wb:1.36,tr:1.0,front:2.22,rear:2.3,headY:.5,tailY:.76,wingY:1.14,wingZ:-1.95},
+   cab:[[-1.55,.96],[-1.0,1.16],[-.2,1.22],[.5,1.02],[.98,.7]],cabBase:[-1.55,.94,.98,.68],w:2.0,cw:1.22,wr:.36,wb:1.36,tr:.88,front:2.22,rear:2.3,headY:.5,tailY:.76,wingY:1.14,wingZ:-1.95},
  fastback:{pts:[[-2.42,.4],[-2.48,.76],[-2.34,.92],[-1.7,.97],[-.6,.99],[.5,.97],[1.4,.9],[2.1,.76],[2.44,.6],[2.48,.4]],base:.26,
    cab:[[-2.15,.94],[-1.3,1.28],[.3,1.4],[1.0,1.16],[1.42,.93]],cabBase:[-2.15,.92,1.42,.92],w:1.94,cw:1.46,wr:.38,wb:1.55,tr:.92,front:2.48,rear:2.48,headY:.72,tailY:.86,wingY:1.08,wingZ:-2.3},
  granfour:{pts:[[-2.4,.4],[-2.45,.76],[-2.34,.96],[-1.7,1.03],[-.6,1.0],[.5,.97],[1.4,.93],[2.1,.83],[2.44,.72],[2.47,.4]],base:.2, // Gran Four v3 (tools/blender/gran_four.py)
@@ -1184,7 +1184,27 @@ function kageShell(g,def,B,paint,glass,opts){
   return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.1,ay:ys-.12,yc:ys+.02,yf:ys+.02}; }};
 }
 
-/* ---- Overload 3K: quad-motor EV hypercar, pontoon fenders, bubble canopy, dorsal fin, cyan light blades ---- */
+/* ---- Overload 3K (Blender build): quad-motor EV hypercar modeled in Blender (tools/blender/overload_3k.py), loaded as models/overload_3k.glb ----
+   Traced off the Gemini blueprint of the seed-locked Midjourney set. ACCENT is the cyan light-blade material (unlit, blooms).
+   The procedural overloadShell below stays as the fallback until the file lands. */
+function overloadGlbShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('overload',opts&&opts.lod); if(!parts) return overloadShell(g,def,B,paint,glass,opts);
+  const K=carKit(g), cy=def.accent||0x2fe6ff; rimPaint(paint,cy,.16); paint.clearcoat=1; paint.clearcoatRoughness=.012;
+  const blade=new THREE.MeshBasicMaterial({color:cy,toneMapped:false});
+  const bubble=new THREE.MeshPhysicalMaterial({color:0x061a22,metalness:.2,roughness:.02,clearcoat:1,clearcoatRoughness:.02,reflectivity:1,envMapIntensity:2});
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:bubble,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,ACCENT:blade,LENS:LENS_M};
+  parts.forEach(p=>{ const m=new THREE.Mesh(p.geo,MATS[p.key]||paint); if(p.key==='GLASS') m.renderOrder=3; g.add(m); });
+  { const pr=K.add(new THREE.PlaneGeometry(.4,.1),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'3K'),roughness:.5}),0,.34,-2.47); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xcfe6ff,.5,sd*.82,.62,2.2); K.glow(cy,.3,sd*.55,.55,-2.46); });
+  K.glow(0xff2030,.3,0,.61,-2.46);
+  // side-section sampler for the street vinyl: same keys as the Blender loft (HW / YS / YB in overload_3k.py)
+  const HS=[[-2.45,.6],[-2.4,.84],[-2.3,.95],[-2.2,1.0],[-1.5,1.03],[-.8,.97],[0,.93],[.8,.95],[1.5,1.02],[2.2,1.0],[2.3,.95],[2.4,.85],[2.5,.66],[2.55,.44]],
+    YS=[[-2.45,.7],[-2.3,.8],[-2.0,.86],[-1.5,.88],[-1.0,.83],[-.5,.74],[0,.7],[.6,.72],[1.1,.78],[1.5,.82],[1.9,.74],[2.2,.64],[2.4,.55],[2.55,.43]],
+    YB=[[-2.45,.3],[-2.3,.18],[-2.0,.12],[2.1,.12],[2.4,.15],[2.55,.24]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.1,ay:ys-.12,yc:ys+.02,yf:ys+.02}; }};
+}
+
+/* ---- Overload 3K (procedural fallback): quad-motor EV hypercar, pontoon fenders, bubble canopy, dorsal fin, cyan light blades ---- */
 function overloadShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon, cy=def.accent||0x2fe6ff; rimPaint(paint,cy,.16);
   const blade=new THREE.MeshBasicMaterial({color:cy,toneMapped:false});
@@ -2479,7 +2499,7 @@ function needleShell(g,def,B,paint,glass){
   K.pipe(0,.4,-R-.05,.05); K.plate(def,.66,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell,lumen:lumenShell,brigline:briglineShell,pulse2:pulse2Shell,vandal:vandalShell,needle:needleShell};
+const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadGlbShell,hellbound:hellboundShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell,lumen:lumenShell,brigline:briglineShell,pulse2:pulse2Shell,vandal:vandalShell,needle:needleShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -5992,7 +6012,7 @@ for(let i=0;i<34;i++){ const c=[0xff7a2a,0xff3a2a,0xffd08a,0x4fd0ff][i%4];
   const a=Math.random()*Math.PI*2, r=12+Math.random()*10; s.position.set(Math.cos(a)*r,1+Math.random()*5,Math.sin(a)*r); s.scale.setScalar(1+Math.random()*2.5); bokeh.add(s); }
 renderer.localClippingEnabled=true;
 const studioCars=CARS.map(d=>{ const c=buildCar(d,{cut:true}); c.group.visible=false; studio.add(c.group); return c; });
-const GLB_SHELL_KEY=new Map([[wispGlbShell,'wisp'],[granfourGlbShell,'granfour'],[kageShell,'kage'],[volcanoShell,'volcano'],[autobahnGlbShell,'autobahn']]);
+const GLB_SHELL_KEY=new Map([[wispGlbShell,'wisp'],[granfourGlbShell,'granfour'],[kageShell,'kage'],[volcanoShell,'volcano'],[overloadGlbShell,'overload'],[autobahnGlbShell,'autobahn']]);
 window.AH_MODEL_READY=key=>{ // slow connections boot before every model has downloaded; swap the real body in as soon as it lands
   CARS.forEach((d,i)=>{ if(GLB_SHELL_KEY.get(SHELLS[d.sculpt])!==key) return; const old=studioCars[i], nc=buildCar(d,{cut:true});
     nc.group.visible=old.group.visible; nc.group.rotation.copy(old.group.rotation); studio.remove(old.group); studio.add(nc.group); studioCars[i]=nc; }); };

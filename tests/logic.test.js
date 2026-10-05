@@ -14,6 +14,7 @@ import {
   koUsesSectors,
   clampFieldSize,
   fieldSizeChoices,
+  fieldSizeForEvent,
   fieldSizeForRace,
   lapsForEvent,
   maxRaceFieldSize,
@@ -100,9 +101,11 @@ describe('field size / grid picker', () => {
     assert.deepEqual(fieldSizeChoices(23), [4, 7, 10, 12, 15, 20, 23]);
   });
 
-  it('fieldSizeForRace locks knockout at 12', () => {
-    assert.equal(fieldSizeForRace({ knockout: true }, 7, 23), 12);
-    assert.equal(fieldSizeForRace({ id: 'blvd' }, 15, 23), 15);
+  it('fieldSizeForEvent locks knockout at 12', () => {
+    assert.equal(fieldSizeForEvent({ knockout: true, id: 'ko' }, {}, 23), 12);
+    assert.equal(fieldSizeForEvent({ id: 'blvd' }, { fieldBy: { blvd: 15 } }, 23), 15);
+    assert.equal(fieldSizeForEvent({ id: 'calder', defaultField: 20 }, {}, 23), 20);
+    assert.equal(fieldSizeForEvent({ id: 'tunnel' }, { fieldN: 10 }, 23), 10);
   });
 });
 

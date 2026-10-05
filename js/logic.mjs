@@ -51,9 +51,20 @@ export function fieldSizeChoices(max) {
   return out;
 }
 
-export function fieldSizeForRace(ev, savedN, maxCars) {
+/** Grid size for one level (player included). Uses save.fieldBy[eventId], then legacy fieldN, then ev.defaultField, then 7. */
+export function fieldSizeForEvent(ev, save, maxCars) {
   if (ev && ev.knockout) return 12;
-  return clampFieldSize(savedN, maxCars);
+  const cap = Math.max(4, maxCars);
+  const by = (save && save.fieldBy) || {};
+  let n = by[ev && ev.id];
+  if (n == null && save && save.fieldN != null) n = save.fieldN;
+  if (n == null && ev && ev.defaultField != null) n = ev.defaultField;
+  return clampFieldSize(n, cap);
+}
+
+/** @deprecated use fieldSizeForEvent */
+export function fieldSizeForRace(ev, savedN, maxCars) {
+  return fieldSizeForEvent(ev, { fieldN: savedN }, maxCars);
 }
 
 export function histRecord(save, id) {

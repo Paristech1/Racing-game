@@ -5688,10 +5688,10 @@ const EVENTS=[
    caption:'Synth District: mag-deck straight, container chicane, hyperloop columns, neon tube. Two laps.',
    specs:'3.1 KM LOOP / 2 LAPS / 7 CARS / LIVE TRAFFIC / PULSE GRID PADS / MEDIAN POSTS / CARGO LOCK / NEON TUBE',
    note:'deck.\nchicane.\ntube.',load:'Neon Core. Two laps through the Synth District.'},
-  {id:'calder',build:buildCalder,open:true,laps:2,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Highway 9, the Calder Tunnel',
-   caption:'Original port city at dusk — quay, Steel Bridge, Old Town, highway and tunnel. Two laps.',
-   specs:'5.6 KM LOOP / 2 LAPS / 7 CARS / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
-   note:'save boost\nfor the\nbridge',load:'Calder Basin. Quay, bridge, old town, highway, tunnel. Two laps.'}
+  {id:'calder',build:buildCalder,open:true,gridN:20,laps:3,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Highway 9, the Calder Tunnel',
+   caption:'Original port city at dusk — quay, Steel Bridge, Old Town, highway and tunnel. Three laps, twenty cars.',
+   specs:'5.6 KM LOOP / 3 LAPS / 20 CARS / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
+   note:'save boost\nfor the\nbridge',load:'Calder Basin. Quay, bridge, old town, highway, tunnel. Three laps, twenty cars.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
@@ -7946,6 +7946,12 @@ function startRace(){
       if(car.id===me.id){ player=addRacer(me,true,dist,x,1); return; }
       const shell=R_(per[i%per.length]);
       addRacer(Object.assign({},car,{chassisId:car.id,tag:car.name,car:car.name,P:Object.assign({},shell.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.025); });
+  } else if(EV.gridN){
+    const n=EV.gridN, taken=[me.id], per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5), pSlot=Math.floor(Math.random()*n);
+    for(let i=0;i<n;i++){ const dist=-5-i*5.2, x=i%2?2.6:-2.6;
+      if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
+      const shell=R_(per[i%per.length]), def=buildRivalForEvent(shell,EV.id,taken);
+      addRacer(def,false,dist,x,.975+Math.random()*.025); }
   } else {
   const grid=[
    ['apex',-5,-2.6,.99],['closer',-11,2.6,.985],['wall',-17,-2.6,.975],

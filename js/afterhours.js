@@ -4905,7 +4905,8 @@ function buildManayunk(){
   K.gantry(K.sNear(180,-386),'MANAYUNK AVE','CRESTS · AIR TIME',{bg:'#2a1c06',color:'#ffd9a0'});
   K.gantry(K.sNear(-520,-300),'GREEN LANE','STEEP DESCENT  ↓',{bg:'#0f5a32'});
   K.flush();
-  const update=dt=>{ waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; };
+  TUN.capture();
+  const update=dt=>{ TUN.update(dt,cam.position); waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; };
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],slopeG:1.5,airtime:true};
 }
 
@@ -4948,6 +4949,7 @@ function buildMtAiry(){
     y=Math.min(y,nr.p.y-.45+Math.max(0,nr.d-(W+1))*.1);
     tp.setY(i,y); const g=.06+.04*Math.sin(x*.05)*Math.cos(z*.04); tcol.push(g*.8,g*1.25,g*.75); }
   tg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tg.computeVertexNormals();
+  const terrY=(x,z)=>{ const ix=clamp(Math.round((x-(350-1450))/2900*170),0,170), iz=clamp(Math.round((z-(-100-1350))/2700*156),0,156); return tp.getY(iz*171+ix); };
   K.mesh(tg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}),0,0,0);
 
   // ---- road: yellow double center line, sidewalks except along Lincoln Drive ----
@@ -5459,6 +5461,162 @@ const CB_KEYS=[[0,-40,0],[0,-700,0],[345,-700,0],[560,-640,0],[560,-480,13],[560
   [430,400,5],[430,540,9],[300,540,13],[300,690,18],[230,690,19.5],[230,630,21],[110,630,24],[110,900,30],[-300,900,31],[-640,900,30],[-820,760,26],
   [-820,560,20],[-700,420,14],[-380,320,7],[-200,265,4],[0,60,.5]];
 const CB_SPAN=p=>Math.abs(p.x-560)<4&&p.z>-472&&p.z<112; // the bridge deck over the channel (no sidewalks, no lamp posts)
+/* ---- the Calder Tunnel, round 2: built straight from the Midjourney tunnel frames (levels/calder-basin-asset-pack.md, T1-T4).
+   Five acts along ~750 m: a brushed-titanium lens hood with a copper lip ring -> the copper fin vault through the long bend
+   (thousands of angled fins in a slow spiral, glowing on their inner edges, a light pulse running down the tube) -> the
+   cliff gallery on the straight (white vault, sweeping light lines, floor-to-ceiling glass looking down at the harbor)
+   -> the cyan hex-lattice vault on black steel ribs -> the exit hood with a cyan lip ring.
+   threejs-geometry: every surface is generated along the track frame (no kit parts), chunked ~60 m so the frustum culls it.
+   threejs-shaders: the fins carry aGlow/aS attributes; onBeforeCompile adds the edge glow and the travelling pulse.
+   threejs-textures: canvas hex lattice (albedo + emissive pair). threejs-lighting/materials: each act's glossy road and
+   metals reflect a cube capture of that act (CubeCamera -> PMREM), so the fins and the hexes really show in the asphalt. */
+function calderSections(tr,sT0,sT1){ const F=mkF(); let sBend=sT0+200;
+  for(let s=sT0+150;s<sT1-200;s+=2){ frame(s,F,tr); if(Math.abs(F.k)<.0008){ sBend=s; break; } }
+  const sF0=sT0+30, sF1=Math.min(sBend+30,sT1-330), sG0=sF1+16, sG1=Math.min(sG0+175,sT1-140), sH0=sG1+16, sH1=sT1-30;
+  frame((sG0+sG1)/2,F,tr); return {sF0,sF1,sG0,sG1,sH0,sH1,gal:F.r.z>0?-1:1}; } // gal: the harbor (south, -z) side, as a sign on the track's right vector
+function calderTunnel(K,tr,sT0,sT1,C){
+  const S=K.S, W=tr.W, F=mkF(), V3=THREE.Vector3, D2=THREE.DoubleSide, PI=Math.PI;
+  const A=10.6, B=8.2, FD=1.9, AS=A+FD+.25, BS=B+FD+.25; // fin vault inner ellipse, fin depth, the shell behind the fins
+  const tf=(v,s)=>typeof v==='function'?v(s):v;
+  // a strip of the elliptical vault x=a cos t, y=b sin t (t=0 on the right base, PI on the left), over one or more s spans
+  const vaultGeo=(spans,ds,t0,t1,nt,a,b,vS,extra)=>{ const pos=[], uv=[], idx=[]; let base=0;
+    spans.forEach(([c0,c1])=>{ let row=0;
+      for(let s=c0;;s+=ds){ const ss=Math.min(s,c1); frame(ss,F,tr); const ta=tf(t0,ss), tb=tf(t1,ss), aa=tf(a,ss), bb=tf(b,ss);
+        for(let j=0;j<=nt;j++){ const t=ta+(tb-ta)*j/nt, x=aa*Math.cos(t), y=bb*Math.sin(t); pos.push(F.p.x+F.r.x*x,F.p.y+y,F.p.z+F.r.z*x); uv.push(j/nt,ss/vS); }
+        if(row){ const o=base+(row-1)*(nt+1); for(let j=0;j<nt;j++) idx.push(o+j,o+nt+1+j,o+j+1, o+j+1,o+nt+1+j,o+nt+2+j); }
+        row++; if(ss>=c1) break; }
+      base+=row*(nt+1); });
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals(); return g; };
+  const add=(g,m,ro)=>{ const me=new THREE.Mesh(g,m); if(ro) me.renderOrder=ro; S.add(me); return me; };
+  const vault=(s0,s1,ds,t0,t1,nt,a,b,mat,vS)=>{ const out=[]; for(let c=s0;c<s1-.01;c+=60) out.push(add(vaultGeo([[c,Math.min(s1,c+60)]],ds,t0,t1,nt,a,b,vS||12),mat)); return out; };
+  // an end wall between two vault ellipses at one station (closes the step where acts of different size meet)
+  const cap=(s,a0,b0,a1,b1,mat,t0,t1)=>{ t0=t0===undefined?-.05:t0; t1=t1===undefined?PI+.05:t1; const nt=40, pos=[], idx=[]; frame(s,F,tr);
+    for(let j=0;j<=nt;j++){ const t=t0+(t1-t0)*j/nt, c=Math.cos(t), sn=Math.sin(t); [[a0,b0],[a1,b1]].forEach(([a,b])=>pos.push(F.p.x+F.r.x*a*c,F.p.y+b*sn,F.p.z+F.r.z*a*c)); if(j) idx.push(2*j-2,2*j-1,2*j, 2*j-1,2*j+1,2*j); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); return add(g,mat); };
+  const bands=(list,w,t0,t1,nt,a,b,mat)=>add(vaultGeo(list.map(s=>[s,s+w]),w,t0,t1,nt,a,b,1),mat); // thin rings across the vault (light rings, ribs, mullions)
+  const glowM=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false,side:D2});
+  const COP=0xffa45c, CYAN=0x5ff2ff, WARMW=0xffe6c4;
+  const env=[]; // [s, material list] per act, filled by cube captures at the end
+
+  // ---------- road: black glass-smooth asphalt, edge LEDs, dark shoulders (one material per act so each reflects its own act) ----------
+  const rT=CT(canvasTex(256,512,(g,w,h)=>{ g.fillStyle='#0c0d10'; g.fillRect(0,0,w,h); const R=rng(733);
+    for(let i=0;i<7000;i++){ const v=14+R()*22; g.fillStyle=`rgba(${v},${v},${v+3},.5)`; g.fillRect(R()*w,R()*h,1.2,1.2); }
+    g.fillStyle='rgba(236,238,244,.9)'; g.fillRect(w*.035,0,4,h); g.fillRect(w*.965-4,0,4,h);
+    g.fillStyle='rgba(255,196,64,.9)'; g.fillRect(w*.5-7,0,4,h); g.fillRect(w*.5+3,0,4,h); }),true);
+  const roadM=()=>new THREE.MeshStandardMaterial({map:rT,color:0xb4b8c0,roughness:.13,metalness:.42,envMapIntensity:1.7,side:D2});
+  const shM=()=>new THREE.MeshStandardMaterial({color:0x16171a,roughness:.32,metalness:.4,envMapIntensity:1.2,side:D2});
+  const acts=[[sT0-22,C.sG0-8,COP],[C.sG0-8,C.sG1+8,WARMW],[C.sG1+8,sT1+22,CYAN]];
+  const actMats=acts.map(([a,b,col])=>{ const rm=roadM(), sm=shM(), inA=k=>{ const s=k*tr.ds; return s>=a&&s<b; };
+    ribbonF(tr,S,rm,(k,p)=>inA(k)?[-W-.3,p.y+.014,W+.3,p.y+.014]:null,24);
+    [-1,1].forEach(sd=>{ ribbonF(tr,S,sm,(k,p)=>inA(k)?[sd*(W+.3),p.y+.012,sd*(AS+.3),p.y+.012]:null,8);
+      ribbonF(tr,S,glowM(col),(k,p)=>inA(k)?[sd*(W+.55),p.y+.03,sd*(W+.75),p.y+.03]:null);              // LED line set in the shoulder
+      ribbonF(tr,S,glowM(col),(k,p)=>inA(k)&&!(col===WARMW&&sd===C.gal)?[sd*(A-.15),p.y+.55,sd*(A-.15),p.y+.62]:null); }); // low wall-wash line
+    return [rm,sm]; });
+  { const st=[]; for(let s=sT0;s<sT1;s+=9) [-1,1].forEach(sd=>{ K.at(s,sd*3.6,0); K.pv.y=K.f.p.y+.03; st.push(new THREE.Matrix4().compose(K.pv.clone(),K.q.clone(),K.one)); }); lampStreaks(S,st,true); }
+
+  // hex lattice canvases (threejs-textures: albedo + emissive pair, tileable 2x2 periods); pal = [centre, mid, edge] rgb
+  const R6=64, HW=384, HH=222, hexPath=(g,cx,cy,r)=>{ g.beginPath(); for(let i=0;i<6;i++){ const a=i*PI/3; g.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a)); } g.closePath(); };
+  const hexCells=(g,fn)=>{ for(let cx=-R6*3;cx<HW+R6*3;cx+=R6*1.5) for(let cy=-HH;cy<HH*2;cy+=R6*Math.sqrt(3)){ const col=Math.round(cx/(R6*1.5)), y=cy+(col%2?R6*Math.sqrt(3)/2:0); fn(cx,y); } };
+  const hexTex=(pal,cell,seed)=>{ const a=CT(canvasTex(HW,HH,(g,w,h)=>{ g.fillStyle='#07090b'; g.fillRect(0,0,w,h); hexCells(g,(x,y)=>{ hexPath(g,x,y,R6-7); g.fillStyle=cell; g.fill(); }); }),true);
+    const e=CT(canvasTex(HW,HH,(g,w,h)=>{ g.fillStyle='#000'; g.fillRect(0,0,w,h); const R=rng(seed);
+      hexCells(g,(x,y)=>{ const gr=g.createRadialGradient(x,y,2,x,y,R6), k=R()<.07?.35:1, c=v=>`rgba(${v.map(q=>q*k|0).join(',')},1)`; gr.addColorStop(0,c(pal[0])); gr.addColorStop(.55,c(pal[1])); gr.addColorStop(1,c(pal[2]));
+        hexPath(g,x,y,R6-7); g.fillStyle=gr; g.fill(); }); }),true); return [a,e]; };
+  const [hexA,hexE]=hexTex([[235,255,255],[150,236,246],[20,90,110]],'#9fb4b8',616), [cuA,cuE]=hexTex([[255,214,160],[214,120,60],[70,26,8]],'#b07850',617);
+  hexA.repeat.set(5,1); hexE.repeat.set(5,1); cuA.repeat.set(5,1); cuE.repeat.set(5,1);
+  const hexVS=HH/HW*((PI-2*.44)*9.6)/5;
+  const hexM=new THREE.MeshStandardMaterial({map:hexA,emissiveMap:hexE,emissive:0xffffff,emissiveIntensity:1.25,roughness:.3,metalness:.55,envMapIntensity:1.1,side:D2});
+  const cuHexM=new THREE.MeshStandardMaterial({map:cuA,emissiveMap:cuE,emissive:0xffffff,emissiveIntensity:.9,roughness:.28,metalness:.75,envMapIntensity:1.2,side:D2});
+  // ---------- portals: the lens hood (Midjourney portal frames: titanium shell, copper lining, ring light, hex throat) ----------
+  const tiM=new THREE.MeshStandardMaterial({color:0x9da3ad,metalness:.88,roughness:.28,envMapIntensity:1.35,side:D2});
+  const cuM=new THREE.MeshStandardMaterial({color:0xc07a4c,emissive:0x2a1006,metalness:.92,roughness:.24,envMapIntensity:1.5,side:D2}); // the copper lining
+  const tiDark=new THREE.MeshStandardMaterial({color:0x2b2e33,metalness:.8,roughness:.35,envMapIntensity:1.2,side:D2});
+  const hood=(sP,dir,col)=>{ const NT=44, NU=16, pos=[], idx=[], lip=[], inset=[], P=new V3();
+    for(let i=0;i<=NU;i++){ const u=i/NU;
+      for(let j=0;j<=NT;j++){ const t=-.06+(PI+.12)*j/NT, st=Math.max(0,Math.sin(t)), reach=3+18*Math.pow(st,.85), s=sP+dir*reach*(1-u), k=1+.62*Math.pow(1-u,2)*(.55+.45*st);
+        frame(s,F,tr); const x=AS*k*Math.cos(t), y=BS*k*Math.sin(t); P.set(F.p.x+F.r.x*x,F.p.y+y,F.p.z+F.r.z*x); pos.push(P.x,P.y,P.z); if(i===0) lip.push(P.clone()); if(i===6) inset.push(P.clone()); }
+      if(i){ const o=(i-1)*(NT+1); for(let j=0;j<NT;j++) idx.push(o+j,o+NT+1+j,o+j+1, o+j+1,o+NT+1+j,o+NT+2+j); } }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); add(g,col===COP?cuM:tiM);
+    const og=g.clone(), op=og.attributes.position, on=og.attributes.normal; // a second skin 0.9 m out, so the lip reads as a thick shell
+    for(let i=0;i<op.count;i++){ const s=on.getY(i)<0?-1:1; op.setXYZ(i,op.getX(i)+on.getX(i)*.9*s,op.getY(i)+on.getY(i)*.9*s,op.getZ(i)+on.getZ(i)*.9*s); } og.computeVertexNormals(); add(og,tiM);
+    add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lip),120,.42,10,false),glowM(col));
+    add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(inset),120,.26,8,false),glowM(col));
+    const lc=lip[lip.length>>1]; K.glow(col,30,lc.x,lc.y+1,lc.z); };
+  hood(sT0+2,-1,COP); hood(sT1-2,1,CYAN);
+  // the throats: a smooth titanium tube with light rings receding into the hill (Midjourney portal frame: rings inside)
+  [[sT0+2,C.sF0,COP,cuHexM],[C.sH1,sT1-2,CYAN,null]].forEach(([a,b,col,hm])=>{ vault(a,b,2,.3,PI-.3,30,AS,BS,hm||hexM,hexVS*1.3); [[-.04,.3],[PI-.3,PI+.04]].forEach(([t0,t1])=>vault(a,b,3,t0,t1,6,AS,BS,col===COP?cuM:tiDark,8));
+    const rs=[]; for(let s=a+4;s<b-1;s+=5) rs.push(s); bands(rs,.4,-.04,PI+.04,48,AS-.12,BS-.12,glowM(col)); });
+
+  // ---------- act 1: the copper fin vault (Midjourney fin frame, the hero shot) ----------
+  vault(C.sF0,C.sF1,3,-.05,PI+.05,36,AS+.15,BS+.15,new THREE.MeshStandardMaterial({color:0x140b06,emissive:0x2a1206,roughness:.7,side:D2}),10); // the warm glow behind the fins
+  const TU={uT:{value:0},uFC:{value:new THREE.Color(COP)},uFK:{value:1}};
+  const finM=new THREE.MeshStandardMaterial({color:0xd8b494,roughness:.36,metalness:.5,envMapIntensity:1.3,side:D2});
+  finM.onBeforeCompile=sh=>{ Object.assign(sh.uniforms,TU);
+    sh.vertexShader='attribute float aGlow; attribute float aS; varying float vGlow; varying float vFS;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvGlow=aGlow; vFS=aS;');
+    sh.fragmentShader='uniform float uT,uFK; uniform vec3 uFC; varying float vGlow; varying float vFS;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n{ float ph=fract((vFS-uT*70.)/180.)-.5, pulse=exp(-ph*ph*1100.);\n  totalEmissiveRadiance+=uFC*uFK*(pow(vGlow,3.)*(1.25+2.4*pulse)+pow(vGlow,.6)*.12+.03); }'); };
+  finM.customProgramCacheKey=()=>'cbFin';
+  { const NF=34, T0=-.02, T1=PI+.02, dT=(T1-T0)/NF, TW=.55, LEAN=1.35, step=1.45;
+    for(let c=C.sF0;c<C.sF1-1;c+=48){ const pos=[], glow=[], ss=[], idx=[], c1=Math.min(C.sF1-1,c+48), fr=[mkF(),mkF(),mkF(),mkF()];
+      const pt=(f,t,a,b)=>{ const x=a*Math.cos(t), y=b*Math.sin(t); pos.push(f.p.x+f.r.x*x,f.p.y+y,f.p.z+f.r.z*x); };
+      for(let s=c;s<c1;s+=step){ frame(s,fr[0],tr); frame(s+TW,fr[1],tr); frame(s-LEAN,fr[2],tr); frame(s+TW-LEAN,fr[3],tr); const roll=((s*.0105)%dT+dT)%dT;
+        for(let j=-1;j<NF;j++){ let ta=T0+roll+j*dT, tb=ta+dT*.9; if(tb<T0||ta>T1) continue; ta=Math.max(ta,T0); tb=Math.min(tb,T1); const n=pos.length/3;
+          pt(fr[0],ta,A,B); pt(fr[1],tb,A,B); pt(fr[3],tb,A+FD,B+FD); pt(fr[2],ta,A+FD,B+FD); glow.push(1,1,0,0); ss.push(s,s+TW,s+TW-LEAN,s-LEAN);
+          idx.push(n,n+1,n+2,n,n+2,n+3); } }
+      const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('aGlow',new THREE.Float32BufferAttribute(glow,1));
+      g.setAttribute('aS',new THREE.Float32BufferAttribute(ss,1)); g.setIndex(idx); g.computeVertexNormals(); add(g,finM); } }
+  env.push([lerp(C.sF0,C.sF1,.45),[finM,tiM,tiDark,cuM,cuHexM,...actMats[0]]]);
+
+  // ---------- collars between the acts: a short dark-titanium tube with three light rings in the colour of the next act ----------
+  [[C.sF1,C.sG0,WARMW],[C.sG1,C.sH0,CYAN]].forEach(([a,b,col])=>{ vault(a,b,2,-.04,PI+.04,40,A+.3,B+.3,tiDark,8); bands([a+3,a+7.5,a+12],.5,-.04,PI+.04,48,A+.18,B+.18,glowM(col)); });
+
+  cap(C.sF0,AS-.2,BS-.2,AS+.2,BS+.2,tiDark); cap(C.sF1,A+.3,B+.3,AS+.2,BS+.2,tiDark); cap(C.sH0,A,B,A+.35,B+.35,tiDark); cap(C.sH1,A,B,AS+.05,BS+.05,tiDark);
+  // ---------- act 2: the cliff gallery (Midjourney glass frame): white vault, sweeping light lines, glass on the harbor side ----------
+  const gA=A+.2, gB=B+.7, TG=1.95, solid=C.gal<0?[0,TG]:[PI-TG,PI], glassR=C.gal<0?[TG,PI]:[0,PI-TG];
+  const grooveT=CT(canvasTex(256,8,(g,w,h)=>{ g.fillStyle='#c79a74'; g.fillRect(0,0,w,h); for(let x=0;x<w;x+=4){ g.fillStyle=x%8?'#a87a58':'#d8ad86'; g.fillRect(x,0,1.5,h); } }),true); grooveT.repeat.set(30,1);
+  const whiteM=new THREE.MeshStandardMaterial({map:grooveT,color:0xd0a07a,emissive:0x2e170a,roughness:.3,metalness:.55,envMapIntensity:1.45,side:D2}); // satin bronze, fine grooves along the tube
+  vault(C.sG0,C.sG1,2,solid[0],solid[1],30,gA,gB,whiteM,12);
+  vault(C.sG0,C.sG1,4,solid[0],solid[1],20,gA+.6,gB+.6,new THREE.MeshStandardMaterial({color:0xcfd2d6,roughness:.4,metalness:.3,side:D2}),12); // outer skin, seen from the valley
+  const glassM=new THREE.MeshStandardMaterial({color:0x22313f,metalness:.95,roughness:.04,transparent:true,opacity:.16,depthWrite:false,envMapIntensity:2.2,side:D2});
+  vault(C.sG0,C.sG1,4,glassR[0],glassR[1],14,gA,gB,glassM,12).forEach(m=>{ m.renderOrder=3; });
+  { const ms=[]; for(let s=C.sG0;s<C.sG1;s+=3.4) ms.push(s); bands(ms,.14,glassR[0],glassR[1],14,gA-.05,gB-.05,tiDark); } // mullions
+  K.at(C.sG0,0); // floor out to the glass and a warm sill line along its foot
+  ribbonF(tr,S,glowM(WARMW),(k,p)=>{ const s=k*tr.ds; return s>C.sG0&&s<C.sG1?[C.gal*(gA-.3),p.y+.08,C.gal*(gA-.3),p.y+.18]:null; });
+  { const lines=[[.5,0],[.82,1.7],[1.12,3.1],[1.42,4.4],[1.7,5.9]].map(([t,ph])=>[C.gal<0?t:PI-t,ph]), lineM=glowM(0xfff1dc);
+    lines.forEach(([tc,ph],i)=>{ const th=s=>tc+.17*Math.sin(s/(23+i*3)+ph)*(i===0?.4:1); vault(C.sG0+1,C.sG1-1,1.5,s=>th(s)-.011,s=>th(s)+.011,1,gA-.04,gB-.04,lineM,12); }); }
+  [C.sG0,C.sG1].forEach(s=>cap(s,gA-.05,gB-.05,A+.35,B+.35,tiDark));
+  { const st=[]; for(let s=C.sG0+2;s<C.sG1;s+=3.2){ K.at(s,-C.gal*(W+.65),.03); st.push(new THREE.Matrix4().compose(K.pv.clone(),K.q.clone(),K.one)); }
+    K.inst(new THREE.BoxGeometry(.22,.05,.22),glowM(0xffa040),st); } // amber studs down the inside shoulder
+  env.push([lerp(C.sG0,C.sG1,.5),[whiteM,glassM,...actMats[1]]]);
+
+  // ---------- act 3: the hex vault (Midjourney hex frame): backlit hex lattice on black ribs, dark panels with cyan lines ----------
+  const TH=.44; vault(C.sH0,C.sH1,2,TH,PI-TH,30,A,B,hexM,hexVS);
+  const panelM=new THREE.MeshStandardMaterial({color:0x101317,roughness:.16,metalness:.7,envMapIntensity:1.5,side:D2});
+  [[0,TH],[PI-TH,PI]].forEach(([a,b])=>vault(C.sH0,C.sH1,3,a-.03,b,8,A,B,panelM,12));
+  { const cy=glowM(CYAN); [.12,.3,PI-.3,PI-.12].forEach(t=>vault(C.sH0,C.sH1,4,t-.006,t+.006,1,A-.05,B-.05,cy,12)); }
+  { const rs=[]; for(let s=C.sH0+2;s<C.sH1;s+=7.5) rs.push(s); bands(rs,.5,-.03,PI+.03,40,A-.32,B-.32,new THREE.MeshStandardMaterial({color:0x08090a,metalness:.7,roughness:.4,side:D2})); }
+  env.push([lerp(C.sH0,C.sH1,.5),[hexM,panelM,...actMats[2]]]);
+
+  // ---------- haze: motes hanging in the light, copper in the fins, cyan in the hex vault ----------
+  [[C.sF0,C.sF1,0xffb27a],[C.sH0,C.sH1,0x9ff4ff]].forEach(([a,b,col],ii)=>{ const R=rng(90+ii), pos=[];
+    for(let i=0;i<(b-a)*4;i++){ frame(a+R()*(b-a),F,tr); const x=(R()-.5)*2*(A-1), y=.5+R()*(B-1.5); pos.push(F.p.x+F.r.x*x,F.p.y+y,F.p.z+F.r.z*x); }
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    S.add(new THREE.Points(g,new THREE.PointsMaterial({map:glowTex,color:col,size:.16,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}))); });
+
+  // ---------- per-act reflections: one cube capture in each act, run once (threejs-lighting: CubeCamera -> PMREM) ----------
+  const capture=()=>{ env.forEach(([s,mats])=>{ const rt=new THREE.WebGLCubeRenderTarget(128,{format:THREE.RGBAFormat,type:THREE.HalfFloatType,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
+    const cc=new THREE.CubeCamera(.3,1500,rt); frame(s,F,tr); cc.position.set(F.p.x,F.p.y+1.3,F.p.z); S.add(cc);
+    try{ cc.update(renderer,S); const e=pmrem.fromCubemap(rt.texture).texture; mats.forEach(m=>{ m.envMap=e; m.needsUpdate=true; }); }catch(err){ console.warn('calder env capture',err); }
+    S.remove(cc); rt.dispose(); }); };
+
+  // ---------- fog by act (read off the camera, so photo-mode and replays get it too) ----------
+  const tp=[]; for(let s=sT0-40;s<sT1+40;s+=4){ frame(s,F,tr); tp.push(F.p.x,F.p.z,s); }
+  const fog0=S.fog.color.clone(), d0=S.fog.density, fc=new THREE.Color(), FOGS=[[0x2c180c,.0072],[0x2a2430,.0026],[0x0a2328,.0064]];
+  const update=(dt,camP)=>{ TU.uT.value+=dt; let bs=-1, bd=900;
+    for(let i=0;i<tp.length;i+=3){ const d=(tp[i]-camP.x)**2+(tp[i+1]-camP.z)**2; if(d<bd){ bd=d; bs=tp[i+2]; } }
+    let col=fog0, den=d0;
+    if(bs>sT0-10&&bs<sT1+10){ const q=bs<C.sG0-4?0:bs<C.sH0-4?1:2, ed=Math.min(bs-(sT0-10),sT1+10-bs), k=clamp(ed/25,0,1); fc.setHex(FOGS[q][0]); col=fc.lerp(fog0,1-k); den=lerp(d0,FOGS[q][1],k); }
+    const a=1-Math.exp(-dt*3); S.fog.color.lerp(col,a); S.fog.density=lerp(S.fog.density,den,a); };
+  return {capture,update}; }
 function buildCalder(){
   const K=sceneKit({bg:0x1a1626,fog:0x3a2c36,fogD:.0014,hemi:.72,sky:0xffb88a,ground:0x0c0d12,moon:0xffc08a,moonI:.5,seed:1515,dome:false,bloom:{strength:.8,threshold:.74}}), S=K.S, V=(x,z)=>new THREE.Vector2(x,z);
   // dusk sky from the Midjourney quay and ridge frames: blue-violet overhead to an orange-red band on the horizon (draw() keeps it on the camera)
@@ -5477,6 +5635,7 @@ function buildCalder(){
   // sectors by distance along the lap
   const sBr0=K.sNear(560,-472), sBr1=K.sNear(560,112), sOT0=K.sNear(500,400), sOT1=K.sNear(110,860),
     sHw0=K.sNear(30,900), sHw1=K.sNear(-820,640), sT0=sHw1, sT1=K.sNear(-330,306), sHex0=lerp(sT0,sT1,.38), sHex1=lerp(sT0,sT1,.62);
+  const CS=calderSections(tr,sT0,sT1), inGal=s=>s>CS.sF1-6&&s<CS.sH0+6;
   const inHw=s=>s>sHw0&&s<sHw1, inTun=s=>s>sT0&&s<sT1, noWalk=(p,k)=>{ const s=(k||0)*tr.ds; return CB_SPAN(p)||inHw(s)||inTun(s); };
   const sub=pts.filter((p,i)=>i%8===0), land=sub.filter(p=>!CB_SPAN(p));
   const nearRoad=(x,z)=>{ let bd=1e18,bi=0; for(let i=0;i<sub.length;i++){ const p=sub[i], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bi=i; } } return {d:Math.sqrt(bd),p:sub[bi],s:bi*8*tr.ds}; };
@@ -5489,7 +5648,9 @@ function buildCalder(){
   for(let i=0;i<tp.count;i++){ const x=tp.getX(i), z=tp.getZ(i); let ws=0, ys=0;
     for(const p of land){ const d=Math.hypot(p.x-x,p.z-z); if(d>420) continue; const w=1/Math.pow(d+4,3); ws+=w; ys+=w*p.y; }
     const nr=nearRoad(x,z); let y=(ws?ys/ws:0)-.5;
-    if(inTun(nr.s)&&nr.d<180) y=Math.max(y,nr.p.y+22-Math.max(0,nr.d-60)*.12);                       // the hill over the tunnel
+    let gl=null; if(inGal(nr.s)&&nr.d<320){ frame(nr.s,f,tr); gl=((x-nr.p.x)*f.r.x+(z-nr.p.z)*f.r.z)*CS.gal; } // lateral, + toward the harbor
+    if(gl!==null&&gl>-26) y=nr.p.y-5-Math.max(0,gl-14)*.2;                                             // the cliff ledge under the glass gallery
+    else if(inTun(nr.s)&&nr.d<180) y=Math.max(y,nr.p.y+22-Math.max(0,nr.d-60)*.12);                       // the hill over the tunnel
     else if(nr.d<W+60&&Math.min(Math.abs(nr.s-sT0),Math.abs(nr.s-sT1))<50&&nr.d>W+12) y=Math.max(y,nr.p.y+Math.min(16,(nr.d-W-12)*.5)); // hillside shoulders around the portals
     else if(inHw(nr.s)&&nr.s>sHw0+120) y=Math.min(y,nr.p.y-15+Math.min(8,nr.d*.03));                 // valley under the viaduct
     else if(!CB_SPAN(nr.p)) y=Math.min(y,nr.p.y-.45+Math.max(0,nr.d-(W+1))*.1);
@@ -5497,6 +5658,7 @@ function buildCalder(){
     tp.setY(i,y); const yard=z<-470&&!water(x,z), g=.05+.03*Math.sin(x*.05)*Math.cos(z*.04);
     if(yard) tcol.push(.11,.11,.12); else tcol.push(g*.95,g*1.15,g*.8); }
   tg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tg.computeVertexNormals();
+  const terrY=(x,z)=>{ const ix=clamp(Math.round((x-(350-1450))/2900*170),0,170), iz=clamp(Math.round((z-(-100-1350))/2700*156),0,156); return tp.getY(iz*171+ix); };
   K.mesh(tg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.95}),0,0,0);
   const waterN=WETMAPS.normal.clone(); waterN.needsUpdate=true; waterN.repeat.set(60,60);
   const waterM=new THREE.MeshStandardMaterial({color:0x0a0c14,metalness:.9,roughness:.1,normalMap:waterN,normalScale:new THREE.Vector2(.4,.4),envMapIntensity:1.5});
@@ -5590,7 +5752,7 @@ function buildCalder(){
   // ---- the Belvedere pavilion on the crest where the old town meets Highway 9 (Midjourney ridge frames), cypresses down the hill ----
   if(kitParts('Belvedere')){ const y=pts[near(110,900)].y; kitInst(S,'Belvedere',km,[place(175,y-.8,975,kitYawTo(-1,-1))]); K.glow(0xffffff,30,175,y+10,975); }
   { const cyp=[], R2=K.R; for(let i=0;i<700;i++){ const x=-900+R2()*1250, z=180+R2()*900, nr=nearRoad(x,z); if(nr.d<W+10||nr.d>220) continue;
-      const y=inTun(nr.s)&&nr.d<180?nr.p.y+22-Math.max(0,nr.d-60)*.12:inHw(nr.s)?nr.p.y-15+Math.min(8,nr.d*.03):nr.p.y-.5-Math.max(0,nr.d-(W+1))*.05; cyp.push(place(x,y-.3,z,R2()*6,1,.8+R2()*.6)); }
+      if(inGal(nr.s)&&nr.d<16) continue; cyp.push(place(x,terrY(x,z)-.3,z,R2()*6,1,.8+R2()*.6)); }
     if(kitParts('Cypress')) kitInst(S,'Cypress',km,cyp,null,null,{far:160,keys:['LEAF']});
     else { const g=new THREE.ConeGeometry(1.5,14,7); g.translate(0,7,0); K.inst(g,new THREE.MeshStandardMaterial({color:0x16281c,roughness:1,flatShading:true}),cyp); } }
   // ---- Highway 9: elevated viaduct on hammerhead piers, sound walls on the outside of the sweeper (Midjourney highway frame) ----
@@ -5601,14 +5763,7 @@ function buildCalder(){
     const wallT=CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#5f646b'; g.fillRect(0,0,w,h); g.fillStyle='#4a4f56'; for(let x=0;x<w;x+=16) g.fillRect(x,0,2,h); g.fillStyle='#7a8088'; g.fillRect(0,0,w,4); }),true);
     const wallM=new THREE.MeshStandardMaterial({map:wallT,roughness:.8,side:THREE.DoubleSide}), sWall0=K.sNear(-560,900);
     ribbonF(tr,S,wallM,(k,p)=>{ const s=k*tr.ds; return s>sWall0&&s<sHw1-30?[W+3.2,p.y+1,W+3.2,p.y+4.6]:null; },4); }
-  // ---- Calder Tunnel: white panel tube with light lines and amber kerbs, a hex-lattice gallery in the middle, sculpted
-  //      white portals with light rings (Midjourney tunnel, portal and hex frames) ----
-  const rings=[], hexes=[];
-  for(let s=sT0+3;s<sT1-3;s+=6) (s>sHex0&&s<sHex1?hexes:rings).push(onTrack(s,0,0));
-  if(kitParts('TunnelRing')){ kitInst(S,'TunnelRing',km,rings); kitInst(S,'TunnelHex',km,hexes); kitInst(S,'TunnelPortal',km,[onTrack(sT0,0,0),onTrack(sT1,0,0,true)]); }
-  else { const tm=new THREE.MeshStandardMaterial({color:0xe4e7ec,roughness:.3,side:THREE.BackSide}); rings.concat(hexes).forEach(m=>{ const c=new THREE.Mesh(new THREE.CylinderGeometry(10.6,10.6,6,16,1,true,-Math.PI/2,Math.PI),tm); c.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI/2)); c.applyMatrix4(m); S.add(c); }); }
-  { const dash=[]; for(let s=sT0+8;s<sT1-8;s+=10) [-1,1].forEach(sd=>{ if(s>sHex0&&s<sHex1) return; dash.push(onTrack(s,sd*8.7,6.2)); }); // amber dashes up the walls
-    K.inst(new THREE.BoxGeometry(.12,.18,2.4),km.AMBER,dash); }
+  const TUN=calderTunnel(K,tr,sT0,sT1,CS);
   // the city across the harbor, straight ahead off the grid and off the bridge
   K.skyline({cx:420,cz:-1420,sx:560,sz:110,n:46,h:[28,170],seed:1516});
   // brake boards into the big stops (quay corner, bridge exit, the end of the highway straight): 150 / 100 / 50 m
@@ -5618,12 +5773,13 @@ function buildCalder(){
   K.gantry(K.sNear(560,-580),'STEEL BRIDGE','1 KM · FULL THROTTLE',{bg:'#0f5a32'});
   K.gantry(K.sNear(530,400),'OLD TOWN','COBBLES · HAIRPINS',{bg:'#2a1c06',color:'#ffd9a0'});
   K.gantry(K.sNear(-80,900),'HIGHWAY 9 WEST','CALDER TUNNEL 2 KM',{bg:'#0f5a32'});
-  K.gantry(K.sNear(-820,720),'CALDER TUNNEL','600 M · STAY IN LANE',{bg:'#0f5a32'});
+  K.gantry(K.sNear(-820,720),'CALDER TUNNEL',Math.round((sT1-sT0)/50)*50+' M · STAY IN LANE',{bg:'#0f5a32'});
   K.flush();
   const obst=K.traffic(5); let bt=0;
-  const update=dt=>{ waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; bt+=dt;
+  TUN.capture();
+  const update=dt=>{ TUN.update(dt,cam.position); waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; bt+=dt;
     const on=(bt%1.6)<.8; km.REDLAMP.color.setHex(on?0xff2a1a:0x3a0806); aviation.forEach(g=>{ g.visible=on; }); };
-  return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[],slopeG:1.2,airtime:true,tunS:[[sT0,sT1]],
+  return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[],slopeG:1.2,airtime:true,tunS:[[sT0,sT1]],calderS:Object.assign({sT0,sT1},CS),
     surf:[{s0:sBr0,s1:sBr1,grip:.94,name:'grating',msg:'Steel grating on the bridge. Light hands.'},{s0:sOT0+20,s1:sOT1-20,grip:.86,name:'cobble',msg:'Cobbles in the Old Town. Less grip.'}],
     resetTraffic(){ [.05,.26,.48,.7,.9].forEach((u,i)=>{ const o=obst[i]; o.dist=u*tr.L; o.x=i%2?3.6:-3.6; o.v=o.v0=13+Math.random()*5; }); }};
 }
@@ -5708,7 +5864,7 @@ function releaseEvent(e){ const S=e.scene; if(!S) return; if(fxGroup.parent===S)
   S.traverse(o=>{ if(o.geometry&&inOwn(e,1,o.geometry.id)&&!o.geometry.userData.shared) o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(!m||!inOwn(e,0,m.id)||(m.userData&&m.userData.shared)) return;
     ['map','emissiveMap','normalMap','roughnessMap','bumpMap'].forEach(k=>disp(m[k])); m.dispose(); }); });
   disp(S.background);
-  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','tunS','dawn','introCrane','legS','padsHit','_own'].forEach(k=>delete e[k]); e._ready=false; }
+  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','tunS','calderS','dawn','introCrane','legS','padsHit','_own'].forEach(k=>delete e[k]); e._ready=false; }
 function releaseOthers(){ EVENTS.forEach(e=>{ if(e.scene&&e.scene!==RS) releaseEvent(e); }); }
 ensureEvent(EVENTS[0]);
 const KO_MAPS=[
@@ -6458,7 +6614,8 @@ if(DEV) window.AHDEV={
     frame(s+(ahead||30),F); const Lk=F.p.clone(); Lk.y+=1; DEV.hold={p:P.toArray(),l:Lk.toArray(),fov}; return DEV.hold; },
   free:()=>{ DEV.hold=null; DEV.scam=null; },
   car:()=>{ if(!player||!player.m) return null; const g=player.m.group, d=new THREE.Vector3(0,0,1).applyQuaternion(g.quaternion); return {p:g.position.toArray(),d:d.toArray()}; }, // look-dev: where the player car sits and faces
-  scam:(p,l,fov)=>{ DEV.scam={p,l,roll:0,fov:fov||30}; }};
+  scam:(p,l,fov)=>{ DEV.scam={p,l,roll:0,fov:fov||30}; },
+  ev:()=>EV};
 const CULL_V=new THREE.Vector3(); let DRAW_RACING=false;
 function draw(scene){
   if(DEV&&DEV.hold&&scene!==studio){ const H=DEV.hold; cam.position.fromArray(H.p); cam.lookAt(H.l[0],H.l[1],H.l[2]); if(H.fov&&cam.fov!==H.fov){ cam.fov=H.fov; cam.updateProjectionMatrix(); } }

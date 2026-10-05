@@ -277,6 +277,52 @@ const SHEETS={
 };
 const LAPS=2; // default; an event can set its own laps
 function laps(){ return EV.laps||LAPS; }
+const FIELD_SIZE_PRESETS=[4,7,12,20];
+function maxRaceFieldSize(){ return CARS.filter(c=>!c.outlaw).length; }
+function clampFieldSize(n,max){ const cap=Math.max(4,max), v=Math.round(n), base=Number.isFinite(v)&&v>0?v:7; return Math.max(4,Math.min(cap,base)); }
+function fieldSizeChoices(max){ const cap=Math.max(4,max), out=FIELD_SIZE_PRESETS.filter(v=>v<=cap); if(!out.length||out[out.length-1]!==cap) out.push(cap); return out; }
+function fieldSizeForEvent(ev){
+  if(!ev||ev.knockout) return 12;
+  const max=maxRaceFieldSize(), by=SAVE.fieldBy||(SAVE.fieldBy={});
+  let n=by[ev.id];
+  if(n==null&&SAVE.fieldN!=null) n=SAVE.fieldN;
+  if(n==null&&ev.defaultField!=null) n=ev.defaultField;
+  return clampFieldSize(n,max);
+}
+function setFieldSizeForEvent(evId,n){ (SAVE.fieldBy||(SAVE.fieldBy={}))[evId]=clampFieldSize(n,maxRaceFieldSize()); persist(); }
+function raceGridSize(){ return fieldSizeForEvent(EV); }
+function formatEventSpecs(e,n){
+  const s=e.specs||''; if(e.knockout) return s;
+  const max=maxRaceFieldSize(), all=n>=max;
+  if(all) return s.replace(/\/\s*\d+\s+CARS\s*\//gi,' / FULL GRID /');
+  return s.replace(/\/\s*FULL\s*GRID\s*\//gi,` / ${n} CARS /`).replace(/\/\s*\d+\s+CARS\s*\//gi,` / ${n} CARS /`);
+}
+function spawnPersonaGrid(n){
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id], per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5), pSlot=Math.floor(Math.random()*n);
+  for(let i=0;i<n;i++){ const dist=-5-i*5.2, x=i%2?2.6:-2.6;
+    if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
+    const shell=R_(per[i%per.length]), def=buildRivalForEvent(shell,EV.id,taken);
+    addRacer(def,false,dist,x,.975+Math.random()*.025); }
+}
+function spawnFullArchiveGrid(){
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id);
+  const lineup=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5);
+  const pSlot=4+Math.floor(Math.random()*Math.max(1,lineup.length-8));
+  lineup.splice(pSlot,0,me);
+  const per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5);
+  lineup.forEach((car,i)=>{ const dist=-5-i*5.2, x=i%2?2.8:-2.8;
+    if(car.id===me.id){ player=addRacer(me,true,dist,x,1); return; }
+    const shell=R_(per[i%per.length]);
+    addRacer(Object.assign({},car,{chassisId:car.id,tag:car.name,car:car.name,P:Object.assign({},shell.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.025); });
+}
+function spawnClassicSevenGrid(){
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id];
+  const grid=[['apex',-5,-2.6,.99],['closer',-11,2.6,.985],['wall',-17,-2.6,.975],['player',-23,2.6,1],['leech',-29,-2.6,.985],['bruiser',-35,2.6,.98],['wild',-41,-2.6,.99]];
+  if(Math.random()<.45) grid.sort((a,b)=>a[0]==='player'?1:b[0]==='player'?-1:Math.random()-.5);
+  grid.forEach(row=>{ if(row[0]==='player'){ player=addRacer(me,true,row[1],row[2],row[3]); return; }
+    const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
+    addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012); });
+}
 /* Rival personas. Each one borrows a different idea from the racing-AI recon:
    APEX      racing-line robot, precise braking (Speed Dreams "simplix"/"usr" robots)
    THE WALL  refuses to let you by, the inverse of Speed Dreams "LetPass"
@@ -5865,67 +5911,67 @@ function buildCalder(){
 /* ---------------- EVENTS ---------------- */
 const EVENTS=[
   {id:'tunnel',build:buildTunnel,name:'Harbor Line',kick:'Event 01',loc:'Tunnel 7',when:'Harbor Line, 03:00',
-   caption:'Two laps under the harbor. Cold light, no traffic, nowhere to hide.',specs:'2.1 KM LOOP / 2 LAPS / 7 CARS / NO TRAFFIC',
+   caption:'Two laps under the harbor. Cold light, no traffic.',specs:'2.1 KM LOOP / 2 LAPS / 7 CARS / NO TRAFFIC',
    note:'flat out\nexcept turn 4',load:'Tunnel 7. Two laps, seven cars.'},
   {id:'blvd',build:buildBlvd,open:true,name:'Roosevelt Blvd',kick:'Event 02',loc:'Northeast Philly',when:'Harbison Av to Cottman Av',
-   caption:'A full mile of the Boulevard: U-turn at Harbison, straight through Tyson, U-turn on the Cottman bridge while the express lanes drop underneath.',specs:'1-MILE STRAIGHTS / 2 LAPS / 7 CARS / LIVE TRAFFIC / 4 SPEED CAMERAS',
+   caption:'Mile-long straights on Roosevelt Blvd with live traffic. Two laps.',specs:'1-MILE STRAIGHTS / 2 LAPS / 7 CARS / LIVE TRAFFIC / 4 SPEED CAMERAS',
    note:'U-turn on the\nCottman bridge',load:'Harbison to Cottman and back. Traffic is live.'},
   {id:'bridge',build:buildBridge,open:true,laps:3,name:'The Bridge Run',kick:'Event 03',loc:'Center City',when:'City Hall to the Ben Franklin Bridge',
-   caption:'Off the line at City Hall, flat out down Market, up 6th past the Liberty Bell, then a full 1.3 km sprint over the Ben Franklin Bridge. U-turn at the Camden toll plaza and back through Chinatown.',
+   caption:'City Hall to the Ben Franklin Bridge and back through Chinatown. Three laps.',
    specs:'3 LAPS / 1.3 KM BRIDGE STRAIGHT / 7 CARS / LIVE TRAFFIC / 2 SPEED CAMERAS',
    note:'save boost for\nthe bridge',load:'City Hall to the bridge and back. Three laps.'},
   {id:'grand',build:buildGrand,open:true,laps:2,name:'The Long Night',kick:'Event 04',loc:'All of it',when:'Blvd, Center City, the Bridge, the Tunnel',
-   caption:'Every level in one loop. Down Roosevelt Blvd, through the Center City canyons, over the Ben Franklin Bridge to Camden, then back under the Delaware through the Harbor Line tunnel.',
+   caption:'One loop: the Blvd, Center City, the bridge to Camden, and the Harbor Line tunnel.',
    specs:'2 LAPS / 8 KM LOOP / BLVD + BRIDGE + TUNNEL / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
    note:'the tunnel\nis where\nit\'s won',load:'The Blvd, the bridge and the tunnel. Two laps of all of it.'},
   {id:'ko',build:buildKnockout,open:true,knockout:true,laps:99,name:'The Gauntlet',kick:'Tournament',loc:'Penn Square',when:'Twelve cars, one survivor',
-   caption:'Pick your battlefield, then survive eleven knockout rounds. Last car running wins — same rules on every map, with sector knockouts on the long courses.',
+   caption:'Twelve cars, eleven knockout rounds. Pick a map — last car running wins.',
    specs:'12 CARS / 4 MAPS / KNOCKOUT ROUNDS / SECTOR OR LAP CHECKPOINTS',
    note:'pick your\nmap. then\nsurvive.',load:'Twelve cars, one survivor. Choose a map and run The Gauntlet.'},
   {id:'dockside',build:buildDockside,open:true,laps:3,name:'Dockside Dash',kick:'Event 05',loc:'Port Richmond',when:'Container yard to the waterfront',
-   caption:'A short, tight, aggressive loop: a narrow container-yard chicane opens onto a waterfront sprint. Three laps, nowhere to hide.',
+   caption:'Container-yard chicane, then open waterfront. Three tight laps.',
    specs:'1.4 KM LOOP / 3 LAPS / 7 CARS / NO TRAFFIC',
    note:'chicane tight.\nwater open.',load:'Dockside Dash. Three laps through the yard and the waterfront.'},
   {id:'skyline',build:buildSkyline,open:true,laps:2,name:'Skyline Circuit',kick:'Event 06',loc:'Center City',when:'Streets and the elevated run',
-   caption:'A medium mix of technical streets and fast avenues. A sweeping elevated section frames the city before a hard braking zone into South Street.',
+   caption:'Technical streets and a fast elevated straight into South Street. Two laps.',
    specs:'4.0 KM LOOP / 2 LAPS / 7 CARS / NO TRAFFIC / 2 SPEED CAMERAS',
    note:'save brakes\nfor South St',load:'Skyline Circuit. Two laps of streets and the elevated straight.'},
   {id:'midnight',build:buildMidnight,open:true,laps:1,name:'Midnight Express',kick:'Event 07',loc:'All night',when:'Blvd, bridge, Camden, tunnel',
-   caption:'The longest, fastest, most playful course in one lap: long boost-friendly straights, the Harbor Line tunnel, sweeping bends, and a high-speed run to the line.',
+   caption:'Ten kilometers in one lap — long straights, the tunnel, and a flat-out finish.',
    specs:'10.6 KM / 1 LAP / 7 CARS / LIVE TRAFFIC / 3 SPEED CAMERAS',
    note:'one lap.\nall of it.',load:'Midnight Express. Ten kilometers, one lap, no shortcuts.'},
   {id:'philly',build:buildPhiladelphia,open:true,fullGrid:true,laps:3,name:'Philly Classic',kick:'Event 08',loc:'City to Camden',when:'Roosevelt Blvd to the Ben Franklin Bridge',
-   caption:'Three laps through the landmarks: down Roosevelt Blvd, along Kelly Drive past the lights of Boathouse Row, over the Ben Franklin Bridge, past the South Philly stadium, back across the Delaware on the I-95 viaduct, then up Broad Street past City Hall and the Rocky Steps. Every car in the archive starts on the same grid.',
+   caption:'Landmark tour: Boathouse Row, the bridge, the stadiums, Broad Street. Three laps, full grid.',
    specs:'8.8 KM LOOP / 3 LAPS / FULL GRID / LIVE TRAFFIC / 4 SPEED CAMERAS',
    note:'all cars.\nflat out.',load:'Philly Classic. Three laps, full grid, landmark straights.'},
   {id:'mtairy',build:buildMtAiry,open:true,laps:3,name:'Mt Airy Run',kick:'Event 09',loc:'Northwest Philly',when:'Germantown Ave, Mt Airy Ave, Lincoln Dr',
-   caption:'Three laps of Northwest Philly: up the cobbles and trolley rails of Germantown Ave past the lit shops, along W Mt Airy Ave under the stone twins and street trees, then down the S-bends of Lincoln Drive through the Wissahickon gorge, under the Walnut Lane Bridge, and back up Johnson St. Speed bumps and potholes punish anyone still on the gas.',
+   caption:'Germantown cobbles, Mt Airy Ave, and Lincoln Drive through the gorge. Bumps and potholes. Three laps.',
    specs:'2.7 KM LOOP / 3 LAPS / 7 CARS / COBBLES & TROLLEY RAILS / GORGE S-BENDS / BUMPS & POTHOLES',
    note:'bumps.\npotholes.\nreal life.',load:'Mt Airy Run. Germantown and Lincoln Dr. Mind the asphalt.'},
   {id:'gamenight',build:buildGameNight,open:true,laps:2,name:'Game Night',kick:'Event 10',loc:'South Philly',when:'The Sports Complex, every team in town',
-   caption:'Two laps of the Sports Complex with every team in town. Down Broad St, through the Zamboni tunnel under the arena (ice on the road), then Pattison Ave under a live Jumbotron. Every team has Crowd Roar pads in its colors, and a lead change sets off the fireworks.',
+   caption:'Sports Complex loop — ice tunnel, Jumbotron, and crowd-roar pads. Two laps.',
    specs:'2.9 KM LOOP / 2 LAPS / 7 CARS / CROWD ROAR PADS / ICE TUNNEL / LIVE JUMBOTRON',
    note:'ride the\ncrowd.',load:'Game Night at the Sports Complex. Ride the crowd, mind the ice.'},
   {id:'manayunk',build:buildManayunk,open:true,laps:3,name:'Manayunk Wall',kick:'Event 11',loc:'Northwest Philly',when:'Main St, The Wall, Green Lane',
-   caption:'Three laps of Manayunk: flat out down Main St beside the canal, then straight up The Wall. Climbs cost you speed, and the crests on the ridge throw you in the air. No steering until you land, and big air refills some boost.',
+   caption:'Main Street and The Wall — climb hard, catch air on the crests. Three laps.',
    specs:'2.7 KM LOOP / 3 LAPS / 7 CARS / 32 M CLIMB / CRESTS & AIR TIME',
    note:'land it\nstraight.',load:'Manayunk Wall. Climb it flat out and land it straight.'},
   {id:'el',build:buildKensington,open:true,laps:3,name:'Under the El',kick:'Event 12',loc:'Kensington',when:'Kensington Ave, Lehigh Ave, Aramingo Ave',
-   caption:'Three laps under the Market-Frankford El. The steel columns run down the middle of Kensington Ave, so pick a side and stay off the posts. On Lehigh Ave the freight gates come down every forty seconds. Beat the gates or wait for the train.',
+   caption:'Under the El — dodge median columns and beat the freight gates. Three laps.',
    specs:'2.8 KM LOOP / 3 LAPS / 7 CARS / LIVE TRAFFIC / MEDIAN COLUMNS / FREIGHT CROSSING',
    note:'beat the\ngates.',load:'Under the El. Stay off the posts, beat the gates.'},
   {id:'firstlight',build:buildFirstLight,open:true,laps:3,name:'First Light',kick:'Event 13',loc:'Kelly & MLK Drive',when:'Starts 5:40 AM, sunrise on the last lap',
-   caption:'Three laps of Kelly Drive and MLK Drive, starting in the dark. The sun comes up as the race runs out, the street lights click off and the fog lifts off the river. The city wakes up too: no traffic on lap one, rush hour by lap three.',
+   caption:'Kelly Drive at dawn — sunrise, fog lifting, traffic building each lap. Three laps.',
    specs:'3.6 KM LOOP / 3 LAPS / 7 CARS / SUNRISE DURING THE RACE / TRAFFIC BUILDS EVERY LAP',
    note:'get it done\nbefore rush\nhour.',load:'First Light. Kelly Drive at dawn, beat the rush hour.'},
   {id:'neoncore',build:buildNeonCore,open:true,laps:2,name:'Neon Core',kick:'Event 14',loc:'Synth District',when:'Mag-deck, data port, hyperloop, neon tube',
-   caption:'A cyberpunk circuit stitched from the best of the city: a Skyline-style elevated mag-deck straight, a Dockside-tight container chicane, Under-the-El hyperloop columns down the middle, and a Harbor-style neon tube with low grip. Pulse Grid pads and a timed cargo lock keep the lap rhythm changing.',
+   caption:'Synth District: mag-deck straight, container chicane, hyperloop columns, neon tube. Two laps.',
    specs:'3.1 KM LOOP / 2 LAPS / 7 CARS / LIVE TRAFFIC / PULSE GRID PADS / MEDIAN POSTS / CARGO LOCK / NEON TUBE',
    note:'deck.\nchicane.\ntube.',load:'Neon Core. Two laps through the Synth District.'},
-  {id:'calder',build:buildCalder,open:true,laps:2,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Highway 9, the Calder Tunnel',
-   caption:'An original port city at dusk. Flat out down the quay under the gantry cranes, through the container chicane, then a full kilometer over the red Steel Bridge with a crest that throws you in the air. Climb the cobbled switchbacks of Old Town past the bell tower, take Highway 9 along the ridge, sweep through the futuristic Calder Tunnel and drop back to the water.',
-   specs:'5.6 KM LOOP / 2 LAPS / 7 CARS / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
-   note:'save boost\nfor the\nbridge',load:'Calder Basin. Quay, bridge, old town, highway, tunnel. Two laps.'}
+  {id:'calder',build:buildCalder,open:true,defaultField:20,laps:3,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Highway 9, the Calder Tunnel',
+   caption:'Original port city at dusk — quay, Steel Bridge, Old Town, highway and tunnel. Three laps.',
+   specs:'5.6 KM LOOP / 3 LAPS / 20 CARS / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
+   note:'save boost\nfor the\nbridge',load:'Calder Basin. Quay, bridge, old town, highway, tunnel. Three laps.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
@@ -8020,21 +8066,31 @@ function renderEventRoster(){
   }).join('');
   el.querySelectorAll('.epick').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(i===EVI) return; EVI=i; sfx.page(); renderEvent(0,true); });
 }
+function renderGridPicker(){
+  const el=$('#eGrid'), specs=$('#eSpecs'); if(!el) return;
+  if(EV.knockout){ el.style.display='none'; if(specs) specs.textContent=EV.specs||''; return; }
+  el.style.display='';
+  const max=maxRaceFieldSize(), choices=fieldSizeChoices(max), cur=fieldSizeForEvent(EV);
+  if(specs) specs.textContent=formatEventSpecs(EV,cur);
+  el.innerHTML=choices.map(n=>`<button type="button" class="${n===cur?'on':''}" data-n="${n}">${n>=max?'All':n}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===fieldSizeForEvent(EV)) return; setFieldSizeForEvent(EV.id,n); sfx.page(); renderGridPicker(); });
+}
 function renderEvent(dir,force){
   if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); try{ renderer.compile(RS,cam); }catch(err){} } // A3: build this city's shaders now, behind the page-turn flash, not on the first visible frame
   const e=EV;
   $('#eHead').innerHTML=`<span class="k">${esc(e.kick)}</span><span>${esc(e.name)}</span>`;
-  $('#eStamp').innerHTML=`${esc(e.loc)}<small>${esc(e.when)}</small>`;
+  $('#eStamp').innerHTML='';
   $('#eNote').innerHTML=esc(e.note)+handArrow;
-  $('#eSpecs').textContent=e.specs; $('#eCap').textContent=e.caption;
+  $('#eCap').textContent=e.caption;
   const g=loadGhost();
-  $('#eGhost').textContent=g?`Your ghost: ${fmt(g.t)} in the ${(CARS.find(c=>c.id===g.car)||CARS[0]).name}. Beat it and it gets replaced.`:'No ghost yet. Your first finish becomes the one to beat.';
-  $('#eGhost').textContent+=' On the grid: Apex, The Wall, Leech, Bruiser, The Closer, Wildcard. Big grids add Grudge, Hunter, Rabbit and Weaver. '+PU_DESC;
+  const recCar=(CARS.find(c=>c.id===g?.car)||CARS[0]).name;
+  $('#eGhost').textContent=e.knockout?'No lap record — tournament mode.':(g?`Record: ${fmt(g.t)} · ${recCar}`:'No record yet — your first finish sets the time to beat.');
   $('#eTag').style.display=e.knockout?'none':'';
-  if(e.knockout){ bindKoTrack(koMapI); $('#eGhost').textContent='Pick a map on the next screen. Short loops use lap checkpoints; long courses knock out at sectors so you are not running 110 km. Round rules: '+KO_MODS.filter(m=>m.id!=='clean').map(m=>m.name).join(', ')+', and a Final Duel for the last two.'; }
+  if(e.knockout) bindKoTrack(koMapI);
   $('#ePg').innerHTML=eventPageHtml();
   renderEventRoster();
-  if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3']],dir);
+  renderGridPicker();
+  if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3'],['#eSpecs','d2'],['#eGrid','d2']],dir);
   modeT=0; shot=-1;
 }
 function turnEvent(dir){ EVI=(EVI+dir+EVENTS.length)%EVENTS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderEvent(dir); }
@@ -8159,7 +8215,8 @@ function startLoading(){
   mode='loading'; modeT=0; show('loading');
   setWeather(EV.id!=='tunnel'&&Math.random()<.45);
   const mate=tagPick&&!EV.knockout?CARS.find(c=>c.id===tagPick.partner):null;
-  $('#ldwhere').textContent=EV.name+(mate?' · Tag team':''); $('#ldsub').textContent=`${EV.load} You're in the ${CARS[sel].name}${mate?`, tagging with the ${mate.name}`:''}.${LOOK.wet?' Rain tonight, the roads are wet.':''}`;
+  const gridNote=EV.knockout?'Twelve cars.':`${raceGridSize()} cars.`;
+  $('#ldwhere').textContent=EV.name+(mate?' · Tag team':''); $('#ldsub').textContent=`${EV.load} ${gridNote} You're in the ${CARS[sel].name}${mate?`, tagging with the ${mate.name}`:''}.${LOOK.wet?' Rain tonight, the roads are wet.':''}`;
 }
 function endGhost(){ if(ghostCar){ ghostCar.scene.remove(ghostCar.group); ghostCar=null; } }
 function startRace(){
@@ -8172,26 +8229,12 @@ function startRace(){
       if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
       const car=others[oi], P=R_(per[oi%per.length]); oi++;
       addRacer(Object.assign({},car,{id:P.id,chassisId:car.id,tag:car.name,color:P.color,car:car.name,P:Object.assign({},P.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.02); }
-  } else if(EV.fullGrid){
-    const lineup=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5);
-    const pSlot=4+Math.floor(Math.random()*Math.max(1,lineup.length-8));
-    lineup.splice(pSlot,0,me);
-    const per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5);
-    lineup.forEach((car,i)=>{ const dist=-5-i*5.2, x=i%2?2.8:-2.8;
-      if(car.id===me.id){ player=addRacer(me,true,dist,x,1); return; }
-      const shell=R_(per[i%per.length]);
-      addRacer(Object.assign({},car,{chassisId:car.id,tag:car.name,car:car.name,P:Object.assign({},shell.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.025); });
   } else {
-  const grid=[
-   ['apex',-5,-2.6,.99],['closer',-11,2.6,.985],['wall',-17,-2.6,.975],
-   ['player',-23,2.6,1],['leech',-29,-2.6,.985],['bruiser',-35,2.6,.98],['wild',-41,-2.6,.99]
-  ];
-  if(Math.random()<.45) grid.sort((a,b)=>a[0]==='player'?1:b[0]==='player'?-1:Math.random()-.5);
-  grid.forEach(row=>{
-   if(row[0]==='player'){ player=addRacer(me,true,row[1],row[2],row[3]); return; }
-   const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
-   addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012);
-  }); }
+    const n=raceGridSize(), max=maxRaceFieldSize();
+    if(EV.fullGrid&&n>=max) spawnFullArchiveGrid();
+    else if(n===7) spawnClassicSevenGrid();
+    else spawnPersonaGrid(n);
+  }
   personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.fxJam=r.fxGhost=r.clean=0; r._hits=r.hits; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
   const boss=racers.find(r=>!r.isP&&['overload','volcano','zephyr','hikari'].includes(r.def.chassisId));

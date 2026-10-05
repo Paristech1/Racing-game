@@ -12,7 +12,12 @@ import {
   koCheckpoint,
   koPick,
   koUsesSectors,
+  clampFieldSize,
+  fieldSizeChoices,
+  fieldSizeForEvent,
+  fieldSizeForRace,
   lapsForEvent,
+  maxRaceFieldSize,
   lerp,
   makeTrack,
   mkFrame,
@@ -74,6 +79,34 @@ describe('fmt / esc', () => {
   it('escapes HTML in UI strings', () => {
     assert.equal(esc('a & b'), 'a &amp; b');
     assert.equal(esc('<script>'), '&lt;script&gt;');
+  });
+});
+
+describe('field size / grid picker', () => {
+  const stubCars = [{ id: 'a' }, { id: 'b' }, { id: 'c', outlaw: true }, { id: 'd' }];
+
+  it('maxRaceFieldSize skips outlaw cars', () => {
+    assert.equal(maxRaceFieldSize(stubCars), 3);
+  });
+
+  it('clampFieldSize pins to 4..max', () => {
+    assert.equal(clampFieldSize(7, 20), 7);
+    assert.equal(clampFieldSize(99, 20), 20);
+    assert.equal(clampFieldSize(2, 20), 4);
+    assert.equal(clampFieldSize(undefined, 20), 7);
+  });
+
+  it('fieldSizeChoices adds archive max when missing from presets', () => {
+    assert.deepEqual(fieldSizeChoices(20), [4, 7, 12, 20]);
+    assert.deepEqual(fieldSizeChoices(23), [4, 7, 12, 20, 23]);
+    assert.deepEqual(fieldSizeChoices(15), [4, 7, 12, 15]);
+  });
+
+  it('fieldSizeForEvent locks knockout at 12', () => {
+    assert.equal(fieldSizeForEvent({ knockout: true, id: 'ko' }, {}, 23), 12);
+    assert.equal(fieldSizeForEvent({ id: 'blvd' }, { fieldBy: { blvd: 15 } }, 23), 15);
+    assert.equal(fieldSizeForEvent({ id: 'calder', defaultField: 20 }, {}, 23), 20);
+    assert.equal(fieldSizeForEvent({ id: 'tunnel' }, { fieldN: 10 }, 23), 10);
   });
 });
 

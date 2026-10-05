@@ -28,6 +28,7 @@ old = bpy.data.scenes.get(SC_NAME)
 if old:
     for o in list(old.objects): bpy.data.objects.remove(o)
     bpy.data.scenes.remove(old)
+for c in [c for c in bpy.data.collections if c.name.endswith('_C') or c.name in ('CalderTunnelKit', 'LookDev')]: bpy.data.collections.remove(c)
 scene = bpy.data.scenes.new(SC_NAME)
 if bpy.context.window:
     bpy.context.window.scene = scene
@@ -37,14 +38,15 @@ ld = bpy.data.collections.new('LookDev'); scene.collection.children.link(ld)
 # ---------------- materials ----------------
 MATS = {}
 def mat(name, col, metal=0., rough=.5, emit=None, es=0., glow_attr=False):
-    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    if bpy.data.materials.get(name): bpy.data.materials.remove(bpy.data.materials[name])
+    m = bpy.data.materials.new(name)
     m.use_nodes = True; nt = m.node_tree; b = nt.nodes.get('Principled BSDF')
     b.inputs['Base Color'].default_value = (*col, 1); b.inputs['Metallic'].default_value = metal; b.inputs['Roughness'].default_value = rough
     if emit:
         b.inputs['Emission Color'].default_value = (*emit, 1); b.inputs['Emission Strength'].default_value = es
     if glow_attr:                                         # fins: emission = glow^3 from the colour attribute (look-dev only)
         at = nt.nodes.new('ShaderNodeAttribute'); at.attribute_name = 'Col'
-        sp = nt.nodes.new('ShaderNodeSeparateColor'); pw = nt.nodes.new('ShaderNodeMath'); pw.operation = 'POWER'; pw.inputs[1].default_value = 3.
+        sp = nt.nodes.new('ShaderNodeSeparateColor'); pw = nt.nodes.new('ShaderNodeMath'); pw.operation = 'POWER'; pw.inputs[1].default_value = 5.
         mu = nt.nodes.new('ShaderNodeMath'); mu.operation = 'MULTIPLY'; mu.inputs[1].default_value = es
         nt.links.new(at.outputs['Color'], sp.inputs[0]); nt.links.new(sp.outputs[0], pw.inputs[0]); nt.links.new(pw.outputs[0], mu.inputs[0])
         nt.links.new(mu.outputs[0], b.inputs['Emission Strength'])
@@ -56,8 +58,8 @@ mat('LEDCU', (1, .7, .45), 0, .3, emit=(1., .58, .28), es=9.)
 mat('LEDCY', (.6, .95, 1), 0, .3, emit=(.35, .92, 1.), es=8.)
 mat('HEXFACE', (.82, .45, .25), 1., .22)
 mat('HEXEDGE', (1, .7, .4), 0, .3, emit=(1., .55, .25), es=7.)
-mat('FIN', (.86, .7, .56), .55, .32, emit=(1., .58, .28), es=14., glow_attr=True)
-mat('FINBACK', (.06, .035, .02), 0, .7, emit=(.6, .26, .09), es=1.4)
+mat('FIN', (.55, .36, .24), .65, .3, emit=(1., .55, .25), es=5., glow_attr=True)
+mat('FINBACK', (.06, .035, .02), 0, .7, emit=(.6, .26, .09), es=.5)
 mat('ROAD', (.035, .036, .04), .35, .09)
 mat('BRONZE', (.62, .42, .28), .8, .3)
 mat('GLASS', (.05, .07, .09), 1., .02)
@@ -96,7 +98,7 @@ def tube(pts, r, segs=10):                                # a lit cable / LED ri
 
 # ---------------- PortalHood ----------------
 def hood_pt(u, t, d=0.):
-    st = max(0., math.sin(t)); reach = 3 + 18 * st ** .85; k = 1 + .62 * (1 - u) ** 2 * (.55 + .45 * st)
+    st = max(0., math.sin(t)); reach = 3 + 14 * st ** .85; k = 1 + .38 * (1 - u) ** 2 * (.6 + .4 * st)
     return E(AS * k, BS * k, t, -reach * (1 - u), d)
 NU, NT = 18, 56
 TS = [-.06 + (PI + .12) * j / NT for j in range(NT + 1)]
@@ -206,19 +208,20 @@ for i in range(5):
     pts = [E(A + .16, B + .66, tc + .17 * math.sin(z / (23 + i * 3) + ph), z) for z in [LD['gal0'] + q for q in range(0, 81, 2)]]
     add('LD_GalLine%d' % i, tube(pts, .06, 6), 'WARMLED', coll=ld)
 # dusk world + volumetric haze
-w = bpy.data.worlds.get('CalderDusk') or bpy.data.worlds.new('CalderDusk'); scene.world = w; w.use_nodes = True
+if bpy.data.worlds.get('CalderDusk'): bpy.data.worlds.remove(bpy.data.worlds['CalderDusk'])
+w = bpy.data.worlds.new('CalderDusk'); scene.world = w; w.use_nodes = True
 nt = w.node_tree; bg = nt.nodes.get('Background'); bg.inputs[1].default_value = 1.
 for n in [n for n in nt.nodes if n.type in ('TEX_GRADIENT', 'VALTORGB', 'TEX_COORD', 'MAPPING', 'SEPARATE_XYZ')]: nt.nodes.remove(n)
 tc = nt.nodes.new('ShaderNodeTexCoord'); sx = nt.nodes.new('ShaderNodeSeparateXYZ'); cr = nt.nodes.new('ShaderNodeValToRGB')
 nt.links.new(tc.outputs['Generated'], sx.inputs[0]); nt.links.new(sx.outputs['Z'], cr.inputs[0]); nt.links.new(cr.outputs[0], bg.inputs[0])
 el = cr.color_ramp.elements; el[0].position, el[0].color = .5, (.9, .42, .2, 1); el[1].position, el[1].color = .62, (.16, .12, .3, 1)
 e2 = el.new(.53); e2.color = (.75, .32, .38, 1)                     # orange band on the horizon to violet overhead (frame 05)
-sun = bpy.data.objects.get('LD_Sun') or bpy.data.objects.new('LD_Sun', bpy.data.lights.new('LD_Sun', 'SUN')); sun.data.energy = 1.6; sun.data.color = (1, .62, .42)
+sun = bpy.data.objects.new('LD_Sun', bpy.data.lights.new('LD_Sun', 'SUN')); sun.data.energy = 1.6; sun.data.color = (1, .62, .42)
 sun.rotation_euler = (math.radians(84), 0, math.radians(200)); ld.objects.link(sun)
-hz = bpy.data.materials.get('LD_Haze') or bpy.data.materials.new('LD_Haze'); hz.use_nodes = True; hn = hz.node_tree
+hz = bpy.data.materials.new('LD_Haze'); hz.use_nodes = True; hn = hz.node_tree
 for n in list(hn.nodes):
     if n.type != 'OUTPUT_MATERIAL': hn.nodes.remove(n)
-vs = hn.nodes.new('ShaderNodeVolumeScatter'); vs.inputs['Density'].default_value = .012; vs.inputs['Color'].default_value = (1, .85, .7, 1)
+vs = hn.nodes.new('ShaderNodeVolumeScatter'); vs.inputs['Density'].default_value = .005; vs.inputs['Color'].default_value = (1, .85, .7, 1)
 hn.links.new(vs.outputs[0], hn.nodes['Material Output'].inputs['Volume']); MATS['LD_Haze'] = hz
 bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
 for v in bm.verts: v.co = Vector((v.co.x * 26, v.co.y * 340 - 175, v.co.z * 12 + 6))

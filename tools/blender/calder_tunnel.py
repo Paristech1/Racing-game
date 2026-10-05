@@ -98,18 +98,18 @@ def tube(pts, r, segs=10):                                # a lit cable / LED ri
 
 # ---------------- PortalHood ----------------
 def hood_pt(u, t, d=0.):
-    st = max(0., math.sin(t)); reach = 3 + 14 * st ** .85; k = 1 + .38 * (1 - u) ** 2 * (.6 + .4 * st)
+    st = max(0., math.sin(t)); reach = 5 + 13 * st ** .85; k = 1 + .7 * (1 - u) ** 1.6 * (.8 + .2 * st)   # lens: flares wide, the crown reaches out
     return E(AS * k, BS * k, t, -reach * (1 - u), d)
 NU, NT = 18, 56
 TS = [-.06 + (PI + .12) * j / NT for j in range(NT + 1)]
-bm = grid(NU + 1, NT + 1, lambda i, j: hood_pt(i / NU, TS[j], -1.1))             # titanium outer shell
+bm = grid(NU + 1, NT + 1, lambda i, j: hood_pt(i / NU, TS[j], -1.7))             # titanium outer shell
 add('Hood_Shell', bm, 'TITANIUM', parent='PortalHood', smooth=True)
 bm = grid(NU + 1, NT + 1, lambda i, j: hood_pt(.02 + .98 * i / NU, TS[j], .02))  # copper lining
 add('Hood_Lining', bm, 'COPPER', parent='PortalHood', smooth=True)
-bm = grid(2, NT + 1, lambda i, j: hood_pt(0., TS[j], (-1.1, .02)[i]))             # the thick rim face
+bm = grid(2, NT + 1, lambda i, j: hood_pt(0., TS[j], (-1.7, .02)[i]))             # the thick rim face
 add('Hood_Rim', bm, 'TITANIUM', parent='PortalHood', smooth=True)
 add('Hood_LipLED', tube([hood_pt(.03, t, .25) for t in TS], .34), 'LEDCU', parent='PortalHood', smooth=True)
-add('Hood_RimRoll', tube([hood_pt(0., t, -.55) for t in TS], .75, 14), 'TITANIUM', parent='PortalHood', smooth=True)
+add('Hood_RimRoll', tube([hood_pt(0., t, -.85) for t in TS], 1.0, 14), 'TITANIUM', parent='PortalHood', smooth=True)
 for uu in (.18, .34, .55, .78):
     add('Hood_SeamU%d' % int(uu * 100), tube([hood_pt(uu, t, -.0) for t in TS], .05, 6), 'DARKMETAL', parent='PortalHood')
 for j in range(4, NT - 3, 6):
@@ -257,7 +257,7 @@ for k in range(46):
 def cam(name, z, x=0., y=1.6, look=40., fov=64.):
     cd = bpy.data.cameras.new(name); cd.angle = math.radians(fov); cd.clip_end = 2000; o = bpy.data.objects.new(name, cd); ld.objects.link(o)
     o.location = G(x, y, z); d = (G(0, 1.2, z + look) - o.location); o.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); return o
-cam('CAM_portal', -52, -2.5, 2.3, 58, 56); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 64, -2.5, 1.2, 40, 70)
+cam('CAM_portal', -88, -3.5, 3.2, 98, 48); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 64, -2.5, 1.2, 40, 70)
 cam('CAM_gallery', 170, 1.5, 1.5, 40, 70); cam('CAM_hex', 270, 0, 1.4, 40)
 r = scene.render; r.resolution_x, r.resolution_y = 960, 540
 r.engine = 'CYCLES'                                       # path tracing: the tube must really occlude the sky for the fins to read
@@ -277,5 +277,7 @@ except Exception: pass
 if OUT:                                                   # export only the kit collection
     for o in scene.objects: o.select_set(False)
     for o in kit.all_objects: o.select_set(True)
-    bpy.ops.export_scene.gltf(filepath=os.path.abspath(OUT), export_format='GLB', use_selection=True, export_apply=True, export_yup=True)
+    kw = dict(filepath=os.path.abspath(OUT), export_format='GLB', use_selection=True, export_apply=True, export_yup=True, export_materials='EXPORT')
+    try: bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', **kw)   # FinBay glow lives in COLOR_0
+    except TypeError: bpy.ops.export_scene.gltf(**kw)
 result = {'hex_cols': NCOL, 'hex_faces': len(bpy.data.objects['HexRing_Face'].data.polygons), 'fin_faces': len(bpy.data.objects['FinBay_Blades'].data.polygons)}

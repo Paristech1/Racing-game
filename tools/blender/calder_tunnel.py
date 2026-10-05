@@ -109,6 +109,11 @@ add('Hood_Lining', bm, 'COPPER', parent='PortalHood', smooth=True)
 bm = grid(2, NT + 1, lambda i, j: hood_pt(0., TS[j], (-1.1, .02)[i]))             # the thick rim face
 add('Hood_Rim', bm, 'TITANIUM', parent='PortalHood', smooth=True)
 add('Hood_LipLED', tube([hood_pt(.03, t, .25) for t in TS], .34), 'LEDCU', parent='PortalHood', smooth=True)
+add('Hood_RimRoll', tube([hood_pt(0., t, -.55) for t in TS], .75, 14), 'TITANIUM', parent='PortalHood', smooth=True)
+for uu in (.18, .34, .55, .78):
+    add('Hood_SeamU%d' % int(uu * 100), tube([hood_pt(uu, t, -.0) for t in TS], .05, 6), 'DARKMETAL', parent='PortalHood')
+for j in range(4, NT - 3, 6):
+    add('Hood_SeamT%d' % j, tube([hood_pt(i / 20, TS[j], 0.) for i in range(21)], .05, 6), 'DARKMETAL', parent='PortalHood')
 add('Hood_InsetLED', tube([hood_pt(.4, t, .2) for t in TS], .22), 'LEDCU', parent='PortalHood', smooth=True)
 
 # ---------------- HexRing (2.15 m module, tiles along z) ----------------
@@ -151,34 +156,35 @@ add('HexRing_Face', bmF, 'HEXFACE', parent='HexRing'); add('HexRing_Edge', bmE, 
 bm = grid(2, 41, lambda i, j: E(AS + .05, BS + .05, -.05 + (PI + .1) * j / 40, i * HLEN))
 add('HexRing_Back', bm, 'DARKMETAL', parent='HexRing')
 
-# ---------------- FinSlat: one swept rib of the fin vault (Midjourney fin frames). In the game the same parametrisation
-# is generated along the curved track (calderTunnel in afterhours.js); here it is a straight 1:1 copy for look-dev. A slat's
-# inner edge climbs the arch on a diagonal (z = KAP * arc length), its root leans LEAN back so the broad face looks at the
-# driver, and it is THK thick. Vertex colour R = glow (1 on the inner edge, 0 at the root).
-KAP, LEAN, THK, FPITCH, FDEP = 1.3, 1.6, .16, 1.25, 2.3
-cumF, nF = ell_len(A, B, -.02, PI + .02)
-def tF(sig):
-    sig = max(0., min(cumF[-1], sig)); lo, hi = 0, nF
-    while hi - lo > 1:
-        m = (lo + hi) // 2
-        if cumF[m] < sig: lo = m
-        else: hi = m
-    f = (sig - cumF[lo]) / max(1e-6, cumF[hi] - cumF[lo]); return -.02 + (PI + .04) * (lo + f) / nF
-def slat(z0, ns=56):
-    bm = bmesh.new(); glow = []; L = cumF[-1]; rows = []
-    for i in range(ns + 1):
-        sg = L * i / ns; t = tF(sg); z = z0 + KAP * (sg - L / 2)
-        row = []
-        for dz, dout in ((0, 0), (THK, 0), (THK - LEAN, FDEP), (-LEAN, FDEP)):   # inner front, inner back, root back, root front
-            row.append(bm.verts.new(E(A + dout, B + dout, t, z + dz))); glow.append(1 - dout / FDEP)
-        rows.append(row)
-    for i in range(ns):
-        r0, r1 = rows[i], rows[i + 1]
-        for k in range(4): bm.faces.new((r0[k], r0[(k + 1) % 4], r1[(k + 1) % 4], r1[k]))
+# ---------------- FinBay: one 9 m bay of the fin vault (Midjourney fin frames 07/08). A lit ring at the bay's front edge,
+# and 56 feather blades that fan back from it over the bay, each twisted round the arch so they overlap like the frames.
+# Blades are wide at the ring and taper to a point; vertex colour R = glow (bright at the ring and the inner edge).
+# Bays tile every BAY metres; the game lays one per track frame, so the vault follows the curve exactly.
+BAY, NB, FD2, TWIST, BTH = 9., 56, 2.4, .42, .07
+def fin_bay():
+    bm = bmesh.new(); glow = []; T0b, T1b = -.04, PI + .04; dT = (T1b - T0b) / NB; ns = 10
+    for j in range(NB + 8):
+        t0 = T0b + (j - 4) * dT; rows = []
+        for i in range(ns + 1):
+            u = i / ns; t = t0 + TWIST * u; z = -BAY * u * 1.02
+            if t < T0b or t > T1b: rows.append(None); continue
+            w = FD2 * (1 - .82 * u)                                 # feather taper
+            g = (1 - u) ** 1.5
+            row = [bm.verts.new(E(A, B, t, z)), bm.verts.new(E(A, B, t + .012, z + BTH)), bm.verts.new(E(A + w, B + w, t + .012, z + BTH - .5 * w)), bm.verts.new(E(A + w, B + w, t, z - .5 * w))]
+            glow += [g, g, g * .15, g * .15]; rows.append(row)
+        for i in range(ns):
+            r0, r1 = rows[i], rows[i + 1]
+            if r0 is None or r1 is None: continue
+            for k in range(4): bm.faces.new((r0[k], r0[(k + 1) % 4], r1[(k + 1) % 4], r1[k]))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces); return bm, glow
-bm, glow = slat(0.); add('FinSlat_Blade', bm, 'FIN', parent='FinSlat', colattr=glow, smooth=True)
-bm = grid(2, 41, lambda i, j: E(A + FDEP + .3, B + FDEP + .3, -.05 + (PI + .1) * j / 40, (-1, 1)[i] * FPITCH / 2))
-add('FinSlat_Back', bm, 'FINBACK', parent='FinSlat')
+bm, glow = fin_bay(); add('FinBay_Blades', bm, 'FIN', parent='FinBay', colattr=glow, smooth=True)
+add('FinBay_Ring', tube([E(A - .05, B - .05, -.04 + (PI + .08) * j / 80, .03) for j in range(81)], .09, 8), 'LEDCU', parent='FinBay', smooth=True)
+bm = grid(2, 41, lambda i, j: E(A + FD2 + .25, B + FD2 + .25, -.05 + (PI + .1) * j / 40, (0, -BAY)[i]))
+add('FinBay_Back', bm, 'FINBACK', parent='FinBay')
+for sd in (-1, 1):                                            # floor uplights at the foot of each bay (frame 08)
+    bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
+    for v in bm.verts: v.co = Vector((v.co.x * .5, v.co.y * .5, v.co.z * .12)) + G(sd * (A - .6), .06, -1.)
+    add('FinBay_Up%d' % sd, bm, 'LEDCU', parent='FinBay')
 
 # ---------------- look-dev tube: portal -> copper hex throat -> fins -> gallery -> cyan hex, straight, dusk outside ----------------
 def inst(asset, z, flip=False, mats=None):
@@ -192,8 +198,8 @@ def inst(asset, z, flip=False, mats=None):
 LD = {'portal': 0., 'throat1': 28., 'fins1': 150., 'gal0': 156., 'gal1': 236., 'hex0': 242., 'hex1': 330.}
 inst('PortalHood', 0.)
 for k in range(int(28 / HLEN)): inst('HexRing', k * HLEN)
-z = 28. + 12
-while z < LD['fins1'] - 12: inst('FinSlat', z); z += FPITCH
+z = 28. + BAY
+while z <= LD['fins1']: inst('FinBay', z); z += BAY
 z = LD['hex0']
 while z < LD['hex1']: inst('HexRing', z); z += HLEN
 bm = grid(2, 2, lambda i, j: G((-14, 14)[j], 0, (-60, 400)[i])); add('LD_Road', bm, 'ROAD', coll=ld)
@@ -211,11 +217,11 @@ for i in range(5):
 if bpy.data.worlds.get('CalderDusk'): bpy.data.worlds.remove(bpy.data.worlds['CalderDusk'])
 w = bpy.data.worlds.new('CalderDusk'); scene.world = w; w.use_nodes = True
 nt = w.node_tree; bg = nt.nodes.get('Background'); bg.inputs[1].default_value = 1.
-for n in [n for n in nt.nodes if n.type in ('TEX_GRADIENT', 'VALTORGB', 'TEX_COORD', 'MAPPING', 'SEPARATE_XYZ')]: nt.nodes.remove(n)
-tc = nt.nodes.new('ShaderNodeTexCoord'); sx = nt.nodes.new('ShaderNodeSeparateXYZ'); cr = nt.nodes.new('ShaderNodeValToRGB')
-nt.links.new(tc.outputs['Generated'], sx.inputs[0]); nt.links.new(sx.outputs['Z'], cr.inputs[0]); nt.links.new(cr.outputs[0], bg.inputs[0])
-el = cr.color_ramp.elements; el[0].position, el[0].color = .5, (.9, .42, .2, 1); el[1].position, el[1].color = .62, (.16, .12, .3, 1)
-e2 = el.new(.53); e2.color = (.75, .32, .38, 1)                     # orange band on the horizon to violet overhead (frame 05)
+sky = nt.nodes.new('ShaderNodeTexSky')                       # dusk: the sun just under the horizon behind the hill (frames 05/06)
+for k, v in (('sun_elevation', math.radians(1.5)), ('sun_rotation', math.radians(200)), ('altitude', 300.), ('air_density', 1.6), ('dust_density', 4.), ('ozone_density', 3.)):
+    try: setattr(sky, k, v)
+    except Exception: pass
+nt.links.new(sky.outputs[0], bg.inputs[0]); bg.inputs[1].default_value = .35
 sun = bpy.data.objects.new('LD_Sun', bpy.data.lights.new('LD_Sun', 'SUN')); sun.data.energy = 1.6; sun.data.color = (1, .62, .42)
 sun.rotation_euler = (math.radians(84), 0, math.radians(200)); ld.objects.link(sun)
 hz = bpy.data.materials.new('LD_Haze'); hz.use_nodes = True; hn = hz.node_tree
@@ -241,7 +247,7 @@ for k in range(46):
 def cam(name, z, x=0., y=1.6, look=40., fov=64.):
     cd = bpy.data.cameras.new(name); cd.angle = math.radians(fov); cd.clip_end = 2000; o = bpy.data.objects.new(name, cd); ld.objects.link(o)
     o.location = G(x, y, z); d = (G(0, 1.2, z + look) - o.location); o.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); return o
-cam('CAM_portal', -78, 1.5, 2.6, 80, 50); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 70, -2, 1.4, 40)
+cam('CAM_portal', -78, 1.5, 2.6, 80, 50); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 64, -2.5, 1.2, 40, 70)
 cam('CAM_gallery', 170, 1.5, 1.5, 40, 70); cam('CAM_hex', 270, 0, 1.4, 40)
 r = scene.render; r.resolution_x, r.resolution_y = 960, 540
 r.engine = 'CYCLES'                                       # path tracing: the tube must really occlude the sky for the fins to read

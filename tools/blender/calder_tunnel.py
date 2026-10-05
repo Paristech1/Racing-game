@@ -6,8 +6,7 @@ Assets (Empty + parented parts, one material per part, origin on the road centre
                 (place at the mouth facing out; flip 180 degrees for the exit portal)
   HexRing     — one 2.15 m ring of faceted hex panels with lit seams around the elliptical vault (AS x BS); the game swaps
                 HEXFACE / HEXEDGE materials per act (copper throat, cyan hex vault)
-  FinRing0..3 — one 1.45 m ring of 34 swept, bevelled fins (inner ellipse A x B, depth FD) at four spiral phases; vertex
-                colour R = glow (1 on the inner edge, 0 at the root) drives the edge light in the game shader
+  FinSlat     — one swept rib of the fin vault (look-dev reference; the game generates the same slats along the curve)
 CLI:   blender -b -P calder_tunnel.py -- --out ../../models/calder_tunnel.glb
 Live:  exec inside Blender — builds the 'Calder Tunnel LD' scene (assets + a straight look-dev tube, cameras per act).
 """
@@ -53,16 +52,16 @@ def mat(name, col, metal=0., rough=.5, emit=None, es=0., glow_attr=False):
 mat('TITANIUM', (.62, .64, .68), 1., .27)
 mat('COPPER', (.86, .47, .27), 1., .2)
 mat('DARKMETAL', (.03, .032, .035), .8, .38)
-mat('LEDCU', (1, .7, .45), 0, .3, emit=(1., .58, .28), es=28.)
-mat('LEDCY', (.6, .95, 1), 0, .3, emit=(.35, .92, 1.), es=24.)
+mat('LEDCU', (1, .7, .45), 0, .3, emit=(1., .58, .28), es=9.)
+mat('LEDCY', (.6, .95, 1), 0, .3, emit=(.35, .92, 1.), es=8.)
 mat('HEXFACE', (.82, .45, .25), 1., .22)
-mat('HEXEDGE', (1, .7, .4), 0, .3, emit=(1., .55, .25), es=22.)
-mat('FIN', (.86, .7, .56), .55, .32, emit=(1., .6, .3), es=30., glow_attr=True)
-mat('FINBACK', (.06, .035, .02), 0, .7, emit=(.5, .22, .08), es=.6)
+mat('HEXEDGE', (1, .7, .4), 0, .3, emit=(1., .55, .25), es=7.)
+mat('FIN', (.86, .7, .56), .55, .32, emit=(1., .58, .28), es=14., glow_attr=True)
+mat('FINBACK', (.06, .035, .02), 0, .7, emit=(.6, .26, .09), es=1.4)
 mat('ROAD', (.035, .036, .04), .35, .09)
 mat('BRONZE', (.62, .42, .28), .8, .3)
 mat('GLASS', (.05, .07, .09), 1., .02)
-mat('WARMLED', (1, .9, .8), 0, .3, emit=(1., .82, .6), es=30.)
+mat('WARMLED', (1, .9, .8), 0, .3, emit=(1., .82, .6), es=9.)
 
 roots = {}
 def root(a):
@@ -150,29 +149,34 @@ add('HexRing_Face', bmF, 'HEXFACE', parent='HexRing'); add('HexRing_Edge', bmE, 
 bm = grid(2, 41, lambda i, j: E(AS + .05, BS + .05, -.05 + (PI + .1) * j / 40, i * HLEN))
 add('HexRing_Back', bm, 'DARKMETAL', parent='HexRing')
 
-# ---------------- FinRing0..3 (1.45 m pitch, four spiral phases) ----------------
-NF, TW, LEAN, PITCH, THK = 34, .55, 1.35, 1.45, .07
-T0F, T1F = -.02, PI + .02; DT = (T1F - T0F) / NF
-for ph in range(4):
-    bm = bmesh.new(); glow = []; roll = DT * ph / 4
-    for j in range(-1, NF):
-        ta = T0F + roll + j * DT; tb = ta + DT * .9
-        if tb < T0F or ta > T1F: continue
-        ta, tb = max(ta, T0F), min(tb, T1F)
-        quad = [(ta, 0., 0.), (tb, TW, 0.), (tb, TW - LEAN, FD), (ta, -LEAN, FD)]   # (angle, z, depth out) inner edge first
-        vs = []
-        for side in (0, 1):                                  # two faces THK apart along z make a slat
-            for t, z, dout in quad:
-                taper = 1 - .35 * (dout / FD)                    # thinner at the root, a tapered blade
-                vs.append(bm.verts.new(E(A + dout, B + dout, t, z + side * THK * taper)))
-                glow.append(max(0., 1 - dout / FD))
-        f, b = vs[:4], vs[4:]
-        bm.faces.new(f); bm.faces.new(b[::-1])
-        for k in range(4): bm.faces.new((f[k], b[k], b[(k + 1) % 4], f[(k + 1) % 4]))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    add('FinRing%d_Fins' % ph, bm, 'FIN', parent='FinRing%d' % ph, colattr=glow)
-bm = grid(2, 41, lambda i, j: E(AS + .15, BS + .15, -.05 + (PI + .1) * j / 40, i * PITCH))
-add('FinBack', bm, 'FINBACK', parent='FinRing0')
+# ---------------- FinSlat: one swept rib of the fin vault (Midjourney fin frames). In the game the same parametrisation
+# is generated along the curved track (calderTunnel in afterhours.js); here it is a straight 1:1 copy for look-dev. A slat's
+# inner edge climbs the arch on a diagonal (z = KAP * arc length), its root leans LEAN back so the broad face looks at the
+# driver, and it is THK thick. Vertex colour R = glow (1 on the inner edge, 0 at the root).
+KAP, LEAN, THK, FPITCH, FDEP = .62, 1.6, .16, 1.25, 2.3
+cumF, nF = ell_len(A, B, -.02, PI + .02)
+def tF(sig):
+    sig = max(0., min(cumF[-1], sig)); lo, hi = 0, nF
+    while hi - lo > 1:
+        m = (lo + hi) // 2
+        if cumF[m] < sig: lo = m
+        else: hi = m
+    f = (sig - cumF[lo]) / max(1e-6, cumF[hi] - cumF[lo]); return -.02 + (PI + .04) * (lo + f) / nF
+def slat(z0, ns=56):
+    bm = bmesh.new(); glow = []; L = cumF[-1]; rows = []
+    for i in range(ns + 1):
+        sg = L * i / ns; t = tF(sg); z = z0 + KAP * (sg - L / 2)
+        row = []
+        for dz, dout in ((0, 0), (THK, 0), (THK - LEAN, FDEP), (-LEAN, FDEP)):   # inner front, inner back, root back, root front
+            row.append(bm.verts.new(E(A + dout, B + dout, t, z + dz))); glow.append(1 - dout / FDEP)
+        rows.append(row)
+    for i in range(ns):
+        r0, r1 = rows[i], rows[i + 1]
+        for k in range(4): bm.faces.new((r0[k], r0[(k + 1) % 4], r1[(k + 1) % 4], r1[k]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces); return bm, glow
+bm, glow = slat(0.); add('FinSlat_Blade', bm, 'FIN', parent='FinSlat', colattr=glow, smooth=True)
+bm = grid(2, 41, lambda i, j: E(A + FDEP + .3, B + FDEP + .3, -.05 + (PI + .1) * j / 40, (-1, 1)[i] * FPITCH / 2))
+add('FinSlat_Back', bm, 'FINBACK', parent='FinSlat')
 
 # ---------------- look-dev tube: portal -> copper hex throat -> fins -> gallery -> cyan hex, straight, dusk outside ----------------
 def inst(asset, z, flip=False, mats=None):
@@ -186,8 +190,8 @@ def inst(asset, z, flip=False, mats=None):
 LD = {'portal': 0., 'throat1': 28., 'fins1': 150., 'gal0': 156., 'gal1': 236., 'hex0': 242., 'hex1': 330.}
 inst('PortalHood', 0.)
 for k in range(int(28 / HLEN)): inst('HexRing', k * HLEN)
-k = 0; z = 28.
-while z < LD['fins1']: inst('FinRing%d' % (k % 4), z); z += PITCH; k += 1
+z = 28. + 12
+while z < LD['fins1'] - 12: inst('FinSlat', z); z += FPITCH
 z = LD['hex0']
 while z < LD['hex1']: inst('HexRing', z); z += HLEN
 bm = grid(2, 2, lambda i, j: G((-14, 14)[j], 0, (-60, 400)[i])); add('LD_Road', bm, 'ROAD', coll=ld)
@@ -203,9 +207,33 @@ for i in range(5):
     add('LD_GalLine%d' % i, tube(pts, .06, 6), 'WARMLED', coll=ld)
 # dusk world + volumetric haze
 w = bpy.data.worlds.get('CalderDusk') or bpy.data.worlds.new('CalderDusk'); scene.world = w; w.use_nodes = True
-bg = w.node_tree.nodes.get('Background'); bg.inputs[0].default_value = (.55, .32, .42, 1); bg.inputs[1].default_value = .6
-vol = w.node_tree.nodes.get('Volume Scatter') or w.node_tree.nodes.new('ShaderNodeVolumeScatter'); vol.inputs['Density'].default_value = .006
-out = w.node_tree.nodes.get('World Output'); w.node_tree.links.new(vol.outputs[0], out.inputs['Volume'])
+nt = w.node_tree; bg = nt.nodes.get('Background'); bg.inputs[1].default_value = 1.
+for n in [n for n in nt.nodes if n.type in ('TEX_GRADIENT', 'VALTORGB', 'TEX_COORD', 'MAPPING', 'SEPARATE_XYZ')]: nt.nodes.remove(n)
+tc = nt.nodes.new('ShaderNodeTexCoord'); sx = nt.nodes.new('ShaderNodeSeparateXYZ'); cr = nt.nodes.new('ShaderNodeValToRGB')
+nt.links.new(tc.outputs['Generated'], sx.inputs[0]); nt.links.new(sx.outputs['Z'], cr.inputs[0]); nt.links.new(cr.outputs[0], bg.inputs[0])
+el = cr.color_ramp.elements; el[0].position, el[0].color = .5, (.9, .42, .2, 1); el[1].position, el[1].color = .62, (.16, .12, .3, 1)
+e2 = el.new(.53); e2.color = (.75, .32, .38, 1)                     # orange band on the horizon to violet overhead (frame 05)
+sun = bpy.data.objects.get('LD_Sun') or bpy.data.objects.new('LD_Sun', bpy.data.lights.new('LD_Sun', 'SUN')); sun.data.energy = 1.6; sun.data.color = (1, .62, .42)
+sun.rotation_euler = (math.radians(84), 0, math.radians(200)); ld.objects.link(sun)
+hz = bpy.data.materials.get('LD_Haze') or bpy.data.materials.new('LD_Haze'); hz.use_nodes = True; hn = hz.node_tree
+for n in list(hn.nodes):
+    if n.type != 'OUTPUT_MATERIAL': hn.nodes.remove(n)
+vs = hn.nodes.new('ShaderNodeVolumeScatter'); vs.inputs['Density'].default_value = .012; vs.inputs['Color'].default_value = (1, .85, .7, 1)
+hn.links.new(vs.outputs[0], hn.nodes['Material Output'].inputs['Volume']); MATS['LD_Haze'] = hz
+bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.)
+for v in bm.verts: v.co = Vector((v.co.x * 26, v.co.y * 340 - 175, v.co.z * 12 + 6))
+add('LD_HazeBox', bm, 'LD_Haze', coll=ld)
+# hillside around the portal, with cypresses (frames 05/06)
+bm = grid(2, 2, lambda i, j: G((-400, 400)[j], -.05, (-600, 0)[i])); add('LD_Ground', bm, 'DARKMETAL', coll=ld)
+mat('ROCK', (.16, .12, .1), 0, .9); mat('CYPRESS', (.04, .07, .04), 0, .9)
+bm = grid(9, 41, lambda i, j: G((-90 + 180 * j / 40), max(0., 34 - abs(-90 + 180 * j / 40) * .18) * min(1, i / 2) - .2, -2 + i * 8))
+add('LD_Hill', bm, 'ROCK', coll=ld, smooth=True)
+import random; rnd = random.Random(5)
+for k in range(46):
+    x = rnd.choice((-1, 1)) * rnd.uniform(16, 70); h = rnd.uniform(9, 16); bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=1.3, radius2=.05, depth=h)
+    for v in bm.verts: v.co += G(x, h / 2 + max(0., 34 - abs(x) * .18) * .9 - 1, rnd.uniform(-8, 40))
+    add('LD_Cyp%d' % k, bm, 'CYPRESS', coll=ld)
 # cameras per act (game chase-cam height)
 def cam(name, z, x=0., y=1.6, look=40., fov=64.):
     cd = bpy.data.cameras.new(name); cd.angle = math.radians(fov); cd.clip_end = 2000; o = bpy.data.objects.new(name, cd); ld.objects.link(o)
@@ -216,9 +244,9 @@ r = scene.render; r.resolution_x, r.resolution_y = 960, 540
 for eng in ('BLENDER_EEVEE', 'BLENDER_EEVEE_NEXT'):
     try: r.engine = eng; break
     except Exception: pass
-try:
-    scene.eevee.use_volumetric_shadows = False; scene.eevee.taa_render_samples = 32
-except Exception: pass
+for k, v in (('use_raytracing', True), ('taa_render_samples', 48), ('volumetric_tile_size', '4'), ('volumetric_end', 400.)):
+    try: setattr(scene.eevee, k, v)
+    except Exception: pass
 r.image_settings.file_format = 'JPEG'; r.image_settings.quality = 82
 try: scene.view_settings.view_transform = 'AgX'; scene.view_settings.look = 'AgX - Punchy'
 except Exception: pass
@@ -227,4 +255,4 @@ if OUT:                                                   # export only the kit 
     for o in scene.objects: o.select_set(False)
     for o in kit.all_objects: o.select_set(True)
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(OUT), export_format='GLB', use_selection=True, export_apply=True, export_yup=True)
-result = {'hex_cols': NCOL, 'hex_faces': len(bpy.data.objects['HexRing_Face'].data.polygons), 'fin_faces': len(bpy.data.objects['FinRing0_Fins'].data.polygons)}
+result = {'hex_cols': NCOL, 'hex_faces': len(bpy.data.objects['HexRing_Face'].data.polygons), 'slat_faces': len(bpy.data.objects['FinSlat_Blade'].data.polygons)}

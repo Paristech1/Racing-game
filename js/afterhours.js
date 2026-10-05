@@ -3154,7 +3154,7 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
    kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
 const KIT_CACHE={};
 function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
-  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly','calder','caldertun']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (null);
+  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly','calder','caldertun','caldersets']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (null);
   src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
   root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
   // perf: fold every part that shares a material slot into one geometry, so an asset costs one draw call per material
@@ -5704,11 +5704,12 @@ function buildCalder(){
     g.fillStyle='rgba(240,240,236,.85)'; g.fillRect(w*.25-2,0,4,h*.5); g.fillRect(w*.75-2,0,4,h*.5); g.fillStyle='rgba(255,205,60,.9)'; g.fillRect(w*.5-5,0,3,h); g.fillRect(w*.5+2,0,3,h); }),true);
   const gratM=new THREE.MeshStandardMaterial({map:gratT,metalness:.75,roughness:.35,side:THREE.DoubleSide});
   ribbonF(tr,S,gratM,(k,p)=>CB_SPAN(p)?[-W,p.y+.02,W,p.y+.02]:null,8);
-  const deckM=new THREE.MeshStandardMaterial({color:0x2a2c30,roughness:.8,side:THREE.DoubleSide}), barrierM=new THREE.MeshStandardMaterial({color:0x8a8780,roughness:.85,side:THREE.DoubleSide});
+  const deckM=new THREE.MeshStandardMaterial({color:0x2a2c30,roughness:.8,side:THREE.DoubleSide}), barrierM=new THREE.MeshStandardMaterial({color:0xc4c6c8,roughness:.55,side:THREE.DoubleSide});
   const onDeck=(k,p)=>CB_SPAN(p)||inHw(k*tr.ds);
   ribbonF(tr,S,deckM,(k,p)=>onDeck(k,p)?[-W-3.2,p.y-1.9,W+3.2,p.y-1.9]:null);
   [-1,1].forEach(sd=>{ ribbonF(tr,S,deckM,(k,p)=>onDeck(k,p)?[sd*(W+3.2),p.y-1.9,sd*(W+3.2),p.y+.05]:null);
-    ribbonF(tr,S,barrierM,(k,p)=>onDeck(k,p)?[sd*(W+2.9),p.y,sd*(W+2.9),p.y+1.05]:null); ribbonF(tr,S,barrierM,(k,p)=>onDeck(k,p)?[sd*(W+2.9),p.y+1.05,sd*(W+3.3),p.y+1.05]:null);
+    const barr=(k,p)=>inHw(k*tr.ds)||(CB_SPAN(p)&&!kitParts('BridgeSpan'));
+    ribbonF(tr,S,barrierM,(k,p)=>barr(k,p)?[sd*(W+2.9),p.y,sd*(W+2.9),p.y+1.05]:null); ribbonF(tr,S,barrierM,(k,p)=>barr(k,p)?[sd*(W+2.9),p.y+1.05,sd*(W+3.3),p.y+1.05]:null);
     ribbonF(tr,S,deckM,(k,p)=>onDeck(k,p)?[sd*W,p.y+.012,sd*(W+2.9),p.y+.012]:null); });                  // paved shoulder
   for(let z=-360;z<=0;z+=120){ K.at(K.sNear(560,z),0); const y=K.f.p.y-1.9; [-5,5].forEach(dx=>K.box(4,y+7,5,stoneM,560+dx,(y-7)/2,z)); }
   const cobT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#2a2620'; g.fillRect(0,0,w,h);
@@ -5716,7 +5717,7 @@ function buildCalder(){
   const cobM=wetRoad(new THREE.MeshStandardMaterial({map:cobT,roughness:.5,metalness:.1,side:THREE.DoubleSide}));
   const inOT=k=>{ const s=k*tr.ds; return s>sOT0+20&&s<sOT1-20; };
   ribbonF(tr,S,cobM,(k,p)=>inOT(k)?[-W,p.y+.02,W,p.y+.02]:null,3);
-  K.lights({every:36,color:0xffc27a,pool:0xa87848,pole:0x23262b,skip:(p,s)=>CB_SPAN(p)||inTun(s)});
+  K.lights({every:36,color:0xffc27a,pool:0xa87848,pole:0x23262b,skip:(p,s)=>CB_SPAN(p)||inTun(s)||(!!kitParts('SwanPole')&&inHw(s))});
 
   // ---- the Blender kit: materials for its slots ----
   const km=Object.assign({},kitMats(),{CRANE:new THREE.MeshStandardMaterial({color:0xa8281a,metalness:.55,roughness:.42,envMapIntensity:1.1}),
@@ -5727,6 +5728,19 @@ function buildCalder(){
     HONEY:new THREE.MeshStandardMaterial({color:0xb48c5c,roughness:.9}),TILE:new THREE.MeshStandardMaterial({color:0x7a3a22,roughness:.85}),
     IRON:new THREE.MeshStandardMaterial({color:0x0b0b0d,metalness:.6,roughness:.45}),WOODSH:new THREE.MeshStandardMaterial({color:0x22403a,roughness:.8}),
     PAINT:new THREE.MeshStandardMaterial({color:0xffffff,metalness:.35,roughness:.6})});
+  // v3 set kit (tools/blender/calder_sets.py -> models/calder_sets_kit.glb, look-dev'd beside the Midjourney frames)
+  const glowC=(r,g,b)=>new THREE.MeshBasicMaterial({color:new THREE.Color(r,g,b),toneMapped:false,side:THREE.DoubleSide});
+  Object.assign(km,{REDSTEEL:upLit(new THREE.MeshStandardMaterial({color:0x6a0e0a,emissive:0x140202,metalness:.55,roughness:.36,envMapIntensity:1.1}),{k:.28,h:18,a:0xff7a3a}),
+    PLINTH:glowC(1.7,.75,.3),LED:glowC(1.9,.8,.32),LAMP:glowC(1.6,1.15,.7),
+    HONEY:upLit(new THREE.MeshStandardMaterial({color:0x8e6c46,roughness:.88}),{k:.32,h:7,a:0xffa050}),HONEY2:upLit(new THREE.MeshStandardMaterial({color:0x7c5c3a,roughness:.88}),{k:.32,h:7,a:0xffa050}),
+    STONE:new THREE.MeshStandardMaterial({color:0x5e5446,roughness:.92}),TRIM_LIGHT:upLit(new THREE.MeshStandardMaterial({color:0xb4a688,roughness:.7}),{k:.3,h:7,a:0xffb070}),
+    DARKGLASS:new THREE.MeshStandardMaterial({color:0x07090c,metalness:.7,roughness:.1}),WARM:glowC(1.25,.8,.42),WINLIT:glowC(1.1,.72,.38),
+    AWNING:new THREE.MeshStandardMaterial({color:0x7a1010,roughness:.8,side:THREE.DoubleSide}),FLOWER:new THREE.MeshStandardMaterial({color:0xa0124a,roughness:.8}),
+    WOOD:new THREE.MeshStandardMaterial({color:0x3e2210,roughness:.7}),DOME:new THREE.MeshStandardMaterial({color:0x3c5c52,metalness:.6,roughness:.4}),
+    WHITECON:upLit(new THREE.MeshStandardMaterial({color:0xd4d6d8,roughness:.5,metalness:.05}),{k:.25,h:8,a:0xffb070}),
+    GANTRY:new THREE.MeshStandardMaterial({color:0x4c8a68,metalness:.5,roughness:.45}),SIGNGREEN:new THREE.MeshStandardMaterial({color:0x0b5a2c,roughness:.5}),
+    DRYSTONE:new THREE.MeshStandardMaterial({color:0x7a6e5c,roughness:.95,flatShading:true}),DARK:new THREE.MeshStandardMaterial({color:0x08090a,roughness:.6})});
+  const SETS=!!kitParts('BridgeSpan');
   const KIT=!!(kitParts('GantryCrane')&&kitParts('TrussArch')&&kitParts('Container'));
   const place=(x,y,z,yaw,sx,sy)=>new THREE.Matrix4().makeTranslation(x,y,z).multiply(new THREE.Matrix4().makeRotationY(yaw||0)).multiply(new THREE.Matrix4().makeScale(sx||1,sy||1,1));
   const onTrack=(s,x,dy,flip,sc)=>{ K.at(s,x||0,dy||0); const q=K.q.clone(); if(flip) q.multiply(new THREE.Quaternion().setFromAxisAngle(UP,Math.PI)); return new THREE.Matrix4().compose(K.pv.clone(),q,sc||one); };
@@ -5758,21 +5772,41 @@ function buildCalder(){
   // ---- Steel Bridge: five 120 m K-truss arch spans (Midjourney bridge frames), scaled to the deck and pitched with it ----
   const spans=[-420,-300,-180,-60,60].map(z=>{ K.at(K.sNear(560,z),0); const y=K.f.p.y; K.at(K.sNear(560,z-50),0); const y0=K.f.p.y; K.at(K.sNear(560,z+50),0); const y1=K.f.p.y;
     return new THREE.Matrix4().makeTranslation(560,y-.4,z).multiply(new THREE.Matrix4().makeRotationX(-Math.atan2(y1-y0,100))).multiply(new THREE.Matrix4().makeScale((W+3.6)/9.6,1,1)); });
-  if(KIT) kitInst(S,'TrussArch',km,spans);
+  if(SETS) kitInst(S,'BridgeSpan',km,spans.map(m=>m.clone().multiply(new THREE.Matrix4().makeScale((W+4.2)/11.2/((W+3.6)/9.6),1,1))));
+  else if(KIT) kitInst(S,'TrussArch',km,spans);
   else spans.forEach(m=>{ const p=new THREE.Vector3().setFromMatrixPosition(m); [-1,1].forEach(sd=>{ const a=K.mesh(new THREE.TorusGeometry(60,.9,6,40,Math.PI),km.CRANE,p.x+sd*(W+3.6),p.y,p.z); a.rotation.y=Math.PI/2; a.scale.y=.45; }); });
   [-420,-300,-180,-60,60].forEach(z=>{ K.at(K.sNear(560,z),0); [-1,1].forEach(sd=>aviation.push(K.glow(0xff3020,4,560+sd*(W+3.6),K.f.p.y+28,z))); });
-  { const poleM=new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.7,roughness:.4}); // tall single-arm lamps on the parapets, as in the frames
+  if(SETS){ const lp=[]; for(let s=sBr0+15;s<sBr1;s+=30) [-1,1].forEach(sd=>{ K.at(s,sd*(W+3.4),10.1); lp.push(K.pv.clone()); }); WETFX.lamps(S,lp,0xffc27a);
+    for(let s=sBr0+6;s<sBr1;s+=30) [-1,1].forEach(sd=>{ K.at(s,sd*(W+3.4),10.1); K.glow(0xffc27a,7,K.pv.x,K.pv.y,K.pv.z); }); }
+  else { const poleM=new THREE.MeshStandardMaterial({color:0x2a2e35,metalness:.7,roughness:.4}); // tall single-arm lamps on the parapets, as in the frames
     for(let s=sBr0+20;s<sBr1;s+=40){ const sd=(Math.round(s/40)%2)?1:-1; K.at(s,sd*(W+3.1)); const b=K.pv.clone(), y0=K.f.p.y; K.box(.25,11,.25,poleM,b.x,y0+5.5,b.z);
       const h=b.clone().addScaledVector(K.f.r,-sd*2.4); K.box(.5,.2,.5,km.LAMP,h.x,y0+10.8,h.z); K.glow(0xffc27a,7,h.x,y0+10.6,h.z); } }
   // ---- Old Town (Midjourney frames): honey-stone houses with arched doors, outside stairs and iron balconies tight to the
   //      cobbles, the slender bell tower over the plaza ----
   const OT_KIT=!!kitParts('OTHouse'), houses=[];
-  if(OT_KIT) [-1,1].forEach(sd=>{ for(let s=sOT0+30;s<sOT1-20;s+=9.4){ K.at(s,sd*(W+4.6)); const r=K.f.r, d={x:-sd*r.x,z:-sd*r.z}, c=pv.clone().addScaledVector(r,sd*5.2);
+  if(SETS){ const HV={OTHouseA:9,OTHouseB:7,OTHouseC:11}, HL={OTHouseA:[],OTHouseB:[],OTHouseC:[]}, keys=Object.keys(HV);
+    [-1,1].forEach(sd=>{ for(let s=sOT0+30;s<sOT1-20;){ const kd=keys[(K.R()*3)|0], len=HV[kd]; K.at(s+len/2,sd*(W+4.6)); const r=K.f.r, d={x:-sd*r.x,z:-sd*r.z}, c=pv.clone().addScaledVector(r,sd*4.5);
+      if(K.clearOf(c,K.f.t,r,len,9,W+4.4)) HL[kd].push(place(pv.x,K.f.p.y-.2,pv.z,kitYawTo(d.x,d.z))); s+=len+.3; } });
+    keys.forEach(k=>kitInst(S,k,km,HL[k]));
+    // festoons of warm bulbs zig-zagging between the eaves (frames 11-14), palms on the pavements and around the plaza
+    const bp=[], wp=[], lamps=[], palms=[];
+    for(let s=sOT0+40,i=0;s<sOT1-40;s+=7,i++){ K.at(s,-(W+4.4),8.2+(i%3)*.6); const a=K.pv.clone(); K.at(s+4.5,W+4.4,8.6+((i+1)%3)*.6); const b=K.pv.clone();
+      let pr=null; for(let k=0;k<=22;k++){ const t=k/22, q=a.clone().lerp(b,t); q.y-=1.7*Math.sin(Math.PI*t); if(k>0&&k<22) bp.push(q.x,q.y-.12,q.z); if(pr) wp.push(pr.x,pr.y,pr.z,q.x,q.y,q.z); pr=q; if(k===11&&i%2===0) lamps.push(q.clone()); } }
+    const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(bp,3));
+    S.add(new THREE.Points(bg,fogAdd(new THREE.PointsMaterial({map:glowTex,color:0xffc070,size:.75,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}))));
+    const bc=new THREE.BufferGeometry(); bc.setAttribute('position',new THREE.Float32BufferAttribute(bp,3)); S.add(new THREE.Points(bc,new THREE.PointsMaterial({color:0xfff0c8,size:.12,sizeAttenuation:true})));
+    const wg=new THREE.BufferGeometry(); wg.setAttribute('position',new THREE.Float32BufferAttribute(wp,3)); S.add(new THREE.LineSegments(wg,new THREE.LineBasicMaterial({color:0x111111})));
+    WETFX.lamps(S,lamps,0xffb060);
+    for(let s=sOT0+55;s<sOT1-40;s+=34) [-1,1].forEach(sd=>{ K.at(s+(sd>0?17:0),sd*(W+2.6)); palms.push(place(K.pv.x,K.f.p.y+.15,K.pv.z,K.R()*6,1,.9+K.R()*.3)); });
+    [[345,590],[388,640],[340,646],[392,596]].forEach(([x,z])=>palms.push(place(x,pts[near(300,620)].y-.4,z,K.R()*6)));
+    kitInst(S,'Palm',km,palms); }
+  else if(OT_KIT) [-1,1].forEach(sd=>{ for(let s=sOT0+30;s<sOT1-20;s+=9.4){ K.at(s,sd*(W+4.6)); const r=K.f.r, d={x:-sd*r.x,z:-sd*r.z}, c=pv.clone().addScaledVector(r,sd*5.2);
     if(!K.clearOf(c,K.f.t,r,9,10,W+4.4)) continue; houses.push(place(pv.x,K.f.p.y-.25,pv.z,kitYawTo(d.x,d.z),1,.85+K.R()*.45)); } });
   if(houses.length) kitInst(S,'OTHouse',km,houses);
+  else if(SETS){}
   else { K.frontage(sOT0+30,sOT1-20,-1,{set:5,h:[10,19],dep:[10,15],len:[8,14],space:.3,gap:.1,styles:['stone','brick','stone']});
     K.frontage(sOT0+30,sOT1-20,1,{set:5,h:[10,19],dep:[10,15],len:[8,14],space:.3,gap:.1,styles:['stone','brick']}); }
-  { const ty=pts[near(300,620)].y; if(kitParts('ClockTower')) kitInst(S,'ClockTower',km,[place(365,ty-1,615,0)]);
+  { const ty=pts[near(300,620)].y; if(SETS){ kitInst(S,'BellTower',km,[place(365,ty-1,615,0)]); K.glow(0xffb060,26,365,ty+30,615); } else if(kitParts('ClockTower')) kitInst(S,'ClockTower',km,[place(365,ty-1,615,0)]);
     else { K.box(7,44,7,km.HONEY,365,ty+21,615); K.box(7.4,3.2,7.4,km.CLOCK,365,ty+28,615); }
     K.glow(0xfff0d0,14,365,ty+28,615); K.flat(330,400,585,650,ty-.4,new THREE.MeshStandardMaterial({map:cobT,roughness:.6})); }
   const BARS=['TRATTORIA','OYSTER BAR','CAFE','TAVERN','BAKERY','WINE','RECORDS','PIZZA'], BC=['#ffcf6a','#ff8a5a','#6fe3ff','#f4f7ff','#7dff9a'];
@@ -5787,11 +5821,26 @@ function buildCalder(){
   // ---- Highway 9: elevated viaduct on hammerhead piers, sound walls on the outside of the sweeper (Midjourney highway frame) ----
   { const cols2=[], caps=[]; for(let s=sHw0+120;s<sHw1-10;s+=42){ K.at(s,0); const y=K.f.p.y, g=y-15+4; // ground under the deck (matches the valley above)
       caps.push(onTrack(s,0,-1.9)); cols2.push(new THREE.Matrix4().compose(new THREE.Vector3(K.f.p.x,g,K.f.p.z),K.q.clone(),new THREE.Vector3(1,Math.max(1,y-4.6-g),1))); }
-    if(kitParts('PierCap')){ kitInst(S,'PierCap',km,caps); kitInst(S,'PierColumn',km,cols2); }
+    if(SETS){ kitInst(S,'PierCap',km,caps); kitInst(S,'Pier9',km,cols2); }
+    else if(kitParts('PierCap')){ kitInst(S,'PierCap',km,caps); kitInst(S,'PierColumn',km,cols2); }
     else cols2.forEach(m=>{ const p=new THREE.Vector3().setFromMatrixPosition(m); K.box(3,16,2.2,concrete,p.x,p.y+8,p.z); });
     const wallT=CT(canvasTex(128,64,(g,w,h)=>{ g.fillStyle='#5f646b'; g.fillRect(0,0,w,h); g.fillStyle='#4a4f56'; for(let x=0;x<w;x+=16) g.fillRect(x,0,2,h); g.fillStyle='#7a8088'; g.fillRect(0,0,w,4); }),true);
     const wallM=new THREE.MeshStandardMaterial({map:wallT,roughness:.8,side:THREE.DoubleSide}), sWall0=K.sNear(-560,900);
-    ribbonF(tr,S,wallM,(k,p)=>{ const s=k*tr.ds; return s>sWall0&&s<sHw1-30?[W+3.2,p.y+1,W+3.2,p.y+4.6]:null; },4); }
+    if(SETS){ const sw=[], poles=[], heads=[]; for(let s=sWall0;s<sHw1-30;s+=6) sw.push(onTrack(s,W+3.25,0));
+      kitInst(S,'SoundWall',km,sw);
+      for(let s=sHw0+20,i=0;s<sHw1-10;s+=38,i++){ const sd=i%2?1:-1; poles.push(onTrack(s,sd*(W+3.6),0,sd>0)); K.at(s,sd*(W+3.6-4.6),11.6); heads.push(K.pv.clone()); K.glow(0xffb070,3.5,K.pv.x,K.pv.y,K.pv.z); }
+      kitInst(S,'SwanPole',km,poles); WETFX.lamps(S,heads,0xffb070);
+      const pg=new THREE.PlaneGeometry(16,16).rotateX(-Math.PI/2), pm=[]; heads.forEach(h=>{ K.at(K.sNear(h.x,h.z),0); pm.push(new THREE.Matrix4().makeTranslation(h.x,K.f.p.y+.06,h.z)); });
+      K.inst(pg,fogAdd(new THREE.MeshBasicMaterial({map:lampPoolTex,color:0x9a6a3a,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false})),pm);
+      [-1,1].forEach(sd=>ribbonF(tr,S,km.LED,(k,p)=>inHw(k*tr.ds)?[sd*(W+3.24),p.y-1.25,sd*(W+3.24),p.y-.85]:null)); } // the LED fascia line along the deck edge
+    else ribbonF(tr,S,wallM,(k,p)=>{ const s=k*tr.ds; return s>sWall0&&s<sHw1-30?[W+3.2,p.y+1,W+3.2,p.y+4.6]:null; },4); }
+  // ---- green sign gantries over the quay road (frame 01), dry-stone cut walls down the S-bends out of the tunnel (frame 02) ----
+  if(SETS){ const gs=[[K.sNear(0,-470),'CALDER QUAY','STEEL BRIDGE  1 KM →'],[K.sNear(0,-150),'HARBOR CITY','HIGHWAY 9  ↑']];
+    kitInst(S,'SignGantry',km,gs.map(([s])=>onTrack(s,0,0)));
+    gs.forEach(([s,a,b])=>[-5.2,5.2].forEach((x,i)=>{ K.at(s-.95,x,7.0); const t=K.f.t; K.sign(signCanvas2(i?b:a,'',{bg:'#0b5a2c'}),8.2,2.4,K.pv.x,K.pv.y,K.pv.z,Math.atan2(-t.x,-t.z)); }));
+    const walls=[]; for(let s=sT1+40;s<sT1+260;s+=8) [-1,1].forEach(sd=>{ K.at(s,sd*(W+4.7)); const c=K.pv.clone().addScaledVector(K.f.r,sd*1);
+      if(K.clearOf(c,K.f.t,K.f.r,8,2,W+4.5)) walls.push(onTrack(s,sd*(W+4.7),-.3,sd<0)); });
+    kitInst(S,'StoneWall',km,walls); }
   const TUN=calderTunnel(K,tr,sT0,sT1,CS);
   // the city across the harbor, straight ahead off the grid and off the bridge
   K.skyline({cx:420,cz:-1420,sx:560,sz:110,n:46,h:[28,170],seed:1516});
@@ -5808,7 +5857,7 @@ function buildCalder(){
   TUN.capture();
   const update=dt=>{ TUN.update(dt,cam.position); waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; bt+=dt;
     const on=(bt%1.6)<.8; km.REDLAMP.color.setHex(on?0xff2a1a:0x3a0806); aviation.forEach(g=>{ g.visible=on; }); };
-  return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[],slopeG:1.2,airtime:true,tunS:[[sT0,sT1]],calderS:Object.assign({sT0,sT1},CS),
+  return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[],slopeG:1.2,airtime:true,tunS:[[sT0,sT1]],calderS:Object.assign({sT0,sT1,sBr0,sBr1,sOT0,sOT1,sHw0,sHw1},CS),
     surf:[{s0:sBr0,s1:sBr1,grip:.94,name:'grating',msg:'Steel grating on the bridge. Light hands.'},{s0:sOT0+20,s1:sOT1-20,grip:.86,name:'cobble',msg:'Cobbles in the Old Town. Less grip.'}],
     resetTraffic(){ [.05,.26,.48,.7,.9].forEach((u,i)=>{ const o=obst[i]; o.dist=u*tr.L; o.x=i%2?3.6:-3.6; o.v=o.v0=13+Math.random()*5; }); }};
 }

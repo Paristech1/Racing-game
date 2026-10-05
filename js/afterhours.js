@@ -277,7 +277,7 @@ const SHEETS={
 };
 const LAPS=2; // default; an event can set its own laps
 function laps(){ return EV.laps||LAPS; }
-const FIELD_SIZE_PRESETS=[4,7,10,12,15,20];
+const FIELD_SIZE_PRESETS=[4,7,12,20];
 function maxRaceFieldSize(){ return CARS.filter(c=>!c.outlaw).length; }
 function clampFieldSize(n,max){ const cap=Math.max(4,max), v=Math.round(n), base=Number.isFinite(v)&&v>0?v:7; return Math.max(4,Math.min(cap,base)); }
 function fieldSizeChoices(max){ const cap=Math.max(4,max), out=FIELD_SIZE_PRESETS.filter(v=>v<=cap); if(!out.length||out[out.length-1]!==cap) out.push(cap); return out; }
@@ -289,8 +289,14 @@ function fieldSizeForEvent(ev){
   if(n==null&&ev.defaultField!=null) n=ev.defaultField;
   return clampFieldSize(n,max);
 }
-function setFieldSizeForEvent(evId,n){ const by=SAVE.fieldBy||(SAVE.fieldBy={}); by[evId]=clampFieldSize(n,maxRaceFieldSize()); if(SAVE.fieldN!=null){ delete SAVE.fieldN; } persist(); }
+function setFieldSizeForEvent(evId,n){ (SAVE.fieldBy||(SAVE.fieldBy={}))[evId]=clampFieldSize(n,maxRaceFieldSize()); persist(); }
 function raceGridSize(){ return fieldSizeForEvent(EV); }
+function formatEventSpecs(e,n){
+  const s=e.specs||''; if(e.knockout) return s;
+  const max=maxRaceFieldSize(), all=n>=max;
+  if(all) return s.replace(/\/\s*\d+\s+CARS\s*\//gi,' / FULL GRID /');
+  return s.replace(/\/\s*FULL\s*GRID\s*\//gi,` / ${n} CARS /`).replace(/\/\s*\d+\s+CARS\s*\//gi,` / ${n} CARS /`);
+}
 function spawnPersonaGrid(n){
   const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id], per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5), pSlot=Math.floor(Math.random()*n);
   for(let i=0;i<n;i++){ const dist=-5-i*5.2, x=i%2?2.6:-2.6;
@@ -5730,7 +5736,7 @@ const EVENTS=[
    note:'deck.\nchicane.\ntube.',load:'Neon Core. Two laps through the Synth District.'},
   {id:'calder',build:buildCalder,open:true,defaultField:20,laps:3,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Highway 9, the Calder Tunnel',
    caption:'Original port city at dusk — quay, Steel Bridge, Old Town, highway and tunnel. Three laps.',
-   specs:'5.6 KM LOOP / 3 LAPS / VARIABLE GRID / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
+   specs:'5.6 KM LOOP / 3 LAPS / 20 CARS / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
    note:'save boost\nfor the\nbridge',load:'Calder Basin. Quay, bridge, old town, highway, tunnel. Three laps.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
@@ -7825,19 +7831,14 @@ function renderEventRoster(){
   }).join('');
   el.querySelectorAll('.epick').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(i===EVI) return; EVI=i; sfx.page(); renderEvent(0,true); });
 }
-function renderFieldPicker(){
-  const wrap=$('#eFieldWrap'), el=$('#eField'), lab=$('#eFieldLab'); if(!wrap||!el) return;
-  if(EV.knockout){ wrap.style.display='none'; return; }
-  wrap.style.display='';
-  if(lab) lab.textContent=`Racers on ${EV.name}`;
+function renderGridPicker(){
+  const el=$('#eGrid'), specs=$('#eSpecs'); if(!el) return;
+  if(EV.knockout){ el.style.display='none'; if(specs) specs.textContent=EV.specs||''; return; }
+  el.style.display='';
   const max=maxRaceFieldSize(), choices=fieldSizeChoices(max), cur=fieldSizeForEvent(EV);
-  if(SAVE.fieldBy==null) SAVE.fieldBy={};
-  if(SAVE.fieldBy[EV.id]==null) SAVE.fieldBy[EV.id]=cur;
-  el.innerHTML=choices.map(n=>{
-    const tag=n===max&&n!==choices[0]?`All · ${n}`:`${n} cars`;
-    return `<button type="button" class="fpick${n===cur?' on':''}" data-n="${n}">${tag}</button>`;
-  }).join('');
-  el.querySelectorAll('.fpick').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===fieldSizeForEvent(EV)) return; setFieldSizeForEvent(EV.id,n); sfx.page(); renderFieldPicker(); });
+  if(specs) specs.textContent=formatEventSpecs(EV,cur);
+  el.innerHTML=choices.map(n=>`<button type="button" class="${n===cur?'on':''}" data-n="${n}">${n>=max?'All':n}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===fieldSizeForEvent(EV)) return; setFieldSizeForEvent(EV.id,n); sfx.page(); renderGridPicker(); });
 }
 function renderEvent(dir,force){
   if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); try{ renderer.compile(RS,cam); }catch(err){} } // A3: build this city's shaders now, behind the page-turn flash, not on the first visible frame
@@ -7853,8 +7854,8 @@ function renderEvent(dir,force){
   if(e.knockout) bindKoTrack(koMapI);
   $('#ePg').innerHTML=eventPageHtml();
   renderEventRoster();
-  renderFieldPicker();
-  if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3']],dir);
+  renderGridPicker();
+  if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3'],['#eSpecs','d2'],['#eGrid','d2']],dir);
   modeT=0; shot=-1;
 }
 function turnEvent(dir){ EVI=(EVI+dir+EVENTS.length)%EVENTS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderEvent(dir); }

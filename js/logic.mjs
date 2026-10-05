@@ -30,7 +30,7 @@ export function lapsForEvent(ev, defaultLaps = 2) {
 }
 
 /** Preset grid sizes offered before a race (player included). Knockout ignores these. */
-export const FIELD_SIZE_PRESETS = [4, 7, 10, 12, 15, 20];
+export const FIELD_SIZE_PRESETS = [4, 7, 12, 20];
 
 export function maxRaceFieldSize(cars) {
   return cars.filter(c => !c.outlaw).length;

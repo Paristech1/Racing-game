@@ -52,6 +52,8 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .stage-hit.dragging{cursor:grabbing}
 #select .top,#select .hl,#select .stamp,#select .hand{z-index:1}
 #select .foot{z-index:1}
+#events .top,#events .hl,#events .stamp,#events .hand{z-index:1}
+#events .foot{z-index:1}
 #showcase .top,#showcase .hl,#showcase .foot{z-index:1}
 #showcase .hl{position:relative}
 #showcase .shint{z-index:1}
@@ -132,13 +134,10 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .eroster::-webkit-scrollbar{height:3px}
 .epick{flex:0 0 auto;padding:8px 11px;border:1px solid rgba(255,255,255,.32);background:rgba(6,8,12,.45);font-size:11px;font-weight:700;font-stretch:80%;line-height:1.25;max-width:11em;text-align:left;white-space:normal}
 .epick.on{border-color:var(--ice);box-shadow:0 0 0 1px rgba(159,211,255,.35) inset;color:var(--ice)}
-.elevelopts{position:relative;z-index:2;margin:6px 22px 0;padding:10px 12px;border:1px solid rgba(255,255,255,.28);background:rgba(6,8,12,.55);pointer-events:auto;max-width:520px}
-.elevelopts .efieldpick{margin-top:8px}
-.efield{display:flex;align-items:center;gap:10px;margin:0 0 10px;pointer-events:auto;flex-wrap:wrap;z-index:2}
-.efieldlab{display:block;font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
-.efieldpick{display:flex;gap:6px;flex-wrap:wrap}
-.fpick{flex:0 0 auto;padding:6px 10px;border:1px solid rgba(255,255,255,.32);background:rgba(6,8,12,.45);font-size:11px;font-weight:700;font-stretch:80%;line-height:1.2}
-.fpick.on{border-color:var(--ice);box-shadow:0 0 0 1px rgba(159,211,255,.35) inset;color:var(--ice)}
+.egrid{display:flex;gap:6px;margin:8px 0 2px;overflow-x:auto;padding-bottom:2px;pointer-events:auto;-webkit-overflow-scrolling:touch}
+.egrid::-webkit-scrollbar{height:3px}
+.egrid button{flex:0 0 auto;min-width:2.6em;padding:9px 12px;border:1px solid rgba(255,255,255,.35);background:rgba(6,8,12,.45);font-size:13px;font-weight:800;font-stretch:80%;font-variant-numeric:tabular-nums}
+.egrid button.on{border-color:var(--ice);box-shadow:0 0 0 1px rgba(159,211,255,.35) inset;color:var(--ice)}
 #hud .board{position:absolute;left:18px;top:calc(env(safe-area-inset-top,0px) + 74px);list-style:none;margin:0;padding:0;font-size:11px;font-weight:700;font-stretch:80%;line-height:1.45;color:var(--dim);pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 #hud .board b{display:inline-block;width:14px;color:rgba(242,245,248,.45)}
 #hud .board .me{color:var(--ink)}
@@ -248,5 +247,5 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
   #events .hl{font-size:clamp(34px,8.5vw,84px)}
   #events .eroster{margin-bottom:8px}
   #events .epick{padding:6px 9px}
-  #events .elevelopts{margin:4px 14px 0;padding:8px 10px;max-width:none}
+  #events .egrid button{padding:7px 10px;font-size:12px}
 }

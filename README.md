@@ -80,7 +80,7 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - **Harbor Line tunnel:** a short **neon tube** with magenta/cyan strip lights and reduced grip.
   - **Pulse Grid** boost pads (cyan, magenta, violet) on alternating lanes, like Game Night’s crowd pads but tuned for night racing.
 
-- **Event 15: Calder Basin.** An original port city at dusk (~5.6 km), 3 laps, light traffic. Grid size is chosen on the event screen (4–full archive) for every open race. Designed from what racers say makes a map stick (long readable straights, one technical sector, a landmark for every sector), with the look taken from Midjourney key frames and the landmarks built in Blender (`tools/blender/calder_kit.py` -> `models/calder_kit.glb`):
+- **Event 15: Calder Basin.** An original port city at dusk (~5.6 km), 3 laps, light traffic (defaults to 20 cars; change grid on the event footer). Designed from what racers say makes a map stick (long readable straights, one technical sector, a landmark for every sector), with the look taken from Midjourney key frames and the landmarks built in Blender (`tools/blender/calder_kit.py` -> `models/calder_kit.glb`):
   - **Quay Run:** a 600 m straight under four ship-to-shore cranes, then the **Container Maze** chicane between tall stacks, red/white kerbs and flood masts.
   - **Steel Bridge:** 970 m flat out under five red K-truss arch spans on a steel-grating deck (slightly less grip), with a crest at mid-span that throws you in the air.
   - **Old Town:** cobbled switchbacks (less grip) between honey-stone houses with outside stairs and iron balconies, round the bell-tower hairpin.

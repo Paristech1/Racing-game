@@ -97,8 +97,9 @@ describe('field size / grid picker', () => {
   });
 
   it('fieldSizeChoices adds archive max when missing from presets', () => {
-    assert.deepEqual(fieldSizeChoices(20), [4, 7, 10, 12, 15, 20]);
-    assert.deepEqual(fieldSizeChoices(23), [4, 7, 10, 12, 15, 20, 23]);
+    assert.deepEqual(fieldSizeChoices(20), [4, 7, 12, 20]);
+    assert.deepEqual(fieldSizeChoices(23), [4, 7, 12, 20, 23]);
+    assert.deepEqual(fieldSizeChoices(15), [4, 7, 12, 15]);
   });
 
   it('fieldSizeForEvent locks knockout at 12', () => {

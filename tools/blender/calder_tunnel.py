@@ -54,11 +54,11 @@ def mat(name, col, metal=0., rough=.5, emit=None, es=0., glow_attr=False):
 mat('TITANIUM', (.62, .64, .68), 1., .27)
 mat('COPPER', (.86, .47, .27), 1., .2)
 mat('DARKMETAL', (.03, .032, .035), .8, .38)
-mat('LEDCU', (1, .7, .45), 0, .3, emit=(1., .58, .28), es=9.)
+mat('LEDCU', (1, .7, .45), 0, .3, emit=(1., .52, .2), es=12.)
 mat('LEDCY', (.6, .95, 1), 0, .3, emit=(.35, .92, 1.), es=8.)
 mat('HEXFACE', (.82, .45, .25), 1., .22)
 mat('HEXEDGE', (1, .7, .4), 0, .3, emit=(1., .55, .25), es=7.)
-mat('FIN', (.2, .11, .06), .85, .33, emit=(1., .55, .25), es=1.6, glow_attr=True)
+mat('FIN', (.42, .28, .18), .75, .32, emit=(1., .58, .3), es=4., glow_attr=True)
 mat('FINBACK', (.01, .008, .006), 0, .7, emit=(.6, .26, .09), es=.25)
 mat('ROAD', (.035, .036, .04), .35, .09)
 mat('BRONZE', (.62, .42, .28), .8, .3)
@@ -218,10 +218,10 @@ if bpy.data.worlds.get('CalderDusk'): bpy.data.worlds.remove(bpy.data.worlds['Ca
 w = bpy.data.worlds.new('CalderDusk'); scene.world = w; w.use_nodes = True
 nt = w.node_tree; bg = nt.nodes.get('Background'); bg.inputs[1].default_value = 1.
 sky = nt.nodes.new('ShaderNodeTexSky')                       # dusk: the sun just under the horizon behind the hill (frames 05/06)
-for k, v in (('sun_elevation', math.radians(1.5)), ('sun_rotation', math.radians(200)), ('altitude', 300.), ('air_density', 1.6), ('dust_density', 4.), ('ozone_density', 3.)):
+for k, v in (('sun_elevation', math.radians(3.)), ('sun_rotation', math.radians(200)), ('altitude', 300.), ('air_density', 1.6), ('aerosol_density', 3.), ('ozone_density', 3.)):
     try: setattr(sky, k, v)
     except Exception: pass
-nt.links.new(sky.outputs[0], bg.inputs[0]); bg.inputs[1].default_value = .35
+nt.links.new(sky.outputs[0], bg.inputs[0]); bg.inputs[1].default_value = .9
 sun = bpy.data.objects.new('LD_Sun', bpy.data.lights.new('LD_Sun', 'SUN')); sun.data.energy = 1.6; sun.data.color = (1, .62, .42)
 sun.rotation_euler = (math.radians(84), 0, math.radians(200)); ld.objects.link(sun)
 hz = bpy.data.materials.new('LD_Haze'); hz.use_nodes = True; hn = hz.node_tree
@@ -235,19 +235,25 @@ add('LD_HazeBox', bm, 'LD_Haze', coll=ld)
 # hillside around the portal, with cypresses (frames 05/06)
 bm = grid(2, 2, lambda i, j: G((-400, 400)[j], -.05, (-600, 0)[i])); add('LD_Ground', bm, 'DARKMETAL', coll=ld)
 mat('ROCK', (.16, .12, .1), 0, .9); mat('CYPRESS', (.04, .07, .04), 0, .9)
-bm = grid(9, 41, lambda i, j: G((-90 + 180 * j / 40), max(0., 34 - abs(-90 + 180 * j / 40) * .18) * min(1, i / 2) - .2, -2 + i * 8))
+def hill_h(x, z):                                          # the hillside the portal is cut into (frames 05/06)
+    ramp = max(0., min(1., (z + 8) / 22)); ramp = ramp * ramp * (3 - 2 * ramp)
+    h = max(0., 46 - abs(x) * .32) * ramp - (x * .06 if x > 0 else 0)
+    if z >= -1 and abs(x) < AS * 1.45: h = max(h, BS * 1.4 + 1.2)  # hug the tube right behind the hood
+    return h
+bm = grid(41, 61, lambda i, j: G(-150 + 300 * j / 60, hill_h(-150 + 300 * j / 60, -14 + i * 4), -14 + i * 4))
 add('LD_Hill', bm, 'ROCK', coll=ld, smooth=True)
 import random; rnd = random.Random(5)
 for k in range(46):
     x = rnd.choice((-1, 1)) * rnd.uniform(16, 70); h = rnd.uniform(9, 16); bm = bmesh.new()
     bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=1.3, radius2=.05, depth=h)
-    for v in bm.verts: v.co += G(x, h / 2 + max(0., 34 - abs(x) * .18) * .9 - 1, rnd.uniform(-8, 40))
+    zc = rnd.uniform(-6, 60)
+    for v in bm.verts: v.co += G(x, h / 2 + hill_h(x, zc) - .5, zc)
     add('LD_Cyp%d' % k, bm, 'CYPRESS', coll=ld)
 # cameras per act (game chase-cam height)
 def cam(name, z, x=0., y=1.6, look=40., fov=64.):
     cd = bpy.data.cameras.new(name); cd.angle = math.radians(fov); cd.clip_end = 2000; o = bpy.data.objects.new(name, cd); ld.objects.link(o)
     o.location = G(x, y, z); d = (G(0, 1.2, z + look) - o.location); o.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); return o
-cam('CAM_portal', -78, 1.5, 2.6, 80, 50); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 64, -2.5, 1.2, 40, 70)
+cam('CAM_portal', -52, -2.5, 2.3, 58, 56); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 64, -2.5, 1.2, 40, 70)
 cam('CAM_gallery', 170, 1.5, 1.5, 40, 70); cam('CAM_hex', 270, 0, 1.4, 40)
 r = scene.render; r.resolution_x, r.resolution_y = 960, 540
 r.engine = 'CYCLES'                                       # path tracing: the tube must really occlude the sky for the fins to read

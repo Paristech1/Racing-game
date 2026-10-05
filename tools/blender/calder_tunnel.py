@@ -56,8 +56,8 @@ mat('COPPER', (.86, .47, .27), 1., .2)
 mat('DARKMETAL', (.03, .032, .035), .8, .38)
 mat('LEDCU', (1, .7, .45), 0, .3, emit=(1., .52, .2), es=12.)
 mat('LEDCY', (.6, .95, 1), 0, .3, emit=(.35, .92, 1.), es=8.)
-mat('HEXFACE', (.82, .45, .25), 1., .22)
-mat('HEXEDGE', (1, .7, .4), 0, .3, emit=(1., .55, .25), es=7.)
+mat('HEXFACE', (.9, .5, .3), 1., .18)
+mat('HEXEDGE', (.05, .03, .02), .6, .45)                # dark seams; the game swaps in a lit seam for the cyan vault
 mat('FIN', (.42, .28, .18), .75, .32, emit=(1., .58, .3), es=4., glow_attr=True)
 mat('FINBACK', (.01, .008, .006), 0, .7, emit=(.6, .26, .09), es=.25)
 mat('ROAD', (.035, .036, .04), .35, .09)
@@ -147,14 +147,17 @@ for c in range(NCOL + 1):
         if any(z < -1e-6 or z > HLEN + 1e-6 for _, z in corner):  # clip to the module: keep whole hexes owned by this module
             if not (0 <= z0 < HLEN): continue
         if any(s < -1e-6 or s > cum[-1] + 1e-6 for s, _ in corner): continue
-        cv = bmF.verts.new(S(sig0, z0, .32)); iv = [bmF.verts.new(S(s, z, .12)) for s, z in inner]   # faceted face, dished in
+        cv = bmF.verts.new(S(sig0, z0, .38)); iv = [bmF.verts.new(S(s, z, .16)) for s, z in inner]   # faceted pyramid tile, apex toward the axis
         for k in range(6): bmF.faces.new((cv, iv[k], iv[(k + 1) % 6]))
-        ov = [bmE.verts.new(S(s, z, .02)) for s, z in corner]; iv2 = [bmE.verts.new(S(s, z, .12)) for s, z in inner]
+        ov = [bmE.verts.new(S(s, z, .02)) for s, z in corner]; iv2 = [bmE.verts.new(S(s, z, .16)) for s, z in inner]
         for k in range(6): bmE.faces.new((ov[k], ov[(k + 1) % 6], iv2[(k + 1) % 6], iv2[k]))
 bmesh.ops.recalc_face_normals(bmF, faces=bmF.faces); bmesh.ops.recalc_face_normals(bmE, faces=bmE.faces)
 add('HexRing_Face', bmF, 'HEXFACE', parent='HexRing'); add('HexRing_Edge', bmE, 'HEXEDGE', parent='HexRing')
 bm = grid(2, 41, lambda i, j: E(AS + .05, BS + .05, -.05 + (PI + .1) * j / 40, i * HLEN))
 add('HexRing_Back', bm, 'DARKMETAL', parent='HexRing')
+
+add('ThroatRing_LED', tube([E(AS - .45, BS - .45, -.04 + (PI + .08) * j / 80, 0.) for j in range(81)], .16, 10), 'LEDCU', parent='ThroatRing', smooth=True)
+add('ThroatRing_Band', tube([E(AS - .2, BS - .2, -.04 + (PI + .08) * j / 80, 0.) for j in range(81)], .34, 10), 'COPPER', parent='ThroatRing', smooth=True)
 
 # ---------------- FinBay: one 9 m bay of the fin vault (Midjourney fin frames 07/08). A lit ring at the bay's front edge,
 # and 56 feather blades that fan back from it over the bay, each twisted round the arch so they overlap like the frames.
@@ -198,6 +201,7 @@ def inst(asset, z, flip=False, mats=None):
 LD = {'portal': 0., 'throat1': 28., 'fins1': 150., 'gal0': 156., 'gal1': 236., 'hex0': 242., 'hex1': 330.}
 inst('PortalHood', 0.)
 for k in range(int(28 / HLEN)): inst('HexRing', k * HLEN)
+for z in (3., 9., 15., 21., 27.): inst('ThroatRing', z)
 z = 28. + BAY
 while z <= LD['fins1']: inst('FinBay', z); z += BAY
 z = LD['hex0']
@@ -237,7 +241,7 @@ bm = grid(2, 2, lambda i, j: G((-400, 400)[j], -.05, (-600, 0)[i])); add('LD_Gro
 mat('ROCK', (.16, .12, .1), 0, .9); mat('CYPRESS', (.04, .07, .04), 0, .9)
 def hill_h(x, z):                                          # the hillside the portal is cut into (frames 05/06)
     ramp = max(0., min(1., (z + 8) / 22)); ramp = ramp * ramp * (3 - 2 * ramp)
-    h = max(0., 46 - abs(x) * .32) * ramp - (x * .06 if x > 0 else 0)
+    h = (max(0., 44 - abs(x) * .28) if x < 0 else max(0., 18 - x * .5)) * ramp     # the hill climbs on the left, the valley opens right
     if z >= -1 and abs(x) < AS * 1.45: h = max(h, BS * 1.4 + 1.2)  # hug the tube right behind the hood
     return h
 bm = grid(41, 61, lambda i, j: G(-150 + 300 * j / 60, hill_h(-150 + 300 * j / 60, -14 + i * 4), -14 + i * 4))

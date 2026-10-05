@@ -46,7 +46,7 @@ def mat(name, col, metal=0., rough=.5, emit=None, es=0., glow_attr=False):
         b.inputs['Emission Color'].default_value = (*emit, 1); b.inputs['Emission Strength'].default_value = es
     if glow_attr:                                         # fins: emission = glow^3 from the colour attribute (look-dev only)
         at = nt.nodes.new('ShaderNodeAttribute'); at.attribute_name = 'Col'
-        sp = nt.nodes.new('ShaderNodeSeparateColor'); pw = nt.nodes.new('ShaderNodeMath'); pw.operation = 'POWER'; pw.inputs[1].default_value = 5.
+        sp = nt.nodes.new('ShaderNodeSeparateColor'); pw = nt.nodes.new('ShaderNodeMath'); pw.operation = 'POWER'; pw.inputs[1].default_value = 14.
         mu = nt.nodes.new('ShaderNodeMath'); mu.operation = 'MULTIPLY'; mu.inputs[1].default_value = es
         nt.links.new(at.outputs['Color'], sp.inputs[0]); nt.links.new(sp.outputs[0], pw.inputs[0]); nt.links.new(pw.outputs[0], mu.inputs[0])
         nt.links.new(mu.outputs[0], b.inputs['Emission Strength'])
@@ -58,8 +58,8 @@ mat('LEDCU', (1, .7, .45), 0, .3, emit=(1., .58, .28), es=9.)
 mat('LEDCY', (.6, .95, 1), 0, .3, emit=(.35, .92, 1.), es=8.)
 mat('HEXFACE', (.82, .45, .25), 1., .22)
 mat('HEXEDGE', (1, .7, .4), 0, .3, emit=(1., .55, .25), es=7.)
-mat('FIN', (.55, .36, .24), .65, .3, emit=(1., .55, .25), es=5., glow_attr=True)
-mat('FINBACK', (.06, .035, .02), 0, .7, emit=(.6, .26, .09), es=.5)
+mat('FIN', (.2, .11, .06), .85, .33, emit=(1., .55, .25), es=1.6, glow_attr=True)
+mat('FINBACK', (.01, .008, .006), 0, .7, emit=(.6, .26, .09), es=.25)
 mat('ROAD', (.035, .036, .04), .35, .09)
 mat('BRONZE', (.62, .42, .28), .8, .3)
 mat('GLASS', (.05, .07, .09), 1., .02)
@@ -155,7 +155,7 @@ add('HexRing_Back', bm, 'DARKMETAL', parent='HexRing')
 # is generated along the curved track (calderTunnel in afterhours.js); here it is a straight 1:1 copy for look-dev. A slat's
 # inner edge climbs the arch on a diagonal (z = KAP * arc length), its root leans LEAN back so the broad face looks at the
 # driver, and it is THK thick. Vertex colour R = glow (1 on the inner edge, 0 at the root).
-KAP, LEAN, THK, FPITCH, FDEP = .62, 1.6, .16, 1.25, 2.3
+KAP, LEAN, THK, FPITCH, FDEP = 1.3, 1.6, .16, 1.25, 2.3
 cumF, nF = ell_len(A, B, -.02, PI + .02)
 def tF(sig):
     sig = max(0., min(cumF[-1], sig)); lo, hi = 0, nF
@@ -248,9 +248,9 @@ r.engine = 'CYCLES'                                       # path tracing: the tu
 try:
     pr = bpy.context.preferences.addons['cycles'].preferences; pr.compute_device_type = 'METAL'; pr.get_devices()
     for d in pr.devices: d.use = True
-    scene.cycles.device = 'GPU'
+    pass  # Metal ran out of memory on the Mac mini: CPU below
 except Exception: pass
-scene.cycles.samples = 96; scene.cycles.use_denoising = True; scene.cycles.max_bounces = 6; scene.cycles.volume_step_rate = 4.
+scene.cycles.device = 'CPU'; scene.cycles.samples = 24; scene.cycles.use_denoising = True; scene.cycles.max_bounces = 3; scene.cycles.volume_step_rate = 4.
 for k, v in (('use_raytracing', True), ('taa_render_samples', 48), ('volumetric_tile_size', '4'), ('volumetric_end', 400.)):
     try: setattr(scene.eevee, k, v)
     except Exception: pass

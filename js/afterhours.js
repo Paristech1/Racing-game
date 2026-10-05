@@ -277,6 +277,37 @@ const SHEETS={
 };
 const LAPS=2; // default; an event can set its own laps
 function laps(){ return EV.laps||LAPS; }
+const FIELD_SIZE_PRESETS=[4,7,10,12,15,20];
+function maxRaceFieldSize(){ return CARS.filter(c=>!c.outlaw).length; }
+function clampFieldSize(n,max){ const cap=Math.max(4,max), v=Math.round(n), base=Number.isFinite(v)&&v>0?v:7; return Math.max(4,Math.min(cap,base)); }
+function fieldSizeChoices(max){ const cap=Math.max(4,max), out=FIELD_SIZE_PRESETS.filter(v=>v<=cap); if(!out.length||out[out.length-1]!==cap) out.push(cap); return out; }
+function raceGridSize(){ if(EV.knockout) return 12; return clampFieldSize(SAVE.fieldN,maxRaceFieldSize()); }
+function spawnPersonaGrid(n){
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id], per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5), pSlot=Math.floor(Math.random()*n);
+  for(let i=0;i<n;i++){ const dist=-5-i*5.2, x=i%2?2.6:-2.6;
+    if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
+    const shell=R_(per[i%per.length]), def=buildRivalForEvent(shell,EV.id,taken);
+    addRacer(def,false,dist,x,.975+Math.random()*.025); }
+}
+function spawnFullArchiveGrid(){
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id);
+  const lineup=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5);
+  const pSlot=4+Math.floor(Math.random()*Math.max(1,lineup.length-8));
+  lineup.splice(pSlot,0,me);
+  const per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5);
+  lineup.forEach((car,i)=>{ const dist=-5-i*5.2, x=i%2?2.8:-2.8;
+    if(car.id===me.id){ player=addRacer(me,true,dist,x,1); return; }
+    const shell=R_(per[i%per.length]);
+    addRacer(Object.assign({},car,{chassisId:car.id,tag:car.name,car:car.name,P:Object.assign({},shell.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.025); });
+}
+function spawnClassicSevenGrid(){
+  const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id];
+  const grid=[['apex',-5,-2.6,.99],['closer',-11,2.6,.985],['wall',-17,-2.6,.975],['player',-23,2.6,1],['leech',-29,-2.6,.985],['bruiser',-35,2.6,.98],['wild',-41,-2.6,.99]];
+  if(Math.random()<.45) grid.sort((a,b)=>a[0]==='player'?1:b[0]==='player'?-1:Math.random()-.5);
+  grid.forEach(row=>{ if(row[0]==='player'){ player=addRacer(me,true,row[1],row[2],row[3]); return; }
+    const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
+    addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012); });
+}
 /* Rival personas. Each one borrows a different idea from the racing-AI recon:
    APEX      racing-line robot, precise braking (Speed Dreams "simplix"/"usr" robots)
    THE WALL  refuses to let you by, the inverse of Speed Dreams "LetPass"
@@ -5688,10 +5719,10 @@ const EVENTS=[
    caption:'Synth District: mag-deck straight, container chicane, hyperloop columns, neon tube. Two laps.',
    specs:'3.1 KM LOOP / 2 LAPS / 7 CARS / LIVE TRAFFIC / PULSE GRID PADS / MEDIAN POSTS / CARGO LOCK / NEON TUBE',
    note:'deck.\nchicane.\ntube.',load:'Neon Core. Two laps through the Synth District.'},
-  {id:'calder',build:buildCalder,open:true,gridN:20,laps:3,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Highway 9, the Calder Tunnel',
-   caption:'Original port city at dusk — quay, Steel Bridge, Old Town, highway and tunnel. Three laps, twenty cars.',
-   specs:'5.6 KM LOOP / 3 LAPS / 20 CARS / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
-   note:'save boost\nfor the\nbridge',load:'Calder Basin. Quay, bridge, old town, highway, tunnel. Three laps, twenty cars.'}
+  {id:'calder',build:buildCalder,open:true,laps:3,name:'Calder Basin',kick:'Event 15',loc:'Calder Basin',when:'The quay, the Steel Bridge, Old Town, Highway 9, the Calder Tunnel',
+   caption:'Original port city at dusk — quay, Steel Bridge, Old Town, highway and tunnel. Three laps.',
+   specs:'5.6 KM LOOP / 3 LAPS / VARIABLE GRID / LIGHT TRAFFIC / 1 KM BRIDGE STRAIGHT / ELEVATED HIGHWAY / 600 M TUNNEL',
+   note:'save boost\nfor the\nbridge',load:'Calder Basin. Quay, bridge, old town, highway, tunnel. Three laps.'}
 ];
 /* Events are built on demand and released when you move to another one. Building every city at boot held
    eight full worlds in memory at once, which is enough to make a phone kill the page when a race starts. */
@@ -7785,6 +7816,18 @@ function renderEventRoster(){
   }).join('');
   el.querySelectorAll('.epick').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(i===EVI) return; EVI=i; sfx.page(); renderEvent(0,true); });
 }
+function renderFieldPicker(){
+  const wrap=$('#eFieldWrap'), el=$('#eField'); if(!wrap||!el) return;
+  if(EV.knockout){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  const max=maxRaceFieldSize(), choices=fieldSizeChoices(max), cur=clampFieldSize(SAVE.fieldN,max);
+  SAVE.fieldN=cur;
+  el.innerHTML=choices.map(n=>{
+    const lab=n===max&&n!==choices[0]?`All · ${n}`:`${n} cars`;
+    return `<button type="button" class="fpick${n===cur?' on':''}" data-n="${n}">${lab}</button>`;
+  }).join('');
+  el.querySelectorAll('.fpick').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===SAVE.fieldN) return; SAVE.fieldN=n; persist(); sfx.page(); renderFieldPicker(); });
+}
 function renderEvent(dir,force){
   if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); try{ renderer.compile(RS,cam); }catch(err){} } // A3: build this city's shaders now, behind the page-turn flash, not on the first visible frame
   const e=EV;
@@ -7799,6 +7842,7 @@ function renderEvent(dir,force){
   if(e.knockout) bindKoTrack(koMapI);
   $('#ePg').innerHTML=eventPageHtml();
   renderEventRoster();
+  renderFieldPicker();
   if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3']],dir);
   modeT=0; shot=-1;
 }
@@ -7937,32 +7981,12 @@ function startRace(){
       if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
       const car=others[oi], P=R_(per[oi%per.length]); oi++;
       addRacer(Object.assign({},car,{id:P.id,chassisId:car.id,tag:car.name,color:P.color,car:car.name,P:Object.assign({},P.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.02); }
-  } else if(EV.fullGrid){
-    const lineup=CARS.filter(c=>c.id!==me.id).sort(()=>Math.random()-.5);
-    const pSlot=4+Math.floor(Math.random()*Math.max(1,lineup.length-8));
-    lineup.splice(pSlot,0,me);
-    const per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5);
-    lineup.forEach((car,i)=>{ const dist=-5-i*5.2, x=i%2?2.8:-2.8;
-      if(car.id===me.id){ player=addRacer(me,true,dist,x,1); return; }
-      const shell=R_(per[i%per.length]);
-      addRacer(Object.assign({},car,{chassisId:car.id,tag:car.name,car:car.name,P:Object.assign({},shell.P,{mass:car.mass||1}),mass:car.mass||1,rivalNote:car.rival}),false,dist,x,.975+Math.random()*.025); });
-  } else if(EV.gridN){
-    const n=EV.gridN, taken=[me.id], per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5), pSlot=Math.floor(Math.random()*n);
-    for(let i=0;i<n;i++){ const dist=-5-i*5.2, x=i%2?2.6:-2.6;
-      if(i===pSlot){ player=addRacer(me,true,dist,x,1); continue; }
-      const shell=R_(per[i%per.length]), def=buildRivalForEvent(shell,EV.id,taken);
-      addRacer(def,false,dist,x,.975+Math.random()*.025); }
   } else {
-  const grid=[
-   ['apex',-5,-2.6,.99],['closer',-11,2.6,.985],['wall',-17,-2.6,.975],
-   ['player',-23,2.6,1],['leech',-29,-2.6,.985],['bruiser',-35,2.6,.98],['wild',-41,-2.6,.99]
-  ];
-  if(Math.random()<.45) grid.sort((a,b)=>a[0]==='player'?1:b[0]==='player'?-1:Math.random()-.5);
-  grid.forEach(row=>{
-   if(row[0]==='player'){ player=addRacer(me,true,row[1],row[2],row[3]); return; }
-   const shell=R_(row[0]), def=buildRivalForEvent(shell,EV.id,taken);
-   addRacer(def,false,row[1],row[2],row[3]+(Math.random()-.5)*.012);
-  }); }
+    const n=raceGridSize(), max=maxRaceFieldSize();
+    if(EV.fullGrid&&n>=max) spawnFullArchiveGrid();
+    else if(n===7) spawnClassicSevenGrid();
+    else spawnPersonaGrid(n);
+  }
   personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.fxJam=r.fxGhost=r.clean=0; r._hits=r.hits; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
   const boss=racers.find(r=>!r.isP&&['overload','volcano','zephyr','hikari'].includes(r.def.chassisId));

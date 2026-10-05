@@ -29,6 +29,33 @@ export function lapsForEvent(ev, defaultLaps = 2) {
   return (ev && ev.laps) || defaultLaps;
 }
 
+/** Preset grid sizes offered before a race (player included). Knockout ignores these. */
+export const FIELD_SIZE_PRESETS = [4, 7, 10, 12, 15, 20];
+
+export function maxRaceFieldSize(cars) {
+  return cars.filter(c => !c.outlaw).length;
+}
+
+export function clampFieldSize(n, max) {
+  const cap = Math.max(4, max);
+  const v = Math.round(n);
+  const base = Number.isFinite(v) && v > 0 ? v : 7;
+  return Math.max(4, Math.min(cap, base));
+}
+
+/** Preset buttons for the event screen; always includes the archive max when it is not already listed. */
+export function fieldSizeChoices(max) {
+  const cap = Math.max(4, max);
+  const out = FIELD_SIZE_PRESETS.filter(v => v <= cap);
+  if (!out.length || out[out.length - 1] !== cap) out.push(cap);
+  return out;
+}
+
+export function fieldSizeForRace(ev, savedN, maxCars) {
+  if (ev && ev.knockout) return 12;
+  return clampFieldSize(savedN, maxCars);
+}
+
 export function histRecord(save, id) {
   const h = save[id] || (save[id] = { runs: 0, wins: 0, hits: 0, last: 0 });
   if (!h.bestBy) {

@@ -3154,7 +3154,7 @@ function leafyCrown(r,seed,det){ const R=rng(seed||3), parts=[[0,0,0,1],[.55,.25
    kitParts bakes each part into asset space once; kitInst lays an asset out as one InstancedMesh per part (threejs-geometry). */
 const KIT_CACHE={};
 function kitParts(name){ if(KIT_CACHE[name]!==undefined) return KIT_CACHE[name];
-  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly','calder']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (null);
+  const M=window.AH_MODELS||{}; let src=null, root=null; for(const k of ['blvd','mtairy','philly','calder','caldertun']){ const r=M[k]&&M[k].getObjectByName(name); if(r){ src=M[k]; root=r; break; } } if(!root) return (null);
   src.updateMatrixWorld(true); const inv=new THREE.Matrix4().copy(root.matrixWorld).invert(), parts=[];
   root.traverse(o=>{ if(o.isMesh) parts.push({geo:o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv,o.matrixWorld)),key:(o.material&&o.material.name||'GALV').split('.')[0]}); });
   // perf: fold every part that shares a material slot into one geometry, so an asset costs one draw call per material
@@ -5541,13 +5541,32 @@ function calderTunnel(K,tr,sT0,sT1,C){
     add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(lip),120,.42,10,false),glowM(col));
     add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(inset),120,.26,8,false),glowM(col));
     const lc=lip[lip.length>>1]; K.glow(col,30,lc.x,lc.y+1,lc.z); };
-  hood(sT0+2,-1,COP); hood(sT1-2,1,CYAN);
+  // ---------- the Blender tunnel kit (tools/blender/calder_tunnel.py -> models/calder_tunnel_kit.glb), look-dev'd in Cycles
+  //            against the Midjourney frames; each module is laid on its own track frame so the tube follows the curve ----------
+  const TK=!!(kitParts('PortalHood')&&kitParts('HexRing')&&kitParts('FinBay')&&kitParts('ThroatRing'));
+  const OT=(s,flip)=>{ K.at(s,0,0); const q=K.q.clone(); if(flip) q.multiply(new THREE.Quaternion().setFromAxisAngle(UP,PI)); return new THREE.Matrix4().compose(K.f.p.clone(),q,K.one); };
+  const ledM=c=>new THREE.MeshBasicMaterial({color:c,toneMapped:false,side:D2});
+  const LCU=new THREE.Color(1.9,.78,.3), LCY=new THREE.Color(.4,1.35,1.7);
+  const darkM=new THREE.MeshStandardMaterial({color:0x0b0b0c,metalness:.7,roughness:.4,side:D2});
+  const KM={TITANIUM:tiM,COPPER:cuM,DARKMETAL:darkM,LEDCU:ledM(LCU),LEDCY:ledM(LCY),
+    HEXFACE:new THREE.MeshStandardMaterial({color:0xd08a58,metalness:.95,roughness:.2,envMapIntensity:1.5,flatShading:true,side:D2}),
+    HEXEDGE:new THREE.MeshStandardMaterial({color:0x140a05,metalness:.6,roughness:.45,side:D2}),
+    FINBACK:new THREE.MeshStandardMaterial({color:0x0c0806,emissive:0x1c0b04,roughness:.7,side:D2})};
+  const KMX=Object.assign({},KM,{COPPER:tiDark,LEDCU:KM.LEDCY}); // the exit: titanium lining, cyan light
+  const KMH=Object.assign({},KM,{LEDCU:KM.LEDCY,HEXFACE:new THREE.MeshStandardMaterial({color:0x1c2a30,metalness:.85,roughness:.22,envMapIntensity:1.4,flatShading:true,side:D2}),
+    HEXEDGE:ledM(new THREE.Color(.28,1.05,1.25))}); // act 3: dark steel tiles on lit cyan seams (Midjourney hex frame)
+  const HLEN=2*Math.sqrt(3)*.64, BAY=9;
+  const strip=(a,b,dz)=>{ const o=[]; for(let s=a;s<b-.01;s+=dz) o.push(s); return o; };
+  if(TK){ kitInst(S,'PortalHood',KM,[OT(sT0+2)]); kitInst(S,'PortalHood',KMX,[OT(sT1-2,true)]);
+    kitInst(S,'HexRing',KM,strip(sT0+2,C.sF0,HLEN).map(s=>OT(s))); kitInst(S,'ThroatRing',KM,strip(sT0+5,C.sF0-1,6).map(s=>OT(s)));
+    kitInst(S,'HexRing',KMH,strip(C.sH1,sT1-2,HLEN).map(s=>OT(s))); kitInst(S,'ThroatRing',KMX,strip(C.sH1+3,sT1-3,6).map(s=>OT(s))); }
+  else { hood(sT0+2,-1,COP); hood(sT1-2,1,CYAN); }
   // the throats: a smooth titanium tube with light rings receding into the hill (Midjourney portal frame: rings inside)
-  [[sT0+2,C.sF0,COP,cuHexM],[C.sH1,sT1-2,CYAN,null]].forEach(([a,b,col,hm])=>{ vault(a,b,2,.3,PI-.3,30,AS,BS,hm||hexM,hexVS*1.3); [[-.04,.3],[PI-.3,PI+.04]].forEach(([t0,t1])=>vault(a,b,3,t0,t1,6,AS,BS,col===COP?cuM:tiDark,8));
+  if(!TK) [[sT0+2,C.sF0,COP,cuHexM],[C.sH1,sT1-2,CYAN,null]].forEach(([a,b,col,hm])=>{ vault(a,b,2,.3,PI-.3,30,AS,BS,hm||hexM,hexVS*1.3); [[-.04,.3],[PI-.3,PI+.04]].forEach(([t0,t1])=>vault(a,b,3,t0,t1,6,AS,BS,col===COP?cuM:tiDark,8));
     const rs=[]; for(let s=a+4;s<b-1;s+=5) rs.push(s); bands(rs,.4,-.04,PI+.04,48,AS-.12,BS-.12,glowM(col)); });
 
   // ---------- act 1: the copper fin vault (Midjourney fin frame, the hero shot) ----------
-  vault(C.sF0,C.sF1,3,-.05,PI+.05,36,AS+.15,BS+.15,new THREE.MeshStandardMaterial({color:0x140b06,emissive:0x2a1206,roughness:.7,side:D2}),10); // the warm glow behind the fins
+  if(!TK) vault(C.sF0,C.sF1,3,-.05,PI+.05,36,AS+.15,BS+.15,new THREE.MeshStandardMaterial({color:0x140b06,emissive:0x2a1206,roughness:.7,side:D2}),10); // the warm glow behind the fins
   const TU={uT:{value:0},uFC:{value:new THREE.Color(COP)},uFK:{value:1}};
   const finM=new THREE.MeshStandardMaterial({color:0xd8b494,roughness:.36,metalness:.5,envMapIntensity:1.3,side:D2});
   finM.onBeforeCompile=sh=>{ Object.assign(sh.uniforms,TU);
@@ -5555,7 +5574,15 @@ function calderTunnel(K,tr,sT0,sT1,C){
     sh.fragmentShader='uniform float uT,uFK; uniform vec3 uFC; varying float vGlow; varying float vFS;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
       '#include <emissivemap_fragment>\n{ float ph=fract((vFS-uT*70.)/180.)-.5, pulse=exp(-ph*ph*1100.);\n  totalEmissiveRadiance+=uFC*uFK*(pow(vGlow,3.)*(1.25+2.4*pulse)+pow(vGlow,.6)*.12+.03); }'); };
   finM.customProgramCacheKey=()=>'cbFin';
-  { const NF=34, T0=-.02, T1=PI+.02, dT=(T1-T0)/NF, TW=.55, LEAN=1.35, step=1.45;
+  const finK=new THREE.MeshStandardMaterial({color:0x5e3e28,roughness:.32,metalness:.75,envMapIntensity:1.3,side:D2}); // FinBay blades: glow = COLOR_0.r
+  finK.onBeforeCompile=sh=>{ Object.assign(sh.uniforms,TU);
+    sh.vertexShader='attribute vec3 color; varying float vGlow; varying vec3 vFW;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvGlow=color.r;')
+      .replace('#include <project_vertex>','#include <project_vertex>\n{ vec4 w4=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nw4=instanceMatrix*w4;\n#endif\nvFW=(modelMatrix*w4).xyz; }');
+    sh.fragmentShader='uniform float uT,uFK; uniform vec3 uFC; varying float vGlow; varying vec3 vFW;\n'+sh.fragmentShader.replace('#include <emissivemap_fragment>',
+      '#include <emissivemap_fragment>\n{ float ph=fract((length(vFW-cameraPosition)-uT*38.)/90.)-.5, pulse=exp(-ph*ph*700.);\n  totalEmissiveRadiance+=uFC*uFK*(pow(vGlow,2.6)*(.85+1.5*pulse)+vGlow*.05); }'); };
+  finK.customProgramCacheKey=()=>'cbFinK';
+  if(TK) kitInst(S,'FinBay',Object.assign({},KM,{FIN:finK}),strip(C.sF0+BAY,C.sF1+.01,BAY).map(s=>OT(s)));
+  if(!TK){ const NF=34, T0=-.02, T1=PI+.02, dT=(T1-T0)/NF, TW=.55, LEAN=1.35, step=1.45;
     for(let c=C.sF0;c<C.sF1-1;c+=48){ const pos=[], glow=[], ss=[], idx=[], c1=Math.min(C.sF1-1,c+48), fr=[mkF(),mkF(),mkF(),mkF()];
       const pt=(f,t,a,b)=>{ const x=a*Math.cos(t), y=b*Math.sin(t); pos.push(f.p.x+f.r.x*x,f.p.y+y,f.p.z+f.r.z*x); };
       for(let s=c;s<c1;s+=step){ frame(s,fr[0],tr); frame(s+TW,fr[1],tr); frame(s-LEAN,fr[2],tr); frame(s+TW-LEAN,fr[3],tr); const roll=((s*.0105)%dT+dT)%dT;
@@ -5564,16 +5591,17 @@ function calderTunnel(K,tr,sT0,sT1,C){
           idx.push(n,n+1,n+2,n,n+2,n+3); } }
       const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('aGlow',new THREE.Float32BufferAttribute(glow,1));
       g.setAttribute('aS',new THREE.Float32BufferAttribute(ss,1)); g.setIndex(idx); g.computeVertexNormals(); add(g,finM); } }
-  env.push([lerp(C.sF0,C.sF1,.45),[finM,tiM,tiDark,cuM,cuHexM,...actMats[0]]]);
+  env.push([lerp(C.sF0,C.sF1,.45),[finM,finK,tiM,tiDark,cuM,cuHexM,KM.HEXFACE,...actMats[0]]]);
 
   // ---------- collars between the acts: a short dark-titanium tube with three light rings in the colour of the next act ----------
   [[C.sF1,C.sG0,WARMW],[C.sG1,C.sH0,CYAN]].forEach(([a,b,col])=>{ vault(a,b,2,-.04,PI+.04,40,A+.3,B+.3,tiDark,8); bands([a+3,a+7.5,a+12],.5,-.04,PI+.04,48,A+.18,B+.18,glowM(col)); });
 
-  cap(C.sF0,AS-.2,BS-.2,AS+.2,BS+.2,tiDark); cap(C.sF1,A+.3,B+.3,AS+.2,BS+.2,tiDark); cap(C.sH0,A,B,A+.35,B+.35,tiDark); cap(C.sH1,A,B,AS+.05,BS+.05,tiDark);
+  if(TK){ cap(C.sF0,AS-.3,BS-.3,A+2.75,B+2.75,tiDark); cap(C.sF1,A+.3,B+.3,A+2.75,B+2.75,tiDark); cap(C.sH0,A+.3,B+.3,AS+.15,BS+.15,tiDark); }
+  else { cap(C.sF0,AS-.2,BS-.2,AS+.2,BS+.2,tiDark); cap(C.sF1,A+.3,B+.3,AS+.2,BS+.2,tiDark); cap(C.sH0,A,B,A+.35,B+.35,tiDark); cap(C.sH1,A,B,AS+.05,BS+.05,tiDark); }
   // ---------- act 2: the cliff gallery (Midjourney glass frame): white vault, sweeping light lines, glass on the harbor side ----------
   const gA=A+.2, gB=B+.7, TG=1.95, solid=C.gal<0?[0,TG]:[PI-TG,PI], glassR=C.gal<0?[TG,PI]:[0,PI-TG];
   const grooveT=CT(canvasTex(256,8,(g,w,h)=>{ g.fillStyle='#c79a74'; g.fillRect(0,0,w,h); for(let x=0;x<w;x+=4){ g.fillStyle=x%8?'#a87a58':'#d8ad86'; g.fillRect(x,0,1.5,h); } }),true); grooveT.repeat.set(30,1);
-  const whiteM=new THREE.MeshStandardMaterial({map:grooveT,color:0xd0a07a,emissive:0x2e170a,roughness:.3,metalness:.55,envMapIntensity:1.45,side:D2}); // satin bronze, fine grooves along the tube
+  const whiteM=new THREE.MeshStandardMaterial({map:grooveT,color:0xa8784f,emissive:0x170a04,roughness:.32,metalness:.6,envMapIntensity:1.05,side:D2}); // satin bronze, fine grooves along the tube
   vault(C.sG0,C.sG1,2,solid[0],solid[1],30,gA,gB,whiteM,12);
   vault(C.sG0,C.sG1,4,solid[0],solid[1],20,gA+.6,gB+.6,new THREE.MeshStandardMaterial({color:0xcfd2d6,roughness:.4,metalness:.3,side:D2}),12); // outer skin, seen from the valley
   const glassM=new THREE.MeshStandardMaterial({color:0x22313f,metalness:.95,roughness:.04,transparent:true,opacity:.16,depthWrite:false,envMapIntensity:2.2,side:D2});
@@ -5589,12 +5617,13 @@ function calderTunnel(K,tr,sT0,sT1,C){
   env.push([lerp(C.sG0,C.sG1,.5),[whiteM,glassM,...actMats[1]]]);
 
   // ---------- act 3: the hex vault (Midjourney hex frame): backlit hex lattice on black ribs, dark panels with cyan lines ----------
-  const TH=.44; vault(C.sH0,C.sH1,2,TH,PI-TH,30,A,B,hexM,hexVS);
-  const panelM=new THREE.MeshStandardMaterial({color:0x101317,roughness:.16,metalness:.7,envMapIntensity:1.5,side:D2});
-  [[0,TH],[PI-TH,PI]].forEach(([a,b])=>vault(C.sH0,C.sH1,3,a-.03,b,8,A,B,panelM,12));
-  { const cy=glowM(CYAN); [.12,.3,PI-.3,PI-.12].forEach(t=>vault(C.sH0,C.sH1,4,t-.006,t+.006,1,A-.05,B-.05,cy,12)); }
-  { const rs=[]; for(let s=C.sH0+2;s<C.sH1;s+=7.5) rs.push(s); bands(rs,.5,-.03,PI+.03,40,A-.32,B-.32,new THREE.MeshStandardMaterial({color:0x08090a,metalness:.7,roughness:.4,side:D2})); }
-  env.push([lerp(C.sH0,C.sH1,.5),[hexM,panelM,...actMats[2]]]);
+  const TH=.44, panelM=new THREE.MeshStandardMaterial({color:0x101317,roughness:.16,metalness:.7,envMapIntensity:1.5,side:D2});
+  if(TK){ kitInst(S,'HexRing',KMH,strip(C.sH0,C.sH1,HLEN).map(s=>OT(s))); kitInst(S,'ThroatRing',KMX,strip(C.sH0+4,C.sH1,12).map(s=>OT(s))); }
+  else { vault(C.sH0,C.sH1,2,TH,PI-TH,30,A,B,hexM,hexVS);
+    [[0,TH],[PI-TH,PI]].forEach(([a,b])=>vault(C.sH0,C.sH1,3,a-.03,b,8,A,B,panelM,12));
+    { const cy=glowM(CYAN); [.12,.3,PI-.3,PI-.12].forEach(t=>vault(C.sH0,C.sH1,4,t-.006,t+.006,1,A-.05,B-.05,cy,12)); }
+    { const rs=[]; for(let s=C.sH0+2;s<C.sH1;s+=7.5) rs.push(s); bands(rs,.5,-.03,PI+.03,40,A-.32,B-.32,new THREE.MeshStandardMaterial({color:0x08090a,metalness:.7,roughness:.4,side:D2})); } }
+  actMats[2][0].envMapIntensity=1.05; env.push([lerp(C.sH0,C.sH1,.5),[hexM,panelM,KMH.HEXFACE,...actMats[2]]]);
 
   // ---------- haze: motes hanging in the light, copper in the fins, cyan in the hex vault ----------
   [[C.sF0,C.sF1,0xffb27a],[C.sH0,C.sH1,0x9ff4ff]].forEach(([a,b,col],ii)=>{ const R=rng(90+ii), pos=[];

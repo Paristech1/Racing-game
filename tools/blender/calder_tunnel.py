@@ -268,4 +268,4 @@ if OUT:                                                   # export only the kit 
     for o in scene.objects: o.select_set(False)
     for o in kit.all_objects: o.select_set(True)
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(OUT), export_format='GLB', use_selection=True, export_apply=True, export_yup=True)
-result = {'hex_cols': NCOL, 'hex_faces': len(bpy.data.objects['HexRing_Face'].data.polygons), 'slat_faces': len(bpy.data.objects['FinSlat_Blade'].data.polygons)}
+result = {'hex_cols': NCOL, 'hex_faces': len(bpy.data.objects['HexRing_Face'].data.polygons), 'fin_faces': len(bpy.data.objects['FinBay_Blades'].data.polygons)}

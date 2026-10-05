@@ -241,12 +241,16 @@ for k in range(46):
 def cam(name, z, x=0., y=1.6, look=40., fov=64.):
     cd = bpy.data.cameras.new(name); cd.angle = math.radians(fov); cd.clip_end = 2000; o = bpy.data.objects.new(name, cd); ld.objects.link(o)
     o.location = G(x, y, z); d = (G(0, 1.2, z + look) - o.location); o.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler(); return o
-cam('CAM_portal', -40, 1.5, 3.2, 40, 60); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 70, -2, 1.4, 40)
+cam('CAM_portal', -78, 1.5, 2.6, 80, 50); cam('CAM_throat', 4, 0, 1.5, 30); cam('CAM_fins', 70, -2, 1.4, 40)
 cam('CAM_gallery', 170, 1.5, 1.5, 40, 70); cam('CAM_hex', 270, 0, 1.4, 40)
 r = scene.render; r.resolution_x, r.resolution_y = 960, 540
-for eng in ('BLENDER_EEVEE', 'BLENDER_EEVEE_NEXT'):
-    try: r.engine = eng; break
-    except Exception: pass
+r.engine = 'CYCLES'                                       # path tracing: the tube must really occlude the sky for the fins to read
+try:
+    pr = bpy.context.preferences.addons['cycles'].preferences; pr.compute_device_type = 'METAL'; pr.get_devices()
+    for d in pr.devices: d.use = True
+    scene.cycles.device = 'GPU'
+except Exception: pass
+scene.cycles.samples = 96; scene.cycles.use_denoising = True; scene.cycles.max_bounces = 6; scene.cycles.volume_step_rate = 4.
 for k, v in (('use_raytracing', True), ('taa_render_samples', 48), ('volumetric_tile_size', '4'), ('volumetric_end', 400.)):
     try: setattr(scene.eevee, k, v)
     except Exception: pass

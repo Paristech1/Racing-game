@@ -98,8 +98,8 @@ def tube(pts, r, segs=10):                                # a lit cable / LED ri
 
 # ---------------- PortalHood ----------------
 def hood_pt(u, t, d=0.):
-    st = max(0., math.sin(t)); reach = 5 + 13 * st ** .85; k = 1 + .7 * (1 - u) ** 1.6 * (.8 + .2 * st)   # lens: flares wide, the crown reaches out
-    return E(AS * k, BS * k, t, -reach * (1 - u), d)
+    st = max(0., math.sin(t)); reach = 5 + 13 * st ** .85; f = (1 - u) ** 1.6   # lens: flares wide more than tall, the crown reaches out
+    return E(AS * (1 + .85 * f), BS * (1 + .38 * f), t, -reach * (1 - u), d)
 NU, NT = 18, 56
 TS = [-.06 + (PI + .12) * j / NT for j in range(NT + 1)]
 bm = grid(NU + 1, NT + 1, lambda i, j: hood_pt(i / NU, TS[j], -1.7))             # titanium outer shell

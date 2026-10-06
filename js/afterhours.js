@@ -7943,7 +7943,7 @@ function readInput(){
 
 /* ---------------- UI HELPERS ---------------- */
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id)); }
-function flash(strength){ const f=$('#flash'); f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0; }
+function flash(strength,kind){ if(kind!==false&&window.AH_FX&&mode!=='race'&&mode!=='highlight'&&AH_FX.play(kind||'shutter')) return; const f=$('#flash'); /* menu changes: Shaders paper transition (js/ui-fx.js) when WebGPU is up, else the white flash */ f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0; }
 function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
 let toastT=0; function toast(s){ const t=$('#hToast'); t.textContent=s; t.style.opacity=1; toastT=1.8; }
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
@@ -7966,7 +7966,7 @@ function setupAttract(def){
   camSnap=true; renderer.toneMappingExposure=1.05; if(mode!=='loading') setWeather(false);
 }
 let STUDIO_WARM=false;
-function enter(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='select'; show('select'); if(!STUDIO_WARM){ STUDIO_WARM=true; try{ renderer.compile(studio,cam); }catch(err){} } renderPage(0); } // A3: studio shaders compile once, behind the flash
+function enter(){ initAudio(); closeSheet(); sfx.shutter(); flash(1,'peel'); mode='select'; show('select'); if(!STUDIO_WARM){ STUDIO_WARM=true; try{ renderer.compile(studio,cam); }catch(err){} } renderPage(0); } // A3: studio shaders compile once, behind the flash
 function renderPage(dir){
   const d=CARS[page], h=hist(d.id);
   setWorld(d.world);
@@ -8040,7 +8040,7 @@ function renderShowcase(dir){
 }
 function openShowcase(){ initAudio(); closeSheet(); sfx.shutter(); flash(.85); mode='showcase'; show('showcase'); renderShowcase(0); const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=true; }
 function backFromShowcase(){ const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; mode='select'; show('select'); flash(.85); sfx.shutter(); renderPage(0); camSnap=true; }
-function turnShowcase(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75); renderShowcase(dir); }
+function turnShowcase(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75,false); renderShowcase(dir); }
 let sheetOpen=false;
 function renderSheet(dir){
   const d=CARS[page], sh=SHEETS[d.id]||{};
@@ -8055,8 +8055,8 @@ function renderSheet(dir){
 }
 function openSheet(){ sheetOpen=true; renderSheet(1); $('#sheet').classList.add('open'); $('#sheet').setAttribute('aria-hidden','false'); sfx.page(); }
 function closeSheet(){ sheetOpen=false; $('#sheet').classList.remove('open'); $('#sheet').setAttribute('aria-hidden','true'); }
-function turn(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderPage(dir); if(sheetOpen) renderSheet(dir); }
-function openEvents(){ initAudio(); closeSheet(); sel=page; const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; sfx.shutter(); flash(1); mode='events'; show('events'); renderEvent(0,true); }
+function turn(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95,false); renderPage(dir); if(sheetOpen) renderSheet(dir); }
+function openEvents(){ initAudio(); closeSheet(); sel=page; const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; sfx.shutter(); flash(1,'peel'); mode='events'; show('events'); renderEvent(0,true); }
 function eventPageHtml(){ return `${EVI+1} <em>/ ${EVENTS.length}</em>`; }
 function renderEventRoster(){
   const el=$('#eRoster'); if(!el) return;
@@ -8093,7 +8093,7 @@ function renderEvent(dir,force){
   if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3'],['#eSpecs','d2'],['#eGrid','d2']],dir);
   modeT=0; shot=-1;
 }
-function turnEvent(dir){ EVI=(EVI+dir+EVENTS.length)%EVENTS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95); renderEvent(dir); }
+function turnEvent(dir){ EVI=(EVI+dir+EVENTS.length)%EVENTS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95,false); renderEvent(dir); }
 function renderGauntlet(){
   $('#gMaps').innerHTML=KO_MAPS.map((m,i)=>`<button type="button" class="gmap${i===koMapI?' on':''}" data-i="${i}"><b>${esc(m.name)}</b><span>${m.km} km</span></button>`).join('');
   $('#gMaps').querySelectorAll('button').forEach(b=>b.onclick=()=>{ koMapI=+b.dataset.i; bindKoTrack(koMapI); renderGauntlet(); setupAttract(CARS[sel]); sfx.page(); });
@@ -8249,7 +8249,7 @@ function startRace(){
   $('#hGhost').textContent=''; $('#hMsg').textContent='3'; sfx.beep(false); flash(.9);
 }
 function finishRace(){
-  mode='results'; show('results'); sfx.shutter(); flash(1); engine(0,false); screech(0);
+  mode='results'; show('results'); sfx.shutter(); flash(1,'peel'); engine(0,false); screech(0);
   if(EV.knockout){ finishKnockout(); return; }
   if(TAG){ finishTagTeam(); return; }
   const L=TR.L, est=r=>r.finished?r.finishT:raceT+(laps()*L-r.dist)/Math.max(r.v,30);

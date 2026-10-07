@@ -9247,6 +9247,20 @@ function loop(now){
   audioTick(dt);
 }
 requestAnimationFrame(loop);
+if(window.AH_UI_DECK){
+  window.AH_UI_DECK_API={
+    get mode(){return mode},
+    get page(){return page},
+    get bootReady(){return bootReady},
+    enter, show, renderPage, openEvents, renderEvent, backToArchive,
+    setPage(i){ page=(i+CARS.length)%CARS.length; closeSheet(); if(mode!=='select'){ mode='select'; show('select'); } renderPage(0); },
+    setEvent(i){ EVI=(i+EVENTS.length)%EVENTS.length; sel=page; closeSheet(); if(mode!=='events'){ mode='events'; show('events'); } renderEvent(0,true); },
+    goBoot(){ TAG=null; closeSheet(); mode='boot'; show('boot'); },
+    goSelect(){ TAG=null; closeSheet(); mode='select'; show('select'); renderPage(0); },
+    skipBoot(){ bootReady=true; const t=$('#tap'), b=$('#bootbar'); if(t) t.classList.add('ready'); if(b) b.style.width='100%'; },
+    CARS, EVENTS
+  };
+}
 };
 /* bootstrap: the Blender-built models were already downloading (js/assets.js runs first); decode them, then start the game.
    Waits for every model so kits are there when an event is built, but only gives up after 8 s with NO new bytes (30 s cap). */

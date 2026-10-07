@@ -23,6 +23,10 @@
     "neon-soft",
     "editorial-cockpit",
     "wire-broadsheet",
-    "glass-tabloid"
+    "glass-tabloid",
+    "tabloid-cockpit",
+    "issue-broadsheet",
+    "ice-neon-wire",
+    "neon-issue-glass"
   ]
 }

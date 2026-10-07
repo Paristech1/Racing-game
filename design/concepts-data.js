@@ -38,5 +38,13 @@ window.AH_CONCEPTS=[
   {id:'wire-broadsheet',name:'Wire + Broadsheet',tag:'Hybrid',pitch:'Neon wire scene and outline CTA; cream footer and caprow like tear-off.',
     notes:'<strong>Best if</strong> tunnel arcade meets newsprint payoff.'},
   {id:'glass-tabloid',name:'Glass tabloid',tag:'Hybrid',pitch:'Oversized masthead and cream footer; frosted pill dock bridges both worlds.',
-    notes:'<strong>Best if</strong> bold print type with iOS-style settings rail.'}
+    notes:'<strong>Best if</strong> bold print type with iOS-style settings rail.'},
+  {id:'tabloid-cockpit',name:'Tabloid + Cockpit',tag:'Hybrid',pitch:'Broadsheet masthead and red stamp; amber gauge, chips, and spec card footer.',
+    notes:'<strong>Best if</strong> loud print header with serious race instrumentation below.'},
+  {id:'issue-broadsheet',name:'Issue + Broadsheet',tag:'Hybrid',pitch:'Issue 01 headline, stamp, and swipe note; cream tear-off footer and ink stats.',
+    notes:'<strong>Best if</strong> editorial car hero with tabloid payoff in the panel.'},
+  {id:'ice-neon-wire',name:'Ice neon wire',tag:'Hybrid',pitch:'Cooler scanline scene; neon trimmed to 50% opacity on masthead, bars, and outline CTA.',
+    notes:'<strong>Best if</strong> wire energy without blowing out the 3D car.'},
+  {id:'neon-issue-glass',name:'Neon · Issue · Glass',tag:'Triple',pitch:'Glass dock + frosted footer; magazine type; neon on masthead, stamp, and gradient CTA only.',
+    notes:'<strong>Ship candidate</strong> cousin to production hybrid — editorial + mobile + accent color.'}
 ];

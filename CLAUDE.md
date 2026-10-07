@@ -9,3 +9,5 @@ The Three.js skills in `.claude/skills/` (symlinks to `.cursor/skills/`, from [c
 1. Invoke **`afterhours-threejs`** first. It maps the upstream r160+ module examples onto this repo's global THREE r128 build.
 2. Then invoke the `threejs-*` skill for the area you are changing (e.g. `threejs-materials` for paint or carbon, `threejs-geometry` for body shapes, `threejs-lighting` for lamps and glow).
 3. Adapt the examples to global `THREE` r128. Never add `import` statements or `three/addons/` paths.
+
+Additional vendored skills (Waza, SkillSpector, cybersecurity library) are listed in `AGENTS.md`; they do not apply to routine game/Three.js work unless the task explicitly requires them.

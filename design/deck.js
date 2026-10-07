@@ -1,13 +1,6 @@
 (function(){
   const STORAGE='ahUiDeckSlide';
-  const CONCEPTS=[
-    {id:'issue',name:'Issue 01 (evolved)'},
-    {id:'cockpit',name:'Night cockpit'},
-    {id:'glass',name:'Glass dock'},
-    {id:'neon',name:'Neon wire'},
-    {id:'neon-glass',name:'Neon + Glass'},
-    {id:'broadsheet',name:'Broadsheet tear-off'}
-  ];
+  const CONCEPTS=(window.AH_CONCEPTS||[]).map(c=>({id:c.id,name:c.name}));
   const STYLE_ONLY=(location.search.match(/[?&]style=([^&]+)/)||[])[1];
   const DECK_CARS=[0,1,2,4,7,9,13,16,21];
   const DECK_EVENTS=[0,1,3,6,14];

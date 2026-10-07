@@ -14,9 +14,10 @@
   <aside class="sidebar">
     <h1>Design exploration</h1>
     <p class="title">AFTERHOURS UI</p>
-    <p class="blurb">Five directions for car select + race HUD. Pick a concept, toggle Car / HUD, then tell us which lane to implement in the real game.</p>
+    <p class="blurb" id="conceptCount">UI mixes for car select + HUD. Pick a lane; the loop keeps adding hybrids (target ~44).</p>
     <div class="concepts" id="picks"></div>
     <p style="margin-top:20px;font-size:12px;color:rgba(242,245,248,.45);line-height:1.6">
+      <a href="slides.html">Slideshow deck</a> (all mixes) · <a href="slides.html?grid=1">grid</a><br>
       <a href="prototype.html">Live prototype deck</a> (boot → cars → events, real 3D)<br>
       <a href="index.html">All prototypes</a> · <a href="../">Game</a>
     </p>
@@ -73,21 +74,9 @@
     <p class="notes" id="notes"></p>
   </main>
 </div>
+<script src="concepts-data.js?v=8"></script>
 <script>
-const CONCEPTS=[
-  {id:'issue',name:'Issue 01 (evolved)',tag:'Current DNA',pitch:'Keep the magazine spread: giant headline, stamp, handwritten note, footer panel. Tighten settings into a single overflow menu instead of seven inline buttons.',
-    notes:'<strong>Best if</strong> you love the editorial identity. Low risk: refine spacing, settings drawer, stronger foot gradient so copy never fights the car.'},
-  {id:'cockpit',name:'Night cockpit',tag:'Racing first',pitch:'Treat menus like an instrument panel: compact title, gauge motifs, warm amber accents, monospace race data. Car select becomes a spec card; HUD feels like dash lights.',
-    notes:'<strong>Best if</strong> race readability matters most. HUD position as arc gauge; settings as top chips. Less “magazine,” more “driver."'},
-  {id:'glass',name:'Glass dock',tag:'Mobile native',pitch:'Floating glass footer and pill-shaped settings dock under the masthead. Ice-blue selection states match existing nitro color. Car stays hero; UI feels iOS-native over WebGL.',
-    notes:'<strong>Best if</strong> you want cleaner thumbs-first layout and less visual noise on small phones. Pairs well with bottom sheet specs you already have.'},
-  {id:'neon',name:'Neon wire',tag:'Bold night',pitch:'Harbor-tunnel energy: cyan/magenta neon edges, scanline hint, glowing CTAs. Same structure, higher contrast and arcade-night personality.',
-    notes:'<strong>Best if</strong> you want AFTERHOURS to feel more “street arcade” without changing layout. Watch accessibility (glow + thin type).'},
-  {id:'neon-glass',name:'Neon + Glass',tag:'Hybrid',pitch:'Glass dock pills and frosted footer card, but cyan/magenta neon glow on masthead, stamp, stat bars, and CTA. Arcade night without losing mobile-native chrome.',
-    notes:'<strong>Best if</strong> you want both: clean thumb layout <em>and</em> harbor-tunnel energy. Try on light cars (VANTA) and busy events (Neon Core).'},
-  {id:'broadsheet',name:'Broadsheet tear-off',tag:'Print maximal',pitch:'Push the newspaper metaphor: masthead band, red stamp, cream “tear-off” footer with dark ink stats. 3D scene framed like a photo on the page.',
-    notes:'<strong>Best if</strong> brand storytelling is the product. Strongest identity; footer is opaque so text always wins over the scene.'}
-];
+const CONCEPTS=window.AH_CONCEPTS||[];
 const picks=document.getElementById('picks');
 const phone=document.getElementById('phone');
 const notesEl=document.getElementById('notes');
@@ -106,7 +95,7 @@ function applyConcept(){
   const c=CONCEPTS.find(x=>x.id===concept);
   phone.dataset.concept=concept;
   notesEl.innerHTML=c.notes;
-  const isGlass=concept==='glass'||concept==='neon-glass', isCock=concept==='cockpit';
+  const isGlass=/glass/.test(concept)&&concept!=='issue-neon', isCock=/cockpit/.test(concept);
   glassDock.classList.toggle('hidden',!isGlass);
   glassDock.setAttribute('aria-hidden',isGlass?'false':'true');
   cockpitChips.classList.toggle('hidden',!isCock);
@@ -130,6 +119,8 @@ document.querySelectorAll('.tabrow button').forEach(b=>{
   });
 });
 if(location.hash.length>1) concept=location.hash.slice(1);
+const cc=document.getElementById('conceptCount');
+if(cc) cc.textContent=`${CONCEPTS.length} UI mixes · car select + HUD. More added on a loop (target ~44).`;
 renderPicks();
 applyConcept();
 </script>

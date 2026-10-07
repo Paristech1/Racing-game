@@ -76,6 +76,18 @@ export function histRecord(save, id) {
   return h;
 }
 
+/** Up to two fastest per-track bests for the car archive log (selection menu). */
+export function carArchiveBestLapLines(bestBy, events, maxN = 2) {
+  const cap = Math.max(1, Math.min(maxN, 2));
+  const lines = [];
+  for (const e of events) {
+    const t = bestBy && bestBy[e.id];
+    if (t > 0 && isFinite(t)) lines.push({ name: e.name, t });
+  }
+  lines.sort((a, b) => a.t - b.t);
+  return lines.slice(0, cap).map(({ name, t }) => `${name.toLowerCase()} ${fmt(t)}`);
+}
+
 function rivalChassisEligible(c, rivalBoss) {
   if (c.outlaw) return false;
   if (

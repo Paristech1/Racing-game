@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   buildRivalForEvent,
+  carArchiveBestLapLines,
   clamp,
   esc,
   eventAiBias,
@@ -141,6 +142,37 @@ describe('lapsForEvent / histRecord', () => {
     assert.equal(h.last, 0);
     assert.deepEqual(h.bestBy, {});
     assert.equal(save.newid, h);
+  });
+});
+
+describe('carArchiveBestLapLines', () => {
+  const events = [
+    { id: 'tunnel', name: 'Harbor Line' },
+    { id: 'blvd', name: 'Roosevelt Blvd' },
+    { id: 'midnight', name: 'Midnight Express' },
+    { id: 'philly', name: 'Philly Classic' },
+  ];
+
+  it('returns up to two fastest track bests, fastest first', () => {
+    const bestBy = {
+      tunnel: 30.8,
+      blvd: 55.5,
+      midnight: 78.1,
+      philly: 170.7,
+    };
+    assert.deepEqual(carArchiveBestLapLines(bestBy, events), [
+      'harbor line 0:30.8',
+      'roosevelt blvd 0:55.5',
+    ]);
+  });
+
+  it('returns a single line when only one track has a record', () => {
+    assert.deepEqual(carArchiveBestLapLines({ tunnel: 42 }, events), ['harbor line 0:42.0']);
+  });
+
+  it('returns empty when there are no bests', () => {
+    assert.deepEqual(carArchiveBestLapLines({}, events), []);
+    assert.deepEqual(carArchiveBestLapLines({ tunnel: 0 }, events), []);
   });
 });
 

@@ -8527,7 +8527,7 @@ const pads={left:false,right:false,brake:false,nitro:false,drift:false};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(mode==='select'&&e.code==='KeyI'){ sheetOpen?closeSheet():openSheet(); }
   if(mode==='select'){ if(e.code==='ArrowRight') turn(1); if(e.code==='ArrowLeft') turn(-1); if(e.code==='Enter') openEvents(); if(e.code==='KeyV') openShowcase(); }
-  if(mode==='showcase'){ if(e.code==='ArrowRight') turnShowcase(1); if(e.code==='ArrowLeft') turnShowcase(-1); if(e.code==='Enter') openEvents(); if(e.code==='Escape') backFromShowcase(); }
+  if(mode==='showcase'){ if(e.code==='ArrowRight') turnShowcase(1); if(e.code==='ArrowLeft') turnShowcase(-1); if(e.code==='Enter') openEvents(); if(e.code==='Escape') backFromShowcase(); if(e.code==='KeyI'){ sheetOpen?closeSheet():openSheet(); } }
   else if(mode==='events'){ if(e.code==='ArrowRight') turnEvent(1); if(e.code==='ArrowLeft') turnEvent(-1); if(e.code==='Enter'){ tagPick=null; startLoading(); } if(e.code==='Escape') backToArchive(); }
   else if(mode==='tagteam'){ if(e.code==='Enter') startTagTeam(); if(e.code==='Escape') backFromTag(); }
   else if(mode==='race'&&e.code==='KeyT'&&!e.repeat) tagSwap(false);
@@ -8645,7 +8645,7 @@ function renderShowcase(dir){
 }
 function openShowcase(){ initAudio(); closeSheet(); sfx.shutter(); flash(.85); mode='showcase'; show('showcase'); renderShowcase(0); const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=true; }
 function backFromShowcase(){ const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; mode='select'; show('select'); flash(.85); sfx.shutter(); renderPage(0); camSnap=true; }
-function turnShowcase(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75,false); renderShowcase(dir); }
+function turnShowcase(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75,false); renderShowcase(dir); if(sheetOpen) renderSheet(dir); }
 let sheetOpen=false;
 function renderSheet(dir){
   const d=CARS[page], sh=SHEETS[d.id]||{};
@@ -8717,6 +8717,8 @@ $('#shPrev').onclick=()=>turn(-1); $('#shNext').onclick=()=>turn(1);
 $('#race').onclick=()=>openEvents();
 $('#showcaseBtn').onclick=()=>openShowcase();
 $('#cBack').onclick=()=>backFromShowcase();
+$('#cBackFoot').onclick=()=>backFromShowcase();
+$('#cSpecBtn').onclick=()=>sheetOpen?closeSheet():openSheet();
 $('#cPrev').onclick=()=>turnShowcase(-1);
 $('#cNext').onclick=()=>turnShowcase(1);
 $('#cRace').onclick=()=>openEvents();

@@ -274,22 +274,30 @@ body.ui-neon-glass #select::before,body.ui-neon-glass #events::before,body.ui-ne
   background:linear-gradient(to bottom,rgba(0,8,12,.5) 0,transparent 26%,transparent 54%,rgba(0,0,0,.78) 76%,rgba(0,0,0,.9) 100%)}
 body.ui-neon-glass #select .top,body.ui-neon-glass #events .top,body.ui-neon-glass #showcase .top{border:0}
 body.ui-neon-glass #select .top .m,body.ui-neon-glass #events .top .m,body.ui-neon-glass #showcase .top .m{color:#00ffc8;text-shadow:0 0 20px rgba(0,255,200,.4)}
-body.ui-neon-glass #select .top .r,body.ui-neon-glass #events .top .r,body.ui-neon-glass #showcase .top .r{
+body.ui-neon-glass #select .top .r,body.ui-neon-glass #events .top .r{
   position:fixed;top:calc(env(safe-area-inset-top,0px) + 44px);left:12px;right:12px;z-index:22;
   flex-wrap:nowrap;overflow-x:auto;gap:4px;padding:6px 8px;justify-content:flex-start;
   background:rgba(6,12,18,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border:1px solid rgba(0,255,200,.28);border-radius:999px;box-shadow:0 0 24px rgba(0,255,200,.08);
   -webkit-overflow-scrolling:touch;color:#ff9ad0}
-body.ui-neon-glass #select .top .r button,body.ui-neon-glass #events .top .r button,body.ui-neon-glass #showcase .top .r button,
-body.ui-neon-glass #select .top .r span,body.ui-neon-glass #events .top .r span,body.ui-neon-glass #showcase .top .r span{
+body.ui-neon-glass #select .top .r button,body.ui-neon-glass #events .top .r button,
+body.ui-neon-glass #select .top .r span,body.ui-neon-glass #events .top .r span{
   flex:0 0 auto;padding:6px 10px;border-radius:999px;border:0;background:rgba(255,74,158,.12);font-size:10px;color:#ffc8e8}
-body.ui-neon-glass #select .hl,body.ui-neon-glass #events .hl,body.ui-neon-glass #showcase .hl{margin-top:52px;text-shadow:0 0 32px rgba(255,74,158,.25)}
+body.ui-neon-glass #select .hl,body.ui-neon-glass #events .hl{margin-top:52px;text-shadow:0 0 32px rgba(255,74,158,.25)}
+body.ui-neon-glass #showcase .top .r{color:var(--dim);justify-content:flex-end;gap:14px}
+body.ui-neon-glass #showcase .hl.sh{margin-top:6px;text-shadow:0 0 24px rgba(255,74,158,.2)}
+body.ui-neon-glass #showcase .shint{z-index:2}
 body.ui-neon-glass #select .stamp{border-radius:10px;border-color:#ff4a9e;color:#ff6eb8;background:rgba(255,74,158,.1);box-shadow:0 0 20px rgba(255,74,158,.3);mix-blend-mode:normal}
 body.ui-neon-glass #select .hand{color:#00ffc8;text-shadow:0 0 12px rgba(0,255,200,.35)}
 body.ui-neon-glass #select .stats i b,body.ui-neon-glass #events .stats i b{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
-body.ui-neon-glass #select .foot,body.ui-neon-glass #events .foot,body.ui-neon-glass #showcase .foot{
+body.ui-neon-glass #select .foot,body.ui-neon-glass #events .foot{
   left:12px;right:12px;padding:14px;background:rgba(8,14,22,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   border:1px solid rgba(0,255,200,.22);border-radius:16px;box-shadow:0 0 40px rgba(0,255,200,.06),inset 0 1px 0 rgba(255,255,255,.06)}
+body.ui-neon-glass #showcase .foot.shfoot{
+  left:12px;right:12px;padding:12px 14px 14px;background:rgba(8,14,22,.58);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(0,255,200,.22);border-radius:16px;box-shadow:0 0 40px rgba(0,255,200,.06),inset 0 1px 0 rgba(255,255,255,.06);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 12px);max-height:min(46vh,340px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+body.ui-neon-glass #showcase .foot .specs{margin-bottom:8px}
 body.ui-neon-glass #select .cta,body.ui-neon-glass #events .cta,body.ui-neon-glass #showcase .cta{
   border-radius:12px;background:linear-gradient(135deg,rgba(0,255,200,.25),rgba(255,74,158,.2))!important;
   color:#eafffa!important;border:1px solid rgba(0,255,200,.55);box-shadow:0 0 28px rgba(0,255,200,.18)}

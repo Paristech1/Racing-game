@@ -26,6 +26,7 @@ import {
   autoPickupSpots,
   pickClearLane,
   resolveEventForStart,
+  eventsSwipeStartAllowed,
   rng,
   scorePickup,
   Vec3,
@@ -513,5 +514,27 @@ describe("resolveEventForStart", () => {
   it("normal events use setEvent", () => {
     assert.deepEqual(resolveEventForStart({ id: "dockside" }, 2), { bindKo: false });
     assert.deepEqual(resolveEventForStart(undefined, 1), { bindKo: false });
+  });
+});
+
+describe("eventsSwipeStartAllowed", () => {
+  const target = (hits) => ({
+    closest(sel) {
+      const parts = sel.split(",");
+      return parts.some((p) => hits.includes(p.trim())) ? hits[0] : null;
+    },
+  });
+
+  it("blocks drags that start on footer controls (roster, grid, foot panel)", () => {
+    assert.equal(eventsSwipeStartAllowed(target([".egrid"])), false);
+    assert.equal(eventsSwipeStartAllowed(target([".eroster"])), false);
+    assert.equal(eventsSwipeStartAllowed(target([".foot"])), false);
+    assert.equal(eventsSwipeStartAllowed(target(["button"])), false);
+  });
+
+  it("allows swipes from the magazine header area", () => {
+    assert.equal(eventsSwipeStartAllowed(target(["#eHead"])), true);
+    assert.equal(eventsSwipeStartAllowed(target([".hand"])), true);
+    assert.equal(eventsSwipeStartAllowed(target([])), true);
   });
 });

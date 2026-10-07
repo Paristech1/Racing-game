@@ -25,6 +25,7 @@ const SAME_NAME_PAIRS = [
   'pickClearLane',
   'autoPickupSpots',
   'resolveEventForStart',
+  'eventsSwipeStartAllowed',
 ];
 
 function normalizePair(name, ahSrc, logicSrc) {

@@ -6041,6 +6041,10 @@ const KO_MAPS=[
 ];
 let koMapI=0;
 function resolveEventForStart(ev,koMap){ return ev&&ev.knockout?{bindKo:true,koMap:koMap}:{bindKo:false}; }
+function eventsSwipeStartAllowed(target){
+  if(!target||typeof target.closest!=='function') return false;
+  return !target.closest('button,.foot,.eroster,.egrid');
+}
 function bindKoTrack(i){
   koMapI=(i+KO_MAPS.length)%KO_MAPS.length;
   const map=KO_MAPS[koMapI], base=EVENTS.find(e=>e.id==='ko'), track=EVENTS.find(e=>e.id===map.eventId);
@@ -8763,7 +8767,7 @@ bindTap('#rView',()=>{ reportSkip=false; showResultsClassic(false); });
 bindTap('#rWatch',()=>{ const b=$('#rHiList button'); if(b) b.click(); else showResultsClassic(true); });
 let sx=null, sy=0, swipeEl=null;
 ['#events'].forEach(id=>{ const el=$(id); el.style.pointerEvents='auto';
-  el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; sx=e.clientX; sy=e.clientY; swipeEl=id; }); });
+  el.addEventListener('pointerdown',e=>{ if(!eventsSwipeStartAllowed(e.target)) return; sx=e.clientX; sy=e.clientY; swipeEl=id; }); });
 addEventListener('pointerup',e=>{ if(sx===null) return; const dx=e.clientX-sx, dy=e.clientY-sy; sx=null;
   if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)&&mode==='events'&&swipeEl==='#events') turnEvent(dx<0?1:-1); });
 

@@ -554,6 +554,14 @@ let SAVE={};
 try{ SAVE=JSON.parse(localStorage.getItem('afterhours.v1')||'{}')||{}; }catch(e){ SAVE={}; }
 function persist(){ try{ localStorage.setItem('afterhours.v1',JSON.stringify(SAVE)); }catch(e){} }
 function hist(id){ const h=SAVE[id]||(SAVE[id]={runs:0,wins:0,hits:0,last:0}); if(!h.bestBy){ h.bestBy={}; if(h.best) h.bestBy.tunnel=h.best; } return h; }
+/* Mirrored in logic.mjs for unit tests. */
+function carArchiveBestLapLines(bestBy,maxN){
+ const cap=Math.max(1,Math.min(maxN==null?2:maxN,2));
+ const lines=[];
+ EVENTS.forEach(e=>{ const t=bestBy&&bestBy[e.id]; if(t>0&&isFinite(t)) lines.push({name:e.name,t}); });
+ lines.sort((a,b)=>a.t-b.t);
+ return lines.slice(0,cap).map(({name,t})=>`${name.toLowerCase()} ${fmt(t)}`);
+}
 
 /* ---------------- GEOMETRY DETAIL ----------------
    Game-wide polygon upgrade (threejs-geometry): every round primitive is built with more segments than its call site asks
@@ -8591,7 +8599,7 @@ function renderPage(dir){
   const w=$('#sWin');
   if(h.wins>0){ w.style.display=''; w.innerHTML=`Won ${h.wins>1?h.wins+' times':''}<small>${esc(h.winAt||'Harbor Line')}</small>`; w.style.top=portrait?'52%':'44%'; w.style.right='26px'; w.style.left=''; w.style.transform='rotate(9deg)'; }
   else w.style.display='none';
-  const bests=EVENTS.filter(e=>h.bestBy[e.id]).map(e=>`${e.name.toLowerCase()} ${fmt(h.bestBy[e.id])}`);
+  const bests=carArchiveBestLapLines(h.bestBy);
   $('#sLog').textContent=h.runs?`raced ${h.runs}×${bests.length?', best '+bests.join(', '):''}${h.hits?`, ${h.hits} hits`:''}`:'';
   if(dir) animIn([['#sHead',''],['#sNote','d2'],['#sFoot','d1'],['#sStamp','d3']],dir);
   resetStudioOrbit();

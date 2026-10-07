@@ -6519,8 +6519,7 @@ TR=EV.track; RS.add(fxGroup);
 const studio=new THREE.Scene();
 studio.fog=new THREE.Fog(0x05070a,10,34);
 studio.background=new THREE.Color(0x05070a);
-studio.userData.bloom={strength:.45,radius:.42,threshold:.86}; studio.userData.lens={streak:.42,ghost:.55,halo:.15,dirt:0,th:.05,tint:[.45,.98,.92]}; // Neon + Glass: cyan streak, soft ghost
-studio.userData.grade={shadow:[.86,.94,1.06],high:[1.06,.9,1.1],sat:1.18,vig:.36,grain:.012,con:.14,lift:.01};
+studio.userData.bloom={strength:.4,radius:.4,threshold:.88}; studio.userData.lens={streak:.35,ghost:.5,halo:0,dirt:0,th:.06,tint:[.85,.9,1]}; // magazine studio: neutral lens (neon look is CSS-only)
 const sHemi=new THREE.HemisphereLight(0xcfe0ff,0x0a0c10,.6); studio.add(sHemi);
 const sKey=new THREE.DirectionalLight(0xffffff,1.2); studio.add(sKey);
 const sRim=new THREE.DirectionalLight(0x9fc4ff,1.4); sRim.position.set(-4,3,-6); studio.add(sRim);
@@ -6659,7 +6658,7 @@ let composer=null, renderPass=null, bloomPass=null, flarePass=null, gradePass=nu
 /* LOOK: "Clear" (default) tones the haze down in every race: no grain, half bloom, thinner fog, neutral tint, lighter vignette and fringing.
    "Cinematic" keeps each level's authored look. The car-select studio always keeps its magazine grade. Saved in SAVE.look. */
 let CLEAR=SAVE.look!=='cine';
-const UI_NEON_GLASS=SAVE.ui!=='classic'; // Neon + Glass hybrid menus (CSS + grade shader + paper transitions)
+const UI_NEON_GLASS=SAVE.ui!=='classic'; // Neon + Glass hybrid menus (CSS + paper transitions; 3D grade stays neutral)
 const CLR={bloom:.5,bloomR:.8,bloomT:.14,fog:.6,shadow:.15,high:.4,sat:.5,vig:.4,ca:.3,wet:.3};
 document.body.classList.toggle('clear',CLEAR);
 document.body.classList.toggle('ui-neon-glass',UI_NEON_GLASS);
@@ -6695,10 +6694,10 @@ const FLARE_SHADER={uniforms:{t1:{value:null},t2:{value:null},t3:{value:null},t4
   }`};
 const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{value:0},uHit:{value:0},uWet:{value:0},
   uShadow:{value:new THREE.Vector3(.9,1,1.14)},uHigh:{value:new THREE.Vector3(1.1,1.02,.9)},uSat:{value:1.12},uVig:{value:.42},uGrain:{value:0},uTime:{value:0},
-  uCon:{value:.16},uLift:{value:.012},uCA:{value:1},tFlare:{value:null},tWide:{value:null},tDirt:{value:null},tDrops:{value:null},uFlare:{value:0},uDirt:{value:0},uRain:{value:0},uClock:{value:0},uAspect:{value:16/9},uMenuNeon:{value:0}},
+  uCon:{value:.16},uLift:{value:.012},uCA:{value:1},tFlare:{value:null},tWide:{value:null},tDirt:{value:null},tDrops:{value:null},uFlare:{value:0},uDirt:{value:0},uRain:{value:0},uClock:{value:0},uAspect:{value:16/9}},
   defines:{LENS:PHONE?0:1},
   vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader:`uniform sampler2D tDiffuse,tFlare,tWide,tDirt,tDrops; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime,uCon,uLift,uFlare,uDirt,uRain,uClock,uAspect,uCA,uMenuNeon;
+  fragmentShader:`uniform sampler2D tDiffuse,tFlare,tWide,tDirt,tDrops; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime,uCon,uLift,uFlare,uDirt,uRain,uClock,uAspect,uCA;
   uniform vec3 uShadow,uHigh; varying vec2 vUv;
   float h12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
   void main(){
@@ -6731,11 +6730,6 @@ const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{val
     vec3 p=sqrt(clamp(col,0.,1.)); col=mix(p,p*p*(3.-2.*p),uCon); col*=col; // filmic S-curve in perceptual space
     col=col*(1.-uLift)+uLift*shadowTint*.8; // printed-page blacks: a hair lifted and tinted, never crushed
     col*=1.-(uVig+uBoost*.1)*smoothstep(.38,.92,r*1.2);
-    if(uMenuNeon>.001){ // Neon + Glass menus: cyan edge wash, magenta on speculars (grade pass, not CSS)
-      float rim=1.-smoothstep(.12,.88,min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y))*2.);
-      col+=rim*vec3(.02,.11,.09)*uMenuNeon;
-      col+=pow(max(l-.45,0.),2.5)*vec3(.14,.03,.1)*uMenuNeon;
-      col+=vec3(.01,.04,.03)*uMenuNeon*sin(uTime*6.283+vUv.y*40.)*.5; }
     float gn=h12(gl_FragCoord.xy+fract(uTime)*317.)-.5;
     col+=gn*uGrain*(.35+.65*(1.-smoothstep(0.,.6,l)));
     gl_FragColor=LinearTosRGB(vec4(col,1.)); // perf: gamma folded in here, one full-screen pass fewer
@@ -6855,8 +6849,6 @@ function draw(scene){
   { const f=scene.fog; CULL.far=!f?Infinity:f.isFogExp2?(f.density>0?2.6/f.density:Infinity):f.far; cam.getWorldPosition(CULL_V); CULL.x=CULL_V.x; CULL.y=CULL_V.y; CULL.z=CULL_V.z; cam.getWorldDirection(CULL_V); CULL.fx=CULL_V.x; CULL.fy=CULL_V.y; CULL.fz=CULL_V.z; }
   const racing=mode==='race'&&!!composer&&glowOn; if(racing!==DRAW_RACING){ DRAW_RACING=racing; document.body.classList.toggle('racing',racing); } // CSS grain off while racing, shader grain instead
   if(gradePass){ const u=gradePass.uniforms, pl=mode==='race'&&player?player:null;
-    const menuNeon=UI_NEON_GLASS&&(mode==='boot'||mode==='select'||mode==='events'||mode==='showcase'||mode==='loading'||mode==='results'||mode==='gauntlet'||mode==='tagteam');
-    u.uMenuNeon.value=lerp(u.uMenuNeon.value,menuNeon?1:0,.08);
     u.uSpeed.value=lerp(u.uSpeed.value,pl?STAGE.blur[pl.stage||0]*.85:0,.06); u.uBoost.value=lerp(u.uBoost.value,pl&&pl.nosOn?1:0,.12);
     u.uHit.value=Math.min(1,shake); u.uWet.value=(LOOK.wet&&scene!==studio?1:0)*(clr?CLR.wet:1); u.uCA.value=clr?CLR.ca:1;
     const gd=scene.userData.grade||GRADE_DEF, sh=gd.shadow||GRADE_DEF.shadow, hi=gd.high||GRADE_DEF.high;

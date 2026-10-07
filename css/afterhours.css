@@ -269,7 +269,7 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .pad.drb{position:absolute;right:84px;bottom:84px;height:52px;border-color:#ffb347;color:#ffd9a8}
 
 /* —— Neon + Glass hybrid (menus) —— */
-body.ui-neon-glass #grain{opacity:.16}
+body.ui-neon-glass #grain{opacity:.13}
 body.ui-neon-glass #select::before,body.ui-neon-glass #events::before,body.ui-neon-glass #showcase::before{
   background:linear-gradient(to bottom,rgba(0,8,12,.5) 0,transparent 26%,transparent 54%,rgba(0,0,0,.78) 76%,rgba(0,0,0,.9) 100%)}
 body.ui-neon-glass #select .top,body.ui-neon-glass #events .top,body.ui-neon-glass #showcase .top{border:0}

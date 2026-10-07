@@ -332,4 +332,50 @@ a{color:inherit;text-decoration:none}
 [data-concept="neon-issue-glass"] .m-cta{background:linear-gradient(135deg,rgba(0,255,200,.28),rgba(255,74,158,.2))!important;color:#eafffa!important;border:1px solid rgba(0,255,200,.45);border-radius:12px}
 [data-concept="neon-issue-glass"] .m-nav i{border-radius:10px;border-color:rgba(255,74,158,.4);color:#ff9ad0}
 
+[data-concept="soft-broadsheet"] .m-tools{display:none}
+[data-concept="soft-broadsheet"] .dock{display:flex!important;border-color:rgba(159,211,255,.22);box-shadow:none}
+[data-concept="soft-broadsheet"] .m-mast{color:#d8e4f2;text-shadow:none}
+[data-concept="soft-broadsheet"] .m-hl{margin-top:52px;text-shadow:none}
+[data-concept="soft-broadsheet"] .m-stamp{background:#ff4a3d;color:#05070a;border:0;mix-blend-mode:normal}
+[data-concept="soft-broadsheet"] .m-foot{background:#ece8df;color:#101114;margin:0 12px 16px;padding:14px;border-radius:16px;border:1px solid rgba(159,211,255,.2)}
+[data-concept="soft-broadsheet"] .m-specs,[data-concept="soft-broadsheet"] .m-cap{color:#333}
+[data-concept="soft-broadsheet"] .m-stats div{color:#444}
+[data-concept="soft-broadsheet"] .m-bar i{background:#101114}
+[data-concept="soft-broadsheet"] .m-cta{background:#101114!important;color:#ece8df!important;border-radius:12px}
+[data-concept="soft-broadsheet"] .m-nav i{border-color:rgba(0,0,0,.3);color:#101114;border-radius:10px}
+
+[data-concept="cockpit-ice"] .m-tools{display:none}
+[data-concept="cockpit-ice"] .chiprow{display:flex!important}
+[data-concept="cockpit-ice"] .chip{border-color:rgba(159,211,255,.5);color:#9fd3ff}
+[data-concept="cockpit-ice"] .gauge{display:block!important;border-color:rgba(159,211,255,.45)}
+[data-concept="cockpit-ice"] .gauge::after{color:#9fd3ff}
+[data-concept="cockpit-ice"] .m-hl{font-size:26px;margin-top:44px;letter-spacing:.06em}
+[data-concept="cockpit-ice"] .m-stamp{display:none}
+[data-concept="cockpit-ice"] .m-hand{display:none}
+[data-concept="cockpit-ice"] .m-foot{background:rgba(6,10,18,.82);border:1px solid rgba(159,211,255,.22);margin:0 10px 14px;padding:12px;border-radius:4px}
+[data-concept="cockpit-ice"] .m-bar i{background:linear-gradient(90deg,#9fd3ff,#6eb8ff)}
+[data-concept="cockpit-ice"] .m-cta{background:linear-gradient(135deg,#c8e4ff,#6eb8ff)!important;color:#061018!important;border-radius:2px}
+[data-concept="cockpit-ice"] .m-hud-pos{color:#9fd3ff}
+
+[data-concept="glass-harbor"] .m-tools{display:none}
+[data-concept="glass-harbor"] .dock{display:flex!important;border-color:rgba(0,255,200,.35);box-shadow:0 0 14px rgba(0,255,200,.08)}
+[data-concept="glass-harbor"] .dock span.on{background:rgba(0,255,200,.12);color:#b8fff0}
+[data-concept="glass-harbor"] .m-mast{color:#00ffc8;text-shadow:0 0 16px rgba(0,255,200,.35)}
+[data-concept="glass-harbor"] .m-hl{margin-top:52px;text-shadow:none}
+[data-concept="glass-harbor"] .m-foot{background:rgba(10,14,20,.62);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);border-radius:16px;margin:0 12px 16px}
+[data-concept="glass-harbor"] .m-bar i{background:#9fd3ff}
+[data-concept="glass-harbor"] .m-cta{background:linear-gradient(135deg,rgba(0,255,200,.35),#9fd3ff)!important;color:#061018!important;border-radius:12px}
+[data-concept="glass-harbor"] .m-nav i{border-radius:10px;background:rgba(255,255,255,.06);color:#d8e4f2;border-color:rgba(255,255,255,.2)}
+
+[data-concept="cream-neon-glass"] .m-tools{display:none}
+[data-concept="cream-neon-glass"] .dock{display:flex!important;border-color:rgba(0,255,200,.25)}
+[data-concept="cream-neon-glass"] .m-mast{color:#00ffc8;text-shadow:0 0 12px rgba(0,255,200,.3)}
+[data-concept="cream-neon-glass"] .m-hl{margin-top:52px}
+[data-concept="cream-neon-glass"] .m-foot{margin:0 12px 16px;padding:12px;background:rgba(236,232,223,.94);backdrop-filter:blur(10px);border:1px solid rgba(0,255,200,.22);border-radius:16px;color:#101114;box-shadow:0 0 24px rgba(0,255,200,.06)}
+[data-concept="cream-neon-glass"] .m-specs,[data-concept="cream-neon-glass"] .m-cap{color:#333}
+[data-concept="cream-neon-glass"] .m-stats div{color:#444}
+[data-concept="cream-neon-glass"] .m-bar i{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
+[data-concept="cream-neon-glass"] .m-cta{border:2px solid #00ffc8;color:#006b58!important;background:rgba(255,255,255,.65)!important;border-radius:12px}
+[data-concept="cream-neon-glass"] .m-nav i{border-color:rgba(0,0,0,.25);color:#101114;border-radius:10px}
+
 .hidden{display:none!important}

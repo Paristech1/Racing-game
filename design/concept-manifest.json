@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "targetCount": 28,
+  "targetCount": 36,
   "gallery": "/design/concepts.html",
   "liveDeck": "/design/prototype.html",
   "concepts": [
@@ -27,6 +27,10 @@
     "tabloid-cockpit",
     "issue-broadsheet",
     "ice-neon-wire",
-    "neon-issue-glass"
+    "neon-issue-glass",
+    "soft-broadsheet",
+    "cockpit-ice",
+    "glass-harbor",
+    "cream-neon-glass"
   ]
 }

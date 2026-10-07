@@ -14,7 +14,7 @@
   <aside class="sidebar">
     <h1>Design exploration</h1>
     <p class="title">AFTERHOURS UI</p>
-    <p class="blurb" id="conceptCount">UI mixes for car select + HUD. Pick a lane; the loop keeps adding hybrids (target ~28).</p>
+    <p class="blurb" id="conceptCount">UI mixes for car select + HUD. Pick a lane; the loop keeps adding hybrids (target ~36).</p>
     <div class="concepts" id="picks"></div>
     <p style="margin-top:20px;font-size:12px;color:rgba(242,245,248,.45);line-height:1.6">
       <a href="prototype.html">Live prototype deck</a> (boot → cars → events, real 3D)<br>
@@ -73,7 +73,7 @@
     <p class="notes" id="notes"></p>
   </main>
 </div>
-<script src="concepts-data.js?v=4"></script>
+<script src="concepts-data.js?v=5"></script>
 <script>
 const CONCEPTS=window.AH_CONCEPTS||[];
 const picks=document.getElementById('picks');
@@ -119,7 +119,7 @@ document.querySelectorAll('.tabrow button').forEach(b=>{
 });
 if(location.hash.length>1) concept=location.hash.slice(1);
 const cc=document.getElementById('conceptCount');
-if(cc) cc.textContent=`${CONCEPTS.length} UI mixes · car select + HUD. More added on a loop (target ~28).`;
+if(cc) cc.textContent=`${CONCEPTS.length} UI mixes · car select + HUD. More added on a loop (target ~36).`;
 renderPicks();
 applyConcept();
 </script>

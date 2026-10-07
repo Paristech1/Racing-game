@@ -210,4 +210,21 @@ body[data-ui-concept="neon-issue-glass"] #select .cta,
 body[data-ui-concept="neon-issue-glass"] #events .cta{
   background:linear-gradient(135deg,rgba(0,255,200,.28),rgba(255,74,158,.2))!important;color:#eafffa!important;border:1px solid rgba(0,255,200,.45)}
 
+body[data-ui-concept="cream-neon-glass"] #select::before,
+body[data-ui-concept="cream-neon-glass"] #events::before{display:block}
+body[data-ui-concept="cream-neon-glass"] #select .top .m,
+body[data-ui-concept="cream-neon-glass"] #events .top .m{color:#00ffc8;text-shadow:0 0 14px rgba(0,255,200,.3)}
+body[data-ui-concept="cream-neon-glass"] #select .foot,
+body[data-ui-concept="cream-neon-glass"] #events .foot{
+  background:rgba(236,232,223,.94)!important;color:#101114;border:1px solid rgba(0,255,200,.22);border-radius:16px;margin:0 12px 12px}
+body[data-ui-concept="cream-neon-glass"] #select .specs,
+body[data-ui-concept="cream-neon-glass"] #select .cap,
+body[data-ui-concept="cream-neon-glass"] #events .specs,
+body[data-ui-concept="cream-neon-glass"] #events .cap{color:#333}
+body[data-ui-concept="cream-neon-glass"] #select .stats i b,
+body[data-ui-concept="cream-neon-glass"] #events .stats i b{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
+body[data-ui-concept="cream-neon-glass"] #select .cta,
+body[data-ui-concept="cream-neon-glass"] #events .cta{
+  background:rgba(255,255,255,.7)!important;color:#006b58!important;border:2px solid #00ffc8}
+
 body.ui-deck-active .screen{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72px)}

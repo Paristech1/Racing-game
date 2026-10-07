@@ -46,5 +46,13 @@ window.AH_CONCEPTS=[
   {id:'ice-neon-wire',name:'Ice neon wire',tag:'Hybrid',pitch:'Cooler scanline scene; neon trimmed to 50% opacity on masthead, bars, and outline CTA.',
     notes:'<strong>Best if</strong> wire energy without blowing out the 3D car.'},
   {id:'neon-issue-glass',name:'Neon · Issue · Glass',tag:'Triple',pitch:'Glass dock + frosted footer; magazine type; neon on masthead, stamp, and gradient CTA only.',
-    notes:'<strong>Ship candidate</strong> cousin to production hybrid — editorial + mobile + accent color.'}
+    notes:'<strong>Ship candidate</strong> cousin to production hybrid — editorial + mobile + accent color.'},
+  {id:'soft-broadsheet',name:'Soft + Broadsheet',tag:'Hybrid',pitch:'Muted ice glass dock; cream tear-off footer, ink stats, and red stamp.',
+    notes:'<strong>Best if</strong> print payoff without neon or amber dash noise.'},
+  {id:'cockpit-ice',name:'Cockpit ice',tag:'Hybrid',pitch:'Cockpit chips and gauge; ice-blue stat bars and cool spec card (no magenta).',
+    notes:'<strong>Best if</strong> instrument layout with arctic night palette.'},
+  {id:'glass-harbor',name:'Glass harbor',tag:'Hybrid',pitch:'Standard glass chrome; harbor cyan only on masthead, dock ring, and CTA gradient.',
+    notes:'<strong>Best if</strong> you want glass UX with a single neon accent color.'},
+  {id:'cream-neon-glass',name:'Cream neon glass',tag:'Triple',pitch:'Frosted glass frame around a cream stats block; neon gradient on bars and outline race button.',
+    notes:'<strong>Best if</strong> broadsheet readability inside neon-glass mobile shell.'}
 ];

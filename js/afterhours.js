@@ -487,7 +487,7 @@ const CORNER_APPROACH={
  rabbit:{zone:70,late:.36,brakeMax:.52,carry:1.03,lineIn:1,vBonus:1.02,style:'early'},
  weaver:{zone:58,late:.5,brakeMax:.45,carry:1.07,lineIn:.9,vBonus:1.05,style:'momentum'}
 };
-const AIT={corner:4.5,win:40,brk:1,wait:1};
+const AIT={corner:9,win:40,brk:1.25,wait:1}; // corner 9: the braking planner only catches blind hairpins; it must never make rivals slower than the old pace
 /* |K| averaged over a window (AIT.win m), cached per track: what a car actually has to turn through. A short kink
    in the polyline reads sharp point by point but costs little; a long arc is what puts a car in the wall. */
 function kAvgOf(tr){ if(tr._kAvg&&tr._kAvgW===AIT.win) return tr._kAvg; const N=tr.N, h=Math.max(1,Math.round(AIT.win/2/tr.ds)), a=new Float32Array(N);
@@ -543,7 +543,7 @@ function aiCornerPlan(r,d,P,ka,turn,evB,rubber,vF,G,M){
    each class is a pace band and the grid spreads across it, quick cars at the front and slower ones at the back, with
    a little dice so the order isn't fixed. STREET is the old pace (about 1.0). The multiplier is r.cls, applied to a
    rival's top speed and corner targets in stepRacer. */
-const DIFF={rookie:{name:'Rookie',pace:[.87,.94]},street:{name:'Street',pace:[1,1.035]},outlaw:{name:'Outlaw',pace:[1.03,1.07]}};
+const DIFF={rookie:{name:'Rookie',pace:[.87,.94]},street:{name:'Street',pace:[1.03,1.07]},outlaw:{name:'Outlaw',pace:[1.08,1.13]}};
 const DIFF_ORDER=['rookie','street','outlaw'];
 function diffId(){ return DIFF[SAVE.diff]?SAVE.diff:'street'; }
 function applyDifficulty(){
@@ -8137,9 +8137,9 @@ function stepRacer(r,dt,inp){
       for(const p of EV.pickups){ if(r.puCd&&r.puCd[EV.pickups.indexOf(p)]>ghostT) continue; const sc=scorePickup(r,{...p,cd:0},P,s0,L)+(M?moodPickup(r,p,M,s0,L):0); if(sc>bestSc){ bestSc=sc; bestP=p; } }
       if(bestP){ tx=bestP.x; puDD=((bestP.s-s0)%L+L)%L; } }
     // asymmetric rubber band (after ZER0-G race.js drive(), MIT: rivals far ahead of the human ease off, those behind
-    // push only a little). Street numbers: up to 13% off when well clear, at most ~3.5% push from behind, scaled by the
+    // push only a little). Retuned: at most 4% off when 60 m+ clear, up to 8% push from behind, scaled by the
     // persona's P.rubber and eased so it never jumps. It now sets the rival's top speed too (r.aiPace), not just corners.
-    let band=1; if(pl){ const g=r.dist-pl.dist; band=g>40?1-Math.min(.15,Math.min(.13,(g-40)*.0005)*P.rubber):g<-40?1+Math.min(.04,Math.min(.035,(-g-40)*.0003)*P.rubber):1; } // +-40 m dead zone: close fights are left alone
+    let band=1; if(pl){ const g=r.dist-pl.dist; band=g>60?1-Math.min(.04,(g-60)*.0002*P.rubber):g<-40?1+Math.min(.08,(-g-40)*.0005*P.rubber):1; } // +-40 m dead zone: close fights are left alone
     r.band=r.band===undefined?band:lerp(r.band,band,1-Math.exp(-dt*1.5));
     const corner=aiCornerPlan(r,d,P,ka,turnHint,evB,r.band*(r.cls||1),vF,G,M);
     if(corner.inApproach&&corner.lineShift) tx+=corner.lineShift;

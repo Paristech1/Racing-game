@@ -54,5 +54,13 @@ window.AH_CONCEPTS=[
   {id:'glass-harbor',name:'Glass harbor',tag:'Hybrid',pitch:'Standard glass chrome; harbor cyan only on masthead, dock ring, and CTA gradient.',
     notes:'<strong>Best if</strong> you want glass UX with a single neon accent color.'},
   {id:'cream-neon-glass',name:'Cream neon glass',tag:'Triple',pitch:'Frosted glass frame around a cream stats block; neon gradient on bars and outline race button.',
-    notes:'<strong>Best if</strong> broadsheet readability inside neon-glass mobile shell.'}
+    notes:'<strong>Best if</strong> broadsheet readability inside neon-glass mobile shell.'},
+  {id:'wire-soft-glass',name:'Wire + soft glass',tag:'Hybrid',pitch:'Ice scanline scene; soft glass dock/footer without hot magenta on the car.',
+    notes:'<strong>Best if</strong> arcade atmosphere with calm mobile chrome.'},
+  {id:'issue-wire-cockpit',name:'Issue + wire cockpit',tag:'Triple',pitch:'Magazine headline and stamp; neon wire chips and gradient bars in cockpit card.',
+    notes:'<strong>Best if</strong> story-first top, synth dash bottom.'},
+  {id:'broadsheet-harbor',name:'Broadsheet harbor',tag:'Hybrid',pitch:'Cream tear-off and tabloid masthead; single cyan harbor accent (no pink).',
+    notes:'<strong>Best if</strong> print footer with one night-street color.'},
+  {id:'tabloid-neon-glass',name:'Tabloid neon glass',tag:'Triple',pitch:'Glass tabloid layout; full cyan/magenta neon on masthead, dock, and glass footer edge.',
+    notes:'<strong>Best if</strong> maximal type + production-like hybrid chrome.'}
 ];

@@ -358,3 +358,9 @@ export function autoPickupSpots(list,L){
 
 /* Which loader startLoading() must use: a knockout event keeps the Gauntlet map the player picked. */
 export function resolveEventForStart(ev,koMap){ return ev&&ev.knockout?{bindKo:true,koMap:koMap}:{bindKo:false}; }
+
+/** Event picker: only the magazine header area may start a horizontal swipe (footer has scrollable roster/grid). */
+export function eventsSwipeStartAllowed(target) {
+  if (!target || typeof target.closest !== 'function') return false;
+  return !target.closest('button,.foot,.eroster,.egrid');
+}

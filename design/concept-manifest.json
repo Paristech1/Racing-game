@@ -39,6 +39,10 @@
     "soft-editorial-neon",
     "cockpit-glass-harbor",
     "issue-tabloid-neon",
-    "neon-broadsheet-glass"
+    "neon-broadsheet-glass",
+    "harbor-soft-cockpit",
+    "wire-issue-glass",
+    "broadsheet-ice",
+    "tabloid-wire-soft"
   ]
 }

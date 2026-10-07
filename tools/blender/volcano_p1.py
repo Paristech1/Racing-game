@@ -101,7 +101,7 @@ def section(z):
     half = lower + cr_path([lower[-1]] + upper, int(os.environ.get('P1PER', 3)))[1:]
     return half, dict(hs=hs, ys=ys, yb=yb, yf=yf, yd=yd, hl=hl)
 
-NS = int(os.environ.get('P1NS', 150))
+NS = int(os.environ.get('P1NS', 220))
 stations = []
 for i in range(NS):
     t = i / (NS - 1); t = .88 * t + .12 * (.5 - .5 * math.cos(math.pi * t)); z = Z0 + (Z1 - Z0) * t  # slightly denser at the ends

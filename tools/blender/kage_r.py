@@ -45,8 +45,8 @@ def section(z):
     return [(x * (1 - .2 * en - .12 * er), ym + (y - ym) * (1 - .28 * en - .18 * er)) for x, y in half]
 car.P = {'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT}
 stations = []
-for i in range(240):
-    t = i / 239; t = .82 * t + .18 * (.5 - .5 * math.cos(math.pi * t)); z = Z0 + (Z1 - Z0) * t
+for i in range(300):
+    t = i / 299; t = .82 * t + .18 * (.5 - .5 * math.cos(math.pi * t)); z = Z0 + (Z1 - Z0) * t
     sec = section(z); yb, yt = kf(YB, z), kf(YT, z)
     stations.append([G(x, y, z - .08 * smooth(2.1, 2.52, z) * (clamp((y - yb) / max(yt - yb, .01), 0, 1) - .3)) for x, y in Car.mirror_ring(sec)])
 car.body = car.loft('Body', stations, 'PAINT'); car.bvh = car.BV()

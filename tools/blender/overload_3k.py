@@ -18,8 +18,8 @@ def hood_valley(x, z):   # the bonnet sits low between the pods; the engine deck
     front = .15 * smooth(1.05, 1.4, z) * (1 - smooth(2.42, 2.56, z)) * math.exp(-(x / .5) ** 4)
     rear = -.025 * smooth(-1.2, -1.5, z) * math.exp(-(x / .16) ** 2)
     return -front - rear
-car.build_body({'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT, 'sill': .07, 'Rx': .2, 'tumble': .05, 'NS': 320 if DETAIL else 160,
-    'round_nose': .1, 'round_tail': .08, 'bulge_at': .86, 'dome': hood_valley,
+car.build_body({'Z0': Z0, 'Z1': Z1, 'HW': HW, 'YB': YB, 'YS': YS, 'YT': YT, 'sill': .07, 'Rx': .2, 'tumble': .05, 'NS': 360 if DETAIL else 220,
+    'round_nose': .1, 'round_tail': .08, 'bulge_at': .86, 'dome': hood_valley, 'res': 2 if DETAIL else 1,
     # the side scoop: a deep concave channel from behind the front wheel, rising as it runs back into the tunnel mouth
     'swage': (lambda z: lerp(.46, .6, smooth(1.0, -.6, z)), lambda z: smooth(1.15, .85, z) * smooth(-.85, -.45, z), .16, .11),
     'lean': lambda y, z: -.06 * smooth(2.3, 2.55, z) * (car.h_of(y, z) - .5) + .03 * smooth(-2.25, -2.45, z) * (car.h_of(y, z) - .5)})

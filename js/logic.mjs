@@ -263,6 +263,17 @@ export function makeTrack(pts, W, H) {
   return { pts, T, R, K, L, N, ds, W, H };
 }
 
+/* Baked racing line (adapted from ZER0-G Track.buildLine, MIT). Kept identical to afterhours.js (sync test). */
+export function bakeLine(tr){
+  const {K,N,ds,W}=tr, look=Math.round(10/ds), span=Math.max(2,Math.round(40/ds)), sm=Math.max(1,Math.round(16/ds));
+  const lim=Math.max(1,Math.min(W-1.8,5.6)), raw=new Float32Array(N), out=new Float32Array(N);
+  let acc=0; for(let j=0;j<span;j++) acc+=K[(look+j)%N];
+  for(let i=0;i<N;i++){ raw[i]=clamp(-acc/span*700,-lim,lim); acc+=K[(i+look+span)%N]-K[(i+look)%N]; } // same 700 m gain the old instantaneous line used
+  acc=0; for(let j=-sm;j<=sm;j++) acc+=raw[(j+N)%N];
+  for(let i=0;i<N;i++){ out[i]=acc/(2*sm+1); acc+=raw[(i+sm+1)%N]-raw[(i-sm+N)%N]; }
+  return out;
+}
+
 export function frame(s, o, tr) {
   const L = tr.L;
   const N = tr.N;

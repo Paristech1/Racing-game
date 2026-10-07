@@ -249,3 +249,21 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
   #events .epick{padding:6px 9px}
   #events .egrid button{padding:7px 10px;font-size:12px}
 }
+
+/* drift turbo chip (over the speedo), flow line (under the nitro bar), Drift pad (stacked over Brake so the row still fits a phone) */
+#hud .dch{display:flex;gap:4px;align-items:center;justify-content:center;height:20px;margin-bottom:6px;opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s}
+#hud .dch.on{opacity:1;transform:none}
+#hud .dch b{font-size:13px;font-weight:900;font-stretch:80%;letter-spacing:.12em;padding:1px 7px;border:1px solid currentColor;color:var(--dim);background:rgba(6,8,12,.45)}
+#hud .dch i{width:12px;height:4px;background:rgba(255,255,255,.18)}
+#hud .dch.t1 b{color:#ffb347} #hud .dch.t1 i.on{background:#ffb347}
+#hud .dch.t2 b{color:#fff} #hud .dch.t2 i.on{background:#fff;box-shadow:0 0 8px rgba(255,255,255,.7)}
+#hud .dch.t3 b{color:#ff4f9a} #hud .dch.t3 i.on{background:#ff4f9a;box-shadow:0 0 10px #ff4f9a}
+#hud .dch.t1 i.on{box-shadow:0 0 8px #ff8a1a}
+#hud .dch.b b{background:rgba(255,255,255,.12)} #hud .dch.x b{color:#ff4a3d}
+#hud .fw{width:150px;height:1px;margin:3px auto 0;background:rgba(255,255,255,.08);position:relative;opacity:0;transition:opacity .3s}
+#hud .fw.on,#hud .fw.lost{opacity:1}
+#hud .fw i{position:absolute;inset:0 auto 0 0;background:var(--warm);transition:width .4s}
+#hud .fw.full i{background:#fff;box-shadow:0 0 6px var(--warm)}
+#hud .fwt{font-size:10px;font-weight:800;font-stretch:80%;letter-spacing:.1em;color:var(--warm);min-height:12px;margin-top:2px}
+#hud .fw.lost+.fwt{color:var(--stamp)}
+.pad.drb{position:absolute;right:84px;bottom:84px;height:52px;border-color:#ffb347;color:#ffd9a8}

@@ -487,6 +487,13 @@ const CORNER_APPROACH={
  rabbit:{zone:70,late:.36,brakeMax:.52,carry:1.03,lineIn:1,vBonus:1.02,style:'early'},
  weaver:{zone:58,late:.5,brakeMax:.45,carry:1.07,lineIn:.9,vBonus:1.05,style:'momentum'}
 };
+const AIT={corner:4.5,win:40,brk:1,wait:1};
+/* |K| averaged over a window (AIT.win m), cached per track: what a car actually has to turn through. A short kink
+   in the polyline reads sharp point by point but costs little; a long arc is what puts a car in the wall. */
+function kAvgOf(tr){ if(tr._kAvg&&tr._kAvgW===AIT.win) return tr._kAvg; const N=tr.N, h=Math.max(1,Math.round(AIT.win/2/tr.ds)), a=new Float32Array(N);
+  let acc=0; for(let j=-h;j<=h;j++) acc+=Math.abs(tr.K[(j+N)%N]);
+  for(let i=0;i<N;i++){ a[i]=acc/(2*h+1); acc+=Math.abs(tr.K[(i+h+1)%N])-Math.abs(tr.K[(i-h+N)%N]); }
+  tr._kAvg=a; tr._kAvgW=AIT.win; return a; } // AI tuning knobs (AHDEV.sim opts.ait overrides them for a run)
 function aiCornerPlan(r,d,P,ka,turn,evB,rubber,vF,G,M){
  const st=CORNER_APPROACH[d.id]||CORNER_APPROACH.apex, W=TR.W;
  const grip=G||d.grip, moodPush=M?(1+M.D*.07+(M.mood==='allin'?.05:0)):1;
@@ -520,9 +527,29 @@ function aiCornerPlan(r,d,P,ka,turn,evB,rubber,vF,G,M){
   vTarget=Math.min(vTarget,vLim*1.02);
   if(r.v>vTarget+3) brake=clamp((r.v-vTarget)/40,.15,.45);
  }
- return {vTarget,brake,lineShift,inApproach};
+ // speed for the turns ahead, the ZER0-G way (race.js drive() + track.js hardestAhead, MIT): walk the curvature over the
+ // whole braking distance, not a fixed zone, so a 300 mph car starts braking early enough for a 90 mph corner. Each
+ // point allows v^2 = vCorner^2 + 2*a*d (a = the persona's own brake strength); same persona corner speed as above.
+ let vCurve=0;
+ { const K=kAvgOf(TR), N=TR.N, ds=TR.ds, aB=40*st.brakeMax*AIT.brk, reach=r.v*r.v/(2*aB)+25, step=Math.max(1,Math.round(3/ds)), i0=Math.floor(((r.dist%TR.L)+TR.L)%TR.L/ds);
+   const c2=AIT.corner*grip*P.risk*st.carry*moodPush; let vMin=1e9; // steering tops out at v^2*k/2 = G (2G/k); AIT.corner > 2 spends the road's width as slide room
+   for(let j=Math.round(4/ds);j*ds<reach;j+=step){ const kk=Math.abs(K[(i0+j)%N]); if(kk<.004) continue; const v2=c2/kk+2*aB*j*ds; if(v2<vMin) vMin=v2; }
+   if(vMin<1e9){ vCurve=Math.sqrt(vMin); if(vCurve<vTarget){ vTarget=vCurve; inApproach=true; }
+     if(r.v>vCurve+2.5) brake=Math.max(brake,clamp((r.v-vCurve)/3,.3,st.brakeMax)); } } // just over: lift (vCurve caps vmax in stepRacer); well over: brake
+ return {vTarget,brake,lineShift,inApproach,vCurve};
 }
 
+/* Rival difficulty, set from the top bar and kept in SAVE.diff. Like ZER0-G's makeAI classes (MIT, experience/race.js):
+   each class is a pace band and the grid spreads across it, quick cars at the front and slower ones at the back, with
+   a little dice so the order isn't fixed. STREET is the old pace (about 1.0). The multiplier is r.cls, applied to a
+   rival's top speed and corner targets in stepRacer. */
+const DIFF={rookie:{name:'Rookie',pace:[.87,.94]},street:{name:'Street',pace:[1,1.035]},outlaw:{name:'Outlaw',pace:[1.03,1.07]}};
+const DIFF_ORDER=['rookie','street','outlaw'];
+function diffId(){ return DIFF[SAVE.diff]?SAVE.diff:'street'; }
+function applyDifficulty(){
+  const [lo,hi]=DIFF[diffId()].pace, ai=racers.filter(r=>!r.isP).sort((a,b)=>b.dist-a.dist), n=ai.length;
+  ai.forEach((r,k)=>{ const rank=k/Math.max(1,n-1); r.cls=hi-(hi-lo)*rank*(.7+Math.random()*.3); });
+  if(player) player.cls=1; }
 let SAVE={};
 try{ SAVE=JSON.parse(localStorage.getItem('afterhours.v1')||'{}')||{}; }catch(e){ SAVE={}; }
 function persist(){ try{ localStorage.setItem('afterhours.v1',JSON.stringify(SAVE)); }catch(e){} }
@@ -2970,6 +2997,22 @@ function makeTrack(pts,W,H){
     const mid=pts[(bi+Math.round(8/ds))%N]; if(mid.distanceTo(cB)<mid.distanceTo(cA)) for(let k=0;k<N;k++) K[k]=-K[k]; }
   return {pts,T,R,K,L,N,ds,W,H};
 }
+/* Baked racing line, one lateral offset (metres along R, + = right) per track point. Technique adapted from
+   ZER0-G's Track.buildLine (MIT, github.com/witnesstodark/zer0-g, experience/track.js): sum the curvature over a
+   window that starts a little ahead, push toward the inside of what's coming (positive K = left turn, so the
+   inside is -x), clamp inside the road, then smooth so the car eases across instead of snapping.
+   Running sums keep it O(N). Baked in finishEvent (and lazily by lineAt for tracks made later, e.g. Gauntlet maps).
+   Mirrored in logic.mjs for the unit tests. */
+function bakeLine(tr){
+  const {K,N,ds,W}=tr, look=Math.round(10/ds), span=Math.max(2,Math.round(40/ds)), sm=Math.max(1,Math.round(16/ds));
+  const lim=Math.max(1,Math.min(W-1.8,5.6)), raw=new Float32Array(N), out=new Float32Array(N);
+  let acc=0; for(let j=0;j<span;j++) acc+=K[(look+j)%N];
+  for(let i=0;i<N;i++){ raw[i]=clamp(-acc/span*700,-lim,lim); acc+=K[(i+look+span)%N]-K[(i+look)%N]; } // same 700 m gain the old instantaneous line used
+  acc=0; for(let j=-sm;j<=sm;j++) acc+=raw[(j+N)%N];
+  for(let i=0;i<N;i++){ out[i]=acc/(2*sm+1); acc+=raw[(i+sm+1)%N]-raw[(i-sm+N)%N]; }
+  return out;
+}
+function lineAt(s,tr){ tr=tr||TR; if(!tr.line) tr.line=bakeLine(tr); const L=tr.L,N=tr.N; s=((s%L)+L)%L; const f=s/L*N, i=Math.floor(f)%N, a=f-Math.floor(f); return tr.line[i]*(1-a)+tr.line[(i+1)%N]*a; }
 let TR=null;
 function frame(s,o,tr){ tr=tr||TR; const L=tr.L,N=tr.N; s=((s%L)+L)%L; const f=s/L*N, i=Math.floor(f)%N, a=f-Math.floor(f), j=(i+1)%N;
   o.p.lerpVectors(tr.pts[i],tr.pts[j],a); o.t.lerpVectors(tr.T[i],tr.T[j],a).normalize(); o.r.lerpVectors(tr.R[i],tr.R[j],a).normalize(); o.k=tr.K[i]*(1-a)+tr.K[j]*a; return o; }
@@ -4951,8 +4994,7 @@ function buildManayunk(){
   K.gantry(K.sNear(180,-386),'MANAYUNK AVE','CRESTS · AIR TIME',{bg:'#2a1c06',color:'#ffd9a0'});
   K.gantry(K.sNear(-520,-300),'GREEN LANE','STEEP DESCENT  ↓',{bg:'#0f5a32'});
   K.flush();
-  TUN.capture();
-  const update=dt=>{ TUN.update(dt,cam.position); waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; };
+  const update=dt=>{ waterN.offset.x+=dt*.004; waterN.offset.y+=dt*.01; };  // (no tunnel here: the TUN calls were a Calder copy-paste that broke the build)
   return {scene:S,track:tr,traffic:[],update,sNear:K.sNear,cams:[],slopeG:1.5,airtime:true};
 }
 
@@ -5981,7 +6023,7 @@ let SETUP_READY=false;
 function idMark(){ return [new THREE.MeshBasicMaterial().id,new THREE.BufferGeometry().id,new THREE.Texture().id]; }
 function ownWindow(e,a){ const b=idMark(); (e._own||(e._own=[])).push([a,b]); }
 function inOwn(e,k,id){ return !!e._own&&e._own.some(w=>id>w[0][k]&&id<=w[1][k]); }
-function finishEvent(e){ if(e._ready||!e.scene) return; e._ready=true; const a=idMark(); if(e.setup) e.setup(); addChevrons(e); ownWindow(e,a); }
+function finishEvent(e){ if(e._ready||!e.scene) return; e._ready=true; const a=idMark(); if(e.setup) e.setup(); addChevrons(e); if(e.track&&!e.track.line) e.track.line=bakeLine(e.track); ownWindow(e,a); }
 function ensureEvent(e){ if(!e.scene){ const a=idMark(); Object.assign(e,e.build()); ownWindow(e,a); e._ready=false; } if(SETUP_READY) finishEvent(e); return e; }
 function releaseEvent(e){ const S=e.scene; if(!S) return; if(fxGroup.parent===S) S.remove(fxGroup);
   const disp=(t)=>{ if(t&&t.dispose&&inOwn(e,2,t.id)&&!(t.userData&&t.userData.shared)) t.dispose(); };
@@ -6365,7 +6407,7 @@ function shockwave(src,kind,rad){
 function jamTarget(r,br){
   const ok=o=>o!==r&&!o.finished&&!o.out&&!(TAG&&o.team===r.team);
   if(r.def.id==='hunter'){ const l=leaderOf(r); if(l) return l; }                     // the Hunter always jams the leader
-  if(r.def.id==='grudge'&&r.grudge&&ok(r.grudge)) return r.grudge;                    // the Grudge jams whoever passed it
+  if(r.def.id==='grudge'&&r.grudge&&r.grudge.def&&ok(r.grudge)) return r.grudge;  // the Grudge jams whoever passed it (r.grudge starts as {}, not a car)
   if(br==='chase'){ for(const o of standings()) if(ok(o)) return o; return null; }    // from the back: the leader
   let best=null, bd=br==='front'?70:100;
   for(const o of racers){ if(!ok(o)) continue; const g=br==='front'?r.dist-o.dist:o.dist-r.dist; if(g>2&&g<bd){ bd=g; best=o; } }   // front: the chaser, pack: the car ahead
@@ -6740,6 +6782,62 @@ if(DEV) window.AHDEV={
   car:()=>{ if(!player||!player.m) return null; const g=player.m.group, d=new THREE.Vector3(0,0,1).applyQuaternion(g.quaternion); return {p:g.position.toArray(),d:d.toArray()}; }, // look-dev: where the player car sits and faces
   scam:(p,l,fov)=>{ DEV.scam={p,l,roll:0,fov:fov||30}; },
   ev:()=>EV};
+/* track report: the ZER0-G course checker (tools/track_design.py check()/draw(), MIT, witnesstodark/zer0-g) applied to our
+   street tracks. Length, tightest radius, straights, a pace curve of the corners with brake boards (a reference car at
+   85 m/s top, grip 30, braking 40 m/s^2, corner speed from the stepRacer lateral model v^2*k*.5 <= G), self-clearance
+   between non-neighbouring parts of the centreline (grade-separated crossings listed apart), and the plan points. */
+function trackReport(tr,o){ o=o||{}; const N=tr.N, ds=tr.ds, L=tr.L, K=tr.K, P=tr.pts, W=tr.W;
+  const kS=o.kStraight||.0025, minS=o.minStraight||120, kC=o.kCorner||.006, G=o.grip||30, VT=o.vTop||85, DEC=o.brake||40, step=Math.max(1,Math.round(2/ds));
+  const r1=x=>Math.round(x*10)/10, at=i=>Math.round(i*ds);
+  let mi=0; for(let i=0;i<N;i++) if(Math.abs(K[i])>Math.abs(K[mi])) mi=i;
+  // straights: runs with |K| under kS for at least minS metres (wrapping round the lap)
+  const runs=(test)=>{ let st0=0; while(st0<N&&test(st0)) st0++; if(st0>=N) return [[0,N]]; // start outside a run so none is split at the line
+    const out=[]; let s=-1; for(let n=0;n<=N;n++){ const i=(st0+n)%N, on=n<N&&test(i); if(on&&s<0) s=n; if(!on&&s>=0){ out.push([(st0+s)%N,n-s]); s=-1; } } return out.sort((p,q)=>p[0]-q[0]); };
+  const straights=runs(i=>Math.abs(K[i])<kS).map(([i,n])=>({s:at(i),len:Math.round(n*ds)})).filter(x=>x.len>=minS);
+  const corners=runs(i=>Math.abs(K[i])>kC).map(([i,n])=>{ let m=i; for(let j=0;j<n;j++){ const q=(i+j)%N; if(Math.abs(K[q])>Math.abs(K[m])) m=q; }
+    const R=1/Math.abs(K[m]), vC=Math.min(VT,Math.sqrt(2*G*R));
+    let back=0; for(let j=1;j<N;j++){ if(Math.abs(K[(i-j+N)%N])>kC) break; back++; } // run-in: back to the end of the corner before
+    const vIn=Math.min(VT,Math.sqrt(vC*vC+2*20*back*ds)); // what you can carry off the run before it (accel ~20 m/s^2 mean)
+    return {s:at(i),len:Math.round(n*ds),apex:at(m),R:Math.round(R),dir:K[m]>0?'L':'R',vC:Math.round(vC*2.237),runIn:Math.round(back*ds),
+      brake:Math.max(0,Math.round((vIn*vIn-vC*vC)/(2*DEC)))}; }).filter(c=>c.len>=6);
+  // clearance: closest approach between parts more than 60 m (and 6 road widths) apart along the lap, both ways round
+  const need=2*W+(o.margin||4), gapS=Math.max(60,12*W), warn=[], cross=[];
+  for(let i=0;i<N;i+=step){ let best=1e9, bj=-1;
+    for(let j=i+step;j<N;j+=step){ let g=Math.abs(j-i)*ds; g=Math.min(g,L-g); if(g<gapS) continue;
+      const dx=P[i].x-P[j].x, dz=P[i].z-P[j].z, d=Math.hypot(dx,dz); if(d<best){ best=d; bj=j; } }
+    if(bj<0||best>=need) continue;
+    const dy=Math.abs(P[i].y-P[bj].y), rec={a:at(i),b:at(bj),d:r1(best),dy:r1(dy)};
+    (dy>5?cross:warn).push(rec); }
+  const merge=list=>{ const out=[]; list.sort((p,q)=>p.a-q.a||p.b-q.b); for(const w of list){ const l=out[out.length-1]; if(l&&w.a-l.a1<=12&&Math.abs(w.b-l.b)<80){ l.a1=w.a; if(w.d<l.d){ l.d=w.d; l.b=w.b; l.dy=w.dy; } } else out.push(Object.assign({a1:w.a},w)); } return out; };
+  let ymin=1e9,ymax=-1e9; const plan=[]; for(let i=0;i<N;i+=step){ const p=P[i]; plan.push([r1(p.x),r1(p.z),r1(p.y),Math.round(K[i]*1e4)/1e4]); ymin=Math.min(ymin,p.y); ymax=Math.max(ymax,p.y); }
+  const sl=straights.reduce((a,x)=>a+x.len,0);
+  return {L:Math.round(L),W:r1(W*2),N,ds:Math.round(ds*100)/100,minR:Math.round(1/Math.max(1e-6,Math.abs(K[mi]))),minRat:at(mi),climb:r1(ymax-ymin),
+    straights,straightPct:Math.round(sl/L*100),longest:straights.reduce((a,x)=>Math.max(a,x.len),0),corners,pace:corners.map(c=>c.R),
+    clearance:{need:r1(need),warn:merge(warn),cross:merge(cross)},plan}; }
+function trackPlanPNG(rep,size){ size=size||560; const c=document.createElement('canvas'); c.width=c.height=size; const g=c.getContext('2d');
+  let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9; rep.plan.forEach(([x,z])=>{ x0=Math.min(x0,x); x1=Math.max(x1,x); z0=Math.min(z0,z); z1=Math.max(z1,z); });
+  const pad=34, sc=(size-2*pad)/Math.max(x1-x0,z1-z0,1), ox=pad+((size-2*pad)-(x1-x0)*sc)/2, oz=pad+((size-2*pad)-(z1-z0)*sc)/2;
+  const X=p=>ox+(p[0]-x0)*sc, Y=p=>oz+(p[1]-z0)*sc, n=rep.plan.length, ds=rep.L/n, byS=s=>rep.plan[Math.min(n-1,Math.max(0,Math.round(s/ds)))];
+  g.fillStyle='#0b0d12'; g.fillRect(0,0,size,size); g.lineCap='round'; g.lineJoin='round';
+  for(let i=0;i<n;i++){ const p=rep.plan[i], q=rep.plan[(i+1)%n], k=Math.abs(p[3]);
+    g.strokeStyle=k<.0025?'#5a6474':k<.006?'#c9cfd8':k<.02?'#ffb347':'#ff4f9a'; g.lineWidth=k<.0025?2:3.5;
+    g.beginPath(); g.moveTo(X(p),Y(p)); g.lineTo(X(q),Y(q)); g.stroke(); }
+  rep.clearance.warn.forEach(w=>{ const a=byS(w.a), b=byS(w.b); g.strokeStyle='#ff3b30'; g.lineWidth=1.5; g.beginPath(); g.moveTo(X(a),Y(a)); g.lineTo(X(b),Y(b)); g.stroke(); g.beginPath(); g.arc(X(a),Y(a),6,0,7); g.stroke(); });
+  g.font='bold 11px sans-serif'; g.textAlign='center';
+  rep.corners.forEach((c,i)=>{ const p=byS(c.apex); g.fillStyle='#fff'; g.fillText('T'+(i+1),X(p),Y(p)-7);
+    if(c.brake>30){ const b=byS((c.s-c.brake+rep.L)%rep.L); g.fillStyle='#ffd23b'; g.fillRect(X(b)-2,Y(b)-2,4,4); } });
+  const s0=rep.plan[0]; g.fillStyle='#7dff9a'; g.beginPath(); g.arc(X(s0),Y(s0),5,0,7); g.fill();
+  g.textAlign='left'; g.fillStyle='#e8ecf2'; g.font='bold 13px sans-serif'; g.fillText(`${rep.id||''}  ${rep.L} m  min R ${rep.minR} m`,10,18);
+  g.font='10px sans-serif'; g.fillStyle='#9aa3b2'; g.fillText('grey straight · white sweeper · amber corner · pink hairpin · yellow brake board · red clearance',10,size-10);
+  return c.toDataURL('image/png'); }
+if(DEV){ window.AHDEV.trackReport=(id,o)=>{ const e=EVENTS.find(x=>x.id===id); if(!e) return null; const had=!!e.scene; ensureEvent(e);
+    const rep=trackReport(e.track,o); rep.id=id; rep.name=e.name; rep.laps=e.laps||2; if(o&&o.png) rep.png=trackPlanPNG(rep,o.size);
+    if(!had&&e.scene!==RS) releaseEvent(e); rep.planN=rep.plan.length; if(o&&o.noPlan) delete rep.plan; return rep; };
+  window.AHDEV.events=()=>EVENTS.map(e=>e.id);
+  // drift/flow probe: run stepRacer on the player with a scripted input and report what happened (see tools/drift_test)
+  window.AHDEV.drift=()=>player&&{drift:player.drift,ang:+(player.driftAng||0).toFixed(3),t:+(player.driftT||0).toFixed(2),tier:driftTier(player),turbo:+(player.turbo||0).toFixed(2),flow:+(player.flow||0).toFixed(3),flowBonus:flowBonus(player),v:+player.v.toFixed(2)};
+  window.AHDEV.step=(n,inp,dt)=>{ for(let i=0;i<n;i++){ raceT+=dt||1/120; stepRacer(player,dt||1/120,inp); } return window.AHDEV.drift(); };
+  window.AHDEV.player=()=>player; window.AHDEV.raceT=()=>raceT; window.AHDEV.skipCount=()=>{ countdown=0; $('#hMsg').textContent=''; racers.forEach(r=>r.startDelay=0); }; }
 const CULL_V=new THREE.Vector3(); let DRAW_RACING=false;
 function draw(scene){
   if(DEV&&DEV.hold&&scene!==studio){ const H=DEV.hold; cam.position.fromArray(H.p); cam.lookAt(H.l[0],H.l[1],H.l[2]); if(H.fov&&cam.fov!==H.fov){ cam.fov=H.fov; cam.updateProjectionMatrix(); } }
@@ -7206,10 +7304,75 @@ function axPick(t){
     q.osc.setPeriodicWave(axWave(AC,q.prof.layout,2)); }
 }
 if(DEV) window.AHDEV.audio={AX,sfx,go:()=>{ if(mode==='loading') startRace(); },engProfile,axWave,buildEngine,engSetProf,engApply,buildBeds,bedApply,gearStep,axNoise,state:()=>({ctx:AC&&AC.state,mode,nR:racers.length,nT:traffic.length,pick:AX.pickN,live:AX.on,fr:AX.frame-AX.stamp,near:racers.filter(s=>s!==player).map(s=>Math.round(s.m.group.position.distanceTo(cam.position))),gear:AX.st.g,rn:+AX.rn.toFixed(3),load:+AX.load.toFixed(2),boost:+AX.boost.toFixed(2),nos:+AX.nos.toFixed(2),cid:AX.cid,layout:AX.prof&&AX.prof.layout,voices:AX.V.map(q=>q.src?{id:(q.src.def&&q.src.def.id)||'traffic',dop:+q.dop.toFixed(3),rn:+q.rn.toFixed(2)}:null),errs:AX.errs,tun:AX.tun,rain:AX.rain})};
+/* ?dev headless race: AHDEV.sim(eventId, laps, opts) builds the event's track, puts a persona grid on it (plus a stand-in
+   player that the rival brain drives, no rubber band for it) and steps the race at a fixed dt in a tight loop, with no
+   rendering. Modelled on ZER0-G's tools/sim.mjs (MIT). Returns finish order, lap times, top speed, racer contacts,
+   traffic contacts and wall hits. opts: {n: cars (default the event's grid size), seed, dt (1/120), maxT (s)}.
+   Run it from the title or event screens (not mid-race); it puts the screen's own cars and event back afterwards. */
+if(DEV) window.AHDEV.sim=(id,nLaps,opts)=>{
+  opts=opts||{}; const evi=EVENTS.findIndex(e=>e.id===id); if(evi<0||EVENTS[evi].knockout) return {error:'unknown or knockout event '+id};
+  const keep={racers,player,mode,raceT,ghostT,countdown,KO,TAG,EVI,rnd:Math.random}, t0=performance.now();
+  const ait0=Object.assign({},AIT); if(opts.ait) Object.assign(AIT,opts.ait);
+  let seed=(opts.seed||7)>>>0||7; Math.random=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
+  let out;
+  try{
+    if(EVI!==evi) setEvent(evi);
+    const ev=EV, laps0=ev.laps; if(nLaps) ev.laps=nLaps;
+    const mk=(def,isP,dist,x,skill)=>({def,m:null,scene:RS,isP,dist,x,vx:0,v:0,steer:0,nitro:1,hitCd:0,slip:0,yaw:0,bumpT:0,finished:false,finishT:0,laps:[],lapStart:0,hits:0,top:0,skill:skill||1,off:(Math.random()-.5)*3,wob:Math.random()*10,draft:0,burst:0,lit:false,fxLong:0,fxOver:0,fxSling:0,fxShield:0,fxGrip:0,fxRegen:0,fxNosMul:0,fxWisp:0,fxEcho:0,fxTempest:0,mantisT:0,fxJam:0,fxGhost:0,clean:0,towT:0,fxName:{},mass:(def.P&&def.P.mass)||def.mass||1,startDelay:def.P?(def.P.start<0?Math.random()*.55:def.P.start):0,grudge:{}});
+    // the persona grid, as spawnPersonaGrid lays it out (the stand-in player starts mid-pack)
+    const n=opts.n||fieldSizeForEvent(ev), R_=k=>RIVALS.find(r=>r.id===k), me=CARS[sel], taken=[me.id], per=RIVALS.map(r=>r.id).sort(()=>Math.random()-.5), pSlot=opts.player===false?-1:opts.pSlot!==undefined?opts.pSlot:Math.floor(n/2);
+    racers=[]; KO=null; TAG=null; player=null; // opts.player===false: all rivals, nobody to rubber-band to
+    for(let i=0;i<n;i++){ const dist=-5-i*5.2, x=i%2?2.6:-2.6;
+      if(i===pSlot){ player=mk(me,true,dist,x,1); racers.push(player); continue; }
+      const def=buildRivalForEvent(R_(per[i%per.length]),ev.id,taken); racers.push(mk(def,false,dist,x,.975+Math.random()*.025)); }
+    if(typeof applyDifficulty==='function') applyDifficulty();
+    resetPickups(); if(ev.resetTraffic) ev.resetTraffic(); traffic=ev.traffic||[];
+    mode='race'; raceT=0; countdown=0;
+    const h=opts.dt||1/120, maxT=opts.maxT||(laps()*TR.L/25+90), L=TR.L, touch=new Set(), ttouch=new Set();
+    let capSteps=0, brkSteps=0, contacts=0, trafficHits=0, nan=0, vTop=0, step=0;
+    const wall0=racers.map(r=>r.hits);
+    while(raceT<maxT&&!racers.every(r=>r.finished)){
+      raceT+=h; ghostT+=h; step++;
+      for(const r of racers) stepRacer(r,h,null);
+      for(const o of traffic) if(!o.out) stepTraffic(o,h);
+      // count new contacts the same way collide() detects them (a pair entering overlap counts once)
+      for(let i=0;i<racers.length;i++){ const a=racers[i];
+        for(let j=i+1;j<racers.length;j++){ const b=racers[j], k=i*64+j, dd=((a.dist-b.dist)%L+L*1.5)%L-L*.5;
+          if(Math.abs(dd)<4.5&&Math.abs(a.x-b.x)<2.05){ if(!touch.has(k)){ touch.add(k); contacts++; } } else touch.delete(k); }
+        for(let j=0;j<traffic.length;j++){ const o=traffic[j]; if(o.out) continue; const k=i*64+j, dd=((a.dist-o.dist)%L+L*1.5)%L-L*.5;
+          if(Math.abs(dd)<4.5&&Math.abs(a.x-o.x)<2.05&&!(a.fxGhost>0)){ if(!ttouch.has(k)){ ttouch.add(k); trafficHits++; } } else ttouch.delete(k); } }
+      collide();
+      if(step%6===0){ worldFx(h*6); if(ev.update) try{ ev.update(h*6,cam.position); }catch(e){} }
+      for(const r of racers){ if(r.aiWait) capSteps++; if(r.brk>.12) brkSteps++; }
+      for(const r of racers){ if(!Number.isFinite(r.v+r.x+r.dist)){ nan++; r.v=0; r.x=0; r.vx=0; } if(r.v>vTop) vTop=r.v; }
+    }
+    const order=racers.slice().sort((a,b)=>(a.finished?a.finishT:1e9-a.dist)-(b.finished?b.finishT:1e9-b.dist));
+    const f2=v=>Math.round(v*100)/100;
+    out={event:id,laps:laps(),L:Math.round(L),n,diff:typeof diffId==='function'?diffId():'n/a',simT:f2(raceT),ms:Math.round(performance.now()-t0),steps:step,
+      finished:racers.filter(r=>r.finished).length,contacts,trafficHits,wallHits:racers.reduce((s,r,i)=>s+r.hits-wall0[i],0),waitPct:Math.round(capSteps/Math.max(1,step*n)*1000)/10,brakePct:Math.round(brkSteps/Math.max(1,step*n)*1000)/10,nan,topMph:Math.round(vTop*2.237),
+      order:order.map((r,i)=>({p:i+1,who:r.isP?'PLAYER':r.def.tag,car:r.def.car||r.def.name,t:r.finished?f2(r.finishT):null,laps:r.laps.map(f2),top:Math.round(r.top*2.237),walls:r.hits,cls:r.cls?f2(r.cls):undefined}))};
+    ev.laps=laps0;
+  }catch(e){ out={error:String(e&&e.stack||e)}; }
+  Object.assign(AIT,ait0); clearSlicks(); racers=keep.racers; player=keep.player; mode=keep.mode; raceT=keep.raceT; ghostT=keep.ghostT; countdown=keep.countdown; KO=keep.KO; TAG=keep.TAG; Math.random=keep.rnd;
+  if(EVI!==keep.EVI){ setEvent(keep.EVI); if(player) setupAttract(player.def); } else { traffic=EV.traffic||[]; if(EV.resetTraffic) EV.resetTraffic(); }
+  resetPickups();
+  return out;
+};
 
 /* ---------------- MUSIC ---------------- */
-// procedural night-drive synthwave in A minor, 16-bar form. menus get pads, arp and a soft melody;
-// loading and the countdown build with a riser, and the full band drops on GO (bar 0 lands on the green light)
+// Procedural music, all Web Audio. Four themes share one engine (see "song form" below): Redline (original 150 BPM
+// electro-rock), Cold Switch, Viaduct (Paris's race_score, 128 BPM A minor) and Night Drive. Each theme is a data table
+// plus a step function; the engine handles levels (0 menu / 1 loading+countdown / 2 race), the song form over race
+// progress, the countdown grid, lap + finish stingers, the Auto rotation and the optional announcer.
+//
+// SONG FORM: a theme's `form` is a small table of sections [{n:name, at:0..1}] placed on the PRE-FINAL part of the race
+// (0 = the line, 1 = the moment the last lap starts; a one-lap race treats 80% as the last lap). The engine looks half a
+// bar ahead, plays a snare-roll fill, and swaps sections on the bar line. A section named 'break' is the drop-out. The
+// last lap is an extra, implicit 'final' section at index form.length: key lift (def.lift semitones) + riser + stinger,
+// also on a bar line. Step functions read M.sec.n, M.secBar (bars since the section began), M.key and M.final.
+//
+// night-drive synthwave in A minor: menus get pads, arp and a soft melody; loading and the countdown build with a
+// riser, and the full band drops on GO (bar 0 lands on the green light)
 const MUS={
   bpm:112,
   // 8-bar cycle: Am F C G | Am F G E
@@ -7221,6 +7384,7 @@ const MUS={
     [[0,79,6],[6,77,2],[8,76,4],[12,74,4]], [[0,74,12],[12,71,4]],
     [[0,76,4],[4,81,4],[8,79,4],[12,76,4]], [[0,77,6],[6,76,2],[8,72,8]],
     [[0,74,6],[6,76,2],[8,79,8]],            [[0,80,8],[8,76,4],[12,71,4]]],
+  form:[{n:'verse',at:0},{n:'build',at:.3},{n:'chorus',at:.45},{n:'break',at:.86}], lift:2, stab:[45,57,60,64,69],
   levels:[
     {out:.55,pad:.9,arp:.55,bass:.7,lead:.6,kit:0, hat:.6,cut:900},   // menus and results
     {out:.55,pad:.9,arp:.8, bass:.8,lead:0, kit:.7,hat:.9,cut:1800},  // loading and countdown
@@ -7237,16 +7401,68 @@ const ICE={
   bells:[[[0,83],[3,86],[6,85],[10,81]], [[0,79],[3,81],[6,78],[12,74]], [[0,79],[3,83],[6,81],[10,76]], [[0,78],[4,82],[8,85],[12,82]]],
   arp:[0,1,2,1,3,2,1,2,0,1,2,4,3,2,1,2],
   kickB:[0,3,7,10], snareB:[4,12],
+  form:[{n:'verse',at:0},{n:'break',at:.86}], lift:2, stab:[47,59,62,66,71],
   levels:[
     {out:.5, pad:.9,arp:.4, bass:.7,lead:.8,kit:0, hat:.5,cut:800},   // menus and results
     {out:.5, pad:.9,arp:.5, bass:.8,lead:.8,kit:.7,hat:.8,cut:1400},  // loading and countdown
     {out:.44,pad:.7,arp:.75,bass:1, lead:1, kit:1, hat:1, cut:3000}]  // racing
 };
-const MUS_THEMES={ice:{name:'Cold Switch',def:ICE},night:{name:'Night Drive',def:MUS}};
-let musTheme=MUS_THEMES[SAVE.musTheme]?SAVE.musTheme:'ice';
+// VIADUCT: Paris's own race_score (JFK Viaduct to Fashion District), 128 BPM, A minor. Five sectors build over the
+// race: S1-S4 are the pre-final form (quarters), S5 is the last lap with the score's +2 lift. Step strings: x hit,
+// o soft, O open hat, . rest. mix = [kick,snare,hat,bass,pad,arp,lead] multipliers per sector.
+const VIA={
+  bpm:128, bell:1, lift:2, hl:3, stab:[45,57,64,69,72],
+  form:[{n:'S1',at:0},{n:'S2',at:.25},{n:'S3',at:.5},{n:'S4',at:.75}],
+  S:[
+    {ch:[[57,60,64],[57,60,65],[55,60,64],[55,59,62]],root:[45,41,48,43],kick:'x.......x.......',snare:'................',hat:'..x...x...x...x.',bass:'x.......x.......',arp:'x.x.x.x.x.x.x.x.',lead:0,mix:[.7,0,.35,.8,1,.5,0]},
+    {ch:[[57,60,64],[55,59,64],[57,60,65],[55,59,62]],root:[45,40,41,43],kick:'x...x...x...x...',snare:'....x.......x...',hat:'o.x.o.x.o.x.o.x.',bass:'..x...x...x...x.',arp:'x..x..x..x..x.x.',lead:0,mix:[.9,.7,.6,.9,.7,.6,0]},
+    {ch:[[57,62,65],[58,62,65],[57,60,65],[56,59,64]],root:[38,46,41,40],kick:'x.........x.....',snare:'........x.......',hat:'x.o.x.o.x.o.x.o.',bass:'x..x....x..x....',arp:'xxxxxxxxxxxxxxxx',lead:0,mix:[.9,.8,.5,.9,.8,.7,0]},
+    {ch:[[57,60,64],[57,60,65],[55,60,64],[55,59,62]],root:[45,41,48,43],kick:'x...x...x...x...',snare:'....x.......x...',hat:'oxoxoxoxoxoxoxox',bass:'xxxxxxxxxxxxxxxx',arp:'x.x.x.x.x.x.x.x.',lead:1,mix:[1,.85,.7,1,.6,.6,.9]},
+    {ch:[[57,60,64],[57,60,65],[55,60,64],[55,59,62]],root:[45,41,48,43],kick:'x...x...x...x...',snare:'....x.......x.x.',hat:'oxoxoxoOoxoxoxoO',bass:'xxxxxxxxxxxxxxxx',arp:'x.x.x.x.x.x.x.x.',lead:1,mix:[1,.9,.75,1,.7,.7,1]}],
+  // 4 bars x 16 sixteenths, null = rest; legato about 1.9 steps
+  lead:[[76,0,0,74,0,0,72,0,74,0,0,0,76,0,79,0],[77,0,0,76,0,0,74,0,72,0,0,0,69,0,72,0],[72,0,0,74,0,0,76,0,79,0,0,0,76,0,74,0],[74,0,0,0,71,0,0,0,74,0,76,0,79,0,0,0]],
+  levels:[
+    {out:.5, pad:.9,arp:.5, bass:.7,lead:.7,kit:0, hat:.6,cut:900},
+    {out:.5, pad:.9,arp:.7, bass:.85,lead:0,kit:.8,hat:.9,cut:1800},
+    {out:.5, pad:1, arp:1,  bass:1,  lead:1,kit:1, hat:1, cut:3200}]
+};
+// REDLINE: original 150 BPM electro-rock in E minor for the street (palm-muted chugs and open power chords through a
+// waveshaper, pumping saw bass, breakbeat drums, square arp, a heroic hook that returns in the chorus). Chords:
+// g = guitar power-chord root, b = bass root, t = triad for pad/arp/bells.
+const RCH={Em:{g:40,b:40,t:[64,67,71]},C:{g:48,b:36,t:[60,64,67]},G:{g:43,b:43,t:[67,71,74]},D:{g:50,b:38,t:[62,66,69]},Am:{g:45,b:45,t:[57,60,64]},B:{g:47,b:35,t:[59,63,66]}};
+const RED={
+  bpm:150, lift:2, hl:2, stab:[40,52,59,64,67],
+  form:[{n:'verse',at:0},{n:'build',at:.22},{n:'chorus',at:.32},{n:'verse',at:.56},{n:'chorus',at:.68},{n:'break',at:.9}],
+  prog:{verse:['Em','Em','C','D'],build:['Am','Am','D','B'],chorus:['C','G','D','Em'],break:['Em','C','Am','B']},
+  riff:['X.xx.xX.x.xx.xX.','X.xxX.xxX.x.xxX.','X.xx.xX.X.xx.xX.','X.x.xxX.x.xxXxxX'],
+  // hook, [step, midi, length in 16ths] per bar over C G D Em; pass B ends higher
+  hook:[[[0,79,3],[3,76,3],[6,79,2],[8,84,4],[12,83,4]], [[0,83,4],[4,79,2],[6,83,2],[8,86,4],[12,83,4]], [[0,86,3],[3,81,3],[6,78,2],[8,81,4],[12,86,4]], [[0,83,6],[6,81,2],[8,79,4],[12,76,4]],
+        [[0,79,3],[3,76,3],[6,79,2],[8,84,4],[12,88,4]], [[0,83,4],[4,86,2],[6,83,2],[8,91,4],[12,86,4]], [[0,86,3],[3,90,3],[6,86,2],[8,81,4],[12,86,4]], [[0,83,4],[4,86,4],[8,88,8]]],
+  drums:{
+    verse:{k:'x..x....x.x.....',s:'....S.......S..g',h:'x.x.x.x.x.x.x.O.'},
+    chorus:{k:'x..x..x.x..x..x.',s:'....S..g...gS..g',h:'xxxxxxxxxxxxxxxx'},
+    final:{k:'x..x..x.x.x.x.x.',s:'....S..g...gS..g',h:'xxxxxxxxxxxxxxxO'}},
+  levels:[
+    {out:.5, pad:.9,arp:.5, bass:.6,lead:.6,kit:0, hat:.5,gtr:0, cut:1000},
+    {out:.5, pad:.7,arp:.7, bass:.8,lead:0, kit:.8,hat:.9,gtr:.55,cut:1800},
+    {out:.32,pad:.5,arp:.8, bass:1, lead:1, kit:.9,hat:.9,gtr:1,  cut:3600}]
+};
+const MUS_THEMES={
+  redline:{name:'Redline',def:RED,step:mStepRed},
+  ice:{name:'Cold Switch',def:ICE,step:mStepIce},
+  viaduct:{name:'Viaduct',def:VIA,step:mStepVia},
+  night:{name:'Night Drive',def:MUS,step:mStepNight}};
+const MUS_ORDER=['redline','ice','viaduct','night']; // hardest first, like ZER0-G's race rotation: Auto walks this list, one theme per race
+const GO_LEAD=0; // seconds before the physics start that the race groove drops (set .6 to land on the 'Go' beep instead)
+let musChoice=(SAVE.musTheme==='auto'||MUS_THEMES[SAVE.musTheme])?SAVE.musTheme:'auto';
+let musRot=Math.max(0,(SAVE.musRot|0))%MUS_ORDER.length;
+let musTheme=musChoice==='auto'?MUS_ORDER[musRot]:musChoice;
 const MT=()=>MUS_THEMES[musTheme].def;
-let M=null, musicOn=SAVE.musicOff?false:true;
+let M=null, musicOn=SAVE.musicOff?false:true, voxOn=!!SAVE.voxOn&&typeof speechSynthesis!=='undefined';
 const mf=m=>440*Math.pow(2,(m-69)/12);
+function mCurve(k,bias){ const n=1024, c=new Float32Array(n); let mx=0;
+  for(let i=0;i<n;i++){ const x=i/(n-1)*2-1; c[i]=Math.tanh(k*(x+bias))-Math.tanh(k*bias); mx=Math.max(mx,Math.abs(c[i])); }
+  for(let i=0;i<n;i++) c[i]/=mx; return c; }
 function musicInit(ctx,dest){
   const sr=ctx.sampleRate, g=(v,to)=>{ const n=ctx.createGain(); n.gain.value=v; if(to) n.connect(to); return n; };
   const out=g(0,dest), duck=g(1,out);
@@ -7256,11 +7472,24 @@ function musicInit(ctx,dest){
   const dl=ctx.createDelay(1.5), dlF=ctx.createBiquadFilter(), fb=g(.34);
   dl.delayTime.value=60/MT().bpm*.75; dlF.type='lowpass'; dlF.frequency.value=2400;
   dl.connect(dlF); dlF.connect(fb); fb.connect(dl); dlF.connect(g(.26,duck));
-  const L={}; ['pad','arp','bass','lead','kit','hat'].forEach(k=>{ L[k]=g(0,k==='kit'||k==='hat'?out:duck); });
+  const L={}; ['pad','arp','bass','lead','kit','hat','gtr'].forEach(k=>{ L[k]=g(0,k==='kit'||k==='hat'?out:duck); });
   L.pad.connect(rev); L.lead.connect(rev); L.lead.connect(dl); L.arp.connect(dl);
   const arpF=ctx.createBiquadFilter(); arpF.type='lowpass'; arpF.frequency.value=900; arpF.Q.value=4; arpF.connect(L.arp);
+  // stinger / bell bus: not touched by the level gains, so a finish stinger rings on into the results page
+  const fx=g(1,out); fx.connect(rev); fx.connect(dl);
+  // one shared guitar amp: every power chord sums into a waveshaper, then a cab (high-pass, presence bump, low-pass)
+  const gtIn=g(1), ws=ctx.createWaveShaper(); ws.curve=mCurve(7,.12); ws.oversample='2x';
+  const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=110;
+  const pk=ctx.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=1500; pk.Q.value=.8; pk.gain.value=3;
+  const cab=ctx.createBiquadFilter(); cab.type='lowpass'; cab.frequency.value=3800; cab.Q.value=.6;
+  gtIn.connect(ws); ws.connect(hp); hp.connect(pk); pk.connect(cab); cab.connect(g(.5,L.gtr));
+  // lead guitar: a gentler shaper so the hook stays singing
+  const ldIn=g(1), ws2=ctx.createWaveShaper(); ws2.curve=mCurve(3,.05); const ldF=ctx.createBiquadFilter(); ldF.type='lowpass'; ldF.frequency.value=4200;
+  ldIn.connect(ws2); ws2.connect(ldF); ldF.connect(g(.6,L.lead));
   const nb=ctx.createBuffer(1,sr,sr), w=nb.getChannelData(0); for(let i=0;i<w.length;i++) w[i]=Math.random()*2-1;
-  M={ctx,out,duck,L,arpF,nb,dl,step:0,bar:0,nextT:0,level:-1,vol:-1,cd:false,sw:0};
+  M={ctx,out,duck,L,fx,arpF,cab,gtIn,ldIn,nb,dl,step:0,bar:0,nextT:0,level:-1,vol:-1,cd:false,sw:0,
+     secI:-1,sec:null,secBar:0,key:0,final:false,finalReq:false,pend:-1,fill:false,ak:0,tri:[57,60,64],
+     lapSeen:0,fin:0,final1:false,outroT:0,goCommit:false,cdLeft:0,cdSteps:0,cdGo:0,fm:1,spd:0,vk:1,vkT:0,vc:null,wasRace:false,fake:null,cues:0};
 }
 function mVoice(t,midi,dur,vol,types,to,o){
   const c=M.ctx, g=c.createGain(), f=c.createBiquadFilter(), a=o.atk||.005, r=o.rel||.08, end=t+Math.max(dur,a+.01);
@@ -7290,46 +7519,167 @@ const mDrum={
     g.gain.setValueAtTime(v*.6,t); g.gain.exponentialRampToValueAtTime(.001,t+.12); o.connect(g); g.connect(M.L.kit); o.start(t); o.stop(t+.14); },
   hat(t,v,open){ mNoise(t,open?.16:.04,'highpass',7200,9000,v,.9,M.L.hat); },
   crash(t){ mNoise(t,1.8,'highpass',4200,2600,.14,.5,M.L.hat); },
-  riser(t,d){ mNoise(t,d,'bandpass',300,5200,.16,2.2,M.L.hat,d*.9); }
+  riser(t,d){ mNoise(t,d,'bandpass',300,5200,.16,2.2,M.L.hat,d*.9); },
+  boom(t){ const c=M.ctx, o=c.createOscillator(), g=c.createGain(); o.frequency.setValueAtTime(90,t); o.frequency.exponentialRampToValueAtTime(30,t+.7);
+    g.gain.setValueAtTime(.38,t); g.gain.exponentialRampToValueAtTime(.001,t+.8); o.connect(g); g.connect(M.L.kit); o.start(t); o.stop(t+.82); }
 };
+// ---- shared voices: lead (saw + pulse, delayed vibrato), FM bell, power chord, stab
+function mLead(t,midi,dur,vol,to,o){ o=o||{};
+  const c=M.ctx, g=c.createGain(), f=c.createBiquadFilter(), end=t+Math.max(dur,.05), lf=c.createOscillator(), lg=c.createGain();
+  f.type='lowpass'; f.Q.value=o.q||1; f.frequency.setValueAtTime((o.cut||3400)*M.fm,t);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+(o.atk||.015)); g.gain.linearRampToValueAtTime(vol*.8,end); g.gain.linearRampToValueAtTime(0,end+(o.rel||.12));
+  lf.frequency.value=5.5; lg.gain.setValueAtTime(0,t); lg.gain.linearRampToValueAtTime(o.vib==null?16:o.vib,t+Math.min(.25,dur*.6)); lf.connect(lg);
+  f.connect(g); g.connect(to);
+  (o.types||['sawtooth','square']).forEach((ty,i)=>{ const os=c.createOscillator(); os.type=ty; os.frequency.value=mf(midi); os.detune.value=i?7:-7; lg.connect(os.detune); os.connect(f); os.start(t); os.stop(end+(o.rel||.12)+.05); });
+  lf.start(t); lf.stop(end+(o.rel||.12)+.05);
+}
+// FM bell: carrier at n+24, modulator ratio 3.5 with a decaying index; the checkpoint stinger plays the chord tones 50 ms apart
+function mBell(t,midi,vol,dec){ const c=M.ctx, o=c.createOscillator(), m=c.createOscillator(), mg=c.createGain(), g=c.createGain(), f=mf(midi+24), d=dec||1.1;
+  o.frequency.value=f; m.frequency.value=f*3.5; mg.gain.setValueAtTime(f*1.6,t); mg.gain.exponentialRampToValueAtTime(f*.05,t+d*.6);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.003); g.gain.exponentialRampToValueAtTime(.0005,t+d);
+  m.connect(mg); mg.connect(o.frequency); o.connect(g); g.connect(M.fx); o.start(t); m.start(t); o.stop(t+d+.05); m.stop(t+d+.05); }
+function mCheckpoint(t,vol,dir){ const tr=M.tri, n=[tr[0],tr[1],tr[2],tr[0]+12]; if(dir<0) n.reverse(); n.forEach((m,i)=>mBell(t+i*.05,m,vol||.05)); }
+// stinger chord (tonic) on the fx bus with a crash and a low boom
+function mStab(t,vol,notes){ const st=notes||MT().stab; st.forEach(n=>mVoice(t,n+M.key,.35,vol/st.length/2,['sawtooth','square'],M.fx,{dets:[-9,9],cut:3400,cutEnd:900,rel:.9,atk:.004,sus:.5,q:1})); }
+// power chord into the shared amp. cut = pre-filter, so a palm mute is a low cut and a short note
+function mGtr(t,root,dur,vol,cut){ const c=M.ctx, f=c.createBiquadFilter(), g=c.createGain(), end=t+dur, rel=.035, r=root+M.key;
+  f.type='lowpass'; f.frequency.value=cut*M.fm; f.Q.value=.7;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(vol,t+.004); g.gain.setValueAtTime(vol,end); g.gain.linearRampToValueAtTime(0,end+rel);
+  f.connect(g); g.connect(M.gtIn);
+  (PHONE?[[r,-9],[r,9],[r+7,3]]:[[r,-9],[r,9],[r+7,3],[r+12,-3]]).forEach(([n,d])=>{ const os=c.createOscillator(); os.type='sawtooth'; os.frequency.value=mf(n); os.detune.value=d; os.connect(f); os.start(t); os.stop(end+rel+.03); }); }
+// ---- race situation as the music sees it. pf = progress through the pre-final part (0..1), final = last lap running
+function mRace(){
+  if(M.fake) return M.fake;
+  if(mode!=='race'||!player||!TR||!TR.L) return null;
+  const L=laps(), tot=L*TR.L, p=clamp(player.dist/tot,0,1);
+  if(EV.knockout||L>20) return {pf:clamp(raceT/160,0,.97),final:false,p,rate:0};
+  const fin=L>=2?player.dist>=(L-1)*TR.L:p>=.8, fa=L>=2?(L-1)/L:.8;
+  return {pf:fin?1:clamp(p/fa,0,.999),final:fin,p,rate:fin?0:Math.max(player.v,0)/(fa*tot)};
+}
+function mSecAt(def,R,lead){
+  const F=def.form;
+  if(!R){ const h=def.hl!=null?def.hl:F.findIndex(s=>s.n==='chorus'); return h<0?F.length-1:h; }
+  if(R.final||M.finalReq) return F.length;
+  const pf=R.pf+(R.rate||0)*(lead||0); let i=0; for(let k=0;k<F.length;k++) if(F[k].at<=pf) i=k; return i;
+}
+function mResetForm(){ M.rz=0; M.secI=-1; M.sec=null; M.secBar=0; M.key=0; M.final=false; M.finalReq=false; M.pend=-1; M.fill=false; M.ak=0; M.outroT=0; M.fin=0; M.lapSeen=0; M.final1=false; }
+// the song form is decided half a bar ahead (so a fill can lead in) and committed on the bar line
+function mBarLine(t,half){
+  const def=MT(), F=def.form, R=mRace(), sp=60/def.bpm/4;
+  if(half){ const w=Math.max(mSecAt(def,R,sp*8),M.secI); M.pend=w;
+    M.fill=w!==M.secI&&M.secI>=0&&!(w<F.length&&F[w].n==='break'); return; }
+  let w=(M.pend>=0&&!M.finalReq&&!(R&&R.final))?M.pend:mSecAt(def,R,0); M.pend=-1; M.fill=false;
+  if(w<M.secI) w=M.secI;
+  if(w===M.secI){ M.secBar++;
+    // in the break: a riser over the last bar or two before the player reaches the last lap (estimated from speed)
+    if(M.sec&&M.sec.n==='break'&&R&&R.rate>0&&!M.rz){ const eta=(1-R.pf)/R.rate, bd=sp*16; if(eta<bd*2.4&&eta>bd*.6){ M.rz=1; mDrum.riser(t,Math.min(eta,bd*2)); } }
+    return; }
+  const first=M.secI<0, fin=w===F.length;
+  M.secI=w; M.secBar=0; M.rz=0; M.sec=fin?{n:'final'}:F[w];
+  if(fin){ M.final=true; M.finalReq=false; M.key=def.lift||0; }
+  if(first) return;
+  const n=M.sec.n;
+  if(fin){ mDrum.crash(t); mDrum.boom(t); mStab(t,.16); mCheckpoint(t+.02,.05,1); }
+  else if(n==='break'){ mDrum.crash(t); }
+  else { mDrum.crash(t); if(def.bell) mCheckpoint(t+.02,.045,1); }
+}
+// ---- lap / finish / nitro cues. Anything (including the other lanes' code) may call musicCue(name)
+function mBarT(){ const k=(16-M.step%16)%16, sp=60/MT().bpm/4; return M.nextT+k*sp; }
+function musicCue(name,arg){
+  if(!M||M.level<0) return; const def=MT(), sp=60/def.bpm/4, t=M.nextT;
+  if(name==='lap'||name==='checkpoint'){ mCheckpoint(t,.05,1); }
+  else if(name==='final'){ if(M.level!==2||M.final||M.finalReq) return; M.finalReq=true; mCheckpoint(t,.06,1);
+    const tb=mBarT(); if(tb-t>.3) mDrum.riser(t,tb-t); }
+  else if(name==='finish'||name==='finishWin'){ if(M.fin) return; M.fin=1; const win=name==='finishWin', k=(4-M.step%4)%4, tf=t+k*sp;
+    M.outroT=tf+sp*4; mStab(tf,win?.2:.12);
+    if(win){ mDrum.crash(tf); mCheckpoint(tf+.02,.07,1); mCheckpoint(tf+.3,.05,1); }
+    else { mCheckpoint(tf+.02,.04,-1); mNoise(tf,.9,'lowpass',1800,300,.1,.8,M.L.hat); } }
+  else if(name==='record'){ mCheckpoint(t,.06,1); mCheckpoint(t+.2,.05,1); }
+  else if(name==='nitro'){ if(M.level!==2||(M.nitroT||0)>M.ctx.currentTime) return; M.nitroT=M.ctx.currentTime+1.5; mNoise(t,.5,'bandpass',500,4200,.06,2.4,M.L.hat,.35); }
+  M.cues++;
+}
+function mWatch(){
+  const racing=mode==='race'&&player&&TR&&TR.L&&!M.fake;
+  if(mode==='race') M.wasRace=true;
+  if(!racing||countdown>0){ if(mode!=='race'){ M.fin=0; M.lapSeen=0; M.final1=false; } return; }
+  const L=laps(), lap=Math.floor(player.dist/TR.L);
+  if(lap>M.lapSeen){ M.lapSeen=lap; if(L<20&&!EV.knockout){ if(L>=2&&lap===L-1){ musicCue('final'); say('Final lap'); } else if(lap<L) musicCue('lap'); } }
+  if(L===1&&!M.final1&&player.dist>=.8*TR.L){ M.final1=true; musicCue('final'); say('Final stretch'); }
+  if(player.finished&&!M.fin){ const win=!(EV.knockout&&player.out)&&standings().indexOf(player)===0; musicCue(win?'finishWin':'finish');
+    const pl=standings().indexOf(player)+1; say(EV.knockout&&player.out?'Out':(win?'You win':'Finished, '+['','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth'][Math.min(pl,10)]+' place')); }
+}
+// ---- announcer: browser speechSynthesis, off by default, ducks the music while it talks
+function say(txt){
+  if(!voxOn||!soundOn||typeof speechSynthesis==='undefined'||!M) return;
+  try{ const u=new SpeechSynthesisUtterance(txt); u.rate=1.08; u.pitch=.85; u.volume=1;
+    const un=()=>{ M.vk=1; }; u.onend=un; u.onerror=un; M.vk=.35; M.vkT=performance.now()+2600;
+    speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){ M.vk=1; }
+}
 function musicWanted(){
-  if(mode==='race') return countdown>0?1:2;
+  if(mode==='race') return (countdown>0&&!M.goCommit)?1:2;
   if(mode==='highlight') return 2;
   return mode==='loading'?1:0;
 }
 function mSetLevel(lv,t){
   const P=MT().levels[lv];
-  Object.keys(M.L).forEach(k=>M.L[k].gain.setTargetAtTime(P[k],t,lv===2?.02:.6));
+  Object.keys(M.L).forEach(k=>M.L[k].gain.setTargetAtTime(P[k]||0,t,lv===2?.02:.6));
   M.arpF.frequency.setTargetAtTime(P.cut,t,lv===2?.05:.8);
-  if(lv===2&&M.level!==2){ M.step=0; M.bar=0; M.sw=0; mDrum.crash(t); mDrum.kick(t,.9); }
-  if(lv!==2) M.sw=0;
+  if(lv===2&&M.level!==2){ M.step=0; M.bar=0; M.sw=0; mResetForm(); mDrum.crash(t); mDrum.boom(t); }  // the downbeat kick comes from step 0 itself
+  if(lv!==2){ M.sw=0; mResetForm(); }
   M.level=lv;
 }
-// switch the track from the top bar; the new tempo takes over on the next step
-function setMusicTheme(id){
-  if(!MUS_THEMES[id]) return; musTheme=id; SAVE.musTheme=id; persist();
-  if(M){ const t=M.ctx.currentTime; M.dl.delayTime.setTargetAtTime(60/MT().bpm*.75,t,.1); M.step=0; M.bar=0; M.sw=0; const lv=M.level; M.level=-1; if(lv>=0) mSetLevel(lv,t); }
+// switch the track from the top bar (or Auto advancing after a race); the new tempo takes over on the next step
+function mApplyTheme(){
+  if(M){ const t=M.ctx.currentTime; M.dl.delayTime.setTargetAtTime(60/MT().bpm*.75,t,.1); M.step=0; M.bar=0; M.sw=0; const lv=M.level>=0?musicWanted():-1; M.level=-1; if(lv>=0) mSetLevel(lv,t); }
+  trackLabel();
 }
+function setMusicTheme(id){
+  if(id!=='auto'&&!MUS_THEMES[id]) return; musChoice=id; SAVE.musTheme=id; persist();
+  musTheme=id==='auto'?MUS_ORDER[musRot]:id; mApplyTheme();
+}
+function trackLabel(){ const b=$('#track'); if(b) b.textContent='Track: '+(musChoice==='auto'?'Auto ('+MUS_THEMES[musTheme].name+')':MUS_THEMES[musTheme].name); }
+function mAutoAdvance(){ // a race just ended: Auto moves to the next theme down the list, so the results page already plays the next race's track
+  if(musChoice!=='auto') return; musRot=(musRot+1)%MUS_ORDER.length; SAVE.musRot=musRot; persist(); musTheme=MUS_ORDER[musRot]; mApplyTheme();
+}
+// every theme: bar line + half-bar hooks, the fill, then the theme's own step
 function mStep(t){
-  if(musTheme==='ice') return mStepIce(t);
-  const s=M.step%16, bar=M.bar%16, ch=MUS.chords[bar%8], root=ch[0], pad=ch[1], lv=M.level, sp=60/MUS.bpm/4;
-  if(s===0) pad.forEach(n=>mVoice(t,n,sp*16,.045,['sawtooth'],M.L.pad,{dets:[-10,10],atk:.5,rel:.9,cut:lv===2?1500:900,q:.6}));
+  const s=M.step%16, lv=M.level;
+  if(lv===2){ if(s===0) mBarLine(t,false); else if(s===8) mBarLine(t,true); }
+  if(M.outroT&&t>=M.outroT&&(!M.sec||M.sec.n!=='outro')) M.sec={n:'outro'};
+  MUS_THEMES[musTheme].step(t);
+  if(lv===2&&M.fill&&s>=12) mDrum.snare(t,.06+(s-12)*.05);
+  else if(lv===1&&M.cd&&M.cdLeft>0&&M.cdLeft<=6) mDrum.snare(t,.05+(6-M.cdLeft)*.035);
+}
+const mSN=()=>(M.level===2&&M.sec)?M.sec.n:'';
+const mDrop=()=>{ const n=mSN(); return n==='break'||n==='outro'; };
+const mHit=(str,s)=>str.charAt(s);
+// ---- NIGHT DRIVE: the original 16-bar loop, now arranged by the song form
+function mStepNight(t){
+  const s=M.step%16, bar=M.bar, ch=MUS.chords[bar%8], K=M.level===2?M.key:0, root=ch[0]+K, pad=ch[1].map(n=>n+K), lv=M.level, sp=60/MUS.bpm/4, sn=mSN(), drop=mDrop();
+  M.tri=pad;
+  if(s===0&&!(sn==='outro')) pad.forEach(n=>mVoice(t,n,sp*16,.045,['sawtooth'],M.L.pad,{dets:[-10,10],atk:sn==='final'?.1:.5,rel:.9,cut:lv===2?(sn==='break'?900:1500):900,q:.6}));
   const tones=pad.map(n=>n+12).concat(pad.map(n=>n+24));
-  mVoice(t,tones[MUS.arp[s]],sp*.9,.05,['square'],M.arpF,{rel:.05,cut:8000});
-  if(lv>=1){
-    if(lv===2||s%2===0) mVoice(t,root+(s%4===2?12:0),sp*.85,s%4===0?.09:.13,['sawtooth','square'],M.L.bass,{dets:[0,-6],cut:1100,cutEnd:220,q:3,rel:.03});
-  } else if(s===0||s===8||s===14){
-    mVoice(t,root+(s===14?12:0),sp*(s===0?8:s===8?6:2),.12,['sawtooth','sine'],M.L.bass,{dets:[0,0],cut:500,atk:.02,rel:.2,sus:.6});
+  if(sn!=='outro') mVoice(t,tones[MUS.arp[s]],sp*.9,drop?.035:.05,['square'],M.arpF,{rel:.05,cut:8000});
+  if(lv>=1&&!drop){
+    if(lv===2&&sn!=='verse'||s%2===0) mVoice(t,root+(s%4===2?12:0),sp*.85,s%4===0?.09:.13,['sawtooth','square'],M.L.bass,{dets:[0,-6],cut:1100,cutEnd:220,q:3,rel:.03});
+  } else if(lv===0&&(s===0||s===8||s===14)||sn==='break'&&s===0){
+    mVoice(t,root+(s===14?12:0),sp*(s===0?(sn==='break'?16:8):s===8?6:2),.12,['sawtooth','sine'],M.L.bass,{dets:[0,0],cut:500,atk:.02,rel:.2,sus:.6});
   }
-  if(lv===2){
-    if(s%4===0) mDrum.kick(t,.85);
-    if(s===4||s===12) mDrum.snare(t,.32);
-    if(bar===15&&s>=8&&s!==12) mDrum.snare(t,.06+(s-8)*.025);
+  if(lv===2&&!drop){
+    if(s%4===0||(sn==='final'&&s===10)) mDrum.kick(t,.85);
+    if(s===4||s===12){ mDrum.snare(t,.32); if(sn==='final') mClap(t,.2); }
+    if(bar%16===15&&s>=8&&s!==12&&sn!=='verse') mDrum.snare(t,.06+(s-8)*.025);
     mDrum.hat(t,s%4===2?.09:.035,s%4===2);
-  } else if(s%4===2) mDrum.hat(t,.04,lv===1);
-  if(bar>=8&&lv!==1) MUS.lead[bar%8].forEach(([st,n,len])=>{ if(st!==s) return;
-    if(lv===2) mVoice(t,n,sp*len,.05,['sawtooth'],M.L.lead,{dets:[-8,8],atk:.02,rel:.3,cut:3400,cutEnd:1500,q:1.5,sus:.8});
-    else mVoice(t,n-12,sp*len,.07,['triangle'],M.L.lead,{atk:.03,rel:.5,cut:2200,sus:.7}); });
+    if(sn==='final'&&s%2===1) mDrum.hat(t,.03,false);
+    if(sn==='final'&&s===0&&M.secBar>0&&M.secBar%4===0) mDrum.crash(t);
+  } else if(lv===2&&sn==='break'){ if(s===0) mDrum.kick(t,.6); if(s%4===2) mDrum.hat(t,.03,false); }
+  else if(lv<2&&s%4===2) mDrum.hat(t,.04,lv===1);
+  // lead: the second half of the menu loop; in the race from the chorus on (piano-ish and quiet in the break, doubled in the final)
+  const lb=lv===2?M.secBar:bar;
+  if(lv===2&&(sn==='chorus'||sn==='final'||sn==='break')||lv===0&&bar%16>=8) MUS.lead[lb%8].forEach(([st,n,len])=>{ if(st!==s) return;
+    if(lv===2&&sn!=='break'){ mVoice(t,n+K,sp*len,.05,['sawtooth'],M.L.lead,{dets:[-8,8],atk:.02,rel:.3,cut:3400*M.fm,cutEnd:1500,q:1.5,sus:.8});
+      if(sn==='final') mVoice(t,n+K+12,sp*len,.025,['square'],M.L.lead,{atk:.02,rel:.3,cut:3000,sus:.8}); }
+    else mVoice(t,n+K-12,sp*len,.07,['triangle'],M.L.lead,{atk:.03,rel:.5,cut:2200,sus:.7}); });
   M.step++; if(M.step%16===0) M.bar++;
 }
 // 808: sine body plus a quiet triangle an octave up so it still reads on phone speakers; optional glide to another note
@@ -7345,21 +7695,25 @@ function m808(t,midi,dur,vol,glide){
 }
 function mClap(t,v){ [0,.011,.023].forEach((d,i)=>mNoise(t+d,i<2?.03:.18,'bandpass',1300,1000,v*(i<2?.7:1),1.1,M.L.kit)); }
 const ICE_KICK_LEN={0:3,3:4,7:3,10:6};
+// ---- COLD SWITCH: the beat switch follows race progress (unchanged); the form adds the break before the last lap and
+// the key-lifted final (always on the hot groove)
 function mStepIce(t){
-  const s=M.step%16, bar=M.bar, ch=ICE.chords[bar%4], root=ch[0], pad=ch[1], lv=M.level, sp=60/ICE.bpm/4;
-  // the beat switch follows race progress: drums drop for half a bar under a riser, the new groove lands on the bar
-  const prog=(mode==='race'&&player&&TR&&TR.L&&countdown<=0)?clamp(player.dist/(laps()*TR.L),0,1):0;
-  if(lv===2&&M.sw===0&&s===8&&prog>=ICE.switchAt){ M.sw=1; mDrum.riser(t,sp*8); }
+  const s=M.step%16, bar=M.bar, K=M.level===2?M.key:0, ch=ICE.chords[bar%4], root=ch[0]+K, pad=ch[1].map(n=>n+K), lv=M.level, sp=60/ICE.bpm/4, sn=mSN();
+  M.tri=pad;
+  const R=lv===2?mRace():null, prog=(R&&!R.final)?R.p:(R?1:0);
+  if(lv===2&&M.sw===0&&s===8&&(prog>=ICE.switchAt||sn==='final')){ M.sw=1; mDrum.riser(t,sp*8); }
   if(s===0&&M.sw===1){ M.sw=2; mDrum.crash(t); }
-  const hot=M.sw===2, drop=M.sw===1;
-  if(s===0) pad.forEach(n=>mVoice(t,n,sp*16,.04,['sawtooth'],M.L.pad,{dets:[-12,12],atk:hot?.08:.7,rel:1.1,cut:hot?2000:lv===2?1100:750,q:.6}));
+  const hot=M.sw===2, drop=M.sw===1||mDrop();
+  if(s===0&&sn!=='outro') pad.forEach(n=>mVoice(t,n,sp*16,.04,['sawtooth'],M.L.pad,{dets:[-12,12],atk:hot?.08:.7,rel:1.1,cut:(hot?2000:lv===2?1100:750),q:.6}));
   // bell motif with a quiet partial above it for the icy shimmer
-  if(!drop) ICE.bells[bar%4].forEach(([st,n])=>{ if(st!==s) return; const v=lv===2?.05:.04;
-    mVoice(t,n,sp*3,v,['sine'],M.L.lead,{atk:.003,rel:.7,sus:.2,cut:6000});
-    mVoice(t,n+19,sp*1.5,v*.3,['sine'],M.L.lead,{atk:.002,rel:.4,sus:.1,cut:9000}); });
-  if(hot){ const tones=pad.map(n=>n+12).concat(pad.map(n=>n+24));
+  if(!drop||sn==='break') ICE.bells[bar%4].forEach(([st,n])=>{ if(st!==s) return; const v=lv===2?(sn==='break'?.035:.05):.04;
+    mVoice(t,n+K,sp*3,v,['sine'],M.L.lead,{atk:.003,rel:.7,sus:.2,cut:6000});
+    mVoice(t,n+K+19,sp*1.5,v*.3,['sine'],M.L.lead,{atk:.002,rel:.4,sus:.1,cut:9000});
+    if(sn==='final') mVoice(t,n+K+12,sp*2,v*.5,['sine'],M.L.lead,{atk:.003,rel:.5,sus:.1,cut:8000}); });
+  if(hot&&!drop){ const tones=pad.map(n=>n+12).concat(pad.map(n=>n+24));
     mVoice(t,tones[ICE.arp[s]],sp*.8,.045,['square','sawtooth'],M.arpF,{dets:[0,5],rel:.04,cut:7000}); }
-  else if(lv>=1&&s%4===2) mVoice(t,pad[(s>>2)%3]+24,sp*2,.03,['triangle'],M.arpF,{atk:.01,rel:.3,cut:5000});
+  else if(lv>=1&&s%4===2&&sn!=='outro') mVoice(t,pad[(s>>2)%3]+24,sp*2,.03,['triangle'],M.arpF,{atk:.01,rel:.3,cut:5000});
+  if(sn==='break'&&s===0) m808(t,root,sp*16,.2,0);
   if(!drop){
     if(hot){
       if(ICE_KICK_LEN[s]){ mDrum.kick(t,.9); m808(t,root,sp*ICE_KICK_LEN[s],.32,s===10&&bar%2===1?root+12:0); }
@@ -7368,6 +7722,7 @@ function mStepIce(t){
       if(s===6) mDrum.hat(t,.06,true);
       if(s>=14&&bar%2===1){ mDrum.hat(t+sp/3,.04,false); mDrum.hat(t+sp*2/3,.05,false); }
       if(bar%8===7&&s>=12) mDrum.snare(t,.05+(s-12)*.03);
+      if(sn==='final'&&s===0&&M.secBar>0&&M.secBar%2===0) mDrum.crash(t);
     } else if(lv===2){
       if(s===0||s===10) mDrum.kick(t,.8);
       if(s===0) m808(t,root,sp*9,.3,0);
@@ -7379,21 +7734,148 @@ function mStepIce(t){
       if(s===0) m808(t,root,sp*12,lv===1?.22:.16,0);
       if(lv===1&&s%4===2) mDrum.hat(t,.035,false);
     }
-  }
+  } else if(sn==='break'&&s%4===0&&s>0) mDrum.hat(t,.025,false);
   M.step++; if(M.step%16===0) M.bar++;
 }
+// ---- VIADUCT: Paris's race_score. Sector = M.secI (S5 is the final with the +2 lift in M.key).
+function mStepVia(t){
+  const s=M.step%16, lv=M.level, sp=60/VIA.bpm/4, K=lv===2?M.key:0, si=lv===2?Math.max(0,M.secI):0, S=VIA.S[si], bi=M.bar%4, ch=S.ch[bi].map(n=>n+K), root=S.root[bi]+K, mx=S.mix, fm=M.fm, out=mSN()==='outro';
+  M.tri=ch; const race=lv===2, kick=race||lv===1, ar=race?1:lv===1?.7:.5;
+  if(out){ M.step++; if(M.step%16===0) M.bar++; if(s===0) ch.forEach(n=>mVoice(t,n,sp*16,.04,['sawtooth'],M.L.pad,{dets:[-8,8],atk:.2,rel:1.2,cut:1200,q:.6})); return; }
+  // pad: chord triad per bar, detuned saws
+  if(s===0) ch.forEach(n=>mVoice(t,n,sp*16,.04*(race?mx[4]:1),['sawtooth'],M.L.pad,{dets:[-8,8],atk:.4,rel:.9,cut:(race?1400:900)*fm,q:.6}));
+  // drums only from the loading level up; the score's strings, scaled by the sector mix
+  const kx=mHit(S.kick,s)==='x', sx=mHit(S.snare,s)==='x', hh=mHit(S.hat,s);
+  if(kick){ const k=race?mx[0]:.8;
+    if(kx&&k>0) mDrum.kick(t,.85*k);
+    if(sx&&race&&mx[1]>0) mDrum.snare(t,.32*mx[1]);
+    if(hh!=='.'){ const h=race?mx[2]:.6; mDrum.hat(t,(hh==='o'?.04:.07)*h*(race?1:.7),hh==='O'); } }
+  else if(s%4===2) mDrum.hat(t,.03,false);
+  // bass: two detuned saws plus a sub sine, filter envelope cut*4 down to cut; legato to the next hit
+  const bh=mHit(S.bass,s)==='x';
+  if(race||lv===1){ if(bh){ let n=1; while(n<16&&mHit(S.bass,(s+n)%16)!=='x') n++;
+      const oct=(si>=3&&s%2===1)?12:0, base=(race?420:300)*fm;
+      mVoice(t,root+oct,sp*n*.96,.075*(race?mx[3]:.8),['sawtooth','sawtooth','sine'],M.L.bass,{dets:[7,-7,0],cut:base*4,cutEnd:base,q:4,rel:.05,atk:.004}); } }
+  else if(s===0||s===8) mVoice(t,root,sp*8,.1,['sawtooth','sine'],M.L.bass,{dets:[0,0],cut:500,atk:.02,rel:.2,sus:.6});
+  // arp: chord tones walking, k advances per hit, an octave up every three notes
+  if(mHit(S.arp,s)==='x'){ const k=M.ak++, n=ch[k%3]+12+(Math.floor(k/3)%2)*12;
+    mVoice(t,n,sp*.9,.05*(race?mx[5]:ar),['square'],M.L.arp,{rel:.04,cut:900,cutEnd:5000*fm,q:4}); }
+  // lead: S4 and S5 in the race; a soft octave-down version in the menus
+  const ln=VIA.lead[bi][s];
+  if(ln){ if(race&&S.lead) mLead(t,ln+K,sp*1.9,.055*mx[6],M.L.lead,{cut:3400});
+    else if(lv===0) mVoice(t,ln-12,sp*1.9,.07,['triangle'],M.L.lead,{atk:.03,rel:.5,cut:2200,sus:.7}); }
+  M.step++; if(M.step%16===0) M.bar++;
+}
+// ---- REDLINE
+function mStepRed(t){
+  const s=M.step%16, lv=M.level, sp=60/RED.bpm/4, sn=mSN(), race=lv===2, K=race?M.key:0, fm=M.fm;
+  const pn=(sn==='final'||sn==='outro')?'chorus':(RED.prog[sn]?sn:'verse'), cn=RCH[RED.prog[pn][(race?M.secBar:M.bar)%4]], sb=race?M.secBar:M.bar;
+  const tri=cn.t.map(n=>n+K), bass=cn.b+K, drop=mDrop(); M.tri=tri;
+  // drums
+  const dk=sn==='final'?RED.drums.final:(sn==='chorus'?RED.drums.chorus:RED.drums.verse);
+  if(race&&!drop){
+    let k=dk.k, sr=dk.s, h=dk.h;
+    if(sn==='build'){ k='x...x...x...x...'; sr=(sb%4===3)?'..S.S.S.SsSsSsSs':(sb%4===2?'....S...S...S.S.':'....S.......S...'); h='xxxxxxxxxxxxxxxx'; }
+    if(mHit(k,s)==='x') mDrum.kick(t,.9);
+    const sc=mHit(sr,s); if(sc==='S') mDrum.snare(t,.34); else if(sc==='s') mDrum.snare(t,.16); else if(sc==='g') mDrum.snare(t,.08);
+    const hc=mHit(h,s); if(hc!=='.') mDrum.hat(t,hc==='O'?.07:(s%4===0?.07:.035),hc==='O');
+    if(sn==='final'&&s===0&&sb>0&&sb%2===0) mDrum.crash(t);
+    if(sn==='final'&&s>=14&&sb%4===3) mDrum.snare(t,.2);
+  } else if(race&&sn==='break'){ if(s===0) mDrum.kick(t,.7); if(s===8) mDrum.kick(t,.5); if(s%4===2) mDrum.hat(t,.03,false); }
+  else if(lv===1){ if(s%4===0) mDrum.kick(t,.6); if(s%2===0) mDrum.hat(t,s%4===2?.06:.03,false); }
+  else if(lv===0&&s%4===2) mDrum.hat(t,.025,false);
+  // guitars: palm-muted chugs and open power chords through the shared amp
+  if((race&&!drop)||lv===1){
+    let pat;
+    if(!race) pat='x.x.x.x.x.x.x.x.';
+    else if(sn==='verse') pat=RED.riff[sb%4];
+    else if(sn==='build') pat='x.x.x.x.x.x.x.x.';
+    else if(sn==='final') pat='X.X.X.X.X.X.X.X.';
+    else pat='X..X..X.X..X..X.';
+    const c=mHit(pat,s); if(c==='X') mGtr(t,cn.g,sp*(sn==='final'?1.8:2.4),.2,sn==='chorus'||sn==='final'?3600:2600); else if(c==='x') mGtr(t,cn.g,sp*.7,.16,race?900:700);
+  } else if(race&&sn==='break'&&s===0) mGtr(t,RCH.Em.g,sp*14,.1,1200);
+  // bass: pumping 8ths, octave jumps in the chorus; a long sub in the break
+  if(race&&sn==='break'){ if(s===0) mVoice(t,bass,sp*16,.1,['sawtooth','sine'],M.L.bass,{dets:[0,0],cut:450,atk:.02,rel:.3,sus:.7}); }
+  else if(race||lv===1){ if(s%2===0&&!(sn==='outro')){ const up=(sn==='chorus'||sn==='final')&&s%4===2?12:(s%8===6?12:0);
+    mVoice(t,bass+up,sp*1.7,s%4===0?.09:.12,['sawtooth','square','sine'],M.L.bass,{dets:[0,-6,0],cut:(race?1300:900)*fm,cutEnd:260,q:3,rel:.03}); } }
+  else if(s===0||s===8) mVoice(t,bass,sp*8,.1,['sawtooth','sine'],M.L.bass,{dets:[0,0],cut:500,atk:.02,rel:.2,sus:.6});
+  // pad: chord bed (gated in the menus)
+  if(sn!=='outro'){
+    if(s===0&&lv!==0) tri.forEach(n=>mVoice(t,n,sp*16,.035,['sawtooth'],M.L.pad,{dets:[-10,10],atk:sn==='break'?.8:.3,rel:.8,cut:(race?1500:900)*fm,q:.6}));
+    if(lv===0&&s%4===0) tri.forEach(n=>mVoice(t,n,sp*3,.03,['sawtooth'],M.L.pad,{dets:[-9,9],atk:.01,rel:.25,cut:1300,q:.6})); }
+  // arp: square pluck through the arp filter, 16ths in build/chorus/final, 8ths in verse 2 and the break
+  const tn=tri.concat([tri[0]+12]);
+  const a16=race&&!drop&&(sn==='build'||sn==='chorus'||sn==='final'), a8=(race&&(sn==='break'||(sn==='verse'&&M.secI>0)))||lv===1||lv===0;
+  if(a16||(a8&&s%2===0)) mVoice(t,tn[(s>>(a16?0:1))%4]+12,sp*(a16?.9:1.6),sn==='final'?.05:.04,['square'],M.arpF,{rel:.05,cut:7000});
+  // hook: the lead guitar in the chorus and final, soft triangle in the menus
+  if(race&&(sn==='chorus'||sn==='final')){ const hb=RED.hook[(M.secBar%8)];
+    hb.forEach(([st,n,len])=>{ if(st!==s) return;
+      mLead(t,n+K,sp*len*.95,.07,M.ldIn,{cut:3800,q:1.2,vib:22,types:['sawtooth','square']});
+      if(sn==='final') mLead(t,n+K-12,sp*len*.95,.04,M.ldIn,{cut:3000,types:['sawtooth']}); }); }
+  else if(lv===0){ const hb=RED.hook[M.bar%8]; hb.forEach(([st,n,len])=>{ if(st!==s) return; mVoice(t,n-12,sp*len,.07,['triangle'],M.L.lead,{atk:.03,rel:.5,cut:2200,sus:.7}); }); }
+  M.step++; if(M.step%16===0) M.bar++;
+}
+// ---- scheduler. Lookahead 120 ms. During the countdown the steps are stretched a few percent so a whole number of beats
+// lands the downbeat of bar 0 on the moment the race starts (the riser ends there, the crash + kick + boom fire at that exact time)
 function musicTick(){
   if(!M) return; const now=M.ctx.currentTime, sp=60/MT().bpm/4;
-  const vol=soundOn&&musicOn&&!document.hidden?MT().levels[Math.max(M.level,0)].out:0;
-  if(vol!==M.vol){ M.out.gain.setTargetAtTime(vol,now,.3); M.vol=vol; }
+  const inCd=mode==='race'&&countdown>0;
+  if(mode==='race') M.wasRace=true;
+  else if(M.wasRace&&mode!=='highlight'){ M.wasRace=false; M.goCommit=false;
+    if(mode==='results'&&player&&player.finished&&!EV.knockout){ const rt=$('#rTbl'); if(rt&&/new ghost,/.test(rt.textContent||'')){ musicCue('record'); say('New record'); } } // finishRace has just written the results table
+    mAutoAdvance(); }
+  if(M.vk<1&&performance.now()>M.vkT) M.vk=1;
+  const base=soundOn&&musicOn&&!document.hidden?MT().levels[Math.max(M.level,0)].out:0, vol=base*M.vk;
+  if(vol!==M.vol){ M.out.gain.setTargetAtTime(vol,now,M.vk<1?.08:.3); M.vol=vol; }
+  // speed opens the filters (km/h / 300), smoothed
+  if(mode==='race'&&player){ const k=clamp(player.v*3.6/300,0,1); M.spd+=(k-M.spd)*.08; } else M.spd*=.9;
+  M.fm=.7+.9*M.spd; const q=Math.round(M.spd*20); if(q!==M.spdQ){ M.spdQ=q; M.cab.frequency.setTargetAtTime(2800+2400*q/20,now,.2); }
   if(M.nextT<now) M.nextT=now+.05;
+  if(inCd&&!M.cd){ // countdown just began: fit whole beats between now and GO, restart the riser to end there
+    const goT=now+countdown-GO_LEAD, rem=Math.max(.8,goT-M.nextT), beats=Math.max(2,Math.round(rem/(sp*4)));
+    M.cd=true; M.goCommit=false; M.cdT0=now; M.cdC0=countdown; M.cdRate=1; M.cdSteps=beats*4; M.cdLeft=M.cdSteps; M.fin=0; M.lapSeen=0; M.final1=false; M.finalReq=false; M.vc=null;
+    mDrum.riser(M.nextT,rem-.05); }
+  if(!inCd&&M.cd){ M.cd=false; }
+  // how fast the game's countdown really runs (it is capped at 250 ms per frame, so hitching frames slow it): 1 normally
+  if(inCd&&now-M.cdT0>.5) M.cdRate=clamp((M.cdC0-countdown)/(now-M.cdT0),.15,1.1);
+  const goIn=inCd?Math.max(0,countdown-GO_LEAD)/(M.cdRate||1):0;
+  if(mode!=='race') M.goCommit=false;
+  mWatch();
+  if(voxOn&&inCd){ const c=Math.ceil(countdown-.6); if(c!==M.vc){ M.vc=c; say(c>0?String(c):'Go'); } }
   while(M.nextT<now+.12){
-    const lv=musicWanted(), cd=mode==='race'&&countdown>0;
+    let spx=sp;
+    if(M.cd&&!M.goCommit){
+      if(M.cdLeft<=0){ const away=now+goIn-M.nextT;
+        if(away>sp*3) M.cdLeft=Math.max(4,Math.round(away/(sp*4))*4); // the game's countdown is running slow (hitching frames): keep vamping the loading groove instead of dropping early
+        else { M.goCommit=true; mSetLevel(2,M.nextT); } }
+      if(!M.goCommit) spx=clamp((now+goIn-M.nextT)/M.cdLeft,sp*.6,sp*1.6);
+    }
+    const lv=musicWanted();
     if(lv!==M.level) mSetLevel(lv,M.nextT);
-    if(cd&&!M.cd) mDrum.riser(M.nextT,Math.max(countdown-.1,.5));
-    M.cd=cd; mStep(M.nextT); M.nextT+=sp;
+    mStep(M.nextT); M.nextT+=spx; if(M.cd&&!M.goCommit&&M.cdLeft>0) M.cdLeft--;
   }
 }
+if(DEV) window.AHDEV.music={
+  M:()=>M, themes:MUS_THEMES, order:MUS_ORDER, cue:musicCue, say, state:()=>({theme:musTheme,choice:musChoice,rot:musRot,level:M&&M.level,sec:M&&M.sec&&M.sec.n,secI:M&&M.secI,secBar:M&&M.secBar,key:M&&M.key,bar:M&&M.bar,vox:voxOn,cd:M&&M.cd,cdLeft:M&&M.cdLeft,go:M&&M.goCommit,fm:M&&+M.fm.toFixed(2),cues:M&&M.cues}),
+  setTheme:setMusicTheme, player:()=>player, laps, init:()=>initAudio(), ac:()=>AC, load:()=>{ initAudio(); startLoading(); }, ev:()=>EV, setSel:(i)=>{ sel=i; },
+  setMode:(m)=>{ mode=m; }, cd:(v)=>{ if(v!=null) countdown=v; return countdown; },
+  // offline render: plan = [{n:'chorus',bars:8}, {final:true,bars:8}, {lv:1,bars:2}...]; returns peak/rms per entry
+  async render(id,plan,opt){ opt=opt||{};
+    const sr=44100, def=MUS_THEMES[id].def, sp=60/def.bpm/4, bars=plan.reduce((a,p)=>a+p.bars,0), oc=new OfflineAudioContext(2,sr*Math.ceil(bars*16*sp+3.5),sr);
+    const cnt={osc:0,src:0}, co=oc.createOscillator.bind(oc), cb=oc.createBufferSource.bind(oc);
+    const sv={M,t:musTheme}; musTheme=id; M=null; musicInit(oc,oc.destination); const m=M; M.fake={pf:0,final:false,p:0,rate:0};
+    oc.createOscillator=()=>{ cnt.osc++; return co(); }; oc.createBufferSource=()=>{ cnt.src++; return cb(); };
+    M.out.gain.value=def.levels[2].out; M.fm=opt.fm||1; const mutes=opt.mute||[];
+    let t=.05, T0=t; const segs=[], lv0=plan[0].lv==null?2:plan[0].lv; mSetLevel(lv0,t);
+    for(const p of plan){ const lv=p.lv==null?2:p.lv; if(lv!==M.level) mSetLevel(lv,t);
+      mutes.forEach(k=>{ M.L[k].gain.cancelScheduledValues(0); M.L[k].gain.value=0; }); const f=M.fake; if(p.final){ f.final=true; f.pf=1; f.p=1; M.finalReq=true; } else { const i=p.n!=null?def.form.findIndex(x=>x.n===p.n&&(p.nth==null||x===def.form.filter(y=>y.n===p.n)[p.nth])):-1; f.final=false; f.pf=i<0?(p.pf||0):def.form[i].at+.0001; f.p=p.p!=null?p.p:f.pf*.6; }
+      if(p.p!=null) f.p=p.p;
+      const a=t; for(let i=0;i<p.bars*16;i++){ M=m; M.nextT=t; if(p.cue&&i===0) musicCue(p.cue); mStep(t); t+=sp; } segs.push({name:(p.final?'final':(p.n||('lv'+lv)))+(p.tag||''),a:a-T0,b:t-T0}); }
+    const buf=await oc.startRendering(); M=sv.M; musTheme=sv.t;
+    const d=buf.getChannelData(0), e=buf.getChannelData(1), res=segs.map(sg=>{ let pk=0,ss=0,n=0; for(let i=Math.floor((sg.a+T0)*sr);i<Math.floor((sg.b+T0)*sr);i++){ const a=Math.max(Math.abs(d[i]),Math.abs(e[i])); if(a>pk)pk=a; ss+=(d[i]*d[i]+e[i]*e[i])/2; n++; } return {seg:sg.name,secs:+(sg.b-sg.a).toFixed(1),peak:+pk.toFixed(3),rms:+Math.sqrt(ss/n).toFixed(4)}; });
+    let nan=0; for(let i=0;i<d.length;i++) if(!(d[i]===d[i])) nan++;
+    return {id,bpm:def.bpm,segs:res,oscs:cnt.osc,srcs:cnt.src,secs:+(bars*16*sp).toFixed(1),nan,oscPerSec:+(cnt.osc/(bars*16*sp)).toFixed(1)}; }
+};
 
 /* ---------------- RACERS ---------------- */
 let racers=[], player=null;
@@ -7411,7 +7893,7 @@ function addRacer(def,isP,dist,x,skill){
 let personaT=0, boardT=0;
 function standings(){ if(EV.knockout){ const on=racers.filter(r=>!r.out).sort((a,b)=>b.dist-a.dist), off=racers.filter(r=>r.out).sort((a,b)=>b.outAt-a.outAt); return on.concat(off); }
   return racers.slice().sort((a,b)=>(b.finished?1e9-b.finishT:b.dist)-(a.finished?1e9-a.finishT:a.dist)); }
-function persona(r,msg,force){ if(mode!=='race'||raceT<2) return; if(TAG&&player&&r.team===player.team) return; if(!force&&((r.tc||0)>raceT||personaT>raceT)) return; r.tc=raceT+11; personaT=raceT+3; toast(msg); }
+function persona(r,msg,force){ if(mode!=='race'||raceT<2||r.isP) return; if(TAG&&player&&r.team===player.team) return; if(!force&&((r.tc||0)>raceT||personaT>raceT)) return; r.tc=raceT+11; personaT=raceT+3; toast(msg); }
 function addLabel(g,text,color){
   const c=canvasTex(256,64,(x)=>{ x.font='800 30px "Arial Narrow",Arial,sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillStyle='rgba(4,6,10,.55)'; const w=Math.min(250,x.measureText(text).width+26); x.fillRect(128-w/2,12,w,40); x.fillStyle=color; x.fillText(text,128,33); });
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:CT(c),transparent:true,depthWrite:false})); sp.scale.set(2.8,.7,1); sp.position.set(0,2.3,0); g.add(sp); return sp; }
@@ -7480,6 +7962,85 @@ function moodPickup(r,p,M,s0,L){
   return v;
 }
 const VCAP=190; // hard ceiling, ~425 mph: stacked boosts can't run away past what the sim and camera handle
+/* ---------------- DRIFT TURBO + FLOW ----------------
+   Technique ported from ZER0-G (MIT, https://github.com/witnesstodark/zer0-g, experience/race.js: driftTier, the drift
+   block in fly(), turbo on release, flow build/loss in damage()). Retuned for street cars: hold the handbrake (X / Drift
+   pad) and steer at speed to throw the tail out; steering moves the slide angle (into the turn widens it, counter-steer
+   eases it), the slide costs about 5-6% speed, and the time held charges a turbo (tier 1 amber, 2 white, 3 hot pink)
+   that fires when you let go. A slide taken while nitro burns earns nothing; a wall hit cancels the charge.
+   FLOW: clean driving at speed (no wall, no car contact) raises the top speed a step at a time, up to +7%; a knock
+   takes it all away. Rivals keep r.drift=0 for now (the state is there for the rival brain to use later). */
+const DRIFT={tier:[.5,1.2,2.2], minV:20, endV:13, slow:.96, scrub:.006, bite:1.08, yaw:.42,
+  turbo:[0,.7,1.0,1.4], vk:[0,.035,.055,.08], acc:[0,7,10,14], kick:[0,1.2,2.2,3.4],
+  col:[0xffffff,0xffa53a,0xfff1dc,0xff3f8e], css:['#e8ecf2','#ffb347','#ffffff','#ff4f9a']};
+const FLOW={max:.07, steps:7, fill:14, minV:.55};
+function driftTier(r){ const t=r.driftT||0, T=DRIFT.tier; return t>T[2]?3:t>T[1]?2:t>T[0]?1:0; }
+function driftEnd(r,pay){ const tier=pay&&!(r.airT>.05)&&!r.driftNos?driftTier(r):0;
+  if(tier){ r.turbo=DRIFT.turbo[tier]; r.turboK=DRIFT.vk[tier]; r.turboA=DRIFT.acc[tier]; r.turboTier=tier; r.v+=DRIFT.kick[tier];
+    if(r.isP){ sfx.bov(.55+.15*tier); typeof musicCue==='function'&&musicCue('nitro'); } }
+  r.drift=0; r.driftT=0; r.driftNos=false; r.driftsN=(r.driftsN||0)+(tier?1:0); return tier; }
+function driftCancel(r){ if(!r.drift) return; driftEnd(r,false); r.driftLock=true; if(r.isP) r.driftBust=.9; }
+function flowStep(r,dt){
+  if(!r.isP||mode!=='race'){ r.flow=0; return; }
+  if(r._fh===undefined) r._fh=r.hits;
+  if(r.hits!==r._fh){ r._fh=r.hits; if(r.flow>.3&&r.isP) r.flowLost=1.2; r.flow=0; r.flowFull=false; return; }  // a knock takes it all
+  if(r.finished||raceT<(r.startDelay||0)) return;
+  if(r.v>r.def.top*FLOW.minV) r.flow=Math.min(1,(r.flow||0)+dt/FLOW.fill);
+  else if(r.v<r.def.top*.4) r.flow=Math.max(0,(r.flow||0)-dt/20);
+  if(r.flow>=1&&!r.flowFull){ r.flowFull=true; toast('In the flow. Top speed up.'); } if(r.flow<1) r.flowFull=false; }
+function flowBonus(r){ return r.isP?Math.floor((r.flow||0)*FLOW.steps+1e-6)/FLOW.steps*FLOW.max:0; }
+function driftStep(r,dt,inp,nitro){
+  if(r.turbo>0) r.turbo=Math.max(0,r.turbo-dt);
+  if(r.driftBust>0) r.driftBust-=dt; if(r.flowLost>0) r.flowLost-=dt;
+  flowStep(r,dt);
+  const want=!!(inp&&inp.drift), st=inp?inp.steer:0, air=r.airT>.05;
+  if(!want) r.driftLock=false;
+  if(!r.drift){
+    if(want&&!r.driftLock&&Math.abs(st)>.3&&r.v>DRIFT.minV&&!air&&!(mode==='race'&&raceT<(r.startDelay||0))){
+      r.drift=Math.sign(st); r.driftAng=r.drift*.45; r.driftT=0; r.driftNos=false; r.vx+=r.drift*1.5; }  // the tail steps out
+    return; }
+  // steering moves the angle: into the slide widens it (to .9), letting go holds it near .55, counter-steer eases it (.2)
+  const target=r.drift*.55+st*.35, d=target-r.driftAng;
+  r.driftAng+=clamp(d,-2.6*dt,2.6*dt);
+  // nitro pressed mid-slide ends it with no turbo; a slide begun while nitro burns earns nothing until it's spent
+  if(nitro){ if(r.driftT>0&&!r.driftNos){ driftEnd(r,false); r.driftLock=true; return; } r.driftNos=true; } else { r.driftNos=false; r.driftT+=dt; }
+  if(!want||r.v<DRIFT.endV||air){ driftEnd(r,want?false:true); if(want) r.driftLock=true; }
+}
+// coloured tire sparks off the rear wheels while a drift is charged (own small Points so each spark keeps its tier colour)
+const DS=180, dsPos=new Float32Array(DS*3), dsCol=new Float32Array(DS*3), dsVel=new Float32Array(DS*3), dsLife=new Float32Array(DS);
+for(let i=0;i<DS;i++) dsPos[i*3+1]=-999;
+const dsGeo=new THREE.BufferGeometry(); dsGeo.setAttribute('position',new THREE.BufferAttribute(dsPos,3)); dsGeo.setAttribute('color',new THREE.BufferAttribute(dsCol,3));
+const dSparks=new THREE.Points(dsGeo,new THREE.PointsMaterial({size:.2,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,map:glowTex}));
+dSparks.frustumCulled=false; fxGroup.add(dSparks);
+let dsI=0; const dsC=new THREE.Color();
+function driftSparks(r,B,dt){ const tier=driftTier(r); if(!tier||r.driftNos) return;
+  const n=Math.random()<dt*60*(.5+.35*tier)?1+(tier>2?1:0):0; if(!n) return; dsC.setHex(DRIFT.col[tier]);
+  const pos=r.m.group.position;
+  for(let w=0;w<2;w++) for(let k=0;k<n;k++){ const i=dsI++%DS, sd=w?1:-1; dsLife[i]=.25+Math.random()*.3;
+    tmpV.copy(pos).addScaledVector(leftV,sd*(B.tr||1)).addScaledVector(headV,-(B.wb||1.4)); tmpV.y+=.12;
+    dsPos[i*3]=tmpV.x; dsPos[i*3+1]=tmpV.y; dsPos[i*3+2]=tmpV.z; dsCol[i*3]=dsC.r; dsCol[i*3+1]=dsC.g; dsCol[i*3+2]=dsC.b;
+    const out=-r.drift*(2+Math.random()*3);
+    dsVel[i*3]=-headV.x*(3+Math.random()*4)+leftV.x*out+(Math.random()-.5)*2; dsVel[i*3+1]=1+Math.random()*3; dsVel[i*3+2]=-headV.z*(3+Math.random()*4)+leftV.z*out+(Math.random()-.5)*2; }
+  dsGeo.attributes.color.needsUpdate=true; }
+function driftSparksStep(dt){ let live=false;
+  for(let i=0;i<DS;i++){ if(dsLife[i]<=0) continue; dsLife[i]-=dt; live=true;
+    if(dsLife[i]<=0){ dsPos[i*3+1]=-999; continue; }
+    dsVel[i*3+1]-=14*dt; dsPos[i*3]+=dsVel[i*3]*dt; dsPos[i*3+1]+=dsVel[i*3+1]*dt; dsPos[i*3+2]+=dsVel[i*3+2]*dt;
+    if(dsPos[i*3+1]<0) dsPos[i*3+1]=0; }
+  if(live) dsGeo.attributes.position.needsUpdate=true; }
+// HUD: a DRIFT chip with three tier pips over the speedo, TURBO while it burns, and a thin FLOW line under the nitro bar
+const DHUD={k:''};
+function driftHud(p){ const el=$('#hDrift'); if(!el) return;
+  const tier=p.drift?driftTier(p):0, fs=Math.floor((p.flow||0)*FLOW.steps+1e-6);
+  const st=p.drift?(p.driftNos?'d n':'d t'+tier):p.turbo>0?'b t'+(p.turboTier||1):p.driftBust>0?'x':'';
+  const key=st+'|'+fs+'|'+(p.flowLost>0?1:0);
+  if(key===DHUD.k) return; DHUD.k=key;
+  el.className='dch'+(st?' on '+st:'');
+  el.innerHTML=p.drift?`<b>${p.driftNos?'NO CHARGE':'DRIFT'}</b><i class="${tier>0?'on':''}"></i><i class="${tier>1?'on':''}"></i><i class="${tier>2?'on':''}"></i>`:p.turbo>0?'<b>TURBO</b>':p.driftBust>0?'<b>WALL. NO TURBO</b>':'';
+  const fl=$('#hFlow'); fl.style.width=(fs/FLOW.steps*100)+'%'; fl.parentNode.className='fw'+(fs?' on':'')+(fs>=FLOW.steps?' full':'')+(p.flowLost>0?' lost':'');
+  setT($('#hFlowT'),p.flowLost>0?'FLOW LOST':fs?`FLOW +${Math.round(fs/FLOW.steps*FLOW.max*100)}%`:''); }
+const dist0=(o,r,L)=>((o.dist-r.dist)%L+L*1.5)%L-L*.5; // signed gap along the track, wrapped
+const AV=[], AVd=[]; // scratch lists for the overtake scan in stepRacer (no per-frame garbage)
 function stepRacer(r,dt,inp){
   const d=r.def, W=TR.W, L=TR.L, G=d.grip*(r.fxGrip>0?(r.gripMul||1.45):1)*(EV.knockout&&KO?KO.gripMul:1)*levelGrip(r), shielded=(r.fxShield>0&&r.shieldMode!=='rear')||(r.fxGrip>0&&r.railsWall);
   frame(r.dist,F);
@@ -7490,7 +8051,7 @@ function stepRacer(r,dt,inp){
     const P=d.P||RIVALS[0].P, racing=mode==='race', evB=eventAiBias();
     const ka=kAhead(r.dist,Math.max(30,r.v*1.4));
     const kn=frame(r.dist+r.v*.6+12,F2).k;
-    const line=clamp(-kn*700,-5.2,5.2)*P.line*evB.line;
+    const line=lineAt(r.dist+r.v*.25)*P.line*evB.line; // baked racing line (bakeLine), sampled a little ahead
     let tx=line+r.off*P.offScale+Math.sin(r.wob+ghostT*.3)*P.wobble, gain=P.gain, bias=0, vF=1, wantN=false;
     const pl=racing&&player&&player!==r?player:null, gapP=pl?r.dist-pl.dist:0; // >0: I'm ahead of you
     let chasing=null;
@@ -7575,19 +8136,53 @@ function stepRacer(r,dt,inp){
       let bestP=null,bestSc=.4;
       for(const p of EV.pickups){ if(r.puCd&&r.puCd[EV.pickups.indexOf(p)]>ghostT) continue; const sc=scorePickup(r,{...p,cd:0},P,s0,L)+(M?moodPickup(r,p,M,s0,L):0); if(sc>bestSc){ bestSc=sc; bestP=p; } }
       if(bestP){ tx=bestP.x; puDD=((bestP.s-s0)%L+L)%L; } }
-    // avoidance: traffic always; other racers unless you're the one this persona is attacking
-    for(const o of racers.concat(traffic)){ if(o===r||o===chasing||(o.tr&&r.fxGhost>0)) continue; const dd=o.dist-r.dist, dx=o.x-r.x;
-      if(dd>0&&dd<(o.tr?26:15*(1-.45*D))&&Math.abs(dx)<2.8&&(o.tr||dd<puDD)){ tx=o.x+(o.x>0?-3.4:3.4); } }  // a pickup closer than the car ahead wins
+    // asymmetric rubber band (after ZER0-G race.js drive(), MIT: rivals far ahead of the human ease off, those behind
+    // push only a little). Street numbers: up to 13% off when well clear, at most ~3.5% push from behind, scaled by the
+    // persona's P.rubber and eased so it never jumps. It now sets the rival's top speed too (r.aiPace), not just corners.
+    let band=1; if(pl){ const g=r.dist-pl.dist; band=g>40?1-Math.min(.15,Math.min(.13,(g-40)*.0005)*P.rubber):g<-40?1+Math.min(.04,Math.min(.035,(-g-40)*.0003)*P.rubber):1; } // +-40 m dead zone: close fights are left alone
+    r.band=r.band===undefined?band:lerp(r.band,band,1-Math.exp(-dt*1.5));
+    const corner=aiCornerPlan(r,d,P,ka,turnHint,evB,r.band*(r.cls||1),vF,G,M);
+    if(corner.inApproach&&corner.lineShift) tx+=corner.lineShift;
+    // overtakes (ZER0-G race.js drive(), MIT): only cars ahead we're closing on; go round on the side with room inside
+    // the road, the side the line already favours first; no room, or already on its bumper: lift to its speed and wait.
+    // Traffic is always avoided. The persona's own target (chasing), Ghost Lane vs traffic and a pickup closer than
+    // the car ahead still win, as before.
+    const room=3, W2=W-2.2; let cap=0, need=0; AV.length=0; AVd.length=0;
+    for(let li=0;li<2;li++){ const arr=li?traffic:racers;
+      for(let oi=0;oi<arr.length;oi++){ const o=arr[oi]; if(o===r||o===chasing||o.out||(o.tr&&r.fxGhost>0)) continue;
+        const dd=((o.dist-r.dist)%L+L*1.5)%L-L*.5;
+        if(!o.tr&&dd>-5&&dd<6&&Math.abs(o.x-tx)<2.5){ const sd=Math.abs(r.x-o.x)>.2?Math.sign(r.x-o.x):(o.x>0?-1:1), x=o.x+sd*2.6; tx=Math.abs(x)<W2?x:o.x-sd*2.6; } // alongside: hold a car's width off it
+        if(dd<=.5) continue;
+        const closing=r.v-(o.v||0); if(!o.tr&&closing<=0) continue;
+        const see=o.tr?Math.min(90,Math.max(30,closing*1.6)):Math.min(45,Math.max(10,closing*1.8))*(1-.35*D);
+        if(dd>see||(!o.tr&&dd>=puDD)) continue;
+        AV.push(o); AVd.push(dd); } }
+    for(let n=0;n<AV.length;n++){ let j=-1; for(let i=0;i<AV.length;i++) if(AVd[i]>=0&&(j<0||AVd[i]<AVd[j])) j=i; // nearest first
+      const o=AV[j], dd=AVd[j], closing=Math.max(0,r.v-(o.v||0)); AVd[j]=-1; let blocked=false;
+      if(Math.abs(o.x-tx)<room){
+        const lim=o.tr?W-1.3:W2, side=EV.pillars?(Math.abs(r.x)>.4?Math.sign(r.x):(r.off>=0?1:-1)):0; // under the El: stay your side of the columns
+        const free=x=>x>-lim&&x<lim&&!(side&&(Math.sign(x)!==side||Math.abs(x)<2.9))&&!AV.some((q,i)=>q!==o&&Math.abs(AVd[i])<dd+14&&Math.abs(q.x-x)<room*.8);
+        const left=o.x-room, right=o.x+room, canL=free(left), canR=free(right);
+        if(canL&&(!canR||tx<o.x)) tx=left; else if(canR) tx=right;
+        else if(o.tr) tx=clamp(side?(side<0?Math.min(left,right):Math.max(left,right)):(o.x>0?left:right),-lim,lim); // traffic never makes it wait: take the wider side and squeeze
+        else blocked=true; }
+      if(blocked) AVd[j]=-2-dd; }  // remember it (negative) for the wait-behind check once the target is final
+    r.aiPace=(r.cls||1)*r.band; // read by the physics below (vmax): difficulty class x rubber band, and the lift-behind cap
     for(const h of slicks){ if(h.owner===r) continue; const dd=(((h.s-r.dist)%L)+L)%L;   // steer around oil
       if(dd<22&&Math.abs(h.x-r.x)<2.9) tx=h.x+(h.x>0?-3.4:3.4); }
     let xCap; if(EV.pads||EV.pillars||EV.crossing){ const lv=levelAI(r,tx); tx=lv.tx; xCap=lv.vCap; }
-    let rubber=1; if(pl) rubber=1+clamp((pl.dist-r.dist)/420,-.08,.1)*P.rubber;
-    const corner=aiCornerPlan(r,d,P,ka,turnHint,evB,rubber,vF,G,M);
-    if(corner.inApproach&&corner.lineShift) tx+=corner.lineShift;
     tx=clamp(tx,-W+1.4,W-1.4);
+    // wait behind: a racer with no room either side, or anything still in the way of the final target (the El's
+    // columns can veto a swerve) that we're about to reach before the steering gets us clear
+    for(let i=0;i<AV.length;i++){ const o=AV[i], dd=AVd[i]<-1?-2-AVd[i]:dist0(o,r,L), closing=Math.max(0,r.v-(o.v||0));
+      const inWay=Math.abs(o.x-tx)<2.1&&Math.abs(o.x-r.x)<2.1&&dd<4.5+closing*.2+closing*closing/64; // inside braking distance (~32 m/s2)
+      if(AIT.wait&&(AVd[i]<-1||inWay)){ const v=Math.max(6,(o.v||0)-.5); cap=cap?Math.min(cap,v):v;
+        if(inWay){ const gap=Math.max(.5,dd-4.6); need=Math.max(need,closing*closing/(2*gap)); } } }
+    r.aiWait=cap; r.aiCap=cap&&corner.vCurve?Math.min(cap,corner.vCurve):cap||corner.vCurve*1.02; // lift-behind cap and the corner curve: both just stop the throttle
     const ac=r.v*r.v*k*.5;
     steer=clamp(-ac/G+(tx-r.x)*gain-r.vx*.14+bias,-1,1);
     brakeAmt=corner.brake;
+    if(need>8) brakeAmt=Math.max(brakeAmt,clamp(need/40,.2,1)); // closing too fast on a car we can't pass: brake, not just lift
     if(xCap!==undefined&&r.v>xCap) brakeAmt=Math.max(brakeAmt,clamp((r.v-xCap)/10,.35,1));
     brake=brakeAmt>.12;
     const straight=Math.abs(ka)<.003&&r.v>38;
@@ -7606,15 +8201,16 @@ function stepRacer(r,dt,inp){
       else if(M.mood==='push') nitro=nitro||(straight&&r.nitro>bank);
       if(M.mood==='lead'&&r.nitro<bank&&!wantN) nitro=false; }
     if(r.burst>0) r.burst-=dt;
-    if(brake) nitro=false;
+    if(brake||(r.aiCap&&r.v>r.aiCap-1)) nitro=false; // no boosting into the back of a car we're waiting behind
     r._nos=nitro;
   }
   // digital steering: build lock at a steady rate, but let go and counter-steer quicker so corrections feel crisp
   r.steer=inp?lerp(r.steer,steer,1-Math.exp(-dt*(Math.abs(steer)<Math.abs(r.steer)||steer*r.steer<0?16:10))):steer;
   if(d.noBoost||r.fxJam>0) nitro=false;
+  driftStep(r,dt,inp,nitro);
   const cap=d.vcap||VCAP;
   const nosVmax=d.nosVmax||1.22, nosV=nitro?nosVmax*(r.fxWisp>0?1.1:1):1;
-  let vmax0=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1);
+  let vmax0=d.top*(r.koTop||1)*(EV.knockout&&KO&&!KO.done?KO.topMul:1)*nosV*(r.fxOver>0?(r.overMul||1.14):1)*(r.fxSling>0?1.3:1)*(1+flowBonus(r)); // flow first: the outlaw ceilings below are a max(), so they don't double up with it
   // outlaw ceilings: a storm window (own gem), running last, or a long clean streak
   let surge=0;
   if(r.fxTempest>0){ vmax0=Math.max(vmax0,d.sigTop); surge=55; }
@@ -7627,7 +8223,8 @@ function stepRacer(r,dt,inp){
     const cp=Math.pow(clamp(((r.clean||0)-4)/40,0,1),1.3);
     if(cp>0){ vmax0=Math.max(vmax0,lerp(d.top,d.cleanTop,cp)); surge=Math.max(surge,16*cp); }
     if(cp>=1&&!r.unres&&r.isP){ r.unres=true; toast('AUTOBAHN 63. Unrestricted.'); } if(cp<1) r.unres=false; }
-  const vmax=Math.min(cap,vmax0);
+  if(r.drift||r.turbo>0) vmax0*=(r.drift?DRIFT.slow:1)*(r.turbo>0?1+r.turboK:1);
+  const vmax=Math.min(cap,vmax0*(inp?1:(r.aiPace||1)),!inp&&r.aiCap?Math.max(r.aiCap,4):1e9); // [AI lane] class x rubber band pace, and the lift-behind cap (see the overtake block)
   let a=d.acc*Math.pow(Math.max(0,1-r.v/vmax),d.accCurve||1); if(r.v>vmax) a=r.v>cap?-60:-10;
   if(surge&&r.v<vmax) a+=surge*(1-r.v/vmax);
   const nosAcc=(d.nosAccMul||1)*(r.fxNosMul>0?1.35:1)*(r.fxWisp>0?1.12:1);
@@ -7635,6 +8232,7 @@ function stepRacer(r,dt,inp){
   if(r.fxOver>0) a+=5+(r.overAcc||0);
   if(r.towT>0&&r.towTarget){ const g=r.towTarget.dist-r.dist; if(g>8&&g<220) a+=16; else r.towT=0; }
   if(r.fxSling>0) a+=22;
+  if(r.turbo>0&&r.v<vmax) a+=r.turboA*Math.min(1,r.turbo/.3);
   if(TAG&&r.mateR&&!r.mateR.finished&&!r.finished){ const m=r.mateR, g=m.dist-r.dist; // teammates pull each other along
     if(g>3&&g<26&&Math.abs(m.x-r.x)<2.2){ r.draft=Math.max(r.draft,6.5); r.nitro=Math.min(Math.max(1,r.nitro),r.nitro+.1*dt); r.teamDraft=raceT+.3; } }
   if(r.draft>0){ a+=r.draft; r.draft=0; }
@@ -7649,10 +8247,13 @@ function stepRacer(r,dt,inp){
   ['fxLong','fxOver','fxSling','fxShield','fxGrip','fxRegen','fxNosMul','fxWisp','fxEcho','towT','fxTempest','mantisT','fxJam','fxGhost'].forEach(k=>{ if(r[k]>0) r[k]-=dt; });
   const ac=r.v*r.v*k*.5;
   const latDamp=inp?2.7:3.2, vSteer=inp?17:18, steerMul=inp?1.05:1;
-  const sa=r.steer*G*Math.min(1,r.v/vSteer)*steerMul;
-  r.vx+=(sa+ac-r.vx*latDamp)*dt;
+  // drift: the slide angle, not the wheel, turns the car (it keeps turning with the wheel straight), on looser rear grip
+  const sa=r.drift?G*DRIFT.bite*r.driftAng*Math.min(1,r.v/vSteer):r.steer*G*Math.min(1,r.v/vSteer)*steerMul;
+  r.vx+=(sa+ac-r.vx*(r.drift?latDamp*.7:latDamp))*dt;
+  if(r.drift) r.v-=r.v*DRIFT.scrub*Math.abs(r.driftAng)*dt;
   r.x+=r.vx*dt;
   r.lat=clamp((Math.abs(ac)-G*.72)/(G*.4),0,1)*(r.v>30?1:0); r.brk=brakeAmt;
+  if(r.drift) r.lat=Math.max(r.lat,.55+.45*Math.min(1,Math.abs(r.driftAng)/.8)); // lays tire marks and drives the squeal voice
   r.slip=r.lat + (brake&&r.v>35?.6:0);
   if(r.fxGrip>0&&r.noScrub) r.slip*=.3;
   const regenMul=d.nitroRegenMul!==undefined?d.nitroRegenMul:1;
@@ -7660,7 +8261,7 @@ function stepRacer(r,dt,inp){
   r.nitro=d.noBoost?0:Math.min(Math.max(1,r.nitro),r.nitro+regen);
   const lim=W-1.1; r.hitCd-=dt;
   if(Math.abs(r.x)>lim){ const sd=Math.sign(r.x); r.x=sd*lim;
-    if(r.hitCd<=0&&Math.abs(r.vx)>3){ if(!shielded){ r.v*=1-clamp(Math.abs(r.vx)/60,.04,.12); r.hits++; } r.hitCd=.35; // a glancing scrape costs less than a square hit
+    if(r.hitCd<=0&&Math.abs(r.vx)>3){ driftCancel(r); if(!shielded){ r.v*=1-clamp(Math.abs(r.vx)/60,.04,.12); r.hits++; } r.hitCd=.35; // a glancing scrape costs less than a square hit
       if(r.isP){ shake=shielded?.25:.7; sfx.hit(); }
       tmpV.copy(F.p).addScaledVector(F.r,r.x+sd*1); tmpV.y+=.4; emitSparks(tmpV,F.t,26,r.v*.25); }
     else if(Math.random()<.5){ tmpV.copy(F.p).addScaledVector(F.r,r.x+sd*1); tmpV.y+=.4; emitSparks(tmpV,F.t,2,r.v*.2); if(!shielded) r.v*=1-.25*dt; }
@@ -7716,8 +8317,10 @@ function poseAt(g,dist,x,yaw,vx){
 }
 function poseRacer(r,dt){
   r.yaw=Math.atan2(r.vx,Math.max(r.v,4))+r.slip*.12*Math.sign(r.vx||r.steer);
-  poseAt(r.m.group,r.dist,r.x,r.yaw,r.vx);
+  r.driftVis=lerp(r.driftVis||0,r.drift?r.driftAng*.62:0,1-Math.exp(-dt*(r.drift?10:6))); // the body swung past its path (camera keeps r.yaw)
+  poseAt(r.m.group,r.dist,r.x,r.yaw+r.driftVis,r.vx);
   skidStep(r,BODIES[r.def.body||'wedge']);
+  if(r.drift&&dt>0) driftSparks(r,BODIES[r.def.body||'wedge'],dt);
   if(EV.airtime&&r.hy!==undefined){ r.m.group.position.y=r.hy; if(r.airT>0) r.m.group.rotateX(-clamp(r.vy/Math.max(r.v,10),-.35,.35)*.6); }
   // weight transfer: the body squats under power and dives under braking (smoothed so hits don't snap it)
   if(dt>0){ const la=(r.v-(r.pv===undefined?r.v:r.pv))/dt; r.accS=lerp(r.accS||0,clamp(la,-45,35),1-Math.exp(-dt*7)); if(!(r.airT>0)) r.m.group.rotateX(clamp(-r.accS*.0007,-.018,.026)); } r.pv=r.v;
@@ -7726,7 +8329,7 @@ function poseRacer(r,dt){
   r.m.wheels.forEach(w=>w.rotation.x+=r.v*dt/.37);
   r.m.steers.forEach(s=>s.rotation.y=-r.steer*.35);
   if(r.bubble){ const on=r.fxShield>0; r.bubble.visible=on; if(on){ const k=1+Math.sin(ghostT*9)*.05; r.bubble.scale.set(1.55*k,1.05*k,2.9*k); } }
-  if(r.slip>.35&&Math.random()<r.slip*.9){ tmpV.copy(r.m.group.position).addScaledVector(headV,-1.6); tmpV.y+=.4; emitSmoke(tmpV); }
+  if(r.slip>.35&&Math.random()<r.slip*(r.drift?.6:.9)){ tmpV.copy(r.m.group.position).addScaledVector(headV,-1.6); tmpV.y+=.4; emitSmoke(tmpV); }
   if(LOOK.wet&&r.v>28&&Math.random()<dt*9*(r.v/60)){ tmpV.copy(r.m.group.position).addScaledVector(headV,-2.6); tmpV.y+=.25; emitSmoke(tmpV,.6); } // spray off wet tires
   r.stage=speedStage(r);
   if(r.rig&&r.rig.beamM){ const k=(LOOK.wet?1.25:1)*(LOOK.lightsOut?1.9:1); r.rig.beamM.opacity=STAGE.beam[r.stage]*k; r.rig.coneM.opacity=STAGE.cone[r.stage]*k; }
@@ -7901,7 +8504,7 @@ function updateFx(dt,focus){ if(skDirty){ skGeo.attributes.position.needsUpdate=
     if(spLife[i]<=0){ spPos[i*3+1]=-999; continue; }
     spVel[i*3+1]-=18*dt; spPos[i*3]+=spVel[i*3]*dt; spPos[i*3+1]+=spVel[i*3+1]*dt; spPos[i*3+2]+=spVel[i*3+2]*dt;
     if(spPos[i*3+1]<0){ spPos[i*3+1]=0; spVel[i*3+1]*=-.3; } }
-  spGeo.attributes.position.needsUpdate=true;
+  spGeo.attributes.position.needsUpdate=true; driftSparksStep(dt);
   if(swT>0){ swT-=dt; const k=1-Math.max(0,swT)/.7; swRing.scale.setScalar(1+k*34); swRing.material.opacity=Math.max(0,swT/.7)*.9; } else { swT=0; swRing.material.opacity=0; }
   if(boltT>0){ boltT-=dt; bolt.material.opacity=Math.max(0,boltT/.45)*(Math.random()<.7?1:.3); bolt.scale.x=bolt.scale.z=.6+Math.random()*.8; } else bolt.material.opacity=0;
   smokes.forEach(o=>{ if(o.life<=0) return; o.life-=dt; o.s.scale.multiplyScalar(1+dt*2.2); o.s.material.opacity=Math.max(0,o.life*.5); o.s.position.y+=dt*.6; if(o.life<=0) o.s.visible=false; });
@@ -7918,7 +8521,7 @@ function updateFx(dt,focus){ if(skDirty){ skGeo.attributes.position.needsUpdate=
 
 /* ---------------- INPUT ---------------- */
 const keys={};
-const pads={left:false,right:false,brake:false,nitro:false};
+const pads={left:false,right:false,brake:false,nitro:false,drift:false};
 addEventListener('keydown',e=>{ keys[e.code]=true;
   if(mode==='select'&&e.code==='KeyI'){ sheetOpen?closeSheet():openSheet(); }
   if(mode==='select'){ if(e.code==='ArrowRight') turn(1); if(e.code==='ArrowLeft') turn(-1); if(e.code==='Enter') openEvents(); if(e.code==='KeyV') openShowcase(); }
@@ -7938,7 +8541,7 @@ document.querySelectorAll('.pad').forEach(b=>{
 });
 function readInput(){
   const l=keys.ArrowLeft||keys.KeyA||pads.left, r=keys.ArrowRight||keys.KeyD||pads.right;
-  return {steer:(r?1:0)-(l?1:0), brake:!!(keys.ArrowDown||keys.KeyS||pads.brake), nitro:!!(keys.Space||keys.ShiftLeft||keys.ShiftRight||pads.nitro)};
+  return {steer:(r?1:0)-(l?1:0), brake:!!(keys.ArrowDown||keys.KeyS||pads.brake), nitro:!!(keys.Space||keys.ShiftLeft||keys.ShiftRight||pads.nitro), drift:!!(keys.KeyX||pads.drift)};
 }
 
 /* ---------------- UI HELPERS ---------------- */
@@ -8125,12 +8728,16 @@ $('#gStart').onclick=()=>startGauntlet();
 $('#snd').onclick=()=>{ soundOn=!soundOn; $('#snd').textContent=soundOn?'Sound on':'Sound off'; };
 $('#mus').textContent=musicOn?'Music on':'Music off';
 $('#mus').onclick=()=>{ musicOn=!musicOn; SAVE.musicOff=!musicOn; persist(); $('#mus').textContent=musicOn?'Music on':'Music off'; };
-const trackLabel=()=>{ const b=$('#track'); if(b) b.textContent='Track: '+MUS_THEMES[musTheme].name; };
 trackLabel();
-if($('#track')) $('#track').onclick=()=>{ setMusicTheme(musTheme==='ice'?'night':'ice'); trackLabel(); };
+if($('#track')) $('#track').onclick=()=>{ const cyc=['auto'].concat(MUS_ORDER); setMusicTheme(cyc[(cyc.indexOf(musChoice)+1)%cyc.length]); };
+if($('#vox')){ if(typeof speechSynthesis==='undefined') $('#vox').style.display='none';
+  else { const vl=()=>{ $('#vox').textContent=voxOn?'Voice on':'Voice off'; }; vl();
+    $('#vox').onclick=()=>{ voxOn=!voxOn; SAVE.voxOn=voxOn; persist(); vl(); if(voxOn) say('Voice on'); else { try{ speechSynthesis.cancel(); }catch(e){} if(M) M.vk=1; } }; } }
 $('#glow').onclick=()=>{ glowOn=!glowOn; $('#glow').textContent=glowOn?'Glow on':'Glow off'; };
 if($('#look')){ const lookLabel=()=>{ $('#look').textContent='Look: '+(CLEAR?'Clear':'Cinematic'); document.body.classList.toggle('clear',CLEAR); };
   lookLabel(); $('#look').onclick=()=>{ CLEAR=!CLEAR; SAVE.look=CLEAR?'clear':'cine'; persist(); lookLabel(); }; }
+if($('#diff')){ const diffLabel=()=>{ $('#diff').textContent='Rivals: '+DIFF[diffId()].name; }; // ROOKIE / STREET / OUTLAW pace bands (see DIFF)
+  diffLabel(); $('#diff').onclick=()=>{ SAVE.diff=DIFF_ORDER[(DIFF_ORDER.indexOf(diffId())+1)%DIFF_ORDER.length]; persist(); diffLabel(); }; }
 $('#tap').onclick=()=>{ if(bootReady) enter(); };
 function bindTap(id,fn){ // fires on pointerup so a canvas swipe can't swallow the tap; click still covers keyboard (Enter/Space)
   const el=$(id); let tapT=0;
@@ -8235,7 +8842,8 @@ function startRace(){
     else if(n===7) spawnClassicSevenGrid();
     else spawnPersonaGrid(n);
   }
-  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.fxJam=r.fxGhost=r.clean=0; r._hits=r.hits; r.fxName={}; });
+  applyDifficulty();
+  personaT=0; boardT=0; resetPickups(); racers.forEach(r=>{ r.fxLong=r.fxOver=r.fxSling=r.fxShield=r.fxGrip=r.fxRegen=r.fxNosMul=r.fxWisp=r.fxEcho=r.towT=r.fxTempest=r.mantisT=r.fxJam=r.fxGhost=r.clean=0; r._hits=r.hits; r.drift=r.driftT=r.driftAng=r.driftVis=r.turbo=r.flow=r.driftsN=0; r._fh=r.hits; r.flowFull=r.driftLock=false; r.fxName={}; });
   if(EV.resetTraffic) EV.resetTraffic();
   const boss=racers.find(r=>!r.isP&&['overload','volcano','zephyr','hikari'].includes(r.def.chassisId));
   if(boss&&!EV.knockout) setTimeout(()=>{ if(mode!=='race') return; const id=boss.def.chassisId;
@@ -8255,11 +8863,13 @@ function finishRace(){
   const L=TR.L, est=r=>r.finished?r.finishT:raceT+(laps()*L-r.dist)/Math.max(r.v,30);
   const order=racers.slice().sort((a,b)=>est(a)-est(b));
   const place=order.indexOf(player)+1, t=player.finishT;
-  const h=hist(player.def.id); h.runs++; h.hits+=player.hits; if(place===1){ h.wins++; h.winAt=EV.name; }
-  if(!h.bestBy[EV.id]||t<h.bestBy[EV.id]) h.bestBy[EV.id]=t; h.last=place; persist();
+  const h=AUTO?{bestBy:{},hits:0}:hist(player.def.id); // ?auto runs never touch your record or your ghost
+  if(!AUTO){ h.runs++; h.hits+=player.hits; if(place===1){ h.wins++; h.winAt=EV.name; }
+  if(!h.bestBy[EV.id]||t<h.bestBy[EV.id]) h.bestBy[EV.id]=t; h.last=place; persist(); }
   let ghostMsg;
   const prev=ghostData;
-  if(!prev||t<prev.t){ try{ localStorage.setItem(ghostKey(),JSON.stringify({t:r2(t),car:player.def.id,s:ghostRec})); ghostMsg=prev?`new ghost, ${ (prev.t-t).toFixed(1)}s faster`:'saved as your ghost'; }catch(e){ ghostMsg='ghost not saved'; } }
+  if(AUTO) ghostMsg='autopilot run, nothing saved';
+  else if(!prev||t<prev.t){ try{ localStorage.setItem(ghostKey(),JSON.stringify({t:r2(t),car:player.def.id,s:ghostRec})); ghostMsg=prev?`new ghost, ${ (prev.t-t).toFixed(1)}s faster`:'saved as your ghost'; }catch(e){ ghostMsg='ghost not saved'; } }
   else ghostMsg=`ghost still ${ (t-prev.t).toFixed(1)}s ahead`;
   endGhost();
   const best=player.laps.length?Math.min(...player.laps):t;
@@ -8528,12 +9138,13 @@ function attractStep(dt){
 }
 // substep the physics so no car moves more than ~1.5 m per step: at 400+ mph a single 33 ms step is 6 m,
 // which made corner forces explode (wall-to-wall pinballing) and let cars tunnel through each other
+const AUTO=/[?&]auto\b/.test(location.search); // ?auto: the AI drives your car the whole race (attract mode, testing)
 function stepPhysics(sdt,inp){
   let vTop=0; racers.forEach(r=>{ if(!r.out&&r.v>vTop) vTop=r.v; });
   const nSub=clamp(Math.ceil(vTop*sdt/1.5),1,8), h=sdt/nSub;
   for(let si=0;si<nSub;si++){
     raceT+=h;
-    racers.forEach(r=>{ if(r.out) return; if(r.finished&&!r.isP){ r.v*=Math.pow(.99,1/nSub); } stepRacer(r,h,r.isP&&!r.finished?inp:(r.isP?{steer:0,brake:true,nitro:false}:null)); });
+    racers.forEach(r=>{ if(r.out) return; if(r.finished&&!r.isP){ r.v*=Math.pow(.99,1/nSub); } stepRacer(r,h,r.isP&&!r.finished&&!AUTO?inp:null); }); // autopilot: the rival brain drives the player after the flag (and from the start with ?auto)
     traffic.forEach(o=>stepTraffic(o,h));
     collide(); if(EV.knockout) koStep(h);
   }
@@ -8629,6 +9240,7 @@ function loop(now){
       if(TAG&&player.teamDraft>raceT) fx.push('<b style="color:#f4f7ff">Team draft</b>');
       if(player.airT>.15) fx.push(`<b style="color:#9fd3ff">Air ${player.airT.toFixed(1)}s</b>`);
       setH($('#hFx'),fx.join(''));
+      driftHud(player);
       draw(RS);
     }
   }

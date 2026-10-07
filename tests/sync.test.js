@@ -21,6 +21,7 @@ const SAME_NAME_PAIRS = [
   'kfCR',
   'frame',
   'makeTrack',
+  'bakeLine',
   'pickClearLane',
   'autoPickupSpots',
   'resolveEventForStart',

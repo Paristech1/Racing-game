@@ -31,12 +31,15 @@ After exporting a model from Blender run `tools/optimize_models.sh` (Node 22; it
 | Steer | ← → or A D | ◀ ▶ pads |
 | Brake | ↓ or S | Brake |
 | Boost | Space or Shift | Boost |
+| Drift (handbrake) | Hold X while steering; let go for a turbo | Drift (over Brake) |
 | Tag your partner (Tag Team) | T | Tag |
 | Turn pages (archive / events) | ← → | Swipe |
 | Spec sheet | I | Specs |
 | Confirm | Enter | Race this car / Race here |
 
 The car accelerates on its own. Boost refills over time, faster while you slide through corners or draft behind another car.
+
+**Drift turbo:** hold the handbrake while steering at speed and the tail steps out. Steering into the slide widens it and counter-steering eases it, and the slide costs about 5% speed. The longer you hold it, the more turbo you charge (the DRIFT chip over the speedo fills amber, white, then pink at about 0.5, 1.2 and 2.2 s). Let go and the turbo fires: up to about +8% speed for 1.4 s. A slide taken while nitro burns earns nothing, and touching a wall cancels the charge. **Flow:** clean driving at speed (no walls, no contact) adds up to +7% top speed, a step every two seconds, shown as a thin amber line under the boost bar. A knock takes it all away. (Drift turbo and flow are adapted from [ZER0-G](https://github.com/witnesstodark/zer0-g), MIT.)
 
 ## Events
 

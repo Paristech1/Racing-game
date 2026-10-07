@@ -20,6 +20,7 @@ import {
   maxRaceFieldSize,
   lerp,
   makeTrack,
+  bakeLine,
   mkFrame,
   NEW_PU_SPOTS,
   autoPickupSpots,
@@ -366,6 +367,26 @@ describe('makeTrack / frame', () => {
     const sumK = tr => tr.K.reduce((s, k) => s + k, 0);
     assert.ok(sumK(trCCW) > 0);
     assert.ok(sumK(trCW) < 0);
+  });
+
+  it('bakeLine leans to the inside of the coming turn, inside the road', () => {
+    // straight, then a long left-hand arc (CCW seen from above), then back: sample lots of points
+    const pts = [];
+    for (let i = 0; i < 200; i++) pts.push(new Vec3(i * 2, 0, 0));                 // 400 m straight along +x
+    for (let i = 0; i < 100; i++) { const a = (i / 100) * Math.PI; pts.push(new Vec3(400 + 60 * Math.sin(a), 0, -60 + 60 * Math.cos(a))); }
+    for (let i = 0; i < 200; i++) pts.push(new Vec3(400 - i * 2, 0, -120));
+    for (let i = 0; i < 100; i++) { const a = (i / 100) * Math.PI; pts.push(new Vec3(-60 * Math.sin(a), 0, -120 + 60 * (1 - Math.cos(a)))); }
+    const tr = makeTrack(pts, 9, 0);
+    const line = bakeLine(tr);
+    assert.equal(line.length, tr.N);
+    let maxAbs = 0; for (const v of line) { assert.ok(Number.isFinite(v)); maxAbs = Math.max(maxAbs, Math.abs(v)); }
+    assert.ok(maxAbs <= 9 - 1.8 + 1e-6);
+    // in the first arc, K is positive (left) and the inside is -x (left of R), so the line sits negative there
+    const iArc = 250;
+    assert.ok(tr.K[iArc] > 0, 'arc is a left turn');
+    assert.ok(line[iArc] < -1, `line ${line[iArc]} should be on the inside (negative)`);
+    // and it starts moving in before the turn
+    assert.ok(line[195] < 0);
   });
 
   it('wraps multi-lap distance (e.g. 3.5 laps)', () => {

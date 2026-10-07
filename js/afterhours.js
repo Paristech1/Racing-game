@@ -8525,6 +8525,7 @@ function updateFx(dt,focus){ if(skDirty){ skGeo.attributes.position.needsUpdate=
 const keys={};
 const pads={left:false,right:false,brake:false,nitro:false,drift:false};
 addEventListener('keydown',e=>{ keys[e.code]=true;
+  if(e.repeat&&(e.code==='ArrowLeft'||e.code==='ArrowRight')) return;
   if(mode==='select'&&e.code==='KeyI'){ sheetOpen?closeSheet():openSheet(); }
   if(mode==='select'){ if(e.code==='ArrowRight') turn(1); if(e.code==='ArrowLeft') turn(-1); if(e.code==='Enter') openEvents(); if(e.code==='KeyV') openShowcase(); }
   if(mode==='showcase'){ if(e.code==='ArrowRight') turnShowcase(1); if(e.code==='ArrowLeft') turnShowcase(-1); if(e.code==='Enter') openEvents(); if(e.code==='Escape') backFromShowcase(); if(e.code==='KeyI'){ sheetOpen?closeSheet():openSheet(); } }
@@ -8547,6 +8548,19 @@ function readInput(){
 }
 
 /* ---------------- UI HELPERS ---------------- */
+let menuSceneGen=0, menuSceneRaf=0;
+function queueMenuScene(){
+  const gen=++menuSceneGen;
+  if(menuSceneRaf) return;
+  menuSceneRaf=requestAnimationFrame(()=>{
+    menuSceneRaf=0;
+    if(gen!==menuSceneGen){ queueMenuScene(); return; }
+    setEvent(EVI);
+    if(EVENTS[EVI].knockout) bindKoTrack(koMapI);
+    setupAttract(CARS[sel]);
+    try{ renderer.compile(RS,cam); }catch(err){}
+  });
+}
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id)); }
 function flash(strength,kind){ if(kind!==false&&window.AH_FX&&mode!=='race'&&mode!=='highlight'&&AH_FX.play(kind||'shutter')) return; const f=$('#flash'); /* menu changes: Shaders paper transition (js/ui-fx.js) when WebGPU is up, else the white flash */ f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0; }
 function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
@@ -8665,24 +8679,26 @@ function openEvents(){ initAudio(); closeSheet(); sel=page; const oc=ensureShowc
 function eventPageHtml(){ return `${EVI+1} <em>/ ${EVENTS.length}</em>`; }
 function renderEventRoster(){
   const el=$('#eRoster'); if(!el) return;
-  el.innerHTML=EVENTS.map((e,i)=>{
-    const tag=e.kick==='Tournament'?'Gauntlet':e.kick.replace('Event ','Ev ');
-    return `<button type="button" class="epick${i===EVI?' on':''}" data-i="${i}"><b>${esc(tag)}</b> ${esc(e.name)}</button>`;
-  }).join('');
-  el.querySelectorAll('.epick').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(i===EVI) return; EVI=i; sfx.page(); renderEvent(0,true); });
+  if(el.childElementCount!==EVENTS.length){
+    el.innerHTML=EVENTS.map((ev,i)=>{
+      const tag=ev.kick==='Tournament'?'Gauntlet':ev.kick.replace('Event ','Ev ');
+      return `<button type="button" class="epick" data-i="${i}"><b>${esc(tag)}</b> ${esc(ev.name)}</button>`;
+    }).join('');
+    el.querySelectorAll('.epick').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i; if(i===EVI) return; EVI=i; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95,false); renderEvent(0,true); });
+  }
+  el.querySelectorAll('.epick').forEach(b=>b.classList.toggle('on',+b.dataset.i===EVI));
 }
-function renderGridPicker(){
-  const el=$('#eGrid'), specs=$('#eSpecs'); if(!el) return;
-  if(EV.knockout){ el.style.display='none'; if(specs) specs.textContent=EV.specs||''; return; }
+function renderGridPicker(ev){
+  const e=ev||EV, el=$('#eGrid'), specs=$('#eSpecs'); if(!el) return;
+  if(e.knockout){ el.style.display='none'; if(specs) specs.textContent=e.specs||''; return; }
   el.style.display='';
-  const max=maxRaceFieldSize(), choices=fieldSizeChoices(max), cur=fieldSizeForEvent(EV);
-  if(specs) specs.textContent=formatEventSpecs(EV,cur);
+  const max=maxRaceFieldSize(), choices=fieldSizeChoices(max), cur=fieldSizeForEvent(e);
+  if(specs) specs.textContent=formatEventSpecs(e,cur);
   el.innerHTML=choices.map(n=>`<button type="button" class="${n===cur?'on':''}" data-n="${n}">${n>=max?'All':n}</button>`).join('');
-  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===fieldSizeForEvent(EV)) return; setFieldSizeForEvent(EV.id,n); sfx.page(); renderGridPicker(); });
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const n=+b.dataset.n; if(n===fieldSizeForEvent(e)) return; setFieldSizeForEvent(e.id,n); sfx.page(); renderGridPicker(e); });
 }
 function renderEvent(dir,force){
-  if(force||dir) { setEvent(EVI); setupAttract(CARS[sel]); try{ renderer.compile(RS,cam); }catch(err){} } // A3: build this city's shaders now, behind the page-turn flash, not on the first visible frame
-  const e=EV;
+  const e=EVENTS[EVI];
   $('#eHead').innerHTML=`<span class="k">${esc(e.kick)}</span><span>${esc(e.name)}</span>`;
   $('#eStamp').innerHTML='';
   $('#eNote').innerHTML=esc(e.note)+handArrow;
@@ -8691,12 +8707,12 @@ function renderEvent(dir,force){
   const recCar=(CARS.find(c=>c.id===g?.car)||CARS[0]).name;
   $('#eGhost').textContent=e.knockout?'No lap record — tournament mode.':(g?`Record: ${fmt(g.t)} · ${recCar}`:'No record yet — your first finish sets the time to beat.');
   $('#eTag').style.display=e.knockout?'none':'';
-  if(e.knockout) bindKoTrack(koMapI);
   $('#ePg').innerHTML=eventPageHtml();
   renderEventRoster();
-  renderGridPicker();
+  renderGridPicker(e);
   if(dir) animIn([['#eHead',''],['#eNote','d2'],['#eFoot','d1'],['#eStamp','d3'],['#eSpecs','d2'],['#eGrid','d2']],dir);
   modeT=0; shot=-1;
+  if(force||dir) queueMenuScene(); // 3D build/compile after copy paints so keys and taps feel instant
 }
 function turnEvent(dir){ EVI=(EVI+dir+EVENTS.length)%EVENTS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95,false); renderEvent(dir); }
 function renderGauntlet(){
@@ -8791,6 +8807,9 @@ function studioPtrMove(e){
     studioPtr.intent=Math.abs(dx)>Math.abs(dy)*1.45?'swipe':'orbit';
     if(studioPtr.intent==='orbit'){ const hit=$('#sStage'); if(hit) hit.classList.add('dragging'); }
   }
+  if(studioPtr.intent==='swipe'&&!studioPtr.swiped&&Math.abs(dx)>36&&Math.abs(dx)>Math.abs(dy)*1.2&&mode==='select'){
+    studioPtr.swiped=true; turn(dx<0?1:-1); return;
+  }
   if(studioPtr.intent!=='orbit') return;
   studioYaw=studioPtr.yaw-dx*.014;
   studioPitch=clamp(studioPtr.pitch-dy*.01,-.38,.28);
@@ -8798,11 +8817,11 @@ function studioPtrMove(e){
 }
 function studioPtrUp(e){
   if(!studioPtr||studioPtr.id!==e.pointerId) return;
-  const dx=e.clientX-studioPtr.x, dy=e.clientY-studioPtr.y, intent=studioPtr.intent;
+  const dx=e.clientX-studioPtr.x, dy=e.clientY-studioPtr.y, intent=studioPtr.intent, swiped=studioPtr.swiped;
   studioPtr=null;
   const hit=$('#sStage'); if(hit) hit.classList.remove('dragging');
   const horiz=Math.abs(dx)>36&&Math.abs(dx)>Math.abs(dy)*1.2;
-  if((intent==='swipe'||intent==null)&&horiz&&mode==='select') turn(dx<0?1:-1);
+  if(!swiped&&(intent==='swipe'||intent==null)&&horiz&&mode==='select') turn(dx<0?1:-1);
 }
 [canvas,$('#sStage')].forEach(el=>{ if(!el) return;
   el.addEventListener('pointerdown',studioPtrDown);

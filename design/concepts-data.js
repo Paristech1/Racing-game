@@ -70,5 +70,13 @@ window.AH_CONCEPTS=[
   {id:'issue-tabloid-neon',name:'Issue tabloid neon',tag:'Triple',pitch:'Tabloid masthead over magazine headline; neon stamp; cream footer with gradient bars.',
     notes:'<strong>Best if</strong> you cannot choose print vs editorial.'},
   {id:'neon-broadsheet-glass',name:'Neon broadsheet glass',tag:'Triple',pitch:'Neon broadsheet colors inside frosted margins; cream panel inset like a mounted clipping.',
-    notes:'<strong>Best if</strong> tear-off story framed by night-street UI.'}
+    notes:'<strong>Best if</strong> tear-off story framed by night-street UI.'},
+  {id:'harbor-soft-cockpit',name:'Harbor soft cockpit',tag:'Triple',pitch:'Soft glass dock; harbor cyan chips; amber gauge and bars in frosted card.',
+    notes:'<strong>Best if</strong> calm chrome with two-tone motorsport readouts.'},
+  {id:'wire-issue-glass',name:'Wire + issue + glass',tag:'Triple',pitch:'Magazine hero on ice-wire scene; glass footer keeps 3D neutral under the fold.',
+    notes:'<strong>Best if</strong> atmosphere above, readable panel below.'},
+  {id:'broadsheet-ice',name:'Broadsheet ice',tag:'Hybrid',pitch:'Full cream tear-off; tabloid header; ice-blue stat bars instead of black ink.',
+    notes:'<strong>Best if</strong> print metaphor with cold night palette.'},
+  {id:'tabloid-wire-soft',name:'Tabloid wire soft',tag:'Triple',pitch:'Tabloid masthead on scanline scene; soft glass dock; pink/cyan trimmed to footer only.',
+    notes:'<strong>Best if</strong> loud type, quiet chrome, controlled glow.'}
 ];

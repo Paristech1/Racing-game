@@ -153,4 +153,138 @@ a{color:inherit;text-decoration:none}
 [data-concept="neon-glass"] .m-hud-pos{color:#00ffc8;text-shadow:0 0 14px rgba(0,255,200,.5)}
 [data-concept="neon-glass"] .m-hud-spd b{color:#ff6eb8;text-shadow:0 0 18px rgba(255,74,158,.45)}
 
+/* glass + cockpit */
+[data-concept="glass-cockpit"] .m-tools{display:none}
+[data-concept="glass-cockpit"] .dock{display:flex!important;border-color:rgba(255,176,112,.35)}
+[data-concept="glass-cockpit"] .chiprow{display:flex!important}
+[data-concept="glass-cockpit"] .m-hl{margin-top:48px;font-size:28px}
+[data-concept="glass-cockpit"] .m-stamp{display:none}
+[data-concept="glass-cockpit"] .m-hand{display:none}
+[data-concept="glass-cockpit"] .m-foot{background:rgba(8,14,22,.55);backdrop-filter:blur(16px);border:1px solid rgba(255,176,112,.25);border-radius:16px}
+[data-concept="glass-cockpit"] .m-bar i{background:#ffb070}
+[data-concept="glass-cockpit"] .m-cta{background:#ffb070!important;color:#1a0e06!important;border-radius:12px}
+
+/* editorial + glass */
+[data-concept="editorial-glass"] .m-foot{background:rgba(10,14,20,.62);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);border-radius:16px;margin:0 12px 16px}
+[data-concept="editorial-glass"] .m-nav i{border-radius:10px}
+
+/* neon broadsheet */
+[data-concept="neon-broadsheet"] .m-foot{background:#ece8df;color:#101114}
+[data-concept="neon-broadsheet"] .m-specs,[data-concept="neon-broadsheet"] .m-cap{color:#333}
+[data-concept="neon-broadsheet"] .m-mast{color:#00ffc8;text-shadow:0 0 16px rgba(0,255,200,.35)}
+[data-concept="neon-broadsheet"] .m-stamp{background:#ff4a3d;color:#05070a;border:0;box-shadow:0 0 18px rgba(255,74,158,.4);mix-blend-mode:normal}
+[data-concept="neon-broadsheet"] .m-hand{color:#00ffc8}
+[data-concept="neon-broadsheet"] .m-bar i{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
+[data-concept="neon-broadsheet"] .m-cta{border:2px solid #00ffc8;color:#006b58!important;background:transparent!important}
+
+/* wire + cockpit */
+[data-concept="wire-cockpit"] .m-tools{display:none}
+[data-concept="wire-cockpit"] .chiprow{display:flex!important}
+[data-concept="wire-cockpit"] .chip{border-color:rgba(0,255,200,.5);color:#00ffc8}
+[data-concept="wire-cockpit"] .m-hl{font-size:26px;margin-top:44px;text-shadow:0 0 20px rgba(255,74,158,.25)}
+[data-concept="wire-cockpit"] .m-foot{border:1px solid rgba(0,255,200,.3);background:rgba(6,8,12,.75);border-radius:4px;margin:0 10px 14px}
+[data-concept="wire-cockpit"] .m-bar i{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
+[data-concept="wire-cockpit"] .m-cta{border:1px solid #00ffc8;color:#00ffc8!important;background:transparent!important}
+
+/* issue + neon accents */
+[data-concept="issue-neon"] .m-stamp{color:#ff6eb8;border-color:#ff4a9e;box-shadow:0 0 14px rgba(255,74,158,.3);mix-blend-mode:normal}
+[data-concept="issue-neon"] .m-hand{color:#00ffc8}
+[data-concept="issue-neon"] .m-bar i{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
+
+/* soft glass */
+[data-concept="soft-glass"] .m-tools{display:none}
+[data-concept="soft-glass"] .dock{display:flex!important;border-color:rgba(159,211,255,.25);box-shadow:none}
+[data-concept="soft-glass"] .m-mast{color:#d8e4f2;text-shadow:none}
+[data-concept="soft-glass"] .m-hl{margin-top:52px;text-shadow:none}
+[data-concept="soft-glass"] .m-foot{background:rgba(10,14,20,.62);backdrop-filter:blur(16px);border:1px solid rgba(159,211,255,.22);border-radius:16px}
+[data-concept="soft-glass"] .m-cta{background:linear-gradient(135deg,#e8f0ff,#9fd3ff)!important;color:#061018!important}
+
+/* Batch 2 — more hybrids */
+[data-concept="cockpit-broadsheet"] .m-top{align-items:flex-start;flex-direction:column;gap:6px;border-bottom:2px solid #f2f5f8}
+[data-concept="cockpit-broadsheet"] .m-mast{font-size:20px;letter-spacing:-.03em}
+[data-concept="cockpit-broadsheet"] .m-tools{width:100%;justify-content:flex-start;font-size:10px;border-top:1px solid rgba(255,255,255,.2);padding-top:6px}
+[data-concept="cockpit-broadsheet"] .m-tools{display:none}
+[data-concept="cockpit-broadsheet"] .chiprow{display:flex!important}
+[data-concept="cockpit-broadsheet"] .gauge{display:block!important}
+[data-concept="cockpit-broadsheet"] .m-hl{font-size:28px;margin-top:44px;font-stretch:75%}
+[data-concept="cockpit-broadsheet"] .m-stamp{top:24%;background:#ff4a3d;color:#05070a;border:0;mix-blend-mode:normal}
+[data-concept="cockpit-broadsheet"] .m-hand{display:none}
+[data-concept="cockpit-broadsheet"] .m-foot{background:#ece8df;color:#101114;margin:0;padding:16px 16px 20px}
+[data-concept="cockpit-broadsheet"] .m-specs,[data-concept="cockpit-broadsheet"] .m-cap{color:#333}
+[data-concept="cockpit-broadsheet"] .m-stats div{color:#444}
+[data-concept="cockpit-broadsheet"] .m-bar{background:rgba(0,0,0,.15)}
+[data-concept="cockpit-broadsheet"] .m-bar i{background:#ffb070}
+[data-concept="cockpit-broadsheet"] .m-cta{background:#101114!important;color:#ece8df!important}
+[data-concept="cockpit-broadsheet"] .m-nav i{border-color:rgba(0,0,0,.35);color:#101114}
+
+[data-concept="issue-glass"] .m-tools{display:none}
+[data-concept="issue-glass"] .dock{display:flex!important}
+[data-concept="issue-glass"] .m-hl{font-stretch:62%;font-size:42px}
+[data-concept="issue-glass"] .m-foot{margin:0 12px 16px;background:rgba(10,14,20,.62);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.18);border-radius:16px}
+[data-concept="issue-glass"] .m-cta{border-radius:12px;background:#f2f5f8!important;color:#05070a!important}
+[data-concept="issue-glass"] .m-nav i{border-radius:10px;background:rgba(255,255,255,.06)}
+
+[data-concept="broadsheet-glass"] .m-top{align-items:flex-start;flex-direction:column;gap:6px;border-bottom:2px solid #f2f5f8}
+[data-concept="broadsheet-glass"] .m-mast{font-size:22px}
+[data-concept="broadsheet-glass"] .m-tools{width:100%;justify-content:flex-start;font-size:10px;border-top:1px solid rgba(255,255,255,.2);padding-top:6px;display:none}
+[data-concept="broadsheet-glass"] .dock{display:flex!important}
+[data-concept="broadsheet-glass"] .m-stamp{background:#ff4a3d;color:#05070a;border:0;mix-blend-mode:normal}
+[data-concept="broadsheet-glass"] .m-foot{margin:0 12px 16px;padding:14px;background:rgba(236,232,223,.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.35);border-radius:16px;color:#101114}
+[data-concept="broadsheet-glass"] .m-specs,[data-concept="broadsheet-glass"] .m-cap{color:#333}
+[data-concept="broadsheet-glass"] .m-stats div{color:#444}
+[data-concept="broadsheet-glass"] .m-bar i{background:#101114}
+[data-concept="broadsheet-glass"] .m-cta{background:#101114!important;color:#ece8df!important;border-radius:12px}
+
+[data-concept="soft-cockpit"] .m-tools{display:none}
+[data-concept="soft-cockpit"] .dock{display:flex!important;border-color:rgba(159,211,255,.25);box-shadow:none}
+[data-concept="soft-cockpit"] .chiprow{display:flex!important}
+[data-concept="soft-cockpit"] .chip{border-color:rgba(255,176,112,.45);color:#ffb070}
+[data-concept="soft-cockpit"] .m-hl{margin-top:48px;font-size:28px;text-shadow:none}
+[data-concept="soft-cockpit"] .m-stamp{display:none}
+[data-concept="soft-cockpit"] .m-hand{display:none}
+[data-concept="soft-cockpit"] .gauge{display:block!important}
+[data-concept="soft-cockpit"] .m-foot{background:rgba(10,14,20,.62);backdrop-filter:blur(16px);border:1px solid rgba(159,211,255,.22);border-radius:16px;margin:0 12px 16px}
+[data-concept="soft-cockpit"] .m-bar i{background:#ffb070}
+[data-concept="soft-cockpit"] .m-cta{background:#ffb070!important;color:#1a0e06!important;border-radius:12px}
+
+[data-concept="neon-soft"] .m-tools{display:none}
+[data-concept="neon-soft"] .dock{display:flex!important;border-color:rgba(0,255,200,.22);box-shadow:0 0 12px rgba(0,255,200,.06)}
+[data-concept="neon-soft"] .m-mast{color:#d8e4f2;text-shadow:0 0 10px rgba(0,255,200,.2)}
+[data-concept="neon-soft"] .m-hl{margin-top:52px;text-shadow:none}
+[data-concept="neon-soft"] .m-stamp{border-color:rgba(255,74,158,.55);color:#ffc0dc;box-shadow:0 0 10px rgba(255,74,158,.2);mix-blend-mode:normal}
+[data-concept="neon-soft"] .m-foot{background:rgba(10,14,20,.62);backdrop-filter:blur(16px);border:1px solid rgba(159,211,255,.22);border-radius:16px}
+[data-concept="neon-soft"] .m-bar i{background:linear-gradient(90deg,rgba(0,255,200,.7),rgba(255,74,158,.55))}
+[data-concept="neon-soft"] .m-cta{background:linear-gradient(135deg,#e8f0ff,#9fd3ff)!important;color:#061018!important}
+
+[data-concept="editorial-cockpit"] .m-tools{display:none}
+[data-concept="editorial-cockpit"] .chiprow{display:flex!important}
+[data-concept="editorial-cockpit"] .m-hl{font-stretch:62%;font-size:38px}
+[data-concept="editorial-cockpit"] .m-foot{background:rgba(6,8,12,.78);border:1px solid rgba(255,255,255,.12);margin:0 10px 14px;padding:12px;border-radius:4px}
+[data-concept="editorial-cockpit"] .m-stats div{text-align:center}
+[data-concept="editorial-cockpit"] .m-bar i{background:#ffb070}
+[data-concept="editorial-cockpit"] .m-cta{background:#ffb070!important;color:#1a0e06!important;border-radius:2px;flex:1;text-align:center}
+
+[data-concept="wire-broadsheet"] .scene{background:linear-gradient(180deg,#0a0018 0%,#020305 50%,#001018 100%)}
+[data-concept="wire-broadsheet"] .m-top{align-items:flex-start;flex-direction:column;gap:6px;border-bottom:2px solid rgba(0,255,200,.35)}
+[data-concept="wire-broadsheet"] .m-mast{font-size:20px;color:#00ffc8;text-shadow:0 0 16px rgba(0,255,200,.35)}
+[data-concept="wire-broadsheet"] .m-tools{display:none}
+[data-concept="wire-broadsheet"] .m-hl{text-shadow:0 0 20px rgba(255,74,158,.25)}
+[data-concept="wire-broadsheet"] .m-stamp{background:#ff4a3d;color:#05070a;border:0;mix-blend-mode:normal;box-shadow:0 0 14px rgba(255,74,158,.35)}
+[data-concept="wire-broadsheet"] .m-hand{color:#00ffc8}
+[data-concept="wire-broadsheet"] .m-foot{background:#ece8df;color:#101114;margin:0;padding:16px}
+[data-concept="wire-broadsheet"] .m-specs,[data-concept="wire-broadsheet"] .m-cap{color:#333}
+[data-concept="wire-broadsheet"] .m-bar i{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
+[data-concept="wire-broadsheet"] .m-cta{border:2px solid #00ffc8;color:#006b58!important;background:transparent!important}
+
+[data-concept="glass-tabloid"] .m-top{align-items:flex-start;flex-direction:column;gap:6px;border-bottom:2px solid #f2f5f8}
+[data-concept="glass-tabloid"] .m-mast{font-size:22px}
+[data-concept="glass-tabloid"] .m-tools{display:none}
+[data-concept="glass-tabloid"] .dock{display:flex!important}
+[data-concept="glass-tabloid"] .m-hl{font-stretch:50%;font-size:34px;margin-top:8px}
+[data-concept="glass-tabloid"] .m-stamp{background:#ff4a3d;color:#05070a;border:0;mix-blend-mode:normal}
+[data-concept="glass-tabloid"] .m-foot{background:#ece8df;color:#101114;margin:0 12px 16px;padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,.25);box-shadow:0 8px 32px rgba(0,0,0,.25)}
+[data-concept="glass-tabloid"] .m-specs,[data-concept="glass-tabloid"] .m-cap{color:#333}
+[data-concept="glass-tabloid"] .m-cta{background:#101114!important;color:#ece8df!important;border-radius:12px}
+[data-concept="glass-tabloid"] .m-nav i{border-color:rgba(0,0,0,.3);color:#101114;border-radius:10px}
+
 .hidden{display:none!important}

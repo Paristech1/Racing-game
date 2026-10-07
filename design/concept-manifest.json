@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "targetCount": 28,
+  "gallery": "/design/concepts.html",
+  "liveDeck": "/design/prototype.html",
+  "concepts": [
+    "issue",
+    "cockpit",
+    "glass",
+    "neon",
+    "neon-glass",
+    "broadsheet",
+    "glass-cockpit",
+    "editorial-glass",
+    "neon-broadsheet",
+    "wire-cockpit",
+    "issue-neon",
+    "soft-glass",
+    "cockpit-broadsheet",
+    "issue-glass",
+    "broadsheet-glass",
+    "soft-cockpit",
+    "neon-soft",
+    "editorial-cockpit",
+    "wire-broadsheet",
+    "glass-tabloid"
+  ]
+}

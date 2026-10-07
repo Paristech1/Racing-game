@@ -2,6 +2,8 @@
   "version": 1,
   "targetCount": 44,
   "gallery": "/design/concepts.html",
+  "slideshow": "/design/slides.html",
+  "grid": "/design/slides.html?grid=1",
   "liveDeck": "/design/prototype.html",
   "concepts": [
     "issue",

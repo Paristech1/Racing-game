@@ -12,7 +12,14 @@
 const FX = window.AH_FX = { ready: false, busy: false, play: () => false };
 
 const PAPER = '#f4f2ed';
+const PAPER_NG = '#0a1018'; // Neon + Glass: dark glass page curl
 const DUR = { peel: 620, shutter: 440 };
+const ngOn = () => document.body.classList.contains('ui-neon-glass');
+const ngFx = c => {
+  if (!c) return;
+  if (ngOn()) c.style.boxShadow = 'inset 0 0 100px rgba(0,255,200,.12), inset 0 0 40px rgba(255,74,158,.08)';
+  else c.style.boxShadow = '';
+};
 
 function canvasLayer(id) {
   const c = document.createElement('canvas');
@@ -34,12 +41,12 @@ async function boot() {
 
   const peelC = canvasLayer('fxPeel'), shutC = canvasLayer('fxShutter');
   const peel = await createShader(peelC, { components: [
-    { type: 'PagePeel', id: 'fx', props: { corner: 'bottom-right', amount: 0, radius: 0.16, shading: 0.5, highlight: 0.35, highlightSoftness: 0.15 },
-      children: [{ type: 'SolidColor', props: { color: PAPER } }] }
+    { type: 'PagePeel', id: 'fx', props: { corner: 'bottom-right', amount: 0, radius: 0.16, shading: 0.5, highlight: ngOn() ? 0.55 : 0.35, highlightSoftness: 0.15 },
+      children: [{ type: 'SolidColor', props: { color: ngOn() ? PAPER_NG : PAPER } }] }
   ] }, opts);
   const shutter = await createShader(shutC, { components: [
     { type: 'SliceWipe', id: 'fx', props: { progress: 0, angle: 0, sliceCount: 7 },
-      children: [{ type: 'SolidColor', props: { color: PAPER } }] }
+      children: [{ type: 'SolidColor', props: { color: ngOn() ? PAPER_NG : PAPER } }] }
   ] }, opts);
   if (!peel || !shutter) return;
   peel.pause(); shutter.pause();
@@ -52,13 +59,14 @@ async function boot() {
     catch (e) { FX.ready = false; return false; } // a dead GPU never blocks a menu change: the caller falls back to the CSS flash
     FX.busy = true;
     s.c.style.visibility = 'visible';
+    ngFx(s.c);
     const t0 = performance.now(), T = DUR[kind] || DUR.shutter;
     const step = now => {
       const k = Math.min(1, (now - t0) / T), e = 1 - Math.pow(1 - k, 3); // ease-out: fast cover, soft settle
       let ok = true;
       try { s.sh.update('fx', { [s.key]: e }); } catch (err) { ok = false; FX.ready = false; }
       if (ok && k < 1) requestAnimationFrame(step);
-      else { s.c.style.visibility = 'hidden'; try { s.sh.pause(); } catch (err) {} FX.busy = false; }
+      else { s.c.style.visibility = 'hidden'; ngFx(s.c); try { s.sh.pause(); } catch (err) {} FX.busy = false; }
     };
     requestAnimationFrame(step);
     return true;

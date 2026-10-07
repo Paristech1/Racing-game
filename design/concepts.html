@@ -17,8 +17,8 @@
     <p class="blurb">Five directions for car select + race HUD. Pick a concept, toggle Car / HUD, then tell us which lane to implement in the real game.</p>
     <div class="concepts" id="picks"></div>
     <p style="margin-top:20px;font-size:12px;color:rgba(242,245,248,.45);line-height:1.6">
-      <a href="/?deck=1">Live style deck</a> (boot → cars → events, real 3D)<br>
-      <a href="/">← Back to game</a>
+      <a href="prototype.html">Live prototype deck</a> (boot → cars → events, real 3D)<br>
+      <a href="index.html">All prototypes</a> · <a href="../">Game</a>
     </p>
   </aside>
   <main class="viewport">
@@ -83,6 +83,8 @@ const CONCEPTS=[
     notes:'<strong>Best if</strong> you want cleaner thumbs-first layout and less visual noise on small phones. Pairs well with bottom sheet specs you already have.'},
   {id:'neon',name:'Neon wire',tag:'Bold night',pitch:'Harbor-tunnel energy: cyan/magenta neon edges, scanline hint, glowing CTAs. Same structure, higher contrast and arcade-night personality.',
     notes:'<strong>Best if</strong> you want AFTERHOURS to feel more “street arcade” without changing layout. Watch accessibility (glow + thin type).'},
+  {id:'neon-glass',name:'Neon + Glass',tag:'Hybrid',pitch:'Glass dock pills and frosted footer card, but cyan/magenta neon glow on masthead, stamp, stat bars, and CTA. Arcade night without losing mobile-native chrome.',
+    notes:'<strong>Best if</strong> you want both: clean thumb layout <em>and</em> harbor-tunnel energy. Try on light cars (VANTA) and busy events (Neon Core).'},
   {id:'broadsheet',name:'Broadsheet tear-off',tag:'Print maximal',pitch:'Push the newspaper metaphor: masthead band, red stamp, cream “tear-off” footer with dark ink stats. 3D scene framed like a photo on the page.',
     notes:'<strong>Best if</strong> brand storytelling is the product. Strongest identity; footer is opaque so text always wins over the scene.'}
 ];
@@ -104,7 +106,7 @@ function applyConcept(){
   const c=CONCEPTS.find(x=>x.id===concept);
   phone.dataset.concept=concept;
   notesEl.innerHTML=c.notes;
-  const isGlass=concept==='glass', isCock=concept==='cockpit';
+  const isGlass=concept==='glass'||concept==='neon-glass', isCock=concept==='cockpit';
   glassDock.classList.toggle('hidden',!isGlass);
   glassDock.setAttribute('aria-hidden',isGlass?'false':'true');
   cockpitChips.classList.toggle('hidden',!isCock);
@@ -127,6 +129,7 @@ document.querySelectorAll('.tabrow button').forEach(b=>{
     applyConcept();
   });
 });
+if(location.hash.length>1) concept=location.hash.slice(1);
 renderPicks();
 applyConcept();
 </script>

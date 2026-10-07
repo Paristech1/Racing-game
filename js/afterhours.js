@@ -487,7 +487,7 @@ const CORNER_APPROACH={
  rabbit:{zone:70,late:.36,brakeMax:.52,carry:1.03,lineIn:1,vBonus:1.02,style:'early'},
  weaver:{zone:58,late:.5,brakeMax:.45,carry:1.07,lineIn:.9,vBonus:1.05,style:'momentum'}
 };
-const AIT={corner:4.5,win:40,brk:1,wait:1};
+const AIT={corner:9,win:40,brk:1.25,wait:1}; // corner 9: the braking planner only catches blind hairpins; it must never make rivals slower than the old pace
 /* |K| averaged over a window (AIT.win m), cached per track: what a car actually has to turn through. A short kink
    in the polyline reads sharp point by point but costs little; a long arc is what puts a car in the wall. */
 function kAvgOf(tr){ if(tr._kAvg&&tr._kAvgW===AIT.win) return tr._kAvg; const N=tr.N, h=Math.max(1,Math.round(AIT.win/2/tr.ds)), a=new Float32Array(N);
@@ -543,7 +543,7 @@ function aiCornerPlan(r,d,P,ka,turn,evB,rubber,vF,G,M){
    each class is a pace band and the grid spreads across it, quick cars at the front and slower ones at the back, with
    a little dice so the order isn't fixed. STREET is the old pace (about 1.0). The multiplier is r.cls, applied to a
    rival's top speed and corner targets in stepRacer. */
-const DIFF={rookie:{name:'Rookie',pace:[.87,.94]},street:{name:'Street',pace:[1,1.035]},outlaw:{name:'Outlaw',pace:[1.03,1.07]}};
+const DIFF={rookie:{name:'Rookie',pace:[.87,.94]},street:{name:'Street',pace:[1.03,1.07]},outlaw:{name:'Outlaw',pace:[1.08,1.13]}};
 const DIFF_ORDER=['rookie','street','outlaw'];
 function diffId(){ return DIFF[SAVE.diff]?SAVE.diff:'street'; }
 function applyDifficulty(){
@@ -6519,7 +6519,8 @@ TR=EV.track; RS.add(fxGroup);
 const studio=new THREE.Scene();
 studio.fog=new THREE.Fog(0x05070a,10,34);
 studio.background=new THREE.Color(0x05070a);
-studio.userData.bloom={strength:.4,radius:.4,threshold:.88}; studio.userData.lens={streak:.35,ghost:.5,halo:0,dirt:0,th:.06,tint:[.85,.9,1]}; // magazine studio: clean glass, a hint of streak
+studio.userData.bloom={strength:.45,radius:.42,threshold:.86}; studio.userData.lens={streak:.42,ghost:.55,halo:.15,dirt:0,th:.05,tint:[.45,.98,.92]}; // Neon + Glass: cyan streak, soft ghost
+studio.userData.grade={shadow:[.86,.94,1.06],high:[1.06,.9,1.1],sat:1.18,vig:.36,grain:.012,con:.14,lift:.01};
 const sHemi=new THREE.HemisphereLight(0xcfe0ff,0x0a0c10,.6); studio.add(sHemi);
 const sKey=new THREE.DirectionalLight(0xffffff,1.2); studio.add(sKey);
 const sRim=new THREE.DirectionalLight(0x9fc4ff,1.4); sRim.position.set(-4,3,-6); studio.add(sRim);
@@ -6658,8 +6659,10 @@ let composer=null, renderPass=null, bloomPass=null, flarePass=null, gradePass=nu
 /* LOOK: "Clear" (default) tones the haze down in every race: no grain, half bloom, thinner fog, neutral tint, lighter vignette and fringing.
    "Cinematic" keeps each level's authored look. The car-select studio always keeps its magazine grade. Saved in SAVE.look. */
 let CLEAR=SAVE.look!=='cine';
+const UI_NEON_GLASS=SAVE.ui!=='classic'; // Neon + Glass hybrid menus (CSS + grade shader + paper transitions)
 const CLR={bloom:.5,bloomR:.8,bloomT:.14,fog:.6,shadow:.15,high:.4,sat:.5,vig:.4,ca:.3,wet:.3};
 document.body.classList.toggle('clear',CLEAR);
+document.body.classList.toggle('ui-neon-glass',UI_NEON_GLASS);
 /* POST STACK (one MSAA scene pass, then): bloom (UnrealBloom, soft knee) -> lens pass (quarter-res: anamorphic streak, ghosts, halo,
    all read from the bloom's own blurred mips, no extra scene renders) -> grade (rain-on-lens refraction, radial speed blur with
    spectral chromatic aberration, flare + lens dirt, split tone, filmic contrast/lift, highlight shoulder, vignette, grain, dither, sRGB).
@@ -6692,10 +6695,10 @@ const FLARE_SHADER={uniforms:{t1:{value:null},t2:{value:null},t3:{value:null},t4
   }`};
 const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{value:0},uHit:{value:0},uWet:{value:0},
   uShadow:{value:new THREE.Vector3(.9,1,1.14)},uHigh:{value:new THREE.Vector3(1.1,1.02,.9)},uSat:{value:1.12},uVig:{value:.42},uGrain:{value:0},uTime:{value:0},
-  uCon:{value:.16},uLift:{value:.012},uCA:{value:1},tFlare:{value:null},tWide:{value:null},tDirt:{value:null},tDrops:{value:null},uFlare:{value:0},uDirt:{value:0},uRain:{value:0},uClock:{value:0},uAspect:{value:16/9}},
+  uCon:{value:.16},uLift:{value:.012},uCA:{value:1},tFlare:{value:null},tWide:{value:null},tDirt:{value:null},tDrops:{value:null},uFlare:{value:0},uDirt:{value:0},uRain:{value:0},uClock:{value:0},uAspect:{value:16/9},uMenuNeon:{value:0}},
   defines:{LENS:PHONE?0:1},
   vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader:`uniform sampler2D tDiffuse,tFlare,tWide,tDirt,tDrops; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime,uCon,uLift,uFlare,uDirt,uRain,uClock,uAspect,uCA;
+  fragmentShader:`uniform sampler2D tDiffuse,tFlare,tWide,tDirt,tDrops; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime,uCon,uLift,uFlare,uDirt,uRain,uClock,uAspect,uCA,uMenuNeon;
   uniform vec3 uShadow,uHigh; varying vec2 vUv;
   float h12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
   void main(){
@@ -6728,6 +6731,11 @@ const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{val
     vec3 p=sqrt(clamp(col,0.,1.)); col=mix(p,p*p*(3.-2.*p),uCon); col*=col; // filmic S-curve in perceptual space
     col=col*(1.-uLift)+uLift*shadowTint*.8; // printed-page blacks: a hair lifted and tinted, never crushed
     col*=1.-(uVig+uBoost*.1)*smoothstep(.38,.92,r*1.2);
+    if(uMenuNeon>.001){ // Neon + Glass menus: cyan edge wash, magenta on speculars (grade pass, not CSS)
+      float rim=1.-smoothstep(.12,.88,min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y))*2.);
+      col+=rim*vec3(.02,.11,.09)*uMenuNeon;
+      col+=pow(max(l-.45,0.),2.5)*vec3(.14,.03,.1)*uMenuNeon;
+      col+=vec3(.01,.04,.03)*uMenuNeon*sin(uTime*6.283+vUv.y*40.)*.5; }
     float gn=h12(gl_FragCoord.xy+fract(uTime)*317.)-.5;
     col+=gn*uGrain*(.35+.65*(1.-smoothstep(0.,.6,l)));
     gl_FragColor=LinearTosRGB(vec4(col,1.)); // perf: gamma folded in here, one full-screen pass fewer
@@ -6847,6 +6855,8 @@ function draw(scene){
   { const f=scene.fog; CULL.far=!f?Infinity:f.isFogExp2?(f.density>0?2.6/f.density:Infinity):f.far; cam.getWorldPosition(CULL_V); CULL.x=CULL_V.x; CULL.y=CULL_V.y; CULL.z=CULL_V.z; cam.getWorldDirection(CULL_V); CULL.fx=CULL_V.x; CULL.fy=CULL_V.y; CULL.fz=CULL_V.z; }
   const racing=mode==='race'&&!!composer&&glowOn; if(racing!==DRAW_RACING){ DRAW_RACING=racing; document.body.classList.toggle('racing',racing); } // CSS grain off while racing, shader grain instead
   if(gradePass){ const u=gradePass.uniforms, pl=mode==='race'&&player?player:null;
+    const menuNeon=UI_NEON_GLASS&&(mode==='boot'||mode==='select'||mode==='events'||mode==='showcase'||mode==='loading'||mode==='results'||mode==='gauntlet'||mode==='tagteam');
+    u.uMenuNeon.value=lerp(u.uMenuNeon.value,menuNeon?1:0,.08);
     u.uSpeed.value=lerp(u.uSpeed.value,pl?STAGE.blur[pl.stage||0]*.85:0,.06); u.uBoost.value=lerp(u.uBoost.value,pl&&pl.nosOn?1:0,.12);
     u.uHit.value=Math.min(1,shake); u.uWet.value=(LOOK.wet&&scene!==studio?1:0)*(clr?CLR.wet:1); u.uCA.value=clr?CLR.ca:1;
     const gd=scene.userData.grade||GRADE_DEF, sh=gd.shadow||GRADE_DEF.shadow, hi=gd.high||GRADE_DEF.high;
@@ -8137,9 +8147,9 @@ function stepRacer(r,dt,inp){
       for(const p of EV.pickups){ if(r.puCd&&r.puCd[EV.pickups.indexOf(p)]>ghostT) continue; const sc=scorePickup(r,{...p,cd:0},P,s0,L)+(M?moodPickup(r,p,M,s0,L):0); if(sc>bestSc){ bestSc=sc; bestP=p; } }
       if(bestP){ tx=bestP.x; puDD=((bestP.s-s0)%L+L)%L; } }
     // asymmetric rubber band (after ZER0-G race.js drive(), MIT: rivals far ahead of the human ease off, those behind
-    // push only a little). Street numbers: up to 13% off when well clear, at most ~3.5% push from behind, scaled by the
+    // push only a little). Retuned: at most 4% off when 60 m+ clear, up to 8% push from behind, scaled by the
     // persona's P.rubber and eased so it never jumps. It now sets the rival's top speed too (r.aiPace), not just corners.
-    let band=1; if(pl){ const g=r.dist-pl.dist; band=g>40?1-Math.min(.15,Math.min(.13,(g-40)*.0005)*P.rubber):g<-40?1+Math.min(.04,Math.min(.035,(-g-40)*.0003)*P.rubber):1; } // +-40 m dead zone: close fights are left alone
+    let band=1; if(pl){ const g=r.dist-pl.dist; band=g>60?1-Math.min(.04,(g-60)*.0002*P.rubber):g<-40?1+Math.min(.08,(-g-40)*.0005*P.rubber):1; } // +-40 m dead zone: close fights are left alone
     r.band=r.band===undefined?band:lerp(r.band,band,1-Math.exp(-dt*1.5));
     const corner=aiCornerPlan(r,d,P,ka,turnHint,evB,r.band*(r.cls||1),vF,G,M);
     if(corner.inApproach&&corner.lineShift) tx+=corner.lineShift;
@@ -9247,20 +9257,6 @@ function loop(now){
   audioTick(dt);
 }
 requestAnimationFrame(loop);
-if(window.AH_UI_DECK){
-  window.AH_UI_DECK_API={
-    get mode(){return mode},
-    get page(){return page},
-    get bootReady(){return bootReady},
-    enter, show, renderPage, openEvents, renderEvent, backToArchive,
-    setPage(i){ page=(i+CARS.length)%CARS.length; closeSheet(); if(mode!=='select'){ mode='select'; show('select'); } renderPage(0); },
-    setEvent(i){ EVI=(i+EVENTS.length)%EVENTS.length; sel=page; closeSheet(); if(mode!=='events'){ mode='events'; show('events'); } renderEvent(0,true); },
-    goBoot(){ TAG=null; closeSheet(); mode='boot'; show('boot'); },
-    goSelect(){ TAG=null; closeSheet(); mode='select'; show('select'); renderPage(0); },
-    skipBoot(){ bootReady=true; const t=$('#tap'), b=$('#bootbar'); if(t) t.classList.add('ready'); if(b) b.style.width='100%'; },
-    CARS, EVENTS
-  };
-}
 };
 /* bootstrap: the Blender-built models were already downloading (js/assets.js runs first); decode them, then start the game.
    Waits for every model so kits are there when an event is built, but only gives up after 8 s with NO new bytes (30 s cap). */

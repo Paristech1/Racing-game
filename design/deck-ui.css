@@ -16,6 +16,7 @@ body.ui-deck-active #uiDeck{display:flex}
 #uiDeck button.on{border-color:#9fd3ff;color:#9fd3ff}
 #uiDeck .deck-bar{height:2px;background:rgba(255,255,255,.15);pointer-events:none}
 #uiDeck .deck-bar i{display:block;height:100%;width:0;background:#9fd3ff;transition:width .35s ease}
+#uiDeck .deck-hint{margin:0;font-size:10px;font-weight:600;color:rgba(242,245,248,.4);pointer-events:none}
 
 body[data-ui-concept="cockpit"] #select .top .r,
 body[data-ui-concept="cockpit"] #events .top .r{display:none!important}
@@ -82,6 +83,48 @@ body[data-ui-concept="neon"] #events .nav button{border-color:rgba(255,74,158,.4
 body[data-ui-concept="neon"] #boot .mast{text-shadow:0 0 40px rgba(0,255,200,.25)}
 body[data-ui-concept="neon"] #boot .tap{border-color:#00ffc8;color:#00ffc8}
 
+/* Hybrid: glass dock layout + neon wire color */
+body[data-ui-concept="neon-glass"] #grain{opacity:.16}
+body[data-ui-concept="neon-glass"] #select::before,
+body[data-ui-concept="neon-glass"] #events::before{
+  background:linear-gradient(to bottom,rgba(0,8,12,.5) 0,transparent 26%,transparent 54%,rgba(0,0,0,.78) 76%,rgba(0,0,0,.9) 100%)}
+body[data-ui-concept="neon-glass"] #select .top,
+body[data-ui-concept="neon-glass"] #events .top{border:0}
+body[data-ui-concept="neon-glass"] #select .top .m,
+body[data-ui-concept="neon-glass"] #events .top .m{color:#00ffc8;text-shadow:0 0 20px rgba(0,255,200,.4)}
+body[data-ui-concept="neon-glass"] #select .top .r,
+body[data-ui-concept="neon-glass"] #events .top .r{
+  position:fixed;top:calc(env(safe-area-inset-top,0px) + 44px);left:12px;right:12px;z-index:22;
+  flex-wrap:nowrap;overflow-x:auto;gap:4px;padding:6px 8px;justify-content:flex-start;
+  background:rgba(6,12,18,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(0,255,200,.28);border-radius:999px;box-shadow:0 0 24px rgba(0,255,200,.08);
+  -webkit-overflow-scrolling:touch;color:#ff9ad0}
+body[data-ui-concept="neon-glass"] #select .top .r button,
+body[data-ui-concept="neon-glass"] #events .top .r button,
+body[data-ui-concept="neon-glass"] #select .top .r span{
+  flex:0 0 auto;padding:6px 10px;border-radius:999px;border:0;background:rgba(255,74,158,.12);font-size:10px;color:#ffc8e8}
+body[data-ui-concept="neon-glass"] #select .hl,
+body[data-ui-concept="neon-glass"] #events .hl{margin-top:52px;text-shadow:0 0 32px rgba(255,74,158,.25)}
+body[data-ui-concept="neon-glass"] #select .stamp{border-radius:10px;border-color:#ff4a9e;color:#ff6eb8;
+  background:rgba(255,74,158,.1);box-shadow:0 0 20px rgba(255,74,158,.3);mix-blend-mode:normal}
+body[data-ui-concept="neon-glass"] #select .hand{color:#00ffc8;text-shadow:0 0 12px rgba(0,255,200,.35)}
+body[data-ui-concept="neon-glass"] #select .stats i b,
+body[data-ui-concept="neon-glass"] #events .stats i b{background:linear-gradient(90deg,#00ffc8,#ff4a9e)}
+body[data-ui-concept="neon-glass"] #select .foot,
+body[data-ui-concept="neon-glass"] #events .foot{
+  left:12px;right:12px;padding:14px;background:rgba(8,14,22,.55);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(0,255,200,.22);border-radius:16px;box-shadow:0 0 40px rgba(0,255,200,.06),inset 0 1px 0 rgba(255,255,255,.06)}
+body[data-ui-concept="neon-glass"] #select .cta,
+body[data-ui-concept="neon-glass"] #events .cta{
+  border-radius:12px;background:linear-gradient(135deg,rgba(0,255,200,.25),rgba(255,74,158,.2))!important;
+  color:#eafffa!important;border:1px solid rgba(0,255,200,.55);box-shadow:0 0 28px rgba(0,255,200,.18)}
+body[data-ui-concept="neon-glass"] #select .nav button,
+body[data-ui-concept="neon-glass"] #events .nav button{border-radius:10px;background:rgba(255,74,158,.08);border-color:rgba(255,74,158,.4);color:#ff9ad0}
+body[data-ui-concept="neon-glass"] #events .epick.on{border-color:#00ffc8;color:#00ffc8;box-shadow:0 0 0 1px rgba(0,255,200,.4) inset,0 0 16px rgba(0,255,200,.15)}
+body[data-ui-concept="neon-glass"] #events .egrid button.on{border-color:#ff4a9e;color:#ff9ad0;box-shadow:0 0 0 1px rgba(255,74,158,.35) inset}
+body[data-ui-concept="neon-glass"] #boot .mast{text-shadow:0 0 36px rgba(0,255,200,.3)}
+body[data-ui-concept="neon-glass"] #boot .tap{border-radius:12px;border-color:#00ffc8;color:#00ffc8;background:rgba(0,255,200,.08);box-shadow:0 0 24px rgba(0,255,200,.12)}
+
 body[data-ui-concept="broadsheet"] #select .top,
 body[data-ui-concept="broadsheet"] #events .top{align-items:flex-start;flex-direction:column;gap:6px;border-bottom:2px solid #f2f5f8}
 body[data-ui-concept="broadsheet"] #select .top .m,
@@ -126,4 +169,9 @@ body[data-ui-concept="broadsheet"] #events .egrid button.on{border-color:#101114
 body[data-ui-concept="issue"] #select .top .r button{border:0;padding:4px 0}
 
 body[data-ui-concept] #boot .sub{opacity:.85}
+body[data-ui-concept="glass"] #boot .tap{border-radius:12px;background:rgba(159,211,255,.15);border-color:#9fd3ff}
+body[data-ui-concept="cockpit"] #boot .mast{font-size:clamp(40px,12vw,120px);letter-spacing:.08em}
+body[data-ui-concept="cockpit"] #boot .tap{border-color:#ffb070;color:#ffb070}
+body[data-ui-concept="broadsheet"] #boot .mast{font-stretch:50%}
+body[data-ui-concept="broadsheet"] #boot .tap{background:#ece8df;color:#101114;border:0}
 body.ui-deck-active .screen{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 72px)}

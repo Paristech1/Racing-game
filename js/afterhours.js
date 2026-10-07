@@ -564,6 +564,7 @@ function hist(id){ const h=SAVE[id]||(SAVE[id]={runs:0,wins:0,hits:0,last:0}); i
 const PHONE_TIER=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<700;
 const PRIM_DETAIL=PHONE_TIER?2:3;
 const CAR_BODY_DETAIL=PHONE_TIER?2:3; // lofted shells only (sculptBody / sculptCanopy / loftGeo)
+const SCULPT_NS_MIN=PHONE_TIER?48:64; // lift low-NS archive shells (needle/pulse2/volcano fallback were ~50) toward mid-tier density
 { const up=(n,min,max)=>n>=6?Math.min(max,Math.max(min,Math.round(n*PRIM_DETAIL))):n;
   // perf: caps trimmed (144 -> 64 round segments etc.). Past ~64 segments a cylinder edge is sub-pixel at race distance,
   // so this keeps the smooth look while cutting the vertex load on wheels, poles, arches and domes by up to half.
@@ -915,7 +916,8 @@ function profileGeo(pts,base,depth,bevel){
   const s=new THREE.Shape(); s.moveTo(base[0][0],base[0][1]);
   s.splineThru(pts.map(p=>new THREE.Vector2(p[0],p[1])));
   for(let i=1;i<base.length;i++) s.lineTo(base[i][0],base[i][1]);
-  const g=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel*.9,bevelSegments:4,steps:1,curveSegments:28});
+  const cs=Math.min(64,Math.round(28*CAR_BODY_DETAIL/3)), bs=Math.min(8,Math.round(4*CAR_BODY_DETAIL/3));
+  const g=new THREE.ExtrudeGeometry(s,{depth,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel*.9,bevelSegments:bs,steps:1,curveSegments:cs});
   g.translate(0,0,-depth/2); g.rotateY(-Math.PI/2); return g;
 }
 const tireM=new THREE.MeshStandardMaterial({color:0x0b0b0c,roughness:.92});
@@ -1056,7 +1058,7 @@ function kfCR(keys,z){ // Catmull-Rom through [z,value] keys
 function refineSection(pts){ const out=[]; for(let i=0;i<pts.length;i++){ out.push(pts[i]); if(i===pts.length-1) break;
     const a=pts[Math.max(0,i-1)], b=pts[i], c=pts[i+1], d=pts[Math.min(pts.length-1,i+2)];
     out.push([(-a[0]+9*b[0]+9*c[0]-d[0])/16,(-a[1]+9*b[1]+9*c[1]-d[1])/16]); } return out; } // Catmull-Rom at t=.5
-function loftGeo(stations){ if(CAR_BODY_DETAIL>1&&stations.length&&stations[0].pts.length<24) stations=stations.map(st=>({z:st.z,pts:refineSection(st.pts)}));
+function loftGeo(stations){ if(CAR_BODY_DETAIL>1&&stations.length&&stations[0].pts.length<32) stations=stations.map(st=>({z:st.z,pts:refineSection(st.pts)}));
   const S=stations.length, m=stations[0].pts.length, n=2*(m-1), pos=[], uv=[], idx=[];
   const ring=st=>st.pts.concat(st.pts.slice(1,-1).reverse().map(([x,y])=>[-x,y]));
   stations.forEach((st,i)=>{ ring(st).forEach(([x,y],j)=>{ pos.push(x,y,st.z); uv.push(j/n,i/(S-1)); }); });
@@ -1104,7 +1106,7 @@ function sculptBody(g,S,paint,K){
     const yb=kfCR(S.ybK,z)+.03*tn*tn, hs=kfCR(S.hwS,z)*taper, hl=Math.min(kfCR(S.hwL,z)*taper,hs-.08), yc=kfCR(S.ycK,z);
     const ay=Math.max(arch(z),yb+.16), ys=Math.max(kfCR(S.ysK,z),ay+.05), yf=lerp(Math.max(kfCR(S.yfK,z),ys+.06),Math.max(yc+.03,ys+.04),tn), ht=hs-(S.inset||.15);
     return {yb,hs,hl,yc,ay,ys,yf,ht}; };
-  const st=[], NS=Math.round((S.NS||48)*CAR_BODY_DETAIL);
+  const st=[], NS=Math.round(Math.max(S.NS||48,SCULPT_NS_MIN)*CAR_BODY_DETAIL);
   for(let i=0;i<NS;i++){ const z=S.Z0+(S.Z1-S.Z0)*i/(NS-1), c=sec(z);
     st.push({z,pts:[[0,c.yb],[c.hl*.9,c.yb],[c.hl,c.yb+.05],[c.hl,c.ay],[c.hs*.985,Math.max(c.ys-.08,c.ay+.02)],[c.hs,c.ys],[c.hs-.05,c.ys+.07],[c.ht,c.yf],[c.ht*.5,(c.yf+c.yc)/2+.015],[0,c.yc]]}); }
   K.add(loftGeo(st),paint);
@@ -1122,7 +1124,7 @@ function sculptBody(g,S,paint,K){
 }
 /* teardrop / bubble canopy with an optional roof skin and black window trim */
 function sculptCanopy(g,C,T,glass,roofM,K){
-  const dome=(z0,z1,a0,sc,lift)=>{ const st=[], NC=Math.round(22*CAR_BODY_DETAIL); for(let i=0;i<NC;i++){ const z=z0+(z1-z0)*i/(NC-1), cw=kfCR(C.cwK,z)*sc, top=kfCR(C.htK,z)*(1+(sc-1)*.5)+lift, base=T.yc(z)-.03;
+  const dome=(z0,z1,a0,sc,lift)=>{ const st=[], NC=Math.round(26*CAR_BODY_DETAIL); for(let i=0;i<NC;i++){ const z=z0+(z1-z0)*i/(NC-1), cw=kfCR(C.cwK,z)*sc, top=kfCR(C.htK,z)*(1+(sc-1)*.5)+lift, base=T.yc(z)-.03;
       const pts=[[0,a0>0?base+(top-base)*.55:base],[cw*Math.cos(a0),a0>0?base+(top-base)*Math.sin(a0):base]];
       for(let k=1;k<=5;k++){ const a=a0+(Math.PI/2-a0)*k/6; pts.push([cw*Math.cos(a)*(1-(C.tumble||.06)*Math.sin(a)),base+(top-base)*Math.pow(Math.sin(a),C.pow||.8)]); }
       pts.push([0,top]); st.push({z,pts}); } return loftGeo(st); };
@@ -1137,7 +1139,7 @@ function sculptCanopy(g,C,T,glass,roofM,K){
 function p1Shell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,def.rimGlow||0xffb040,.32);
   const WB=B.wb, WR=B.wr;
-  const T=sculptBody(g,{Z0:-2.3,Z1:2.22,WB,WR,NS:46,
+  const T=sculptBody(g,{Z0:-2.3,Z1:2.22,WB,WR,NS:58,
     hwS:[[-2.3,.9],[-2.0,.99],[-1.36,1.03],[-.8,.96],[-.25,.9],[.45,.92],[1.36,.98],[1.85,.95],[2.22,.86]],
     ysK:[[-2.3,.74],[-1.36,.76],[-.5,.62],[.5,.58],[1.36,.6],[1.85,.52],[2.22,.42]],
     yfK:[[-2.3,.92],[-1.7,.98],[-1.0,.94],[-.25,.84],[.6,.76],[1.3,.7],[1.75,.62],[2.05,.55],[2.22,.5]],
@@ -1187,11 +1189,27 @@ function p1Shell(g,def,B,paint,glass){
    Each Blender material name maps onto the game's own materials, so the car keeps the clear-coat paint, fresnel rim,
    carbon weave and blooming lamps the rest of the archive uses. Falls back to the procedural p1Shell if the file is missing. */
 const GLB_PARTS={}; // model key -> [{geo, key}] baked once, shared by every car built from it
+/* One pass of loop-style triangle splitting (4x tris) for hero GLBs that shipped sparse vs wisp/autobahn. Skipped on phones and LOD twins. */
+const GLB_DENSIFY_PASSES=PHONE_TIER?{}:{volcano:1,kage:1,overload:1};
+function subdivideCarGeometry(geo){
+  const pos=geo.attributes.position, uv=geo.attributes.uv, idx=geo.index; if(!idx) return geo;
+  const P=Array.from(pos.array), U=uv?Array.from(uv.array):null, I=Array.from(idx.array), edge=new Map();
+  const mid=(a,b)=>{ const key=a<b?a+','+b:b+','+a; if(edge.has(key)) return edge.get(key);
+    const k=P.length/3, ao=a*3, bo=b*3; P.push((P[ao]+P[bo])/2,(P[ao+1]+P[bo+1])/2,(P[ao+2]+P[bo+2])/2);
+    if(U){ const ua=a*2, ub=b*2; U.push((U[ua]+U[ub])/2,(U[ua+1]+U[ub+1])/2); }
+    edge.set(key,k); return k; };
+  const out=[];
+  for(let i=0;i<I.length;i+=3){ const a=I[i], b=I[i+1], c=I[i+2], ab=mid(a,b), bc=mid(b,c), ca=mid(c,a);
+    out.push(a,ab,ca, b,bc,ab, c,ca,bc, ab,bc,ca); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));
+  if(U) g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2)); g.setIndex(out); g.computeVertexNormals(); return g;
+}
 function glbParts(model,lod){ const L=lod&&(window.AH_MODELS_LOD||{})[model]; if(lod&&!L) return glbParts(model); // rivals: ~30% triangle twin (models/lod, loaded in the background); full model until it lands
   const ck=L?model+':lod':model; if(GLB_PARTS[ck]!==undefined) return GLB_PARTS[ck];
   const src=L||(window.AH_MODELS||{})[model]; if(!src) return null; // not loaded (yet): don't cache the miss, it may arrive after boot
-  src.updateMatrixWorld(true); const parts=[];
-  src.traverse(o=>{ if(!o.isMesh) return; const g=o.geometry.clone().applyMatrix4(o.matrixWorld), key=(o.material&&o.material.name||'PAINT').split('.')[0];
+  const densify=(!L&&GLB_DENSIFY_PASSES[model])||0; src.updateMatrixWorld(true); const parts=[];
+  src.traverse(o=>{ if(!o.isMesh) return; let g=o.geometry.clone().applyMatrix4(o.matrixWorld);
+    for(let p=0;p<densify;p++) g=subdivideCarGeometry(g); const key=(o.material&&o.material.name||'PAINT').split('.')[0];
     if(key==='CARBON'){ // no UVs from Blender: box-project so the twill weave has something to sample (threejs-textures)
       const P=g.attributes.position, N=g.attributes.normal, uv=new Float32Array(P.count*2);
       for(let i=0;i<P.count;i++){ const nx=Math.abs(N.getX(i)), ny=Math.abs(N.getY(i)), nz=Math.abs(N.getZ(i)), x=P.getX(i), y=P.getY(i), z=P.getZ(i);

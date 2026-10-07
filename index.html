@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,300..900;1,62..125,300..900&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/afterhours.css?v=44">
+<link rel="stylesheet" href="css/afterhours.css?v=45">
 </head>
 <body>
 <canvas id="gl"></canvas>
@@ -29,6 +29,23 @@
   <div class="snav"><button id="shPrev" aria-label="Previous car">←</button><span id="shPg"></span><button id="shNext" aria-label="Next car">→</button></div>
 </aside>
 
+<div class="settings-backdrop" id="settingsBackdrop" aria-hidden="true"></div>
+<aside class="sheet settings-sheet" id="settingsSheet" aria-hidden="true" aria-labelledby="settingsTitle">
+  <div class="grab"></div>
+  <div class="shead settings-head"><div><span class="k" id="issueSettings">Issue 01</span><b id="settingsTitle">Settings</b></div><button type="button" id="settingsClose">Close</button></div>
+  <div class="sbody settings-body">
+    <div class="settings-list" role="group" aria-label="Game settings">
+      <button type="button" id="glow" class="settings-row">Glow on</button>
+      <button type="button" id="look" class="settings-row">Look: Clear</button>
+      <button type="button" id="diff" class="settings-row" title="How fast the rivals drive">Rivals: Street</button>
+      <button type="button" id="mus" class="settings-row">Music on</button>
+      <button type="button" id="track" class="settings-row">Track: Auto</button>
+      <button type="button" id="vox" class="settings-row">Voice off</button>
+      <button type="button" id="snd" class="settings-row">Sound on</button>
+    </div>
+  </div>
+</aside>
+
 <section id="loading" class="screen">
   <div class="mast">AFTERHOURS</div>
   <div class="where"><b id="ldwhere">Harbor Line</b><span id="ldsub">Tunnel 7. Two laps, four cars.</span></div>
@@ -37,7 +54,7 @@
 
 <section id="select" class="screen">
   <div class="stage-hit" id="sStage" aria-hidden="true"></div>
-  <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span id="issue">Issue 01</span><button id="glow">Glow on</button><button id="look">Look: Clear</button><button id="diff" title="How fast the rivals drive">Rivals: Street</button><button id="mus">Music on</button><button id="track">Track: Auto</button><button id="vox">Voice off</button><button id="snd">Sound on</button></span></div>
+  <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span id="issue">Issue 01</span><button type="button" class="settings-open" id="settingsOpenSelect">Settings</button></span></div>
   <h1 class="hl" id="sHead"></h1>
   <div class="stamp" id="sStamp"></div>
   <div class="stamp red" id="sWin" style="display:none"></div>
@@ -81,7 +98,7 @@
 </section>
 
 <section id="events" class="screen">
-  <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span>Pick tonight's event</span><button id="eBack">Back</button></span></div>
+  <div class="top"><span class="m">AFTERHOURS</span><span class="r"><span>Pick tonight's event</span><button type="button" class="settings-open" id="settingsOpenEvents">Settings</button><button id="eBack">Back</button></span></div>
   <h1 class="hl" id="eHead"></h1>
   <div class="stamp" id="eStamp" style="top:29%;left:22px"></div>
   <div class="hand" id="eNote" style="left:50%;top:37%"></div>
@@ -149,7 +166,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="js/afterhours.js?v=131"></script>
+<script src="js/afterhours.js?v=132"></script>
 <script type="module" src="js/ui-fx.js?v=2"></script>
 </body>
 </html>

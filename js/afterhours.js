@@ -8525,6 +8525,7 @@ function updateFx(dt,focus){ if(skDirty){ skGeo.attributes.position.needsUpdate=
 const keys={};
 const pads={left:false,right:false,brake:false,nitro:false,drift:false};
 addEventListener('keydown',e=>{ keys[e.code]=true;
+  if(settingsOpen&&e.code==='Escape'){ closeSettings(); return; }
   if(e.repeat&&(e.code==='ArrowLeft'||e.code==='ArrowRight')) return;
   if(mode==='select'&&e.code==='KeyI'){ sheetOpen?closeSheet():openSheet(); }
   if(mode==='select'){ if(e.code==='ArrowRight') turn(1); if(e.code==='ArrowLeft') turn(-1); if(e.code==='Enter') openEvents(); if(e.code==='KeyV') openShowcase(); }
@@ -8585,7 +8586,7 @@ function setupAttract(def){
   camSnap=true; renderer.toneMappingExposure=1.05; if(mode!=='loading') setWeather(false);
 }
 let STUDIO_WARM=false;
-function enter(){ initAudio(); closeSheet(); sfx.shutter(); flash(1,'peel'); mode='select'; show('select'); if(!STUDIO_WARM){ STUDIO_WARM=true; try{ renderer.compile(studio,cam); }catch(err){} } renderPage(0); } // A3: studio shaders compile once, behind the flash
+function enter(){ initAudio(); closeSheet(); closeSettings(); sfx.shutter(); flash(1,'peel'); mode='select'; show('select'); if(!STUDIO_WARM){ STUDIO_WARM=true; try{ renderer.compile(studio,cam); }catch(err){} } renderPage(0); } // A3: studio shaders compile once, behind the flash
 function renderPage(dir){
   const d=CARS[page], h=hist(d.id);
   setWorld(d.world);
@@ -8657,7 +8658,7 @@ function renderShowcase(dir){
   resetShowcaseOrbit();
   modeT=0;
 }
-function openShowcase(){ initAudio(); closeSheet(); sfx.shutter(); flash(.85); mode='showcase'; show('showcase'); renderShowcase(0); const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=true; }
+function openShowcase(){ initAudio(); closeSheet(); closeSettings(); sfx.shutter(); flash(.85); mode='showcase'; show('showcase'); renderShowcase(0); const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=true; }
 function backFromShowcase(){ const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; mode='select'; show('select'); flash(.85); sfx.shutter(); renderPage(0); camSnap=true; }
 function turnShowcase(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75,false); renderShowcase(dir); if(sheetOpen) renderSheet(dir); }
 let sheetOpen=false;
@@ -8672,10 +8673,13 @@ function renderSheet(dir){
   $('#shPg').textContent=`${String(page+1).padStart(2,'0')} / ${String(CARS.length).padStart(2,'0')}`;
   requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('#shBody .sbar i b').forEach(b=>b.style.width=b.dataset.w+'%')));
 }
-function openSheet(){ sheetOpen=true; renderSheet(1); $('#sheet').classList.add('open'); $('#sheet').setAttribute('aria-hidden','false'); sfx.page(); }
+function openSheet(){ closeSettings(); sheetOpen=true; renderSheet(1); $('#sheet').classList.add('open'); $('#sheet').setAttribute('aria-hidden','false'); sfx.page(); }
 function closeSheet(){ sheetOpen=false; $('#sheet').classList.remove('open'); $('#sheet').setAttribute('aria-hidden','true'); }
+let settingsOpen=false;
+function openSettings(){ closeSheet(); settingsOpen=true; const sh=$('#settingsSheet'),bd=$('#settingsBackdrop'); sh.classList.add('open'); bd.classList.add('open'); sh.setAttribute('aria-hidden','false'); bd.setAttribute('aria-hidden','false'); document.body.classList.add('settings-open'); sfx.page(); }
+function closeSettings(){ if(!settingsOpen) return; settingsOpen=false; const sh=$('#settingsSheet'),bd=$('#settingsBackdrop'); sh.classList.remove('open'); bd.classList.remove('open'); sh.setAttribute('aria-hidden','true'); bd.setAttribute('aria-hidden','true'); document.body.classList.remove('settings-open'); }
 function turn(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95,false); renderPage(dir); if(sheetOpen) renderSheet(dir); }
-function openEvents(){ initAudio(); closeSheet(); sel=page; const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; sfx.shutter(); flash(1,'peel'); mode='events'; show('events'); renderEvent(0,true); }
+function openEvents(){ initAudio(); closeSheet(); closeSettings(); sel=page; const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; sfx.shutter(); flash(1,'peel'); mode='events'; show('events'); renderEvent(0,true); }
 function eventPageHtml(){ return `${EVI+1} <em>/ ${EVENTS.length}</em>`; }
 function renderEventRoster(){
   const el=$('#eRoster'); if(!el) return;
@@ -8720,11 +8724,18 @@ function renderGauntlet(){
   $('#gMaps').querySelectorAll('button').forEach(b=>b.onclick=()=>{ koMapI=+b.dataset.i; bindKoTrack(koMapI); renderGauntlet(); setupAttract(CARS[sel]); sfx.page(); });
   bindKoTrack(koMapI);
 }
-function openGauntlet(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='gauntlet'; show('gauntlet'); renderGauntlet(); setupAttract(CARS[sel]); }
+function openGauntlet(){ initAudio(); closeSheet(); closeSettings(); sfx.shutter(); flash(1); mode='gauntlet'; show('gauntlet'); renderGauntlet(); setupAttract(CARS[sel]); }
 function startGauntlet(){ tagPick=null; bindKoTrack(koMapI); startLoading(); }
-function backToArchive(){ TAG=null; engine(0,false); screech(0); mode='select'; show('select'); flash(.9); sfx.shutter(); renderPage(0); }
+function backToArchive(){ closeSettings(); TAG=null; engine(0,false); screech(0); mode='select'; show('select'); flash(.9); sfx.shutter(); renderPage(0); }
 $('#prev').onclick=()=>turn(-1); $('#next').onclick=()=>turn(1);
 $('#specBtn').onclick=()=>sheetOpen?closeSheet():openSheet(); $('#shClose').onclick=closeSheet;
+$('#settingsOpenSelect').onclick=()=>settingsOpen?closeSettings():openSettings();
+$('#settingsOpenEvents').onclick=()=>settingsOpen?closeSettings():openSettings();
+$('#settingsClose').onclick=closeSettings;
+$('#settingsBackdrop').onclick=closeSettings;
+(function(){ const el=$('#settingsSheet'); let y0=0,x0=null;
+  el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; x0=e.clientX; y0=e.clientY; e.stopPropagation(); });
+  el.addEventListener('pointerup',e=>{ if(x0===null) return; const dy=e.clientY-y0,dx=e.clientX-x0; x0=null; e.stopPropagation(); if(dy>60&&dy>Math.abs(dx)) closeSettings(); }); })();
 $('#shPrev').onclick=()=>turn(-1); $('#shNext').onclick=()=>turn(1);
 (function(){ const el=$('#sheet'); let x0=null,y0=0;
   el.addEventListener('pointerdown',e=>{ if(e.target.closest('button')) return; x0=e.clientX; y0=e.clientY; e.stopPropagation(); });
@@ -8840,7 +8851,7 @@ $('#results').addEventListener('pointerup',studioPtrUp);
 $('#results').addEventListener('pointercancel',studioPtrUp);
 
 function startLoading(){
-  initAudio(); sfx.shutter(); flash(1);
+  closeSettings(); initAudio(); sfx.shutter(); flash(1);
   if(mode!=='events') { const rs=resolveEventForStart(EVENTS[EVI],koMapI); if(rs.bindKo) bindKoTrack(rs.koMap); else setEvent(EVI); setupAttract(CARS[sel]); }
   mode='loading'; modeT=0; show('loading');
   setWeather(EV.id!=='tunnel'&&Math.random()<.45);
@@ -9034,7 +9045,7 @@ const camTag={t:0,from:new THREE.Vector3(),look:new THREE.Vector3()};
 // partners come from the regular archive: the outlaw cars are player-only, and your partner is AI half the time
 function suggestPartner(me){ const want={heavy:'nimble',nimble:'heavy',muscle:'nimble',balanced:'muscle'}[carClass(me)];
   return CARS.find(c=>c.id!==me.id&&!c.outlaw&&carClass(c)===want&&c.id!=='overload'&&c.id!=='volcano'&&c.id!=='zephyr'&&c.id!=='hikari')||CARS.find(c=>c.id!==me.id&&!c.outlaw&&c.id!=='zephyr'); }
-function openTagTeam(){ initAudio(); closeSheet(); sfx.shutter(); flash(1); mode='tagteam'; show('tagteam');
+function openTagTeam(){ initAudio(); closeSheet(); closeSettings(); sfx.shutter(); flash(1); mode='tagteam'; show('tagteam');
   const me=CARS[sel]; if(!tagPick||tagPick.me!==me.id) tagPick={me:me.id,partner:suggestPartner(me).id}; renderTagTeam(); }
 function renderTagTeam(){ const me=CARS[sel], sug=suggestPartner(me).id;
   $('#tEv').textContent=EV.name;

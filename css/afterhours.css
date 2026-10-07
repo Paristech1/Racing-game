@@ -98,7 +98,7 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .log{margin-top:6px;font-family:var(--hand);font-size:22px;color:#fbf6ea;min-height:1em}
 .enter{animation:enter .55s cubic-bezier(.2,.8,.2,1) both}
 .enter.d1{animation-delay:.05s}.enter.d2{animation-delay:.12s}.enter.d3{animation-delay:.2s}
-@keyframes enter{from{opacity:0;transform:translateX(var(--dx,40px));filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes enter{from{opacity:0;transform:translateX(var(--dx,40px))}to{opacity:1;transform:none}}
 .warm .stamp:not(.red){color:var(--warm)} .warm .hl{color:#fff4e8}
 
 /* HUD */

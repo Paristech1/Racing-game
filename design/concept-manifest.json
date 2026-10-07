@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "targetCount": 36,
+  "targetCount": 44,
   "gallery": "/design/concepts.html",
   "liveDeck": "/design/prototype.html",
   "concepts": [
@@ -35,6 +35,10 @@
     "wire-soft-glass",
     "issue-wire-cockpit",
     "broadsheet-harbor",
-    "tabloid-neon-glass"
+    "tabloid-neon-glass",
+    "soft-editorial-neon",
+    "cockpit-glass-harbor",
+    "issue-tabloid-neon",
+    "neon-broadsheet-glass"
   ]
 }

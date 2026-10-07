@@ -62,5 +62,13 @@ window.AH_CONCEPTS=[
   {id:'broadsheet-harbor',name:'Broadsheet harbor',tag:'Hybrid',pitch:'Cream tear-off and tabloid masthead; single cyan harbor accent (no pink).',
     notes:'<strong>Best if</strong> print footer with one night-street color.'},
   {id:'tabloid-neon-glass',name:'Tabloid neon glass',tag:'Triple',pitch:'Glass tabloid layout; full cyan/magenta neon on masthead, dock, and glass footer edge.',
-    notes:'<strong>Best if</strong> maximal type + production-like hybrid chrome.'}
+    notes:'<strong>Best if</strong> maximal type + production-like hybrid chrome.'},
+  {id:'soft-editorial-neon',name:'Soft editorial neon',tag:'Hybrid',pitch:'Issue headline and glass footer; neon only on hand note and stat gradient (no masthead glow).',
+    notes:'<strong>Best if</strong> subtle upgrade path from Issue 01.'},
+  {id:'cockpit-glass-harbor',name:'Cockpit glass harbor',tag:'Triple',pitch:'Glass dock, amber gauge, harbor cyan on chips and CTA rim.',
+    notes:'<strong>Best if</strong> warm dash data with cool accent thread.'},
+  {id:'issue-tabloid-neon',name:'Issue tabloid neon',tag:'Triple',pitch:'Tabloid masthead over magazine headline; neon stamp; cream footer with gradient bars.',
+    notes:'<strong>Best if</strong> you cannot choose print vs editorial.'},
+  {id:'neon-broadsheet-glass',name:'Neon broadsheet glass',tag:'Triple',pitch:'Neon broadsheet colors inside frosted margins; cream panel inset like a mounted clipping.',
+    notes:'<strong>Best if</strong> tear-off story framed by night-street UI.'}
 ];

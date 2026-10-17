@@ -78,6 +78,13 @@ describe('fmt / esc', () => {
     assert.equal(fmt(9.04), '0:09.0');
   });
 
+  it('carries tenths that round up past :09.9 and :59.9', () => {
+    // Old pad-then-toFixed path produced "0:010.0" / "0:60.0".
+    assert.equal(fmt(9.96), '0:10.0');
+    assert.equal(fmt(59.95), '1:00.0');
+    assert.equal(fmt(69.95), '1:10.0');
+  });
+
   it('escapes HTML in UI strings', () => {
     assert.equal(esc('a & b'), 'a &amp; b');
     assert.equal(esc('<script>'), '&lt;script&gt;');

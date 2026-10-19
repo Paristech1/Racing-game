@@ -193,7 +193,7 @@ CARS.push(
   rival:'Rival note: Leech loves drafting this one. Break the tow on the straight.',
   note:'quiet zap.\nloud exit.', notePos:{l:'60%',t:'35%'},
   cam:{p:[3.8,.7,4.4],l:[0,.5,.3],roll:-.06,fov:33}},
- {id:'vandal',sculpt:'vandal',name:'VANDAL SS',body:'muscle',lowPro:true,paint:0x24103c,metal:.6,rough:.1,rim:0xf0f2f5,chrome:true,caliper:0xd42020,wing:false,widebody:true,spokes:5,world:'flash',
+ {id:'vandal',sculpt:'vandal',name:'VANDAL SS',body:'muscle',lowPro:true,paint:0x0c0414,metal:.7,rough:.1,rim:0x0e0e10,caliper:0xd42020,wing:false,widebody:true,spokes:5,world:'flash',
   top:94,acc:23,grip:27,nitro:1.32,mass:1.28,
   kick:'Back-alley',loc:'Kensington Ave',when:'Friday, 00:48',
   caption:'SS badges are fake. The blower whine is not.',
@@ -2306,6 +2306,23 @@ function splitShell(g,def,B,paint,glass){
 
 /* ---- Stratos V: clean mid-engine hypercar. Long flat low hood, crisp straight shoulder, mid-set canopy, flat high
    deck into a Kamm tail with a full-width light bar, straight side intake, tidy swan-neck wing. ---- */
+/* ---- STRATOS V (Blender build, tools/blender/stratos_v.py): mid-engine wind-tunnel hypercar from Paris's locked Midjourney set.
+   Fender pods over a hood valley with scallop vents, bladed intakes, angled LED eyes, teardrop canopy into a louvered engine cover,
+   side scoops, carbon aero, a swan-neck wing, a thin red tail blade, a yellow accent line. Falls back to the procedural stratosShell. */
+const ST_ACCENT=new THREE.MeshStandardMaterial({color:0xffc21a,metalness:.2,roughness:.3});
+function stratosGlbShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('stratos',opts&&opts.lod); if(!parts) return stratosShell(g,def,B,paint,glass,opts);
+  const K=carKit(g); rimPaint(paint,0xffb060,.08); paint.clearcoat=1; paint.clearcoatRoughness=.01; paint.roughness=Math.min(paint.roughness,.12); paint.envMapIntensity=1.3;
+  const satin=new THREE.MeshStandardMaterial({color:0x8a8f97,metalness:.95,roughness:.28});
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:WISP_GLASS,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin,GRILLE:HB_GRILLE,INTERIOR:AB_CABIN,ACCENT:ST_ACCENT};
+  parts.forEach(p=>{ const m=new THREE.Mesh(p.geo,MATS[p.key]||paint); if(p.key==='GLASS') m.renderOrder=3; g.add(m); });
+  { const pr=K.add(new THREE.PlaneGeometry(.46,.11),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'STRATOS'),roughness:.5}),0,.46,-2.65); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xe6eeff,.3,sd*.66,.56,2.16); K.glow(0xff2030,.3,sd*.6,.64,-2.68); });
+  const HS=[[-2.64,.95],[-2.5,1.0],[-2.0,1.04],[-1.5,1.05],[-1.0,1.0],[-.5,.93],[0,.89],[.5,.9],[1.0,.98],[1.5,1.04],[2.0,.98],[2.3,.8],[2.42,.58]],
+    YS=[[-2.64,.64],[-2.55,.69],[-2.3,.72],[-1.9,.74],[-1.5,.74],[-1.0,.71],[-.3,.67],[.5,.65],[1.1,.65],[1.5,.64],[1.9,.58],[2.2,.46],[2.42,.32]],
+    YB=[[-2.64,.3],[-2.5,.17],[-2.2,.13],[2.0,.12],[2.3,.14],[2.42,.2]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.1,ay:ys-.12,yc:ys+.05,yf:ys+.05}; }};
+}
 function stratosShell(g,def,B,paint,glass){
   const K=carKit(g), carbon=K.carbon; rimPaint(paint,0xffb070,.14);
   paint.clearcoat=1; paint.clearcoatRoughness=.015;
@@ -2566,6 +2583,36 @@ function pulse2Shell(g,def,B,paint,glass){
   return T;
 }
 /* ---- VANDAL SS: modern widebody muscle. Box arch blisters, hood heat vents, supercharger scoop, slim LED headlamps, quad tips. ---- */
+/* ---- VANDAL SS (Blender build, tools/blender/vandal_ss.py): modern widebody supercharged muscle coupe from Paris's locked
+   Midjourney set. Full-width grille with LED-ringed lamp ends, raised hood scoop between heat extractors, racetrack tail rings,
+   white slash shards on the VINYL shell (u rear -> nose, v sill -> belt). Falls back to the procedural vandalShell. */
+let VANDAL_SHARDS=null;
+function vandalShardMat(){ if(VANDAL_SHARDS) return VANDAL_SHARDS;
+  const tex=CT(canvasTex(2048,512,(g,w,h)=>{ const R=rng(1966); g.fillStyle='#eef0f6';
+    // sharp white shards raking back across the rear door and quarter, as on the reference: long thin blades, a few wide ones
+    const blade=(u0,v0,u1,v1,t)=>{ const x0=u0*w, y0=(1-v0)*h, x1=u1*w, y1=(1-v1)*h, L=Math.hypot(x1-x0,y1-y0), nx=-(y1-y0)/L*t, ny=(x1-x0)/L*t;
+      g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1+nx*.15,y1+ny*.15); g.lineTo(x1,y1); g.lineTo(x0+nx,y0+ny); g.closePath(); g.fill(); };
+    for(let i=0;i<5;i++){ const u=.66-i*.035; blade(u,.12,u-.2,.92,14+i*3); }                    // the chevron run behind the B-pillar
+    for(let i=0;i<14;i++){ const u=.28+R()*.32, v=.15+R()*.55, l=.08+R()*.18; blade(u,v,u-l*.9,v+l*1.9,3+R()*16); }   // scattered shards
+    g.fillRect(.05*w,h*.93,.62*w,h*.02); }));                                                     // thin white line along the sill
+  return VANDAL_SHARDS=new THREE.MeshStandardMaterial({map:tex,transparent:true,alphaTest:.04,roughness:.28,metalness:.05,polygonOffset:true,polygonOffsetFactor:-2,depthWrite:false}); }
+const VD_LED=new THREE.MeshBasicMaterial({color:0xc69bff,toneMapped:false});
+function vandalGlbShell(g,def,B,paint,glass,opts){
+  const parts=glbParts('vandal',opts&&opts.lod); if(!parts) return vandalShell(g,def,B,paint,glass,opts);
+  const K=carKit(g); rimPaint(paint,0xb070ff,.1); paint.clearcoat=1; paint.clearcoatRoughness=.01; paint.roughness=Math.min(paint.roughness,.1); paint.envMapIntensity=1.4;
+  const satin=new THREE.MeshStandardMaterial({color:0x8a8f97,metalness:.95,roughness:.28});
+  const MATS={PAINT:paint,CARBON:K.carbon,GLASS:WISP_GLASS,GLOSSBLACK:GLOSS_BLACK,GAP:gapM,HEAD:headM,TAIL:tailM,CHROME:chromeTrimM,LENS:LENS_M,SATIN:satin,GRILLE:HB_GRILLE,INTERIOR:AB_CABIN,ACCENT:VD_LED,VINYL:vandalShardMat()};
+  parts.forEach(p=>{ const geo=p.geo;
+    if(p.key==='VINYL'&&!geo.attributes.uv){ const P=geo.attributes.position, uv=new Float32Array(P.count*2);
+      for(let i=0;i<P.count;i++){ uv[i*2]=(P.getZ(i)+2.3)/3.0; uv[i*2+1]=(P.getY(i)-.22)/.78; } geo.setAttribute('uv',new THREE.BufferAttribute(uv,2)); }
+    const m=new THREE.Mesh(geo,MATS[p.key]||paint); if(p.key==='GLASS') m.renderOrder=3; if(p.key==='VINYL') m.renderOrder=1; g.add(m); });
+  { const pr=K.add(new THREE.PlaneGeometry(.48,.12),new THREE.MeshStandardMaterial({map:plateTex(def.plate||'VANDAL'),roughness:.5}),0,.6,-2.47); pr.rotation.y=Math.PI; }
+  [1,-1].forEach(sd=>{ K.glow(0xe6eeff,.35,sd*.66,.715,2.54); K.glow(0xff2030,.35,sd*.42,.86,-2.5); });
+  const HS=[[-2.46,.92],[-2.38,1.0],[-2.15,1.08],[-1.52,1.13],[-.95,1.03],[-.6,.97],[0,.96],[.6,.97],[.95,1.03],[1.52,1.12],[2.05,1.07],[2.35,1.0],[2.5,.93]],
+    YS=[[-2.46,.92],[-2.42,.97],[-2.25,.985],[-1.6,.965],[-1.0,.935],[-.3,.915],[.6,.9],[1.2,.885],[1.8,.86],[2.25,.825],[2.42,.79],[2.5,.74]],
+    YB=[[-2.46,.42],[-2.38,.26],[-2.15,.18],[2.15,.17],[2.4,.2],[2.5,.3]];
+  return {sec:z=>{ const hs=kfCR(HS,z), ys=kfCR(YS,z), yb=kfCR(YB,z); return {hs,ys,yb,hl:hs-.1,ay:ys-.12,yc:ys+.05,yf:ys+.05}; }};
+}
 function vandalShell(g,def,B,paint,glass){
   const K=carKit(g); rimPaint(paint,0xb070ff,.18);
   const silver=new THREE.MeshStandardMaterial({color:0xe8e8ee,roughness:.3,metalness:.1}), hx=hexGrilleM();
@@ -2630,7 +2677,7 @@ function needleShell(g,def,B,paint,glass){
   K.pipe(0,.4,-R-.05,.05); K.plate(def,.66,-R-.02);
   return T;
 }
-const SHELLS={wisp:wispGlbShell,stratos:stratosShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariGlbShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadGlbShell,hellbound:hellboundGlbShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell,lumen:lumenShell,brigline:briglineShell,pulse2:pulse2Shell,vandal:vandalShell,needle:needleShell};
+const SHELLS={wisp:wispGlbShell,stratos:stratosGlbShell,split:splitShell,zenkai:zenkaiShell,hikari:hikariGlbShell,richmond:richmondShell,passyunk:passyunkShell,bell:bellShell,granfour:granfourGlbShell,sovereign:sovereignShell,dune:duneShell,kern:kernShell,vanta:vantaShell,noctis:noctisShell,p1:volcanoShell,kage:kageShell,overload:overloadGlbShell,hellbound:hellboundGlbShell,tempesta:tempestaShell,mantis:mantisShell,autobahn:autobahnGlbShell,zephyr:zephyrShell,lumen:lumenShell,brigline:briglineShell,pulse2:pulse2Shell,vandal:vandalGlbShell,needle:needleShell};
 /* ---- street style: every car gets its own vinyl, underglow and wheel design (threejs-textures: CanvasTexture decals) ----
    vinyl: side graphic drawn on a 512x128 canvas. Directional ones are drawn nose-at-left and mirrored for the left flank.
    wheel: spoke | dish | mesh | fan | split | star | aero.  camber: static wheel tilt (stance).
@@ -2652,7 +2699,7 @@ const STREET={
  split:{vinyl:'flames',wheel:'twin'},
  overload:{vinyl:'gradient',vc:'#2fe6ff',wheel:'fan'},
  wisp:{wheel:'wisp',camber:.03},
- stratos:{wheel:'split'},
+ stratos:{wheel:'deep10',camber:.03},
  volcano:{wheel:'forged'},
  hellbound:{wheel:'deep10',camber:.03},
  tempesta:{vinyl:'slash',vc:'#d8b04a',wheel:'split'},
@@ -2662,7 +2709,7 @@ const STREET={
  lumen:{wheel:'spoke',camber:.04},
  brigline:{wheel:'mesh'},
  pulse2:{glow:0x5fe6c8,vinyl:'gradient',vc:'#5fe6c8',wheel:'aero'},
- vandal:{glow:0xb070ff,vinyl:'slash',vc:'#e8e8ee',wheel:'dish',camber:.04},
+ vandal:{glow:0xb070ff,wheel:'deep10',camber:.04}, // wears its own white shards (vandalGlbShell)
  needle:{glow:0xff5a1f,vinyl:'number',vc:'#ff5a1f',text:'01',wheel:'split',camber:.06}
 };
 function carNitroColor(def){
@@ -2756,7 +2803,7 @@ function streetStyle(g,def,B,cid,flank){
 }
 // rim designs; spin is the wheel's spinning group, side = +-1, rimM the rim material
 const TURBINE_M=new THREE.MeshStandardMaterial({color:0x3b342c,metalness:.75,roughness:.36,envMapIntensity:1.1});
-const DISH_M=new THREE.MeshStandardMaterial({color:0x2a2c30,metalness:.95,roughness:.2,envMapIntensity:1.3}); const MACHINED_M=new THREE.MeshStandardMaterial({color:0xb4bac2,metalness:1,roughness:.22,envMapIntensity:1.6}); const WHEEL_GEO={}, FORGED_CHROME=new THREE.MeshStandardMaterial({color:0xf6f8fa,metalness:.88,roughness:.1,envMapIntensity:2.6});
+const LIP_M=new THREE.MeshStandardMaterial({color:0x6a6e76,metalness:1,roughness:.2,envMapIntensity:1.2}); const DISH_M=new THREE.MeshStandardMaterial({color:0x2a2c30,metalness:.95,roughness:.2,envMapIntensity:1.3}); const MACHINED_M=new THREE.MeshStandardMaterial({color:0xb4bac2,metalness:1,roughness:.22,envMapIntensity:1.6}); const WHEEL_GEO={}, FORGED_CHROME=new THREE.MeshStandardMaterial({color:0xf6f8fa,metalness:.88,roughness:.1,envMapIntensity:2.6});
 function wheelStyle(spin,side,style,rimM,def){
   const at=(o,x)=>{ o.position.x=side*x; spin.add(o); return o; };
   const spokes=(n,wd,x,len)=>{ for(let k=0;k<n;k++){ const s=new THREE.Mesh(new THREE.BoxGeometry(.03,len,wd),rimM); s.rotation.x=k*Math.PI/n; at(s,x); } };
@@ -2823,7 +2870,7 @@ function wheelStyle(spin,side,style,rimM,def){
       at(new THREE.Mesh(D.face,barrelM),.112).rotation.y=side>0?0:Math.PI;
       for(let k=0;k<n;k++){ const piv=new THREE.Group(); piv.rotation.x=k/n*Math.PI*2; const sp=new THREE.Mesh(D.spoke,rimM); sp.position.y=.062; sp.rotation.z=-side*.08; piv.add(sp); at(piv,.124); }
       at(new THREE.Mesh(D.wall,DISH_M),.152);                                        // the dish: polished wall from the spokes out to the lip
-      at(new THREE.Mesh(D.lip,MACHINED_M),.188).rotation.y=side>0?0:Math.PI;             // wide machined lip, flush with the tire face
+      at(new THREE.Mesh(D.lip,LIP_M),.188).rotation.y=side>0?0:Math.PI;             // wide machined lip, flush with the tire face
       at(new THREE.Mesh(D.cap,rimM),.13); at(new THREE.Mesh(D.badge,blackM),.151).rotation.y=side>0?0:Math.PI;
       break; }
     case 'six': { // TE-style six-spoke: tapered blades leaning out from a recessed hub (concave), stepped lip with a machined edge, dark face behind

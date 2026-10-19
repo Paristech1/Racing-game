@@ -8,7 +8,7 @@ from mathutils import Vector
 args = sys.argv[1:]; name, out = args[0], args[1]
 shots = args[args.index('--shots') + 1] if '--shots' in args else None
 blend = args[args.index('--blend') + 1] if '--blend' in args else None
-ns = {}
+ns = {'HERE': HERE}
 exec(open(os.path.join(HERE, 'carlib.py')).read(), ns)
 exec(open(os.path.join(HERE, name + '.py')).read(), ns)
 import dump_mesh

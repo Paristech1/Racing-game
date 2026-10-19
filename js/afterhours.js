@@ -3100,20 +3100,26 @@ function buildTrafficCar(color){
 
 /* ---------------- TRACKS ---------------- */
 const UP=new THREE.Vector3(0,1,0);
-function makeTrack(pts,W,H){
-  const N=pts.length; let L=0; for(let i=0;i<N;i++) L+=pts[i].distanceTo(pts[(i+1)%N]);
-  const ds=L/N, T=[], R=[], K=[], raw=[];
-  for(let i=0;i<N;i++){ T.push(new THREE.Vector3().subVectors(pts[(i+1)%N],pts[(i-1+N)%N]).normalize()); }
-  for(let i=0;i<N;i++){ R.push(new THREE.Vector3().crossVectors(T[i],UP).normalize()); }
-  for(let i=0;i<N;i++){ const a=T[(i-1+N)%N], b=T[(i+1)%N]; raw.push(-Math.atan2(a.x*b.z-a.z*b.x, a.x*b.x+a.z*b.z)/(2*ds)); }
+/* makeTrack(pts,W,H,o): o.up = one up vector per point (vertical loops: the road's up rolls over the top, R = T x U, and the
+   plan curvature is zeroed there, so the lateral physics sees a straight); o.open = an open path (a shortcut branch: the
+   ends get one-sided tangents, s runs 0..L and does not wrap). Without o it is the old closed, always-level track. */
+function makeTrack(pts,W,H,o){ o=o||{};
+  const N=pts.length, open=!!o.open, U=o.up||null, at=i=>open?clamp(i,0,N-1):(i+N)%N; let L=0; for(let i=0;i<(open?N-1:N);i++) L+=pts[i].distanceTo(pts[(i+1)%N]);
+  const ds=L/(open?N-1:N), T=[], R=[], K=[], raw=[];
+  for(let i=0;i<N;i++){ T.push(new THREE.Vector3().subVectors(pts[at(i+1)],pts[at(i-1)]).normalize()); }
+  for(let i=0;i<N;i++){ R.push(new THREE.Vector3().crossVectors(T[i],U?U[i]:UP).normalize()); }
+  for(let i=0;i<N;i++){ const a=T[at(i-1)], b=T[at(i+1)]; raw.push(-Math.atan2(a.x*b.z-a.z*b.x, a.x*b.x+a.z*b.z)/(2*ds)); }
   const win=Math.max(4,Math.round(12/ds));
-  for(let i=0;i<N;i++){ let s=0; for(let j=-win;j<=win;j++) s+=raw[(i+j+N)%N]; K.push(s/(2*win+1)); }
+  for(let i=0;i<N;i++){ let s=0; for(let j=-win;j<=win;j++) s+=raw[at(i+j)]; K.push(s/(2*win+1)); }
+  if(U) for(let i=0;i<N;i++){ if(U[i].y<.9995) K[i]=0; }
   // make sure positive K means a left turn (center of curvature on the -R side)
   let bi=0; for(let k=0;k<N;k++) if(Math.abs(K[k])>Math.abs(K[bi])) bi=k;
   const kb=K[bi]; if(Math.abs(kb)>1e-6){
     const cA=new THREE.Vector3().copy(pts[bi]).addScaledVector(R[bi],-1/kb), cB=new THREE.Vector3().copy(pts[bi]).addScaledVector(R[bi],1/kb);
-    const mid=pts[(bi+Math.round(8/ds))%N]; if(mid.distanceTo(cB)<mid.distanceTo(cA)) for(let k=0;k<N;k++) K[k]=-K[k]; }
-  return {pts,T,R,K,L,N,ds,W,H};
+    const mid=pts[at(bi+Math.round(8/ds))]; if(mid.distanceTo(cB)<mid.distanceTo(cA)) for(let k=0;k<N;k++) K[k]=-K[k]; }
+  const tr={pts,T,R,K,L,N,ds,W,H,U,open};
+  if(U){ tr.loops=[]; let a=-1; for(let i=0;i<=N;i++){ const inl=i<N&&U[i].y<.9995; if(inl&&a<0) a=i; else if(!inl&&a>=0){ tr.loops.push([a*ds,i*ds]); a=-1; } } }
+  return tr;
 }
 /* Baked racing line, one lateral offset (metres along R, + = right) per track point. Technique adapted from
    ZER0-G's Track.buildLine (MIT, github.com/witnesstodark/zer0-g, experience/track.js): sum the curvature over a
@@ -3132,10 +3138,34 @@ function bakeLine(tr){
 }
 function lineAt(s,tr){ tr=tr||TR; if(!tr.line) tr.line=bakeLine(tr); const L=tr.L,N=tr.N; s=((s%L)+L)%L; const f=s/L*N, i=Math.floor(f)%N, a=f-Math.floor(f); return tr.line[i]*(1-a)+tr.line[(i+1)%N]*a; }
 let TR=null;
-function frame(s,o,tr){ tr=tr||TR; const L=tr.L,N=tr.N; s=((s%L)+L)%L; const f=s/L*N, i=Math.floor(f)%N, a=f-Math.floor(f), j=(i+1)%N;
-  o.p.lerpVectors(tr.pts[i],tr.pts[j],a); o.t.lerpVectors(tr.T[i],tr.T[j],a).normalize(); o.r.lerpVectors(tr.R[i],tr.R[j],a).normalize(); o.k=tr.K[i]*(1-a)+tr.K[j]*a; return o; }
-const mkF=()=>({p:new THREE.Vector3(),t:new THREE.Vector3(),r:new THREE.Vector3(),k:0});
-function orientQ(f,q,basis,nr){ nr.copy(f.r).negate(); basis.makeBasis(nr,UP,f.t); q.setFromRotationMatrix(basis); return q; }
+function frame(s,o,tr){ tr=tr||TR; const L=tr.L,N=tr.N; let i,j,a;
+  if(tr.open){ const f=clamp(s,0,L)/tr.ds; i=Math.min(N-2,Math.floor(f)); a=f-i; j=i+1; }
+  else { s=((s%L)+L)%L; const f=s/L*N; i=Math.floor(f)%N; a=f-Math.floor(f); j=(i+1)%N; }
+  o.p.lerpVectors(tr.pts[i],tr.pts[j],a); o.t.lerpVectors(tr.T[i],tr.T[j],a).normalize(); o.r.lerpVectors(tr.R[i],tr.R[j],a).normalize(); o.k=tr.K[i]*(1-a)+tr.K[j]*a;
+  if(tr.U) o.u.lerpVectors(tr.U[i],tr.U[j],a).normalize(); else o.u.copy(UP); return o; }
+const mkF=()=>({p:new THREE.Vector3(),t:new THREE.Vector3(),r:new THREE.Vector3(),u:new THREE.Vector3(0,1,0),k:0});
+function orientQ(f,q,basis,nr){ nr.copy(f.r).negate(); basis.makeBasis(nr,f.u||UP,f.t); q.setFromRotationMatrix(basis); return q; }
+// inside a vertical loop? (s along the main lap)
+function inLoop(s,tr,pad){ tr=tr||TR; if(!tr.loops) return false; s=((s%tr.L)+tr.L)%tr.L; pad=pad||0; for(const z of tr.loops) if(s>z[0]-pad&&s<z[1]+pad) return true; return false; }
+/* ---- shortcut branches ----
+   A branch is its own open track from a fork on the main lap (s0) to a merge further on (s1). A racer on it keeps r.dist
+   as main-lap progress (standings, laps, rubber band and the HUD stay as they are): it advances at ratio = (s1 - s0) / Lb
+   times its speed, so the shorter branch really gains. r.br is the branch, r.brBase the r.dist where it forked. */
+function rFrame(r,o){ return r.br?frame((r.dist-r.brBase)/r.br.ratio,o,r.br.tr):frame(r.dist,o); }
+function rFrameAt(r,d,o){ if(r.br){ const u=(d-r.brBase)/r.br.ratio; if(u<r.br.tr.L) return frame(Math.max(0,u),o,r.br.tr); } return frame(d,o); }
+function branchStep(r,prevDist){ const brs=TR&&TR.branches; if(!brs) return; const L=TR.L;
+  if(r.br){ if((r.dist-r.brBase)/r.br.ratio>=r.br.tr.L){ const b=r.br; r.x+=b.off1; r.br=null; r.dist=r.brBase+(b.s1-b.s0); if(r.isP&&b.msgOut) toast(b.msgOut); } return; }
+  const a=((prevDist%L)+L)%L, d=r.dist-prevDist;
+  for(const b of brs){ let u=b.s0-a; if(u<0) u+=L; if(u<=d&&u>=0&&b.side*(r.x-b.split)>0&&!(r.aiNoBr&&!r.isP&&r.aiNoBr[b.id]===Math.floor(r.dist/L))){
+      r.br=b; r.brBase=prevDist+u; r.dist=r.brBase+(r.dist-r.brBase)*b.ratio; r.x-=b.off0; r.hy=undefined; if(r.isP&&b.msgIn) toast(b.msgIn); return; } } }
+// AI: decide per lap whether to take a fork, and steer onto that side of the road on the run-up
+function aiBranchTx(r,tx){ const brs=TR&&TR.branches; if(!brs||r.br) return tx; const L=TR.L, s=((r.dist%L)+L)%L, lap=Math.floor(r.dist/L);
+  for(const b of brs){ let u=b.s0-s; if(u<0) u+=L; if(u>180) continue;
+    r.aiBr=r.aiBr||{}; r.aiNoBr=r.aiNoBr||{};
+    if(r.aiBr[b.id]!==lap&&r.aiNoBr[b.id]!==lap){ const want=Math.random()<(b.aiP*(r.mood&&r.mood.mood!=='lead'?1.25:.8)); if(want) r.aiBr[b.id]=lap; else r.aiNoBr[b.id]=lap; }
+    if(r.aiBr[b.id]===lap) return b.side>0?Math.max(tx,b.split+2.2):Math.min(tx,b.split-2.2);
+    if(u<60) return b.side>0?Math.min(tx,b.split-1.6):Math.max(tx,b.split+1.6); }
+  return tx; }
 
 function ribbon(tr,S,offA,offB,yA,yB,mat,vScale){
   vScale=vScale||24; const N=tr.N;
@@ -3986,7 +4016,7 @@ function checkRoadHazards(r,prevDist){
    Every one is keyed off a field the event's builder returns, so the older events never touch them. ---- */
 const AIR_G=20; // arcade gravity for air time: real g made the ridge jumps hang for two seconds
 function trackS(d){ const L=TR.L; return ((d%L)+L)%L; }
-function levelGrip(r){ let g=1; if(EV.surf){ const s=trackS(r.dist); for(const z of EV.surf) if(s>=z.s0&&s<=z.s1){ g=z.grip; break; } } return r.airT>.08?g*.06:g; } // a hop shorter than that is just the suspension
+function levelGrip(r){ let g=1; if(r.br) g=r.br.grip||1; else if(EV.surf){ const s=trackS(r.dist); for(const z of EV.surf) if(s>=z.s0&&s<=z.s1){ g=z.grip; break; } } return r.airT>.08?g*.06:g; } // a hop shorter than that is just the suspension
 function levelPhysics(r,prevDist){
   const s0=trackS(prevDist), s1=trackS(r.dist);
   if(EV.pads) for(const p of EV.pads){ if(!hazardCrossed(s0,s1,p.s,2)||Math.abs(r.x-p.x)>p.hw||r.airT>0) continue; r.padCd=r.padCd||{}; if((r.padCd[p.s]||-1)>ghostT) continue; r.padCd[p.s]=ghostT+3;
@@ -4008,7 +4038,8 @@ function levelPhysics(r,prevDist){
 }
 // Manayunk: follow the road until it drops away faster than gravity can pull you down, then fly until you land
 function airStep(r,dt){
-  const gy=frame(r.dist,F2).p.y;
+  const gy=rFrame(r,F2).p.y+F2.r.y*r.x;
+  if(!r.br&&inLoop(r.dist,TR,25)){ r.hy=gy; r.vy=0; r.airT=0; return; } // the loop holds you to the road
   if(r.hy===undefined||!(dt>0)){ r.hy=gy; r.vy=0; r.airT=0; return; }
   if(r.airT>0){ r.vy-=AIR_G*dt; r.hy+=r.vy*dt; r.airT+=dt;
     if(r.hy<=gy){ const hard=-r.vy, t=r.airT; r.hy=gy; r.vy=0; r.airT=0;
@@ -6350,6 +6381,7 @@ function checkPickups(r){
   EV.pickups.forEach((p,i)=>{ if((r.puCd[i]||-1)>ghostT) return;
     if(p.lastOnly||p.lastTwo) return;
     if(p.carId&&(r.def.chassisId||r.def.id)!==p.carId) return;
+    if((p.br||null)!==(r.br?r.br.id:null)) return;
     let d=Math.abs(s0-p.s); d=Math.min(d,L-d);
     if(d<2.8&&Math.abs(r.x-p.x)<2.8){ r.puCd[i]=ghostT+6; p.cd=.35; p.g.visible=false; applyPU(r,(EV.knockout&&KO&&!KO.done&&KO.mod&&KO.mod.pu)||p.type); } });
 }
@@ -6593,7 +6625,7 @@ skMesh.frustumCulled=false; fxGroup.add(skMesh);
 let skI=0, skDirty=false; const skW=new THREE.Vector3(), skS=new THREE.Vector3();
 function resetSkids(){ skPos.fill(-999); skDirty=true; racers.forEach(r=>r.skidP=null); }
 function skidStep(r,B){ // uses headV/leftV from poseAt
-  const on=(r.lat>.45||r.brk>.75&&r.v>25)&&!(r.airT>.05)&&r.m.group.position.distanceToSquared(cam.position)<150*150;
+  const on=(r.lat>.45||r.brk>.75&&r.v>25)&&!(r.airT>.05)&&!(TR&&TR.loops&&inLoop(r.dist,TR,12))&&r.m.group.position.distanceToSquared(cam.position)<150*150;
   if(!on){ r.skidP=null; return; }
   if(!r.skidP) r.skidP=[new THREE.Vector3(),new THREE.Vector3(),false];
   const P=r.skidP, pos=r.m.group.position;
@@ -8023,7 +8055,7 @@ function persona(r,msg,force){ if(mode!=='race'||raceT<2||r.isP) return; if(TAG&
 function addLabel(g,text,color){
   const c=canvasTex(256,64,(x)=>{ x.font='800 30px "Arial Narrow",Arial,sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillStyle='rgba(4,6,10,.55)'; const w=Math.min(250,x.measureText(text).width+26); x.fillRect(128-w/2,12,w,40); x.fillStyle=color; x.fillText(text,128,33); });
   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:CT(c),transparent:true,depthWrite:false})); sp.scale.set(2.8,.7,1); sp.position.set(0,2.3,0); g.add(sp); return sp; }
-function kAhead(s,span){ let m=0; for(let i=0;i<6;i++){ const k=frame(s+10+span*i/5,F2).k; if(Math.abs(k)>Math.abs(m)) m=k; } return m; }
+function kAhead(s,span){ let m=0; for(let i=0;i<6;i++){ const k=(BRR&&BRR.br?rFrameAt(BRR,s+10+span*i/5,F2):frame(s+10+span*i/5,F2)).k; if(Math.abs(k)>Math.abs(m)) m=k; } return m; }
 
 /* ---- race situation: rivals read their position and pick a mood ----
    Four times a second each rival checks its place, the gaps (in seconds) to the cars just ahead and
@@ -8167,16 +8199,18 @@ function driftHud(p){ const el=$('#hDrift'); if(!el) return;
   setT($('#hFlowT'),p.flowLost>0?'FLOW LOST':fs?`FLOW +${Math.round(fs/FLOW.steps*FLOW.max*100)}%`:''); }
 const dist0=(o,r,L)=>((o.dist-r.dist)%L+L*1.5)%L-L*.5; // signed gap along the track, wrapped
 const AV=[], AVd=[]; // scratch lists for the overtake scan in stepRacer (no per-frame garbage)
+let BRR=null; // the racer stepRacer is working on, so kAhead can read its branch
 function stepRacer(r,dt,inp){
-  const d=r.def, W=TR.W, L=TR.L, G=d.grip*(r.fxGrip>0?(r.gripMul||1.45):1)*(EV.knockout&&KO?KO.gripMul:1)*levelGrip(r), shielded=(r.fxShield>0&&r.shieldMode!=='rear')||(r.fxGrip>0&&r.railsWall);
-  frame(r.dist,F);
+  BRR=r;
+  const d=r.def, W=r.br?r.br.tr.W:TR.W, L=TR.L, G=d.grip*(r.fxGrip>0?(r.gripMul||1.45):1)*(EV.knockout&&KO?KO.gripMul:1)*levelGrip(r), shielded=(r.fxShield>0&&r.shieldMode!=='rear')||(r.fxGrip>0&&r.railsWall);
+  rFrame(r,F);
   const k=F.k;
   let steer=0, brake=false, nitro=false, brakeAmt=0;
   if(inp){ steer=inp.steer; brake=inp.brake; nitro=inp.nitro&&r.nitro>0.02; if(brake) brakeAmt=1; }
   else {
     const P=d.P||RIVALS[0].P, racing=mode==='race', evB=eventAiBias();
     const ka=kAhead(r.dist,Math.max(30,r.v*1.4));
-    const kn=frame(r.dist+r.v*.6+12,F2).k;
+    const kn=rFrameAt(r,r.dist+r.v*.6+12,F2).k;
     const line=lineAt(r.dist+r.v*.25)*P.line*evB.line; // baked racing line (bakeLine), sampled a little ahead
     let tx=line+r.off*P.offScale+Math.sin(r.wob+ghostT*.3)*P.wobble, gain=P.gain, bias=0, vF=1, wantN=false;
     const pl=racing&&player&&player!==r?player:null, gapP=pl?r.dist-pl.dist:0; // >0: I'm ahead of you
@@ -8256,7 +8290,7 @@ function stepRacer(r,dt,inp){
       if(M.mood==='allin'&&d.id==='bruiser'&&M.ahead&&M.ahead.dist-r.dist<14){ tx=M.ahead.x; gain=.6; chasing=M.ahead; }
       else if(M.mood==='defend'&&M.behind&&d.id!=='wall'&&M.gapB<.6) tx=lerp(tx,M.behind.x,.45*M.T.defend);
     }
-    const turnHint=nextTurn(r);
+    const turnHint=r.br?null:nextTurn(r);
     let puDD=1e9; // distance to the pickup this rival is lining up for
     if((P.seek||D>.4)&&(!chasing||D>.6)&&EV.pickups&&!(d.id==='wall'&&(pl&&gapP>1.5&&gapP<34||chaser))){ const L=TR.L, s0=((r.dist%L)+L)%L;
       let bestP=null,bestSc=.4;
@@ -8297,6 +8331,7 @@ function stepRacer(r,dt,inp){
     for(const h of slicks){ if(h.owner===r) continue; const dd=(((h.s-r.dist)%L)+L)%L;   // steer around oil
       if(dd<22&&Math.abs(h.x-r.x)<2.9) tx=h.x+(h.x>0?-3.4:3.4); }
     let xCap; if(EV.pads||EV.pillars||EV.crossing){ const lv=levelAI(r,tx); tx=lv.tx; xCap=lv.vCap; }
+    tx=aiBranchTx(r,tx);
     tx=clamp(tx,-W+1.4,W-1.4);
     // wait behind: a racer with no room either side, or anything still in the way of the final target (the El's
     // columns can veto a swerve) that we're about to reach before the steering gets us clear
@@ -8365,6 +8400,7 @@ function stepRacer(r,dt,inp){
   if(brakeAmt>0) a=-40*brakeAmt;
   if(r.airT>.08) a=Math.min(a,0)*.15; // nothing to push against in the air
   else if(EV.slopeG) a-=9.81*F.t.y*EV.slopeG;
+  if(TR.loops&&!r.br&&inLoop(r.dist)&&r.v<24&&a<0) a=0; // nobody stalls on the crown: the loop never drops a car below 24 m/s
   if(mode==='race'&&raceT<r.startDelay) a=0;
   r.v=clamp(r.v+a*dt,0,cap+2);
   if(nitro) r.nitro=Math.max(0,r.nitro-.3*dt*(d.nosDrainMul||1)*(r.fxLong>0?(r.drainMul!==undefined?r.drainMul:.35):1));
@@ -8393,10 +8429,11 @@ function stepRacer(r,dt,inp){
     else if(Math.random()<.5){ tmpV.copy(F.p).addScaledVector(F.r,r.x+sd*1); tmpV.y+=.4; emitSparks(tmpV,F.t,2,r.v*.2); if(!shielded) r.v*=1-.25*dt; }
     r.vx*=-.3; }
   const prevDist=r.dist, prevLap=Math.floor(r.dist/L);
-  r.dist+=r.v*dt/Math.max(.6,1+r.x*k);
-  checkRoadHazards(r,prevDist);
+  r.dist+=r.v*dt/Math.max(.6,1+r.x*k)*(r.br?r.br.ratio:1);
+  branchStep(r,prevDist);
+  if(!r.br) checkRoadHazards(r,prevDist);
   if(EV.airtime) airStep(r,dt);
-  if(EV.pads||EV.surf||EV.pillars||EV.crossing) levelPhysics(r,prevDist);
+  if(!r.br&&(EV.pads||EV.surf||EV.pillars||EV.crossing)) levelPhysics(r,prevDist);
   r.top=Math.max(r.top,r.v);
   checkPickups(r);
   const lap=Math.floor(r.dist/L);
@@ -8410,7 +8447,7 @@ function stepTraffic(o,dt){ frame(o.dist,F); if(EV.crossing&&!o.out) holdTraffic
 function collide(){
   const all=racers.concat(traffic);
   for(let i=0;i<all.length;i++) for(let j=i+1;j<all.length;j++){
-    const a=all[i],b=all[j]; if(a.tr&&b.tr) continue; if(a.out||b.out) continue; if(!a.tr&&!b.tr&&koMod('ghost')) continue;
+    const a=all[i],b=all[j]; if(a.tr&&b.tr) continue; if(a.out||b.out) continue; if((a.br||null)!==(b.br||null)) continue; if(!a.tr&&!b.tr&&koMod('ghost')) continue;
     let dd=a.dist-b.dist; const L=TR.L; dd=((dd%L)+L*1.5)%L-L*.5;
     const dx=a.x-b.x;
     if(Math.abs(dd)<4.5&&Math.abs(dx)<2.05){
@@ -8433,18 +8470,18 @@ function collide(){
     }
   }
 }
-function poseAt(g,dist,x,yaw,vx){
-  frame(dist,F);
+function poseAt(g,dist,x,yaw,vx,r){
+  if(r&&r.br) rFrame(r,F); else frame(dist,F);
   headV.copy(F.t).multiplyScalar(Math.cos(yaw)).addScaledVector(F.r,Math.sin(yaw)).normalize();
   g.position.copy(F.p).addScaledVector(F.r,x);
-  leftV.crossVectors(UP,headV).normalize(); upV.crossVectors(headV,leftV);
+  leftV.crossVectors(F.u,headV).normalize(); upV.crossVectors(headV,leftV);
   mat.makeBasis(leftV,upV,headV); g.quaternion.setFromRotationMatrix(mat);
   if(vx) g.rotateZ(clamp(-vx*.006,-.06,.06));
 }
 function poseRacer(r,dt){
   r.yaw=Math.atan2(r.vx,Math.max(r.v,4))+r.slip*.12*Math.sign(r.vx||r.steer);
   r.driftVis=lerp(r.driftVis||0,r.drift?r.driftAng*.62:0,1-Math.exp(-dt*(r.drift?10:6))); // the body swung past its path (camera keeps r.yaw)
-  poseAt(r.m.group,r.dist,r.x,r.yaw+r.driftVis,r.vx);
+  poseAt(r.m.group,r.dist,r.x,r.yaw+r.driftVis,r.vx,r);
   skidStep(r,BODIES[r.def.body||'wedge']);
   if(r.drift&&dt>0) driftSparks(r,BODIES[r.def.body||'wedge'],dt);
   if(EV.airtime&&r.hy!==undefined){ r.m.group.position.y=r.hy; if(r.airT>0) r.m.group.rotateX(-clamp(r.vy/Math.max(r.v,10),-.35,.35)*.6); }
@@ -8487,7 +8524,10 @@ function ghostState(t){
   const s=ghostData.s; if(t>=s[s.length-1][0]) return null;
   while(ghostIdx<s.length-2&&s[ghostIdx+1][0]<t) ghostIdx++;
   const A=s[ghostIdx],B=s[ghostIdx+1],a=clamp((t-A[0])/Math.max(1e-3,B[0]-A[0]),0,1);
-  return {dist:lerp(A[1],B[1],a),x:lerp(A[2],B[2],a),yaw:lerp(A[3],B[3],a)};
+  const g={dist:lerp(A[1],B[1],a),x:lerp(A[2],B[2],a),yaw:lerp(A[3],B[3],a)};
+  if(A[4]!==undefined&&A[4]===B[4]&&TR.branches){ g.br=TR.branches.find(b=>b.id===A[4])||null; g.brBase=A[5]; } // on a shortcut both samples
+  else if((A[4]!==undefined)!==(B[4]!==undefined)){ const C=a<.5?A:B; g.dist=C[1]; g.x=C[2]; if(C[4]!==undefined&&TR.branches){ g.br=TR.branches.find(b=>b.id===C[4])||null; g.brBase=C[5]; } } // fork/merge step: no lerp across roads
+  return g;
 }
 const r2=v=>Math.round(v*100)/100;
 
@@ -8508,7 +8548,7 @@ function tapeSample(sdt){
     row.push(r.isP?'player':r.def.id,r2(r.dist),r2(r.x),r2(r.yaw));
   });
   raceTape.snaps.push(row);
-  ghostRec.push([r2(raceT),r2(player.dist),r2(player.x),r2(player.yaw)]);
+  ghostRec.push(player.br?[r2(raceT),r2(player.dist),r2(player.x),r2(player.yaw),player.br.id,r2(player.brBase)]:[r2(raceT),r2(player.dist),r2(player.x),r2(player.yaw)]);
 }
 function tapeLog(type,payload){
   if(!raceTape||mode!=='race') return;
@@ -9226,23 +9266,25 @@ function finishTagTeam(){
 /* ---------------- CAMERA RIGS ---------------- */
 const tgt=new THREE.Vector3();
 const camOff=new THREE.Vector3(), camAim=new THREE.Vector3(); let camSnapAim=true;
+const camUpV=new THREE.Vector3(0,1,0);
 function chaseCam(dt,r,inp){
-  frame(r.dist,F);
+  rFrame(r,F);
+  camUpV.lerp(F.u,1-Math.exp(-dt*10)).normalize(); // eases into the loop's roll so the horizon turns with the road
   headV.copy(F.t).multiplyScalar(Math.cos(r.yaw*.6)).addScaledVector(F.r,Math.sin(r.yaw*.6)).normalize();
   const pos=r.m.group.position, boost=inp&&inp.nitro&&r.nitro>0?1:0;
-  tgt.copy(pos).addScaledVector(headV,-(7.2+boost*.8)).addScaledVector(UP,2.3);
+  tgt.copy(pos).addScaledVector(headV,-(7.2+boost*.8)).addScaledVector(camUpV,2.3);
   // smooth the camera's offset from the car, not its world position: a world-space lerp trails v/9 m behind
   // (20 m at 400 mph), swinging the camera through buildings on bends
   if(camSnap||!camOff.lengthSq()){ camOff.subVectors(tgt,pos); camSnap=false; camSnapAim=true; } else camOff.lerp(tmpV.subVectors(tgt,pos),1-Math.exp(-dt*9));
   camPos.copy(pos).add(camOff);
   cam.position.copy(camPos);
   if(shake>0){ cam.position.x+=(Math.random()-.5)*shake*.5; cam.position.y+=(Math.random()-.5)*shake*.4; shake=Math.max(0,shake-dt*2.2); }
-  camLook.copy(pos).addScaledVector(headV,8).addScaledVector(UP,1);
+  camLook.copy(pos).addScaledVector(headV,8).addScaledVector(camUpV,1);
   // look into the bend (and over the crest) a little: aim part-way at the road further ahead
-  { const la=clamp(12+r.v*.16,12,36); frame(r.dist+la,F2); tmpV.copy(F2.p).addScaledVector(F2.r,r.x*.5); tmpV.y+=1+(pos.y-F.p.y);
+  { const la=clamp(12+r.v*.16,12,36); rFrameAt(r,r.dist+la,F2); tmpV.copy(F2.p).addScaledVector(F2.r,r.x*.5); tmpV.addScaledVector(F2.u,1); if(!inLoop(r.dist,TR,30)) tmpV.y+=pos.y-F.p.y;
     tmpV.sub(pos).setLength(8).add(pos); camAim.lerp(tmpV.sub(camLook),camSnapAim?1:1-Math.exp(-dt*5)); camSnapAim=false; camLook.addScaledVector(camAim,.28); }
   if(camTag.t>0){ camTag.t=Math.max(0,camTag.t-dt); const k=1-Math.pow(camTag.t/.45,2); cam.position.lerpVectors(camTag.from,cam.position,k); camLook.lerpVectors(camTag.look,camLook,k); }
-  cam.lookAt(camLook); cam.rotateZ(-r.steer*.05-r.vx*.004);
+  cam.up.copy(camUpV); cam.lookAt(camLook); cam.rotateZ(-r.steer*.05-r.vx*.004);
   const h=78+26*(1-Math.exp(-r.v/75))+boost*8; // widens with speed, then levels off instead of fish-eyeing past 300 mph
   cam.fov=lerp(cam.fov,clamp(hfovToV(h),52,98),1-Math.exp(-dt*4)); cam.updateProjectionMatrix();
 }
@@ -9251,7 +9293,7 @@ function chaseCam(dt,r,inp){
    by the time the lights go green, easing out so the hand-off to chaseCam is seamless. */
 const craneOff=new THREE.Vector3(), craneLook=new THREE.Vector3();
 function craneIntro(r){ const k=clamp(1-(countdown-.6)/3,0,1), e=k*k*(3-2*k); if(e>=1) return;
-  frame(r.dist,F); const pos=r.m.group.position, side=r.x>0?-1:1;
+  rFrame(r,F); const pos=r.m.group.position, side=r.x>0?-1:1;
   // orbit, don't cut: angle, radius and height ease separately so the camera swings round the car instead of through it
   craneOff.subVectors(cam.position,pos); const endA=Math.atan2(craneOff.dot(F.r),craneOff.dot(F.t)), endR=Math.hypot(craneOff.dot(F.r),craneOff.dot(F.t)), endY=craneOff.y;
   let startA=Math.atan2(side*3.2,9); if(Math.abs(endA-startA)>Math.PI) startA+=startA<endA?Math.PI*2:-Math.PI*2;
@@ -9260,7 +9302,7 @@ function craneIntro(r){ const k=clamp(1-(countdown-.6)/3,0,1), e=k*k*(3-2*k); if
   craneLook.copy(pos); craneLook.y+=.8; tmpV.copy(craneLook).lerp(camLook,e); cam.lookAt(tmpV); }
 let shot=0;
 function cineCam(dt,r){
-  frame(r.dist,F); const pos=r.m.group.position;
+  rFrame(r,F); const pos=r.m.group.position; cam.up.copy(UP); camUpV.copy(UP);
   const t=Math.floor(modeT/3.2)%3;
   if(t!==shot){ shot=t; camSnap=true; }
   if(t===0){ tgt.copy(pos).addScaledVector(F.t,8.5).addScaledVector(F.r,-3.4).addScaledVector(UP,.55); camLook.copy(pos).addScaledVector(UP,.7); }
@@ -9270,7 +9312,7 @@ function cineCam(dt,r){
   cam.position.copy(camPos); cam.lookAt(camLook); cam.rotateZ([.2,-.12,-.25][t]);
   cam.fov=clamp(hfovToV(62),38,90); cam.updateProjectionMatrix();
 }
-function studioCam(dt,d,hero){
+function studioCam(dt,d,hero){ cam.up.copy(UP); camUpV.copy(UP);
   const c=hero?{p:[4.2,1.1,-3.6],l:[0,.6,-.3],roll:-.1,fov:32}:(DEV&&DEV.scam)||d.cam; // ?dev: AHDEV.scam() holds a close-up
   const mul=cam.aspect<1?Math.min(2.3,.8/Math.pow(cam.aspect,.9)):1;
   const drift=Math.sin(modeT*.25)*.25;
@@ -9360,7 +9402,7 @@ function loop(now){
     }
     if(mode==='race'){
       if(ghostCar&&ghostData){ const g=ghostState(raceT);
-        if(g){ ghostCar.group.visible=true; poseAt(ghostCar.group,g.dist,g.x,g.yaw,0); ghostCar.wheels.forEach(w=>w.rotation.x+=player.v*sdt/.37);
+        if(g){ ghostCar.group.visible=true; poseAt(ghostCar.group,g.dist,g.x,g.yaw,0,g); ghostCar.wheels.forEach(w=>w.rotation.x+=player.v*sdt/.37);
           if(countdown<=0&&!player.finished){ const gap=(g.dist-player.dist)/Math.max(player.v,15); const el=$('#hGhost'); setT(el,gap>0?`Ghost ahead ${gap.toFixed(1)}s`:`Ghost behind ${(-gap).toFixed(1)}s`); el.classList.toggle('ahead',gap<=0); } }
         else ghostCar.group.visible=false; }
       const focus=EV.knockout&&player.out?(koLeader()||player):player;

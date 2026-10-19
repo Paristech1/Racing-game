@@ -538,3 +538,29 @@ describe("eventsSwipeStartAllowed", () => {
     assert.equal(eventsSwipeStartAllowed(target([])), true);
   });
 });
+
+describe('makeTrack loops and open branches (Last Call)', async () => {
+  const { makeTrack: mk, frame: fr, mkFrame: mf, Vec3 } = await import('../js/logic.mjs');
+  it('an open path clamps s to its ends and has one-sided end tangents', () => {
+    const pts = []; for (let i = 0; i <= 100; i++) pts.push(new Vec3(i, 0, 0));
+    const tr = mk(pts, 4, 6, { open: true });
+    assert.equal(Math.round(tr.L), 100);
+    const o = mf(); fr(250, o, tr); assert.ok(Math.abs(o.p.x - 100) < 1e-6);
+    fr(-5, o, tr); assert.ok(Math.abs(o.p.x) < 1e-6);
+    assert.ok(tr.T[0].x > .99 && tr.T[100].x > .99);
+  });
+  it('a vertical loop rolls the up vector over and reads as a straight to the lateral physics', () => {
+    const pts = [], up = [], R0 = 20;
+    for (let i = 0; i < 400; i++) {
+      const s = i / 400 * (300 + 2 * Math.PI * R0);
+      if (s < 150 || s > 150 + 2 * Math.PI * R0) { const x = s < 150 ? s : s - 2 * Math.PI * R0; pts.push(new Vec3(x, 0, 0)); up.push(new Vec3(0, 1, 0)); }
+      else { const ph = (s - 150) / R0; pts.push(new Vec3(150 + R0 * Math.sin(ph), R0 * (1 - Math.cos(ph)), (s - 150) * .05)); up.push(new Vec3(-Math.sin(ph), Math.cos(ph), 0)); }
+    }
+    const tr = mk(pts, 7, 6, { up });
+    assert.equal(tr.loops.length, 1);
+    const top = pts.findIndex(p => p.y > 2 * R0 - .5);
+    assert.ok(tr.U[top].y < -.9, 'upside down at the crown');
+    assert.equal(tr.K[top], 0);
+    const o = mf(); fr(top * tr.ds, o, tr); assert.ok(o.u.y < -.9);
+  });
+});

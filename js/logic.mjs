@@ -225,42 +225,23 @@ export class Vec3 {
 
 const UP = new Vec3(0, 1, 0);
 
-export function makeTrack(pts, W, H) {
-  const N = pts.length;
-  let L = 0;
-  for (let i = 0; i < N; i++) L += pts[i].distanceTo(pts[(i + 1) % N]);
-  const ds = L / N;
-  const T = [];
-  const R = [];
-  const K = [];
-  const raw = [];
-  for (let i = 0; i < N; i++) {
-    T.push(new Vec3().subVectors(pts[(i + 1) % N], pts[(i - 1 + N) % N]).normalize());
-  }
-  for (let i = 0; i < N; i++) {
-    R.push(new Vec3().crossVectors(T[i], UP).normalize());
-  }
-  for (let i = 0; i < N; i++) {
-    const a = T[(i - 1 + N) % N];
-    const b = T[(i + 1) % N];
-    raw.push(-Math.atan2(a.x * b.z - a.z * b.x, a.x * b.x + a.z * b.z) / (2 * ds));
-  }
-  const win = Math.max(4, Math.round(12 / ds));
-  for (let i = 0; i < N; i++) {
-    let s = 0;
-    for (let j = -win; j <= win; j++) s += raw[(i + j + N) % N];
-    K.push(s / (2 * win + 1));
-  }
-  let bi = 0;
-  for (let k = 0; k < N; k++) if (Math.abs(K[k]) > Math.abs(K[bi])) bi = k;
-  const kb = K[bi];
-  if (Math.abs(kb) > 1e-6) {
-    const cA = new Vec3().copy(pts[bi]).addScaledVector(R[bi], -1 / kb);
-    const cB = new Vec3().copy(pts[bi]).addScaledVector(R[bi], 1 / kb);
-    const mid = pts[(bi + Math.round(8 / ds)) % N];
-    if (mid.distanceTo(cB) < mid.distanceTo(cA)) for (let k = 0; k < N; k++) K[k] = -K[k];
-  }
-  return { pts, T, R, K, L, N, ds, W, H };
+export function makeTrack(pts,W,H,o){ o=o||{};
+  const N=pts.length, open=!!o.open, U=o.up||null, at=i=>open?clamp(i,0,N-1):(i+N)%N; let L=0; for(let i=0;i<(open?N-1:N);i++) L+=pts[i].distanceTo(pts[(i+1)%N]);
+  const ds=L/(open?N-1:N), T=[], R=[], K=[], raw=[];
+  for(let i=0;i<N;i++){ T.push(new Vec3().subVectors(pts[at(i+1)],pts[at(i-1)]).normalize()); }
+  for(let i=0;i<N;i++){ R.push(new Vec3().crossVectors(T[i],U?U[i]:UP).normalize()); }
+  for(let i=0;i<N;i++){ const a=T[at(i-1)], b=T[at(i+1)]; raw.push(-Math.atan2(a.x*b.z-a.z*b.x, a.x*b.x+a.z*b.z)/(2*ds)); }
+  const win=Math.max(4,Math.round(12/ds));
+  for(let i=0;i<N;i++){ let s=0; for(let j=-win;j<=win;j++) s+=raw[at(i+j)]; K.push(s/(2*win+1)); }
+  if(U) for(let i=0;i<N;i++){ if(U[i].y<.9995) K[i]=0; }
+  // make sure positive K means a left turn (center of curvature on the -R side)
+  let bi=0; for(let k=0;k<N;k++) if(Math.abs(K[k])>Math.abs(K[bi])) bi=k;
+  const kb=K[bi]; if(Math.abs(kb)>1e-6){
+    const cA=new Vec3().copy(pts[bi]).addScaledVector(R[bi],-1/kb), cB=new Vec3().copy(pts[bi]).addScaledVector(R[bi],1/kb);
+    const mid=pts[at(bi+Math.round(8/ds))]; if(mid.distanceTo(cB)<mid.distanceTo(cA)) for(let k=0;k<N;k++) K[k]=-K[k]; }
+  const tr={pts,T,R,K,L,N,ds,W,H,U,open};
+  if(U){ tr.loops=[]; let a=-1; for(let i=0;i<=N;i++){ const inl=i<N&&U[i].y<.9995; if(inl&&a<0) a=i; else if(!inl&&a>=0){ tr.loops.push([a*ds,i*ds]); a=-1; } } }
+  return tr;
 }
 
 /* Baked racing line (adapted from ZER0-G Track.buildLine, MIT). Kept identical to afterhours.js (sync test). */
@@ -277,20 +258,30 @@ export function bakeLine(tr){
 export function frame(s, o, tr) {
   const L = tr.L;
   const N = tr.N;
-  s = ((s % L) + L) % L;
-  const f = (s / L) * N;
-  const i = Math.floor(f) % N;
-  const a = f - Math.floor(f);
-  const j = (i + 1) % N;
+  let i, j, a;
+  if (tr.open) {
+    const f = clamp(s, 0, L) / tr.ds;
+    i = Math.min(N - 2, Math.floor(f));
+    a = f - i;
+    j = i + 1;
+  } else {
+    s = ((s % L) + L) % L;
+    const f = (s / L) * N;
+    i = Math.floor(f) % N;
+    a = f - Math.floor(f);
+    j = (i + 1) % N;
+  }
   o.p.lerpVectors(tr.pts[i], tr.pts[j], a);
   o.t.lerpVectors(tr.T[i], tr.T[j], a).normalize();
   o.r.lerpVectors(tr.R[i], tr.R[j], a).normalize();
   o.k = tr.K[i] * (1 - a) + tr.K[j] * a;
+  if (tr.U) o.u.lerpVectors(tr.U[i], tr.U[j], a).normalize();
+  else o.u.copy(UP);
   return o;
 }
 
 export function mkFrame() {
-  return { p: new Vec3(), t: new Vec3(), r: new Vec3(), k: 0 };
+  return { p: new Vec3(), t: new Vec3(), r: new Vec3(), u: new Vec3(0, 1, 0), k: 0 };
 }
 
 export function koUsesSectors(ev, trackLength) {

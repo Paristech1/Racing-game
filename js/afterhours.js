@@ -3412,7 +3412,11 @@ function mergeGeos(geos){ let nv=0, ni=0; const hasC=geos.every(g=>g.attributes.
     v+=c; g.dispose(); });
   const out=new THREE.BufferGeometry(); out.setAttribute('position',new THREE.BufferAttribute(pos,3)); out.setAttribute('normal',new THREE.BufferAttribute(nor,3)); out.setAttribute('uv',new THREE.BufferAttribute(uv,2));
   if(col) out.setAttribute('color',new THREE.BufferAttribute(col,3)); out.setIndex(new THREE.BufferAttribute(idx,1)); out.computeBoundingSphere(); return out; }
+let KIT_LOG=null; // when an array, kitInst records every placement (name, matrix, local bounds) for a clash check
+let KIT_FILTER=null; // when set, (name, matrix) => false drops that placement (Last Call keeps trees and lamps off every road)
 function kitInst(S,name,mats,list,colors,colorKey,lod){ const parts=kitParts(name); if(!parts||!list.length) return false;
+  if(KIT_FILTER){ const keep=list.map(m=>KIT_FILTER(name,m)); if(colors) colors=colors.filter((c,i)=>keep[i]); list=list.filter((m,i)=>keep[i]); if(!list.length) return true; }
+  if(KIT_LOG){ const bb=new THREE.Box3(); parts.forEach(p=>{ if(!p.geo.boundingBox) p.geo.computeBoundingBox(); bb.union(p.geo.boundingBox); }); list.forEach(m=>KIT_LOG.push({name,m,bb})); }
   // perf: long layouts (parked cars, guardrail, trees) split into tiles so off-screen / fogged-out tiles are culled.
   // With `lod` ({far, keys}) each tile is a THREE.LOD: past `far` meters only the listed material parts are drawn
   // (a parked car keeps its body and glass; tires, trim and lenses drop out where they'd be a pixel or two anyway).
@@ -4816,7 +4820,8 @@ function sceneKit(o){
   const quad=(b,A,B,C,D,n,uv)=>{ const e1=[B[0]-A[0],B[1]-A[1],B[2]-A[2]], e2=[D[0]-A[0],D[1]-A[1],D[2]-A[2]], cr=[e1[1]*e2[2]-e1[2]*e2[1],e1[2]*e2[0]-e1[0]*e2[2],e1[0]*e2[1]-e1[1]*e2[0]];
     const flip=cr[0]*n[0]+cr[1]*n[1]+cr[2]*n[2]<0, [a,bb,c,d]=flip?[A,D,C,B]:[A,B,C,D], [ua,ub,uc,ud]=flip?[uv[0],uv[3],uv[2],uv[1]]:uv;
     b.pos.push(...a,...bb,...c,...a,...c,...d); for(let i=0;i<6;i++) b.nor.push(...n); b.uv.push(...ua,...ub,...uc,...ua,...uc,...ud); };
-  K.obox=(style,cx,cz,yaw,w,d,h,y0)=>{ y0=y0||0; const b=K.facM(style), c=Math.cos(yaw), s=Math.sin(yaw), T=32, uo=(K.R()*8|0)/8, y1=y0+h;
+  K.foot=[];
+  K.obox=(style,cx,cz,yaw,w,d,h,y0)=>{ y0=y0||0; K.foot.push({name:'building:'+style,cx,cz,yaw,w,d,y0,y1:y0+h}); const b=K.facM(style), c=Math.cos(yaw), s=Math.sin(yaw), T=32, uo=(K.R()*8|0)/8, y1=y0+h;
     const P=(lx,lz)=>[cx+lx*c+lz*s,cz-lx*s+lz*c], pts=[P(-w/2,-d/2),P(w/2,-d/2),P(w/2,d/2),P(-w/2,d/2)];
     for(let i=0;i<4;i++){ const a=pts[i], e=pts[(i+1)%4], len=Math.hypot(e[0]-a[0],e[1]-a[1]), mx=(a[0]+e[0])/2-cx, mz=(a[1]+e[1])/2-cz, ml=Math.hypot(mx,mz)||1;
       quad(b,[a[0],y0,a[1]],[e[0],y0,e[1]],[e[0],y1,e[1]],[a[0],y1,a[1]],[mx/ml,0,mz/ml],[[uo,y0/T],[uo+len/T,y0/T],[uo+len/T,y1/T],[uo,y1/T]]); }
@@ -4826,7 +4831,7 @@ function sceneKit(o){
   K.skyline=(o)=>{ if(!K.fac.skyfar){ const t=facadeTex('glass'); K.fac.skyfar={mat:new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:.55,roughness:.35,metalness:.5,fog:false}),pos:[],nor:[],uv:[]}; }
     const R=rng(o.seed||11), tops=[];
     for(let i=0;i<o.n;i++){ const u=(R()-.5)*2, v=(R()-.5)*2, core=1-Math.abs(u)*.7, h=(o.h[0]+(o.h[1]-o.h[0])*Math.pow(R(),1.6))*core, wd=o.wd||[22,48], w=wd[0]+R()*(wd[1]-wd[0]), d=wd[0]+R()*(wd[1]-wd[0])*.8;
-      const x=o.cx+u*o.sx, z=o.cz+v*o.sz; K.obox('skyfar',x,z,(R()-.5)*.3,w,d,h,0); if(h>o.h[1]*.6) tops.push([x,h,z]); }
+      const x=o.cx+u*o.sx, z=o.cz+v*o.sz; if(o.ok&&!o.ok(x,z,Math.hypot(w,d)/2)) continue; K.obox('skyfar',x,z,(R()-.5)*.3,w,d,h,0); if(h>o.h[1]*.6) tops.push([x,h,z]); }
     tops.forEach(([x,h,z])=>{ const g=glowSprite(0xff2a2a,7); g.position.set(x,h+3,z); g.material.fog=false; S.add(g); }); };
   // a row of buildings facing the road on one side, from s0 to s1 (setback measured from the centerline)
   // true when a footprint (center c, length along t, depth along r) keeps every corner and edge midpoint off the
@@ -6318,7 +6323,8 @@ function lcBlvd(K,km,s0,s1,b){ const S=K.S, tr=K.tr, W=tr.W, R=rng(1915), f=mkF(
   { const u=.5*bt.L; frame(u,f,bt); const bridge=K.box(2*b.w+8,1.4,22,km.CONCRETE,f.p.x,.3,f.p.z); bridge.rotation.y=Math.atan2(f.t.x,f.t.z)+Math.PI/2;
     [-1,1].forEach(sd=>{ const q=K.box(2*b.w+8,1.1,.5,km.STEEL,f.p.x+f.t.x*sd*11,1.5,f.p.z+f.t.z*sd*11); q.rotation.y=bridge.rotation.y; });
     K.sign(signCanvas2('COTTMAN AVE','EXPRESS LANES · NO EXIT',{bg:'#0f5a32'}),10,3,f.p.x-f.t.x*11.4,-1.6,f.p.z-f.t.z*11.4,Math.atan2(-f.t.x,-f.t.z)); }
-  [.3,.72].forEach(u=>{ frame(u*bt.L,f,bt); const p=f.p.clone().addScaledVector(f.r,b.w-.2); K.box(.25,5,.25,km.DARK,p.x,p.y+2.5,p.z); K.box(.6,.5,.8,km.SIGNBACK,p.x,p.y+5.1,p.z); K.glow(0xff2a1a,1.6,p.x,p.y+5.1,p.z); });
+  [.3,.72].forEach(u=>{ frame(u*bt.L,f,bt); const p=f.p.clone().addScaledVector(f.r,b.w+1.1), g=Math.max(f.p.y,0); // on top of the trench wall, leaning out over the lane
+    K.box(.25,5,.25,km.DARK,p.x,g+2.5,p.z); const arm=f.p.clone().addScaledVector(f.r,b.w-.4); K.box(.6,.5,.8,km.SIGNBACK,arm.x,g+5.1,arm.z); K.glow(0xff2a1a,1.6,arm.x,g+5.1,arm.z); });
   return {}; }
 // Mt Airy: Germantown Ave shops tight to the sidewalk on the cobbles and trolley rails, then the stone twins on Mt Airy Ave
 function lcMtAiry(K,km,sG0,sG1,sA1,inGtn,inAve){ const S=K.S, tr=K.tr, W=tr.W, f=mkF();
@@ -6468,6 +6474,24 @@ function ribbonUC(tr,S,mat,fn,vScale,chunk){ chunk=Math.round((chunk||120)/tr.ds
   for(let c=0;c<N;c+=chunk){ const lo=c, hi=Math.min(N,c+chunk+1); out.push(ribbonU(tr,S,mat,(k,p)=>(k>=lo&&k<hi)||(k===0&&hi===N&&!tr.open&&lo>0&&false)?fn(k,p):null,vScale)); }
   return out; }
 
+/* Anything solid standing on a road: every building footprint (K.foot) and every kit placement (KIT_LOG) is tested
+   against the road corridor of the lap and of each branch, every 3 m. Returns [{name,x,z,s,br}]. Kit pieces the road is
+   meant to run through or over (portals, the loop structures, gantries, the stone bridge) are skipped; trees are tested
+   by their trunks only. */
+const CLASH_SKIP=new Set(['HaloTower','RingPylon','LCPortal','ForkGantry','StoneArch','Cushion','BFBTower']);
+function roadClashes(tr,foot,kits,S){ if(S){ S.updateMatrixWorld(true); S.traverse(o=>{ if(!o.isMesh||o.isInstancedMesh||!o.geometry||o.geometry.type!=='BoxGeometry'||(o.material&&o.material.transparent)) return;
+      const g=o.geometry.parameters; kits=kits.concat([{name:'box',m:o.matrixWorld.clone(),bb:new THREE.Box3(new THREE.Vector3(-g.width/2,-g.height/2,-g.depth/2),new THREE.Vector3(g.width/2,g.height/2,g.depth/2))}]); }); }
+  const out=[], roads=[{t:tr,w:tr.W,br:null}].concat((tr.branches||[]).map(b=>({t:b.tr,w:b.w,br:b.id}))), inv=new THREE.Matrix4(), q=new THREE.Vector3();
+  const kitB=kits.filter(k=>!CLASH_SKIP.has(k.name)).map(k=>{ const tree=k.name==='Broadleaf'||k.name==='Conifer'; const bb=tree?new THREE.Box3(new THREE.Vector3(-.6,k.bb.min.y,-.6),new THREE.Vector3(.6,k.bb.max.y,.6)):k.bb;
+    const c=new THREE.Vector3().setFromMatrixPosition(k.m), sc=k.m.getMaxScaleOnAxis()||1; return {name:k.name,inv:inv.copy(k.m).invert().clone(),bb,c,sc,r:Math.hypot(bb.max.x-bb.min.x,bb.max.z-bb.min.z)/2*sc+20}; });
+  const seen=new Set();
+  roads.forEach(R=>{ const t=R.t, m=R.w+.3; for(let k=0;k<t.N;k+=3){ const p=t.pts[k], up=t.U?t.U[k]:UP; if(up.y<.9) continue;
+    for(const b of foot){ const dx=p.x-b.cx, dz=p.z-b.cz; if(Math.abs(dx)>b.w+b.d+m&&Math.abs(dz)>b.w+b.d+m) continue; const c=Math.cos(b.yaw), sn=Math.sin(b.yaw), lx=dx*c-dz*sn, lz=dx*sn+dz*c;
+      if(Math.abs(lx)<b.w/2+m&&Math.abs(lz)<b.d/2+m&&p.y+3>b.y0&&p.y<b.y1){ const key=b.name+Math.round(b.cx)+','+Math.round(b.cz); if(!seen.has(key)){ seen.add(key); out.push({name:b.name,x:Math.round(b.cx),z:Math.round(b.cz),s:Math.round(k*t.ds),br:R.br}); } } }
+    for(const b of kitB){ if(Math.abs(p.x-b.c.x)>b.r+m||Math.abs(p.z-b.c.z)>b.r+m) continue; q.set(p.x,p.y+1,p.z).applyMatrix4(b.inv); const ml=m/b.sc; // margin in the asset's own units
+      if(q.x>b.bb.min.x-ml&&q.x<b.bb.max.x+ml&&q.z>b.bb.min.z-ml&&q.z<b.bb.max.z+ml&&q.y>b.bb.min.y-1/b.sc&&q.y<b.bb.max.y){ const key=b.name+Math.round(b.c.x)+','+Math.round(b.c.z); if(!seen.has(key)){ seen.add(key); out.push({name:b.name,x:Math.round(b.c.x),z:Math.round(b.c.z),s:Math.round(k*t.ds),br:R.br}); } } } } });
+  return out; }
+
 /* ---- Event 16: Last Call ----
    Every level in one lap at 1:45 AM: the Bridge Run out of Center City and over the Ben Franklin Bridge, the Harbor Line
    tunnel under the Delaware up into the Halo (a vertical loop inside a glass vent tower), the I-95 viaduct, Roosevelt
@@ -6544,17 +6568,25 @@ function buildLastCall(){
   tr.branches.forEach(b=>{ const bt=b.tr, w=b.w; ribbonU(bt,S,brMat[b.id],(k,p)=>[-w-.3,.02,w+.3,.02],b.id===3?24:10); });
 
   /* ======== the set pieces, sector by sector ======== */
+  KIT_LOG=[];
+  // every road point (lap and shortcuts) in 60 m buckets: scattered buildings ask this before they go down
+  const RB=new Map(), rk=(x,z)=>Math.floor(x/60)+','+Math.floor(z/60), addR=(p,w)=>{ const k=rk(p.x,p.z); if(!RB.has(k)) RB.set(k,[]); RB.get(k).push([p.x,p.z,w]); };
+  for(let k=0;k<tr.N;k+=3) addR(tr.pts[k],W); tr.branches.forEach(b=>{ for(let k=0;k<b.tr.N;k+=3) addR(b.tr.pts[k],b.w); });
+  const roadFree=(x,z,rad,mg)=>{ mg=mg===undefined?4:mg; const n=Math.ceil((rad+20)/60), cx=Math.floor(x/60), cz=Math.floor(z/60); for(let a=-n;a<=n;a++) for(let b=-n;b<=n;b++){ const l=RB.get((cx+a)+','+(cz+b)); if(l) for(const [px,pz,w] of l) if(Math.hypot(px-x,pz-z)<rad+w+mg) return false; } return true; };
+  const POINTY={Broadleaf:1.4,Conifer:1.2,LampTwin:.6,FlagPole:.4}, _v=new THREE.Vector3();
+  KIT_FILTER=(name,m)=>{ const r=POINTY[name]; if(r===undefined) return true; _v.setFromMatrixPosition(m); return roadFree(_v.x,_v.z,r,1.5); };
   const km=Object.assign({},kitMats(),lcKitMats());
   const PK=phillyKitMats();
   const place=(x,y,z,yaw,sc)=>new THREE.Matrix4().makeTranslation(x,y,z).multiply(new THREE.Matrix4().makeRotationY(yaw||0)).multiply(new THREE.Matrix4().makeScale(sc||1,sc||1,sc||1));
   const onTrack=(s,x,dy,yawOff)=>{ K.at(s,x||0,dy||0); const q=K.q.clone(); if(yawOff) q.multiply(new THREE.Quaternion().setFromAxisAngle(UP,yawOff)); return new THREE.Matrix4().compose(K.pv.clone(),q,one); };
 
   // ---- Center City: Market St, 6th St, the Parkway and 15th St between towers; City Hall; Franklin Square ----
-  const outside=c=>!(c.x>470&&c.x<715&&c.z>-300&&c.z<12)&&!(c.x>-50&&c.x<45&&c.z>-120&&c.z<-25)&&Math.hypot(c.x+445,c.z+455)>110; // Franklin Square, City Hall, the Art Museum
+  const outside=c=>!(c.x>470&&c.x<715&&c.z>-300&&c.z<12)&&!(c.x>-50&&c.x<45&&c.z>-120&&c.z<-25)&&Math.hypot(c.x+445,c.z+455)>110&&roadFree(c.x,c.z,12); // Franklin Square, City Hall, the Art Museum, any other road
   const cityF=(s0,s1,o)=>[-1,1].forEach(sd=>K.frontage(s0,s1,sd,Object.assign({set:6.5,h:[16,46],dep:[18,30],len:[16,30],space:1.2,styles:['glass','stone','brick','glass'],ok:outside},o||{})));
   cityF(40,sBr0-60); cityF(sPk0+60,L-40,{h:[14,38]});
   kitInst(S,'CityHall',PK,[new THREE.Matrix4().makeTranslation(-3,0,-72)]) || (()=>{ const hall=new THREE.MeshStandardMaterial({color:0x8a7a62,roughness:.85}); K.box(84,34,84,hall,-3,17,-72); K.box(26,62,26,hall,-3,65,-72); })();
-  K.skyline({n:60,cx:-60,cz:420,sx:820,sz:240,h:[60,240],seed:61}); K.skyline({n:40,cx:-700,cz:-150,sx:300,sz:500,h:[40,160],seed:62});
+  const skyOk=(x,z,r)=>roadFree(x,z,r+30)&&Math.hypot(x+445,z+455)>r+120;
+  K.skyline({n:60,cx:-60,cz:420,sx:820,sz:240,h:[60,240],seed:61,ok:skyOk}); K.skyline({n:40,cx:-760,cz:-200,sx:260,sz:420,h:[40,160],seed:62,ok:skyOk});
   lcFranklinSquare(K,km,BR_(1));
   // ---- the Ben Franklin Bridge: deck, towers, cables and the light show ----
   const steel=new THREE.MeshStandardMaterial({color:0x2f5d9e,emissive:0x0a1a33,emissiveIntensity:1,metalness:.6,roughness:.45,side:THREE.DoubleSide});
@@ -6595,7 +6627,7 @@ function buildLastCall(){
       m4.compose(pv.set(K.f.p.x,y-.6,K.f.p.z),K.q,new THREE.Vector3(2*W+6,1.4,3)); caps.push(m4.clone()); }
     const white=upLit(new THREE.MeshStandardMaterial({color:0xd8d8d4,roughness:.6}),{k:.35,h:10,a:0xffa050}); K.inst(new THREE.BoxGeometry(1,1,1),white,piers); K.inst(new THREE.BoxGeometry(1,1,1),white,caps); }
   lcCasino(K,km,at(1000,-2080));
-  K.gantry(sV0-30,'I-95 NORTH','COTTMAN AVE · RT 1  ↑');
+  K.gantry(sV0+160,'I-95 NORTH','COTTMAN AVE · RT 1  ↑');
   // ---- Roosevelt Blvd: the mile, the local lanes and the express trench ----
   lcBlvd(K,km,sBlvd0,sRingIn-40,BR_(3));
   // ---- THE RING ----
@@ -6616,10 +6648,12 @@ function buildLastCall(){
   K.lights({every:60,color:0xffd2a0,pool:0x9a7a50,pole:0x1f2226,sides:[-1],skip:(p,s)=>!inLin(s)});
   K.gantry(at(-1000,-2500),'GERMANTOWN AVE','MT AIRY · CHESTNUT HILL  ↑');
   K.gantry(sAve1+40,'LINCOLN DRIVE','WISSAHICKON · S-CURVES',{bg:'#2a1c06',color:'#ffd9a0'});
-  K.gantry(sLin1+40,'KELLY DRIVE','BOATHOUSE ROW · ART MUSEUM',{bg:'#0f5a32'});
+  K.gantry(sLin1+260,'KELLY DRIVE','BOATHOUSE ROW · ART MUSEUM',{bg:'#0f5a32'});
   // fork gantries: the shortcut sign over the lanes that peel off
   tr.branches.forEach(b=>lcForkGantry(K,km,b));
   K.flush();
+  const clashes=roadClashes(tr,K.foot,KIT_LOG,S); KIT_LOG=null; KIT_FILTER=null;
+  if(clashes.length) console.warn('Last Call: '+clashes.length+' solid objects on a road',clashes.slice(0,12));
 
   // ---- traffic: only on the Boulevard and the city streets, never in a loop or the tunnel ----
   const obst=K.traffic(9), zones=[[sBlvd0+40,sRingIn-160],[60,sBr0-80],[sPk0+40,L-60]];
@@ -6636,7 +6670,7 @@ function buildLastCall(){
     if(mode==='race'&&racers.length){ const lead=racers.reduce((a,b)=>b.dist>a.dist?b:a), lap=clamp(Math.floor(lead.dist/L)||0,0,2);
       if(lap!==lastTable){ lastTable=lap; lcRetypeDrops(lapTables[lap]); if(lap>0&&player) toast(lap===2?'Last Call. The drops bite now.':'Rush. Lap 2 drops.'); } } };
   return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[{s:at(380,20)},{s:at(-380,-2500)}],slopeG:1,airtime:true,roadHazards,resetTraffic,
-    tunS:[[sT0,sHalo0-30]],surf:[{s0:sG0+20,s1:sG1-10,grip:.88,name:'cobble',msg:'Cobbles and trolley rails. Less grip.'}],lcS:{sBr0,sBr1,sT0,sT1,sHalo0,sHalo1,sRingIn,sRingOut,sV0,sV1,sBlvd0,sG0,sG1,sAve1,sLin1,sKel1,sPk0}};
+    clashes,tunS:[[sT0,sHalo0-30]],surf:[{s0:sG0+20,s1:sG1-10,grip:.88,name:'cobble',msg:'Cobbles and trolley rails. Less grip.'}],lcS:{sBr0,sBr1,sT0,sT1,sHalo0,sHalo1,sRingIn,sRingOut,sV0,sV1,sBlvd0,sG0,sG1,sAve1,sLin1,sKel1,sPk0}};
 }
 
 /* ---------------- EVENTS ---------------- */

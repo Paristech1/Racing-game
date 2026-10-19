@@ -3157,6 +3157,7 @@ function rFrameAt(r,d,o){ if(r.br){ const u=(d-r.brBase)/r.br.ratio; if(u<r.br.t
 function branchStep(r,prevDist){ const brs=TR&&TR.branches; if(!brs) return; const L=TR.L;
   if(r.br){ if((r.dist-r.brBase)/r.br.ratio>=r.br.tr.L){ const b=r.br; r.x+=b.off1; r.br=null; r.dist=r.brBase+(b.s1-b.s0); if(r.isP&&b.msgOut) toast(b.msgOut); } return; }
   const a=((prevDist%L)+L)%L, d=r.dist-prevDist;
+  if(DEV&&!r.isP) for(const b of brs){ let u=b.s0-a; if(u<0) u+=L; if(u<=d&&u>=0){ const st=window.AHDEV_LC||(window.AHDEV_LC={br:{},loopMin:{},air:0}); st.cross=st.cross||{}; (st.cross[b.name]=st.cross[b.name]||[]).push([+r.x.toFixed(1),r.aiBr&&r.aiBr[b.id]===Math.floor(r.dist/L)?1:0]); } }
   for(const b of brs){ let u=b.s0-a; if(u<0) u+=L; if(u<=d&&u>=0&&b.side*(r.x-b.split)>0&&!(r.aiNoBr&&!r.isP&&r.aiNoBr[b.id]===Math.floor(r.dist/L))){
       if(DEV){ const st=window.AHDEV_LC||(window.AHDEV_LC={br:{},loopMin:{},air:0}); st.br[b.name]=(st.br[b.name]||0)+1; }
       r.br=b; r.brBase=prevDist+u; r.dist=r.brBase+(r.dist-r.brBase)*b.ratio; r.x-=b.off0; r.hy=undefined; if(r.isP&&b.msgIn) toast(b.msgIn); return; } } }
@@ -3165,8 +3166,8 @@ function aiBranchTx(r,tx){ const brs=TR&&TR.branches; if(!brs||r.br) return tx; 
   for(const b of brs){ let u=b.s0-s; if(u<0) u+=L; if(u>180) continue;
     r.aiBr=r.aiBr||{}; r.aiNoBr=r.aiNoBr||{};
     if(r.aiBr[b.id]!==lap&&r.aiNoBr[b.id]!==lap){ const want=Math.random()<(b.aiP*(r.mood&&r.mood.mood!=='lead'?1.25:.8)); if(want) r.aiBr[b.id]=lap; else r.aiNoBr[b.id]=lap; }
-    if(r.aiBr[b.id]===lap) return b.side>0?Math.max(tx,b.split+2.2):Math.min(tx,b.split-2.2);
-    if(u<60) return b.side>0?Math.min(tx,b.split-1.6):Math.max(tx,b.split+1.6); }
+    if(r.aiBr[b.id]===lap) return b.side>0?Math.max(tx,b.split+1.6):Math.min(tx,b.split-1.6);
+    if(u<90) return b.side>0?Math.min(tx,b.split-1.6):Math.max(tx,b.split+1.6); }
   return tx; }
 
 function ribbon(tr,S,offA,offB,yA,yB,mat,vScale){
@@ -6112,19 +6113,17 @@ function buildCalder(){
    2pi/Ll*(1-cos(2pi s/Ll)), so no jolt at the bottom) lands ~0.44 x its length further on, drifting across onto the exit
    lane. Every point carries an up vector; inside a loop it rolls with the road. Shortcuts are open fillet paths whose
    ends sit on the edge of the main road at the fork and the merge. */
-const LC_CORNERS=[[720,20,30],[720,-300,40],[2140,-300,50],[2140,-780,90],[1760,-660,180],[1480,-1000,150],[1180,-740,150],[920,-1040,120],[880,-1640,160],[1010,-2050,160],[960,-2500,80],[620,-2500,90],[450,-2640,90],[70,-2640,90],[-100,-2500,90],[-960,-2500,60],[-1450,-2532,40],[-1530,-2432,50],[-1550,-2192,60],[-1540,-2042,60],[-1470,-1932,55],[-1330,-1950,38],[-1225,-1835,38],[-1105,-1950,38],[-985,-1830,38],[-860,-1925,45],[-660,-1720,160],[-720,-1180,220],[-470,-620,150],[-300,-470,70],[-80,-340,40],[-80,20,30]];
-const LC_KEYS=[[0,20,0],[700,20,0],[720,-280,0,6],[790,-300,0,6],[1020,-300,30,30],[1380,-300,31.5,60],[1740,-300,30,30],[1960,-300,0,6],[2140,-500,0],[2120,-780,0,6],[2040,-760,0,6],[1860,-680,-28,30],[1480,-1000,-29],[1180,-740,-28.5],[1010,-930,-28,30],[905,-1200,0,30],[890,-1330,2,10],[880,-1500,2,10],[885,-1700,2,25],[940,-1900,12,25],[1000,-2080,13,4],[1008,-2110,15,4],[1005,-2140,13,25],[985,-2340,3,20],[960,-2500,0],[-960,-2500,0,10],[-1000,-2500,3],[-1150,-2512,6],[-1450,-2532,13],[-1530,-2432,14],[-1550,-2192,13],[-1540,-2042,12],[-1470,-1932,8],[-1330,-1950,-1],[-1225,-1835,-3],[-1105,-1950,-5],[-985,-1830,-6],[-860,-1925,-7],[-660,-1720,-4],[-720,-1180,-2],[-470,-620,1],[-300,-470,6],[-180,-400,3],[-80,-340,1],[-80,20,0]];
+const LC_CORNERS=[[720,20,42],[720,-300,46],[2140,-300,88],[2140,-780,104],[1760,-660,180],[1480,-1000,150],[1180,-740,150],[920,-1040,120],[880,-1640,160],[1010,-2050,160],[960,-2500,118],[620,-2500,90],[450,-2640,90],[70,-2640,90],[-100,-2500,90],[-960,-2500,60],[-1450,-2532,62],[-1530,-2432,62],[-1550,-2192,60],[-1540,-2042,60],[-1470,-1932,55],[-1330,-1950,50],[-1225,-1840,54],[-1105,-1945,54],[-985,-1835,54],[-860,-1925,56],[-660,-1720,160],[-720,-1180,220],[-470,-620,150],[-300,-470,70],[-80,-340,58],[-80,20,44]];
+const LC_KEYS=[[0,20,0],[700,20,0],[720,-280,0,10],[770,-300,0,24],[1070,-300,30,45],[1380,-300,31.5,60],[1690,-300,30,45],[1990,-300,0,24],[2140,-500,0],[2120,-780,0,10],[2040,-760,0,24],[1785,-672,-24,45],[1480,-1000,-29],[1180,-740,-28.5],[1010,-930,-28,30],[905,-1200,0,30],[890,-1330,2,10],[880,-1500,2,10],[885,-1700,2,25],[940,-1900,12,25],[1000,-2080,13,4],[1008,-2110,15,4],[1005,-2140,13,25],[985,-2340,3,20],[960,-2500,0],[-960,-2500,0,10],[-1000,-2500,3],[-1150,-2512,6],[-1450,-2532,13],[-1530,-2432,14],[-1550,-2192,13],[-1540,-2042,12],[-1470,-1932,8],[-1330,-1950,-1],[-1225,-1840,-3],[-1105,-1945,-5],[-985,-1835,-6],[-860,-1925,-7],[-660,-1720,-4],[-720,-1180,-2],[-470,-620,1],[-300,-470,6],[-180,-400,3],[-80,-340,1],[-80,20,0]];
 const LC_LOOPS=[{name:'THE HALO',at:[886,-1420],len:260,drift:17,side:1},{name:'THE RING',at:[-560,-2500],len:300,drift:17,side:1}];
 // grip, AI take-rate and the toasts per shortcut
+// shortcuts: fork and merge points on the lap, which side they leave from, anchors for the middle, a height profile over the
+// middle (relative to the road), and the catch. Tuned in tools/lastcall_design.py terms with the branch checker (min R, clearance).
 const LC_BRANCHES=[
-  {id:1,name:'FRANKLIN SQUARE',w:4.5,start:[480,20],end:[720,-250],corners:[[540,-40,30],[580,-110,25],[650,-150,25],[690,-200,25]],keys:[[0,0],[1,0]],grip:.84,aiP:.35,
-   msgIn:'Franklin Square. Grass and paths, less grip.'},
-  {id:2,name:'SERVICE BORE',w:4,start:[1650,-790],end:[1010,-965],corners:[[1540,-850,50],[1330,-860,50],[1250,-900,40],[1110,-910,40]],keys:[[0,0],[.2,-11],[.8,-11],[1,0]],rel:true,grip:.88,aiP:.3,
-   msgIn:'Service Bore. Narrow, dark and wet.'},
-  {id:3,name:'EXPRESS LANES',w:5,start:[760,-2500],end:[-320,-2500],corners:[[660,-2482,40],[-220,-2482,40]],keys:[[0,0],[.2,-6.5],[.8,-6.5],[1,0]],grip:1,aiP:.45,
-   msgIn:'Express lanes. No traffic, no gems. Cameras.'},
-  {id:4,name:'FORBIDDEN DRIVE',w:4,start:[-1400,-1945],end:[-690,-1765],corners:[[-1335,-1800,70],[-1150,-1775,90],[-900,-1785,90]],keys:[[0,0],[.25,-9],[.75,-9.5],[1,0]],rel:true,grip:.8,aiP:.3,
-   msgIn:'Forbidden Drive. Gravel.'}];
+  {id:1,name:'FRANKLIN SQUARE',w:4.5,side:-1,start:[400,20],end:[720,-250],anchors:[[602,-16]],keys:[[0,0],[1,0]],grip:.84,aiP:.35,msgIn:'Franklin Square. Park paths, less grip.'},
+  {id:2,name:'SERVICE BORE',w:4,side:1,start:[1650,-790],end:[900,-1290],anchors:[[1470,-1050],[1290,-1078],[1110,-1088],[1010,-1085]],keys:[[0,0],[0.2,-9],[0.8,-9],[1,0]],grip:.88,aiP:.3,msgIn:'Service Bore. Narrow, dark and wet.'},
+  {id:3,name:'EXPRESS LANES',w:5,side:-1,start:[700,-2500],end:[-330,-2500],anchors:[[230,-2485]],keys:[[0,0],[0.15,-6.5],[0.85,-6.5],[1,0]],grip:1,aiP:.6,msgIn:'Express lanes. No traffic, no gems. Cameras.'},
+  {id:4,name:'FORBIDDEN DRIVE',w:4,side:1,start:[-1312,-1930],end:[-700,-1480],anchors:[[-1175,-1795],[-1060,-1768],[-940,-1762],[-845,-1752]],keys:[[0,0],[0.2,-9],[0.47,-9.2],[0.5,-6.8],[0.53,-9.3],[0.8,-9.5],[1,0]],peel:80,grip:.8,aiP:.3,msgIn:'Forbidden Drive. Gravel.'}];
 function lcHeights(P,keys){ const n=P.length, near=(x,z)=>{ let bi=0,bd=1e18; for(let i=0;i<n;i++){ const d=(P[i].x-x)**2+(P[i].z-z)**2; if(d<bd){ bd=d; bi=i; } } return bi; };
   const K=keys.map(k=>[near(k[0],k[1]),k[2],k[3]||20]).sort((a,b)=>a[0]-b[0]), raw=new Float32Array(n), win=new Float32Array(n);
   for(let i=0;i<n;i++){ let j=K.findIndex(k=>k[0]>i); const a=j<=0?K[K.length-1]:K[j-1], b=j<0?K[0]:K[j];
@@ -6161,24 +6160,36 @@ function lcGeometry(){ const V=(x,z)=>new THREE.Vector2(x,z);
     const e=lp.pts[lp.pts.length-1].clone().addScaledVector(t0,1).sub(P[i%n]); e.y=0; for(let q=0;q<80;q++) P[(i+q)%n].addScaledVector(e,1-sm(q/80)); });
   for(;i<n;i++){ out.push(P[i]); up.push(UP.clone()); }
   return lcResample(out,up,false); }
-// a shortcut: an open fillet path from the main road's edge at the fork to its edge at the merge
-function lcBranch(tr,spec){ const V=(x,z)=>new THREE.Vector2(x,z), f=mkF(), W=tr.W, near=(x,z)=>{ let bi=0,bd=1e18; for(let i=0;i<tr.N;i++){ const p=tr.pts[i], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bi=i; } } return bi*tr.ds; };
-  const s0=near(spec.start[0],spec.start[1]), s1=near(spec.end[0],spec.end[1]);
-  const c1=spec.corners.length?spec.corners[0]:spec.end; frame(s0,f,tr); const side=Math.sign((c1[0]-f.p.x)*f.r.x+(c1[1]-f.p.z)*f.r.z)||1;
-  const off=side*(W-spec.w), a=f.p.clone().addScaledVector(f.r,off), ya=f.p.y; frame(s1,f,tr); const b=f.p.clone().addScaledVector(f.r,off), yb=f.p.y;
-  // filletPath closes the loop back to its start; walk it as an open path by stopping at the end corner
-  const C=spec.corners.map(([x,z,r])=>[V(x,z),r]).concat([[V(b.x,b.z),0]]), p2=[]; let cur=V(a.x,a.z);
-  const seg=(u,v)=>{ const d=u.distanceTo(v); if(d<1e-6) return; const m=Math.ceil(d); for(let i=0;i<m;i++) p2.push(new THREE.Vector2().lerpVectors(u,v,i/m)); };
-  for(let i=0;i<C.length-1;i++){ const [c,r]=C[i], prev=i?C[i-1][0]:V(a.x,a.z), next=C[i+1][0];
-    const t1=c.clone().addScaledVector(prev.clone().sub(c).normalize(),r), t2=c.clone().addScaledVector(next.clone().sub(c).normalize(),r);
-    seg(cur,t1); const m=Math.max(4,Math.ceil(t1.distanceTo(c)+c.distanceTo(t2))); for(let q=0;q<m;q++){ const t=q/m,u=1-t; p2.push(new THREE.Vector2(u*u*t1.x+2*u*t*c.x+t*t*t2.x,u*u*t1.y+2*u*t*c.y+t*t*t2.y)); } cur=t2; }
-  seg(cur,V(b.x,b.z)); p2.push(V(b.x,b.z));
-  const P=p2.map(p=>new THREE.Vector3(p.x,0,p.y)), U=P.map(()=>UP.clone()), R=lcResample(P,U,true), N=R.pts.length;
-  R.pts.forEach((p,i)=>{ const u=i/(N-1); let k=spec.keys.findIndex(q=>q[0]>=u); if(k<=0) k=1; const A=spec.keys[k-1], B=spec.keys[k], v=lerp(A[1],B[1],(u-A[0])/Math.max(1e-6,B[0]-A[0]));
-    p.y=lerp(ya,yb,u)+v; });
-  const btr=makeTrack(R.pts,spec.w,6,{open:true}), b0={id:spec.id,name:spec.name,tr:btr,s0,s1,side,off0:off,off1:off,split:side*.5,ratio:(((s1-s0)%tr.L)+tr.L)%tr.L/btr.L,
-    grip:spec.grip,aiP:spec.aiP,msgIn:spec.msgIn,w:spec.w};
-  return b0; }
+/* a shortcut: it starts as the outer lane of the lap, peels away along the road over PEEL m (an exit ramp: same heading,
+   the lateral offset eased with a smoothstep), runs through its own anchors on a centripetal Catmull-Rom, and comes back
+   the same way, so it leaves and rejoins tangent to the road with nothing to snap. Heights: the road's at both ends, the
+   spec's relative profile (keys over the middle) in between. */
+function lcBranch(tr,spec){ const f=mkF(), W=tr.W, w=spec.w, PEEL=spec.peel||90, SEP=2*w+3, near=(x,z)=>{ let bi=0,bd=1e18; for(let i=0;i<tr.N;i++){ const p=tr.pts[i], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bi=i; } } return bi*tr.ds; };
+  const s0=near(spec.start[0],spec.start[1]), s1=near(spec.end[0],spec.end[1]), side=spec.side, off=side*(W-w), sm=u=>u*u*(3-2*u);
+  const at=(s,lat)=>{ frame(s,f,tr); return f.p.clone().addScaledVector(f.r,lat); };
+  // the ramps are exact (lane offset eased along the road); between them a cubic Hermite spline through the anchors, with
+  // the road's own heading forced at both ramp ends, so the path is C1 everywhere and never hooks back on itself
+  const P=[], peelT=[], H=(a,b,ma,mb,n)=>{ for(let i=1;i<=n;i++){ const t=i/n, t2=t*t, t3=t2*t, h00=2*t3-3*t2+1, h10=t3-2*t2+t, h01=-2*t3+3*t2, h11=t3-t2;
+      P.push(new THREE.Vector3(a.x*h00+ma.x*h10+b.x*h01+mb.x*h11,0,a.z*h00+ma.z*h10+b.z*h01+mb.z*h11)); } };
+  for(let u=0;u<=PEEL;u+=1) P.push(at(s0+u,off+side*SEP*sm(u/PEEL)));
+  frame(s0+PEEL,f,tr); const t0=f.t.clone().setY(0).normalize(); frame(s1-PEEL,f,tr); const t1=f.t.clone().setY(0).normalize();
+  const pe=P[P.length-1].clone().setY(0), js=at(s1-PEEL,off+side*SEP).setY(0), Q=[pe].concat(spec.anchors.map(([x,z])=>new THREE.Vector3(x,0,z)),[js]);
+  const M=Q.map((q,i)=>{ if(i===0) return t0.clone(); if(i===Q.length-1) return t1.clone(); return Q[i+1].clone().sub(Q[i-1]).normalize(); });
+  for(let i=0;i<Q.length-1;i++){ const d=Q[i].distanceTo(Q[i+1]); H(Q[i],Q[i+1],M[i].clone().multiplyScalar(d*1.1),M[i+1].clone().multiplyScalar(d*1.1),Math.max(4,Math.round(d))); }
+  P.pop(); for(let u=0;u<=PEEL;u+=1) P.push(at(s1-PEEL+u,off+side*SEP*(1-sm(u/PEEL))));
+  const U=P.map(()=>UP.clone()), R=lcResample(P,U,true), N=R.pts.length;
+  // heights: lerp the road's height at the two ends, then the relative profile; the ends (peel and join) stay on the road
+  frame(s0,f,tr); const ya=f.p.y; frame(s1,f,tr); const yb=f.p.y, Lp=PEEL, Lb=(N-1)*R.L/(N-1);
+  const keys=spec.keys||[[0,0],[1,0]];
+  R.pts.forEach((p,i)=>{ const d=i*R.L/(N-1);
+    if(d<=Lp){ frame(s0+d,f,tr); p.y=f.p.y; return; } if(d>=R.L-Lp){ frame(s1-(R.L-d),f,tr); p.y=f.p.y; return; }
+    const u=(d-Lp)/Math.max(1,R.L-2*Lp); let k=keys.findIndex(q=>q[0]>=u); if(k<=0) k=1; const A=keys[k-1], B=keys[k];
+    const base=lerp(at(s0+Lp,0).y,at(s1-Lp,0).y,u); p.y=base+lerp(A[1],B[1],clamp((u-A[0])/Math.max(1e-6,B[0]-A[0]),0,1)); });
+  // smooth the profile so the drops ease in
+  for(let pass=0;pass<4;pass++){ const y=R.pts.map(p=>p.y); for(let i=Lp+2;i<N-Lp-2;i++){ R.pts[i].y=(y[i-2]+y[i-1]+y[i]+y[i+1]+y[i+2])/5; } }
+  const btr=makeTrack(R.pts,w,6,{open:true});
+  return {id:spec.id,name:spec.name,tr:btr,s0,s1,side,off0:off,off1:off,split:side*2.4,ratio:(((s1-s0)%tr.L)+tr.L)%tr.L/btr.L,
+    grip:spec.grip,aiP:spec.aiP,msgIn:spec.msgIn,w,peel:PEEL,sep:SEP}; }
 
 /* ---- Last Call set pieces (each falls back to procedural geometry if models/lastcall_kit.glb has not loaded) ---- */
 let LC_MATS=null;
@@ -6202,21 +6213,22 @@ const lcPlace=(p,t,yawOff)=>new THREE.Matrix4().compose(p.clone(),new THREE.Quat
 function lcFranklinSquare(K,km,b){ const S=K.S, bt=b.tr, R=rng(77);
   const grassT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#1a2a18'; g.fillRect(0,0,w,h); for(let i=0;i<3000;i++){ const v=R()*30; g.fillStyle=`rgba(${30+v},${52+v},${26+v*.5},.6)`; g.fillRect(R()*w,R()*h,1,2); } }),true);
   grassT.repeat.set(30,30); K.flat(486,708,-292,8,-.03,new THREE.MeshStandardMaterial({map:grassT,roughness:1}));
-  const fx=632, fz=-48; kitInst(S,'Fountain',km,[new THREE.Matrix4().makeTranslation(fx,0,fz)])||K.mesh(new THREE.CylinderGeometry(11,11.6,.9,48),km.STONE,fx,.45,fz);
+  const fx=566, fz=-118; kitInst(S,'Fountain',km,[new THREE.Matrix4().makeTranslation(fx,0,fz)])||K.mesh(new THREE.CylinderGeometry(11,11.6,.9,48),km.STONE,fx,.45,fz);
   { const p=K.glow(0x8fd8ff,26,fx,4,fz); p.material.opacity=.5; } [0,1,2,3].forEach(i=>{ const a=i*Math.PI/2+.4; K.glow(0xffc070,7,fx+Math.cos(a)*10,.9,fz+Math.sin(a)*10); });
-  const cx=528, cz=-182; kitInst(S,'Carousel',km,[new THREE.Matrix4().makeTranslation(cx,0,cz)]); K.glow(0xffc078,30,cx,6,cz).material.opacity=.45;
+  const cx=520, cz=-214; kitInst(S,'Carousel',km,[new THREE.Matrix4().makeTranslation(cx,0,cz)]); K.glow(0xffc078,30,cx,6,cz).material.opacity=.45;
   // old plane trees, festoon lights strung between them along the path, park lamps
   const trees=[], near=(x,z)=>{ let bd=1e9; for(let k=0;k<bt.N;k+=3){ const p=bt.pts[k]; bd=Math.min(bd,(p.x-x)**2+(p.z-z)**2); } return Math.sqrt(bd); };
   for(let i=0;i<160&&trees.length<46;i++){ const x=495+R()*205, z=-280+R()*280; if(near(x,z)<b.w+5||Math.hypot(x-fx,z-fz)<17||Math.hypot(x-cx,z-cz)<15||z>-6||x>702) continue;
     trees.push(new THREE.Matrix4().compose(new THREE.Vector3(x,0,z),new THREE.Quaternion().setFromAxisAngle(UP,R()*6),new THREE.Vector3().setScalar(1.3+R()*.5))); }
   kitInst(S,'Broadleaf',kitMats(),trees);
-  const bulbs=[], f=mkF(); for(let s=10;s<bt.L-10;s+=14){ frame(s,f,bt); const a=f.p.clone().addScaledVector(f.r,-(b.w+3)), c=f.p.clone().addScaledVector(f.r,b.w+3);
+  const P0=b.peel+6, P1=bt.L-b.peel-6, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
+  const bulbs=[], f=mkF(); for(let s=P0;s<P1;s+=14){ frame(s,f,bt); const a=f.p.clone().addScaledVector(f.r,-(b.w+3)), c=f.p.clone().addScaledVector(f.r,b.w+3);
     for(let k=0;k<=10;k++){ const u=k/10, p=a.clone().lerp(c,u); p.y=5.2-Math.sin(u*Math.PI)*1.4; bulbs.push(p.x,p.y,p.z); } }
   const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(bulbs,3));
   S.add(new THREE.Points(bg,new THREE.PointsMaterial({map:glowTex,color:0xffc882,size:1.1,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})));
-  const posts=[]; for(let s=20;s<bt.L-10;s+=28){ frame(s,f,bt); [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(b.w+1.2)); posts.push(new THREE.Matrix4().makeTranslation(p.x,1.8,p.z)); K.glow(0xffe0b0,3.2,p.x,3.7,p.z); }); }
+  const posts=[]; for(let s=P0;s<P1;s+=28){ frame(s,f,bt); [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(b.w+1.2)); posts.push(new THREE.Matrix4().makeTranslation(p.x,1.8,p.z)); K.glow(0xffe0b0,3.2,p.x,3.7,p.z); }); }
   K.inst(new THREE.CylinderGeometry(.07,.1,3.6,6),km.DARK,posts);
-  ribbonU(bt,S,km.TRIM,(k)=>[-(b.w+.4),0,-(b.w+.4),.18]); ribbonU(bt,S,km.TRIM,(k)=>[b.w+.4,0,b.w+.4,.18]);
+  ribbonU(bt,S,km.TRIM,(k)=>inMid(k)?[-(b.w+.4),0,-(b.w+.4),.18]:null); ribbonU(bt,S,km.TRIM,(k)=>inMid(k)?[b.w+.4,0,b.w+.4,.18]:null);
 }
 function lcBattleship(K,km){ const S=K.S, x=1712, z=-470;
   if(kitInst(S,'Battleship',km,[new THREE.Matrix4().makeTranslation(x,-2.4,z).multiply(new THREE.Matrix4().makeRotationY(Math.PI))])){
@@ -6249,16 +6261,18 @@ function lcPortal(K,km,s,exit){ const S=K.S; K.at(s,0,0); const q=K.q.clone(); i
   if(!kitInst(S,'LCPortal',km,[m])) K.box(32,12,3,km.WHITE,K.f.p.x,K.f.p.y+6,K.f.p.z);
   const g=K.glow(0xdff4ff,30,K.f.p.x,K.f.p.y+7,K.f.p.z); g.material.opacity=.35; }
 // the Service Bore: a round corrugated liner along the branch, teal work lights in the crown, amber lamps on the walls
-function lcServiceBore(K,b){ const S=K.S, bt=b.tr, R0=b.w+1.4, n=14;
+function lcServiceBore(K,b){ const S=K.S, bt=b.tr, R0=b.w+1.4, n=14, P0=b.peel-2, P1=bt.L-b.peel+2, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
   const linT=CT(canvasTex(64,128,(g,w,h)=>{ g.fillStyle='#2a2e30'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=8){ const gr=g.createLinearGradient(0,y,0,y+8); gr.addColorStop(0,'#3a3f42'); gr.addColorStop(.5,'#1a1d1f'); gr.addColorStop(1,'#3a3f42'); g.fillStyle=gr; g.fillRect(0,y,w,8); }
     for(let i=0;i<120;i++){ g.fillStyle=`rgba(90,70,40,${Math.random()*.25})`; g.fillRect(Math.random()*w,Math.random()*h,3,6); } }),true);
   const linM=new THREE.MeshStandardMaterial({map:linT,roughness:.35,metalness:.6,side:THREE.DoubleSide});
   for(let i=0;i<n/2+1;i++){ const a0=Math.PI*i/(n/2+1)*1.0-.0, a1=Math.PI*(i+1)/(n/2+1);
-    ribbonUC(bt,S,linM,(k)=>k>4&&k<bt.N-5?[Math.cos(a0)*R0,Math.sin(a0)*R0*.85,Math.cos(a1)*R0,Math.sin(a1)*R0*.85]:null,3,80); }
-  const teal=[], amber=[], f=mkF(); for(let s=8;s<bt.L-8;s+=22){ frame(s,f,bt); teal.push(f.p.x,f.p.y+R0*.82,f.p.z); [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(R0-.4)); amber.push(p.x,p.y+2.2,p.z); }); }
+    ribbonUC(bt,S,linM,(k)=>inMid(k)?[Math.cos(a0)*R0,Math.sin(a0)*R0*.85,Math.cos(a1)*R0,Math.sin(a1)*R0*.85]:null,3,80); }
+  const so=b.side, rampK=k=>!inMid(k);
+  ribbonU(bt,S,linM,(k)=>rampK(k)?[so*R0,0,so*R0,7.4]:null,6); ribbonU(bt,S,linM,(k)=>rampK(k)?[-so*(b.w+3),7.4,so*R0,7.4]:null,6);
+  const teal=[], amber=[], f=mkF(); for(let s=P0+8;s<P1-8;s+=22){ frame(s,f,bt); teal.push(f.p.x,f.p.y+R0*.82,f.p.z); [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(R0-.4)); amber.push(p.x,p.y+2.2,p.z); }); }
   const pts=(arr,c,sz)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3)); S.add(new THREE.Points(g,new THREE.PointsMaterial({map:glowTex,color:c,size:sz,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}))); };
   pts(teal,0x48e8d8,4.5); pts(amber,0xffa040,2.2);
-  const pools=[]; for(let s=8;s<bt.L-8;s+=22){ frame(s,f,bt); pools.push(new THREE.Matrix4().makeTranslation(f.p.x,f.p.y+.06,f.p.z)); }
+  const pools=[]; for(let s=P0+8;s<P1-8;s+=22){ frame(s,f,bt); pools.push(new THREE.Matrix4().makeTranslation(f.p.x,f.p.y+.06,f.p.z)); }
   K.inst(new THREE.PlaneGeometry(9,12).rotateX(-Math.PI/2),fogAdd(new THREE.MeshBasicMaterial({map:lampPoolTex,color:0x2a8a80,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false})),pools);
   // green exit signs
   [.2,.5,.8].forEach(u=>{ frame(u*bt.L,f,bt); const p=f.p.clone().addScaledVector(f.r,R0-.3); K.sign(signCanvas('EXIT  →',{bg:'#0a4a24',color:'#e8ffe8',size:52}),1.6,.5,p.x,p.y+3,p.z,Math.atan2(f.r.x,f.r.z)+Math.PI/2); }); }
@@ -6354,7 +6368,7 @@ function lcMtAiry(K,km,sG0,sG1,sA1,inGtn,inAve){ const S=K.S, tr=K.tr, W=tr.W, f
   const trees=[]; for(let s=sG1+10;s<sA1;s+=14) [-1,1].forEach((sd,i)=>{ K.at(s+(i?7:0),sd*(W+5.2),0); trees.push(new THREE.Matrix4().compose(new THREE.Vector3(K.pv.x,K.f.p.y,K.pv.z),new THREE.Quaternion().setFromAxisAngle(UP,s),new THREE.Vector3().setScalar(1.1))); });
   kitInst(S,'Broadleaf',KM,trees); }
 // the Wissahickon: Lincoln Drive's schist wall and creek, the woods, the Walnut Lane Bridge, Forbidden Drive at Valley Green
-function lcWissahickon(K,km,inLin,sA,sB,b,terrY){ const S=K.S, tr=K.tr, W=tr.W, f=mkF(), R=rng(44), bt=b.tr;
+function lcWissahickon(K,km,inLin,sA,sB,b,terrY){ const S=K.S, tr=K.tr, W=tr.W, f=mkF(), R=rng(44), bt=b.tr, P0=b.peel+4, P1=bt.L-b.peel-4, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
   const schistT=CT(canvasTex(256,128,(g,w,h)=>{ g.fillStyle='#3e3e3a'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=9) for(let x=-((y*7)%22);x<w;x+=18+((x*y)%9)){ const v=50+((x*13+y*7)%46); g.fillStyle=`rgb(${v},${v-1},${v-6})`; g.fillRect(x+1,y+1,16+((x+y)%6),7); } }),true);
   const schistM=new THREE.MeshStandardMaterial({map:schistT,roughness:.95,side:THREE.DoubleSide});
   ribbonF(tr,S,schistM,(k,p)=>inLin(k*tr.ds)?[-(W+.4),p.y-.2,-(W+.4),p.y+3.2]:null,6);
@@ -6364,8 +6378,8 @@ function lcWissahickon(K,km,inLin,sA,sB,b,terrY){ const S=K.S, tr=K.tr, W=tr.W, 
   const posts=[]; for(let s=sA+4;s<sB-4;s+=3){ K.at(s,W+1.1,.55); posts.push(new THREE.Matrix4().compose(K.pv.clone(),K.q,new THREE.Vector3(1,1,1))); } K.inst(new THREE.BoxGeometry(.18,1.1,.18),woodM,posts);
   // the creek along the bridle path, below the Drive
   const creekM=new THREE.MeshStandardMaterial({color:0x05101a,metalness:.92,roughness:.05,emissive:0x0a1826,emissiveIntensity:.5,side:THREE.DoubleSide});
-  ribbonU(bt,S,creekM,(k,p)=>[b.w+3,-1.2,b.w+22,-1.2],10);
-  ribbonU(bt,S,woodM,(k)=>[-(b.w+.3),.5,-(b.w+.3),.65],4); ribbonU(bt,S,woodM,(k)=>[b.w+.3,.5,b.w+.3,.65],4);
+  ribbonU(bt,S,creekM,(k,p)=>inMid(k)?[b.w+3,-1.2,b.w+22,-1.2]:null,10);
+  ribbonU(bt,S,woodM,(k)=>inMid(k)?[-(b.w+.3),.5,-(b.w+.3),.65]:null,4); ribbonU(bt,S,woodM,(k)=>inMid(k)?[b.w+.3,.5,b.w+.3,.65]:null,4);
   // Valley Green: the stone bridge carries the path over a run in the creek, the inn beside it, lanterns
   { const u=bt.L*.5; frame(u,f,bt); const yaw=Math.atan2(f.t.x,f.t.z);
     kitInst(S,'StoneArch',km,[new THREE.Matrix4().makeTranslation(f.p.x,f.p.y,f.p.z).multiply(new THREE.Matrix4().makeRotationY(yaw))]);
@@ -6373,7 +6387,7 @@ function lcWissahickon(K,km,inLin,sA,sB,b,terrY){ const S=K.S, tr=K.tr, W=tr.W, 
     const ip=f.p.clone().addScaledVector(f.r,-(b.w+18)).addScaledVector(f.t,30); kitInst(S,'Inn',km,[new THREE.Matrix4().makeTranslation(ip.x,f.p.y-.2,ip.z).multiply(new THREE.Matrix4().makeRotationY(kitYawTo(f.r.x,f.r.z)))]);
     K.glow(0xffc070,40,ip.x,f.p.y+5,ip.z).material.opacity=.4;
     K.sign(signCanvas('VALLEY GREEN INN',{bg:'#120c06',color:'#ffd9a0',size:54,glow:12}),9,1,ip.x+f.r.x*7.6,f.p.y+5.2,ip.z+f.r.z*7.6,Math.atan2(f.r.x,f.r.z)); }
-  const lan=[]; for(let s=20;s<bt.L-20;s+=26){ frame(s,f,bt); const p=f.p.clone().addScaledVector(f.r,-(b.w+.8)); lan.push(p.x,p.y+2.2,p.z); }
+  const lan=[]; for(let s=P0;s<P1;s+=26){ frame(s,f,bt); const p=f.p.clone().addScaledVector(f.r,-(b.w+.8)); lan.push(p.x,p.y+2.2,p.z); }
   { const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(lan,3)); S.add(new THREE.Points(g,new THREE.PointsMaterial({map:glowTex,color:0xffb860,size:3,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}))); }
   // the woods: a deep stand of trees through the gorge, clear of the Drive and the path
   const drive=[]; for(let s=sA-260;s<sB+120;s+=6){ frame(s,f,tr); drive.push(f.p.clone()); } for(let s=0;s<bt.L;s+=6){ frame(s,f,bt); drive.push(f.p.clone()); }
@@ -6393,7 +6407,7 @@ function lcWissahickon(K,km,inLin,sA,sB,b,terrY){ const S=K.S, tr=K.tr, W=tr.W, 
   const ffM=new THREE.PointsMaterial({map:glowTex,color:0xd8ff7a,size:.9,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}); S.add(new THREE.Points(ffG,ffM));
   const mistT=CT(canvasTex(256,128,(g,w,h)=>{ const Rm=rng(88); for(let i=0;i<40;i++){ const x=Rm()*w, y=h*.35+Rm()*h*.4, r=20+Rm()*50, gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,'rgba(200,215,235,.22)'); gr.addColorStop(1,'rgba(200,215,235,0)'); g.fillStyle=gr; g.fillRect(x-r,y-r,2*r,2*r); } }));
   const mistM=new THREE.MeshBasicMaterial({map:mistT,transparent:true,depthWrite:false,opacity:.7,side:THREE.DoubleSide}), mists=[];
-  for(let s=20;s<bt.L-20;s+=40){ frame(s,f,bt); const p=f.p.clone().addScaledVector(f.r,b.w+12); const m=new THREE.Mesh(new THREE.PlaneGeometry(60,9),mistM); m.position.set(p.x,p.y+1.5,p.z); m.rotation.y=Math.atan2(f.t.x,f.t.z)+Math.PI/2; S.add(m); mists.push({m,x:p.x,ph:R()*6}); }
+  for(let s=P0;s<P1;s+=40){ frame(s,f,bt); const p=f.p.clone().addScaledVector(f.r,b.w+12); const m=new THREE.Mesh(new THREE.PlaneGeometry(60,9),mistM); m.position.set(p.x,p.y+1.5,p.z); m.rotation.y=Math.atan2(f.t.x,f.t.z)+Math.PI/2; S.add(m); mists.push({m,x:p.x,ph:R()*6}); }
   return {update:(T)=>{ ffM.opacity=.45+.35*Math.sin(T*2.3)*Math.sin(T*.7+1); mists.forEach(o=>{ o.m.position.x=o.x+Math.sin(T*.08+o.ph)*6; }); }}; }
 // Kelly Drive: Boathouse Row on the river side, outline lights doubled in the water, the dark tree line
 function lcKelly(K,PK,km,s0,s1){ const S=K.S, tr=K.tr, W=tr.W, f=mkF(), HUES=[0xffffff,0xffe2a8,0x7fe8ff,0xff7ad0,0xffffff,0xa6ff9a,0xffd060,0xffffff,0x9fb4ff,0xff9a6a,0xffffff,0x7fe8ff];
@@ -6419,6 +6433,22 @@ function lcParkway(K,PK,s0,s1){ const S=K.S, tr=K.tr, W=tr.W, f=mkF(), FL=[0xd42
   [[30,-35],[30,35],[40,0]].forEach(([dx,dz])=>{ const g=K.glow(0xffc27a,40,x+Math.cos(yaw)*dx+Math.sin(yaw)*dz,8,z-Math.sin(yaw)*dx+Math.cos(yaw)*dz); g.material.opacity=.45; }); }
 // the fork: a truss gantry with the SHORTCUT sign over the side that peels off, and a crash cushion on the gore
 function lcForkGantry(K,km,b){ const S=K.S, tr=K.tr, f=mkF(), s=b.s0-70;
+  // the exit lane: a dashed line where the lane splits, arrows bending out, and SHORTCUT written across the lane
+  const dashT=CT(canvasTex(16,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='rgba(248,248,244,.95)'; g.fillRect(0,0,w,h*.55); }),true);
+  const dashM=new THREE.MeshBasicMaterial({map:dashT,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3,side:THREE.DoubleSide});
+  const xs=b.split, inA=k=>{ const d=((b.s0-k*tr.ds)%tr.L+tr.L)%tr.L; return d<200; };
+  ribbonF(tr,S,dashM,(k,p)=>inA(k)?[xs-.12,p.y+.03,xs+.12,p.y+.03]:null,9);
+  const arrowT=CT(canvasTex(128,256,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='rgba(248,248,244,.92)'; g.beginPath();
+    g.moveTo(w*.42,h); g.lineTo(w*.42,h*.45); g.quadraticCurveTo(w*.42,h*.28,w*.62,h*.2); g.lineTo(w*.56,h*.1); g.lineTo(w*.9,h*.12); g.lineTo(w*.78,h*.42); g.lineTo(w*.72,h*.3);
+    g.quadraticCurveTo(w*.58,h*.38,w*.58,h*.5); g.lineTo(w*.58,h); g.closePath(); g.fill(); }));
+  const arrowM=new THREE.MeshBasicMaterial({map:arrowT,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3});
+  const word=CT(canvasTex(512,128,(g,w,h)=>{ g.clearRect(0,0,w,h); g.fillStyle='rgba(255,160,70,.95)'; g.font='900 92px "Arial Narrow",Arial,sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('SHORTCUT',w/2,h/2); }));
+  const wordM=new THREE.MeshBasicMaterial({map:word,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-3});
+  // flat on the road, reading from the driver's seat (texture up = down the road), mirrored for a left-hand exit
+  const flatOn=(ds,lat,w,l,m,mirror)=>{ K.at(b.s0-ds,lat,.04); const g=new THREE.Mesh(new THREE.PlaneGeometry(w,l),m); g.position.copy(K.pv); g.quaternion.copy(K.q); g.rotateX(-Math.PI/2); g.rotateZ(Math.PI); if(mirror) g.scale.x=-1; S.add(g); };
+  const lane=b.side*(tr.W-1.8);
+  [170,120,70].forEach(d=>flatOn(d,lane,2.4,5,arrowM,b.side<0));
+  flatOn(30,lane,3.2,7,wordM,false);
   K.at(s,0,0); const q=K.q.clone(); if(b.side>0) q.multiply(new THREE.Quaternion().setFromAxisAngle(UP,Math.PI));
   kitInst(S,'ForkGantry',km,[new THREE.Matrix4().compose(new THREE.Vector3(K.f.p.x,K.f.p.y,K.f.p.z),q,new THREE.Vector3(1,1,1))]);
   const sp=K.f.p.clone().addScaledVector(K.f.r,b.side*7);
@@ -6445,7 +6475,7 @@ function lcSetupPickups(E){ const tr=E.track, at=E.sNear, f=mkF(), T=LC_TABLES['
     if(typeof d[0]==='string'){ const z=tr.loops[d[0]==='HALO'?0:1]; let bi=Math.round(z[0]/tr.ds); for(let k=bi;k<z[1]/tr.ds;k++) if(tr.pts[k].y>tr.pts[bi].y) bi=k; s=bi*tr.ds; xs=d[2]; slots=d[3]; }
     else { xs=d[3]; slots=d[4]; air=d[2]==='air'; y=air?3.4:0; if(d[5]&&[1,2,4].includes(d[5])){ br=tr.branches.find(b=>b.id===d[5]); } if(!br) s=at(d[0],d[1]); }
     xs.forEach((x,j)=>{ const slot=slots[j%slots.length];
-      if(br){ let bu=0,bd=1e18; for(let k=0;k<br.tr.N;k++){ const p=br.tr.pts[k], dd=(p.x-d[0])**2+(p.z-d[1])**2; if(dd<bd){ bd=dd; bu=k*br.tr.ds; } } branch.push({br,u:bu,x,type:T[slot],slot,air,y}); }
+      if(br){ let bu=0,bd=1e18; for(let k=0;k<br.tr.N;k++){ const p=br.tr.pts[k], dd=(p.x-d[0])**2+(p.z-d[1])**2; if(dd<bd){ bd=dd; bu=k*br.tr.ds; } } if(air) bu=br.tr.L/2; /* the airdrop floats over the hump at the stone bridge */ branch.push({br,u:bu,x,type:T[slot],slot,air,y}); }
       else main.push([s,x,T[slot],{slot,air,y}]); }); });
   addPickups(E,main.map(m=>[m[0],m[1],m[2]]).concat([[at(-80,-80),0,'desperate',{last:1}],[at(1380,-300),0,'echoboost',{lastTwo:1}],[at(-1300,-2522),3.2,'wispflux',{car:'wisp',sig:1}],[at(1600,-300),-3.6,'stratossurge',{car:'stratos',sig:1}]]));
   E.pickups.forEach((p,i)=>{ const m=main[i]; if(m&&i<main.length){ p.slot=m[3].slot; p.air=m[3].air; if(m[3].y){ p.gem.position.y+=m[3].y; p.ring.position.y+=m[3].y-.07+.6; } LC_LIVE.push(p); } });
@@ -6483,12 +6513,14 @@ function roadClashes(tr,foot,kits,S){ if(S){ S.updateMatrixWorld(true); S.traver
       const g=o.geometry.parameters; kits=kits.concat([{name:'box',m:o.matrixWorld.clone(),bb:new THREE.Box3(new THREE.Vector3(-g.width/2,-g.height/2,-g.depth/2),new THREE.Vector3(g.width/2,g.height/2,g.depth/2))}]); }); }
   const out=[], roads=[{t:tr,w:tr.W,br:null}].concat((tr.branches||[]).map(b=>({t:b.tr,w:b.w,br:b.id}))), inv=new THREE.Matrix4(), q=new THREE.Vector3();
   const kitB=kits.filter(k=>!CLASH_SKIP.has(k.name)).map(k=>{ const tree=k.name==='Broadleaf'||k.name==='Conifer'; const bb=tree?new THREE.Box3(new THREE.Vector3(-.6,k.bb.min.y,-.6),new THREE.Vector3(.6,k.bb.max.y,.6)):k.bb;
-    const c=new THREE.Vector3().setFromMatrixPosition(k.m), sc=k.m.getMaxScaleOnAxis()||1; return {name:k.name,inv:inv.copy(k.m).invert().clone(),bb,c,sc,r:Math.hypot(bb.max.x-bb.min.x,bb.max.z-bb.min.z)/2*sc+20}; });
+    const c=new THREE.Vector3().setFromMatrixPosition(k.m), sc=k.m.getMaxScaleOnAxis()||1; return {name:k.name,tree,inv:inv.copy(k.m).invert().clone(),bb,c,sc,r:Math.hypot(bb.max.x-bb.min.x,bb.max.z-bb.min.z)/2*sc+20}; });
   const seen=new Set();
   roads.forEach(R=>{ const t=R.t, m=R.w+.3; for(let k=0;k<t.N;k+=3){ const p=t.pts[k], up=t.U?t.U[k]:UP; if(up.y<.9) continue;
     for(const b of foot){ const dx=p.x-b.cx, dz=p.z-b.cz; if(Math.abs(dx)>b.w+b.d+m&&Math.abs(dz)>b.w+b.d+m) continue; const c=Math.cos(b.yaw), sn=Math.sin(b.yaw), lx=dx*c-dz*sn, lz=dx*sn+dz*c;
       if(Math.abs(lx)<b.w/2+m&&Math.abs(lz)<b.d/2+m&&p.y+3>b.y0&&p.y<b.y1){ const key=b.name+Math.round(b.cx)+','+Math.round(b.cz); if(!seen.has(key)){ seen.add(key); out.push({name:b.name,x:Math.round(b.cx),z:Math.round(b.cz),s:Math.round(k*t.ds),br:R.br}); } } }
-    for(const b of kitB){ if(Math.abs(p.x-b.c.x)>b.r+m||Math.abs(p.z-b.c.z)>b.r+m) continue; q.set(p.x,p.y+1,p.z).applyMatrix4(b.inv); const ml=m/b.sc; // margin in the asset's own units
+    for(const b of kitB){ if(Math.abs(p.x-b.c.x)>b.r+m||Math.abs(p.z-b.c.z)>b.r+m) continue;
+      if(b.tree){ if(Math.hypot(p.x-b.c.x,p.z-b.c.z)<m+.6*b.sc){ const key=b.name+Math.round(b.c.x)+','+Math.round(b.c.z); if(!seen.has(key)){ seen.add(key); out.push({name:b.name,x:Math.round(b.c.x),z:Math.round(b.c.z),s:Math.round(k*t.ds),br:R.br}); } } continue; } // a trunk: plain distance
+      q.set(p.x,p.y+1,p.z).applyMatrix4(b.inv); const ml=m/b.sc; // margin in the asset's own units
       if(q.x>b.bb.min.x-ml&&q.x<b.bb.max.x+ml&&q.z>b.bb.min.z-ml&&q.z<b.bb.max.z+ml&&q.y>b.bb.min.y-1/b.sc&&q.y<b.bb.max.y){ const key=b.name+Math.round(b.c.x)+','+Math.round(b.c.z); if(!seen.has(key)){ seen.add(key); out.push({name:b.name,x:Math.round(b.c.x),z:Math.round(b.c.z),s:Math.round(k*t.ds),br:R.br}); } } } } });
   return out; }
 
@@ -6565,7 +6597,15 @@ function buildLastCall(){
     2:wetRoad(new THREE.MeshStandardMaterial({map:boreT,roughness:.25,metalness:.2,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2})),
     3:wetRoad(new THREE.MeshStandardMaterial({map:streetTex({center:'rgba(240,240,236,.9)'}),roughness:.45,metalness:.15,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2})),
     4:new THREE.MeshStandardMaterial({map:gravelT,roughness:.92,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2})};
-  tr.branches.forEach(b=>{ const bt=b.tr, w=b.w; ribbonU(bt,S,brMat[b.id],(k,p)=>[-w-.3,.02,w+.3,.02],b.id===3?24:10); });
+  const rampM=wetRoad(new THREE.MeshStandardMaterial({map:streetTex({center:'rgba(0,0,0,0)'}),roughness:.45,metalness:.15,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2}));
+  const goreT=CT(canvasTex(128,128,(g,wd,ht)=>{ g.fillStyle='#16181c'; g.fillRect(0,0,wd,ht); g.strokeStyle='rgba(240,240,236,.85)'; g.lineWidth=7; for(let k=-ht;k<wd+ht;k+=26){ g.beginPath(); g.moveTo(k,ht); g.lineTo(k+ht,0); g.stroke(); } }),true);
+  const goreM=new THREE.MeshStandardMaterial({map:goreT,roughness:.6,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1});
+  tr.branches.forEach(b=>{ const bt=b.tr, w=b.w, P=b.peel, mid=k=>{ const d=k*bt.ds; return d>P-2&&d<bt.L-P+2; }, ramp=k=>!mid(k), sm=u=>u*u*(3-2*u);
+    ribbonU(bt,S,brMat[b.id],(k)=>mid(k)?[-w-.3,.02,w+.3,.02]:null,b.id===3?24:10);
+    ribbonU(bt,S,rampM,(k)=>ramp(k)?[-w-.3,.025,w+.3,.025]:null,24);
+    // gore: the painted wedge between the lap's edge and the ramp's inner edge, once they have separated
+    const goreX=k=>{ const d=k*bt.ds, u=d<P?d/P:(bt.L-d<P?(bt.L-d)/P:1), gap=b.sep*sm(u)-2*w; return u<1&&gap>.2?gap:0; };
+    ribbonU(bt,S,goreM,(k)=>{ const g=goreX(k); return g?[-b.side*(w+.3),.02,-b.side*(w+.3+g),.02]:null; },6); });
 
   /* ======== the set pieces, sector by sector ======== */
   KIT_LOG=[];
@@ -6602,20 +6642,24 @@ function buildLastCall(){
   const towerKit=kitInst(S,'BFBTower',Object.assign({},PK,{STEEL:steel}),BT.map(x=>new THREE.Matrix4().makeTranslation(x,-8,-300)));
   BT.forEach(x=>{ if(!towerKit){ CZ.forEach(z=>K.box(4.5,112,6,steel,x,50,z)); [60,85,104].forEach(y=>K.box(4,3,76,steel,x,y,-300)); } K.box(18,9,86,stoneM,x,-4,-300);
     const bc=glowSprite(0xff2030,3); bc.position.set(x,106.5,-300); S.add(bc); CZ.forEach(z=>{ const g=glowSprite(0x9fc8ff,22); g.position.set(x,4,z); g.material.opacity=.5; S.add(g); }); });
-  const cableLED=[]; CZ.forEach(z=>{ const pts=[]; for(let x=BR.anch[0];x<=BR.anch[1];x+=10) pts.push(new THREE.Vector3(x,cableY(x),z));
-    K.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),420,.55,6,false),steel,0,0,0); for(let x=BR.anch[0]+4;x<BR.anch[1]-4;x+=3) cableLED.push(x,cableY(x)+.6,z);
-    const hang=[]; for(let x=BR.anch[0]+12;x<BR.anch[1]-8;x+=8){ if(BT.some(t=>Math.abs(t-x)<5)) continue; const y0=bridgeY(x)-.5, y1=cableY(x); if(y1-y0<1) continue; m4.compose(pv.set(x,(y0+y1)/2,z),new THREE.Quaternion(),new THREE.Vector3(1,y1-y0,1)); hang.push(m4.clone()); }
+  const deckY=x=>{ const k=Math.round(at(x,-300)/tr.ds)%tr.N; return tr.pts[k].y; }, dY={}; for(let x=BR.anch[0];x<=BR.anch[1]+10;x+=8) dY[x]=deckY(x);
+  const dAt=x=>{ const a=BR.anch[0]+Math.floor((x-BR.anch[0])/8)*8, u=(x-a)/8; return lerp(dY[a]!==undefined?dY[a]:deckY(a),dY[a+8]!==undefined?dY[a+8]:deckY(a+8),u); };
+  const cY=x=>{ const [t1,t2]=BT, top=104, mid=37; if(x<=t1){ const y0=dAt(BR.anch[0])+3.5, u=(x-BR.anch[0])/(t1-BR.anch[0]); return lerp(y0,top,u)-6*4*u*(1-u); }
+    if(x>=t2){ const y0=dAt(BR.anch[1])+3.5, u=(BR.anch[1]-x)/(BR.anch[1]-t2); return lerp(y0,top,u)-6*4*u*(1-u); } const c=(t1+t2)/2, h=(t2-t1)/2; return mid+(top-mid)*Math.pow((x-c)/h,2); };
+  const cableLED=[]; CZ.forEach(z=>{ const pts=[]; for(let x=BR.anch[0];x<=BR.anch[1];x+=10) pts.push(new THREE.Vector3(x,cY(x),z));
+    K.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),420,.55,6,false),steel,0,0,0); for(let x=BR.anch[0]+4;x<BR.anch[1]-4;x+=3) cableLED.push(x,cY(x)+.6,z);
+    const hang=[]; for(let x=BR.anch[0]+12;x<BR.anch[1]-8;x+=8){ if(BT.some(t=>Math.abs(t-x)<5)) continue; const y0=dAt(x)-.5, y1=cY(x); if(y1-y0<1) continue; m4.compose(pv.set(x,(y0+y1)/2,z),new THREE.Quaternion(),new THREE.Vector3(1,y1-y0,1)); hang.push(m4.clone()); }
     K.inst(new THREE.BoxGeometry(.14,1,.14),steel,hang); });
-  BR.anch.forEach(x=>CZ.forEach(z=>{ const y=bridgeY(x)+4; K.box(16,y,6,stoneM,x,y/2,z+(z>-300?2.5:-2.5)); }));
+  BR.anch.forEach(x=>CZ.forEach(z=>{ const y=dAt(x)+4; K.box(16,y,6,stoneM,x,y/2,z+(z>-300?2.5:-2.5)); }));
   const ledGeo=new THREE.BufferGeometry(), ledCol=new Float32Array(cableLED.length); ledGeo.setAttribute('position',new THREE.Float32BufferAttribute(cableLED,3)); ledGeo.setAttribute('color',new THREE.BufferAttribute(ledCol,3));
   S.add(new THREE.Points(ledGeo,new THREE.PointsMaterial({map:glowTex,size:2.4,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})));
-  K.gantry(sBr0-40,'BEN FRANKLIN BRIDGE','CAMDEN · NEW JERSEY  ↑');
+  K.gantry(sBr0+90,'BEN FRANKLIN BRIDGE','CAMDEN · NEW JERSEY  ↑');
 
   // ---- Camden: the waterfront, the Battleship, the aquarium; the lens portal into the tunnel ----
   K.frontage(sBr1+60,sT0-80,1,{set:7,h:[10,26],dep:[16,24],len:[18,34],styles:['brick','glass']});
   lcBattleship(K,km);
   // ---- the Harbor Line tunnel: white tile tube under the river (chunked so it culls), LED lines, amber kerbs ----
-  const bore=BR_(2), cutBore=(s,sd)=>sd===bore.side&&(inR(s,bore.s0-6,bore.s0+70)||inR(s,bore.s1-70,bore.s1+6));
+  const bore=BR_(2), cutBore=(s,sd)=>sd===bore.side&&(inR(s,bore.s0-4,bore.s0+bore.peel+30)||inR(s,bore.s1-bore.peel-30,bore.s1+4));
   const tun=lcTube(K,tr,s=>inR(s,sT0,sHalo0-24),{w:W+1.6,h:7.4,tile:true,cut:cutBore});
   lcPortal(K,km,sT0+6,false);
   lcServiceBore(K,BR_(2));
@@ -6657,7 +6701,7 @@ function buildLastCall(){
 
   // ---- traffic: only on the Boulevard and the city streets, never in a loop or the tunnel ----
   const obst=K.traffic(9), zones=[[sBlvd0+40,sRingIn-160],[60,sBr0-80],[sPk0+40,L-60]];
-  const resetTraffic=()=>obst.forEach((o,i)=>{ const z=zones[i%3]; o.dist=z[0]+R()*(z[1]-z[0]); o.zone=z; o.x=(i%2?1:-1)*3.4; o.v=o.v0=13+R()*6; });
+  const resetTraffic=()=>obst.forEach((o,i)=>{ const z=zones[i%3]; o.dist=z[0]+R()*(z[1]-z[0]); o.zone=z; o.x=(i%2?1:-1)*3.4; o.v=o.v0=13+R()*6; o.out=false; o.m.group.visible=true; });
   // road hazards: potholes on the Avenue and the Drive
   const hz=[[at(-1200,-2515),0,3,'pothole'],[at(-1540,-2300),0,-3,'pothole'],[at(-1540,-2100),0,0,'bump'],[at(-1200,-1880),0,3,'pothole'],[at(-1000,-1840),0,-3,'pothole']];
   const roadHazards=installRoadHazards(tr,S,s=>s,hz,mkF(),new THREE.Quaternion(),new THREE.Matrix4(),new THREE.Vector3(),W);
@@ -6665,7 +6709,12 @@ function buildLastCall(){
   let T=0, lastTable=-1; const lapTables=['Happy Hour','Rush','Last Call'];
   const update=dt=>{ T+=dt; halo.update(T); ring.update(T); woods.update(T,dt); tun.update&&tun.update(T);
     for(let i=0,n=ledCol.length/3;i<n;i++){ const w=.5+.5*Math.sin(T*2.2-i*.09); ledCol[i*3]=.3+.5*w; ledCol[i*3+1]=.55+.4*w; ledCol[i*3+2]=1; } ledGeo.attributes.color.needsUpdate=true;
-    obst.forEach(o=>{ if(o.zone&&trackS(o.dist)>o.zone[1]) o.dist=o.zone[0]; });
+    if(player&&mode==='race'&&!player.br){ const sP=trackS(player.dist), lapP=Math.floor(player.dist/L);
+      for(const b of tr.branches){ const d=((b.s0-sP)%L+L)%L; if(d<250&&d>150&&player.lcWarn!==b.id+':'+lapP){ player.lcWarn=b.id+':'+lapP; toast(`Shortcut ahead: ${b.name}. Take the ${b.side>0?'right':'left'} lane.`); } } }
+    obst.forEach(o=>{ if(!o.zone) return; const s=trackS(o.dist);
+      if(!o.out&&s>o.zone[1]){ o.out=true; o.m.group.visible=false; }
+      if(o.out){ const clear=!player||racers.every(r=>{ const d=Math.abs(trackGapSigned(trackS(r.dist),o.zone[0],L)); return d>260; });
+        if(clear){ o.dist=o.zone[0]; o.out=false; o.m.group.visible=true; o.v=o.v0; } } });
     // the drop table follows the leader's lap
     if(mode==='race'&&racers.length){ const lead=racers.reduce((a,b)=>b.dist>a.dist?b:a), lap=clamp(Math.floor(lead.dist/L)||0,0,2);
       if(lap!==lastTable){ lastTable=lap; lcRetypeDrops(lapTables[lap]); if(lap>0&&player) toast(lap===2?'Last Call. The drops bite now.':'Rush. Lap 2 drops.'); } } };
@@ -9921,7 +9970,7 @@ function studioCam(dt,d,hero){ cam.up.copy(UP); camUpV.copy(UP);
 setEvent(0); setupAttract(CARS[0]);
 let bootP=0, last=performance.now(), bootStart=last;
 function attractStep(dt){
-  racers.forEach(r=>stepRacer(r,dt,null)); traffic.forEach(o=>stepTraffic(o,dt)); collide();
+  racers.forEach(r=>stepRacer(r,dt,null)); traffic.forEach(o=>{ if(!o.out) stepTraffic(o,dt); }); collide();
   racers.forEach(r=>poseRacer(r,dt)); traffic.forEach(o=>poseTraffic(o,dt)); if(EV.update) EV.update(dt); worldFx(dt);
   updateFx(dt,player); cineCam(dt,player);
 }
@@ -9934,7 +9983,7 @@ function stepPhysics(sdt,inp){
   for(let si=0;si<nSub;si++){
     raceT+=h;
     racers.forEach(r=>{ if(r.out) return; if(r.finished&&!r.isP){ r.v*=Math.pow(.99,1/nSub); } stepRacer(r,h,r.isP&&!r.finished&&!AUTO?inp:null); }); // autopilot: the rival brain drives the player after the flag (and from the start with ?auto)
-    traffic.forEach(o=>stepTraffic(o,h));
+    traffic.forEach(o=>{ if(!o.out) stepTraffic(o,h); });
     collide(); if(EV.knockout) koStep(h);
   }
 }

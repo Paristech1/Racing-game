@@ -39,7 +39,8 @@ describe('model pipeline (tools/optimize_models.sh)', () => {
     for (const k of Object.keys(MANIFEST)) assert.ok(files.includes(k), k + ' in manifest but not on disk');
   });
   it('total critical download stays under budget (10 MB, Threejs-Punk ships its whole game in ~15 MB)', () => {
-    const total = Object.entries(MANIFEST).filter(([k]) => !k.startsWith('lod/')).reduce((s, [, v]) => s + v.bytes, 0);
+    const deferred = [...readFileSync(join(root, 'js/assets.js'), 'utf8').matchAll(/DEFER=\[(.*?)\];/g)].flatMap((m) => [...m[1].matchAll(/'([\w.]+\.glb)'/g)].map((x) => x[1]));
+    const total = Object.entries(MANIFEST).filter(([k]) => !k.startsWith('lod/') && !deferred.includes(k)).reduce((s, [, v]) => s + v.bytes, 0);
     assert.ok(total < 10e6, `models are ${(total / 1e6).toFixed(1)} MB`);
   });
   it('index.html loads the asset pipeline before three.js and the meshopt decoder after GLTFLoader', () => {

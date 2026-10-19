@@ -128,6 +128,7 @@ export function buildRivalForEvent(rival, eventId, taken, cars, eventCarBias, ri
 
 export function scorePickup(r, p, P, s0, L) {
   if (p.cd > 0) return -999;
+  if ((p.br || null) !== (r.br ? r.br.id : null) || p.air) return -999;
   if (p.carId && (r.def.chassisId || r.def.id) !== p.carId) return -999;
   if (p.lastOnly || p.lastTwo) return -999;
   let dd = p.s - s0;

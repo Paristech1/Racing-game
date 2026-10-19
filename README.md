@@ -91,6 +91,14 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - **Highway 9:** an elevated viaduct along the ridge past the white Belvedere pavilion, a 360 m straight and a big 180-degree sweeper behind sound walls.
   - **Calder Tunnel:** 600 m through the hill in a long curve, white panel tube with light lines and amber kerbs, a hex-lattice gallery in the middle, sculpted portals with light rings; then the S-bends back to the quay.
 
+- **Event 16: Last Call.** Every level in one 12.2 km lap at 1:45 AM, 3 laps, 12 cars. Designed in `tools/lastcall_design.py` (course sheet: `docs/lastcall/course-sheet.html`), look from 14 Midjourney key frames (`docs/lastcall/mj-prompts.md`), set pieces built in Blender (`tools/blender/lastcall_kit.py` -> `models/lastcall_kit.glb`, downloaded after boot):
+  - **The Bridge Run** out of Center City, over the Ben Franklin Bridge (cable light show) to the Camden waterfront and the Battleship.
+  - **The Harbor Line tunnel** under the Delaware, up into **The Halo**: a 57 m vertical loop inside a glass vent hall wrapped in magenta and cyan light.
+  - The **I-95 viaduct** past the riverside casino (the expansion-joint crest throws you), then **Roosevelt Blvd's** mile with live traffic to **The Ring**: a 66 m open-air loop on twin pylons.
+  - **Mt Airy**: Germantown Ave cobbles and trolley rails, Mt Airy Ave, the Lincoln Drive S-bends through the Wissahickon, then Kelly Drive past Boathouse Row and the Parkway to City Hall.
+  - **Shortcuts** branch off and rejoin, each with a catch: Franklin Square (park paths, less grip), the Service Bore (narrow and dark, under the river), the Express Lanes (no traffic, no gems, cameras) and Forbidden Drive (gravel, a stone-bridge jump at Valley Green).
+  - **Drops change every lap**: gates of three, bait gems off the line, gems on each loop's crown, airdrops you only reach over a jump, stashes on the shortcuts. Lap 1 is Happy Hour, lap 2 Rush, lap 3 Last Call, when everything bites.
+
 - **Tournament: The Gauntlet.** All 12 cars on one grid, on a flood-lit 1.7 km knockout loop around City Hall (Market St, 9th St, Race St and 15th St), with neon barriers, floodlight towers and a live standings screen over the track. Each lap is a round: when everyone but the last car has crossed the line, that car is knocked out. The last car running wins. Every round rolls a new rule (never the same one twice in a row):
 
   | Rule | What happens |

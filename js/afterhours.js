@@ -6260,7 +6260,7 @@ function lcPortal(K,km,s,exit){ const S=K.S; K.at(s,0,0); const q=K.q.clone(); i
   if(!kitInst(S,'LCPortal',km,[m])) K.box(32,12,3,km.WHITE,K.f.p.x,K.f.p.y+6,K.f.p.z);
   const g=K.glow(0xdff4ff,30,K.f.p.x,K.f.p.y+7,K.f.p.z); g.material.opacity=.35; }
 // the Service Bore: a round corrugated liner along the branch, teal work lights in the crown, amber lamps on the walls
-function lcServiceBore(K,b){ const S=K.S, bt=b.tr, R0=b.w+1.4, n=14, P0=b.peel-2, P1=bt.L-b.peel+2, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
+function lcServiceBore(K,b){ const S=K.S, f0=mkF(), bt=b.tr, R0=b.w+1.4, n=14, P0=b.peel-2, P1=bt.L-b.peel+2, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
   const linT=CT(canvasTex(64,128,(g,w,h)=>{ g.fillStyle='#2a2e30'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=8){ const gr=g.createLinearGradient(0,y,0,y+8); gr.addColorStop(0,'#3a3f42'); gr.addColorStop(.5,'#1a1d1f'); gr.addColorStop(1,'#3a3f42'); g.fillStyle=gr; g.fillRect(0,y,w,8); }
     for(let i=0;i<120;i++){ g.fillStyle=`rgba(90,70,40,${Math.random()*.25})`; g.fillRect(Math.random()*w,Math.random()*h,3,6); } }),true);
   const linM=new THREE.MeshStandardMaterial({map:linT,roughness:.35,metalness:.6,side:THREE.DoubleSide});
@@ -6268,6 +6268,12 @@ function lcServiceBore(K,b){ const S=K.S, bt=b.tr, R0=b.w+1.4, n=14, P0=b.peel-2
     ribbonUC(bt,S,linM,(k)=>inMid(k)?[Math.cos(a0)*R0,Math.sin(a0)*R0*.85,Math.cos(a1)*R0,Math.sin(a1)*R0*.85]:null,3,80); }
   const so=b.side, rampK=k=>!inMid(k);
   ribbonU(bt,S,linM,(k)=>rampK(k)?[so*R0,0,so*R0,7.4]:null,6); ribbonU(bt,S,linM,(k)=>rampK(k)?[-so*(b.w+3),7.4,so*R0,7.4]:null,6);
+  // bulkheads where the ramp's box (open to the main tube) becomes the round liner: a U-shaped plate, so nothing past the liner
+  // (the void around it, or the sky above the river) shows through the gap
+  const bh=new THREE.Shape(), xl=-(b.w+3.2), xr=R0+.2; bh.moveTo(xl,-.4); bh.lineTo(xl,7.6); bh.lineTo(xr,7.6); bh.lineTo(xr,-.4); bh.lineTo(R0,-.4);
+  for(let i=0;i<=24;i++){ const a=Math.PI*i/24; bh.lineTo(Math.cos(a)*R0,Math.sin(a)*R0*.85); } bh.lineTo(-R0,-.4); bh.lineTo(xl,-.4);
+  const bhG=new THREE.ShapeGeometry(bh); if(so<0) bhG.scale(-1,1,1);
+  [P0,P1].forEach(u=>{ frame(u,f0,bt); const m=new THREE.Mesh(bhG,linM), z=new THREE.Vector3().crossVectors(f0.r,f0.u); m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(f0.r,f0.u,z)); m.position.copy(f0.p); S.add(m); });
   const teal=[], amber=[], f=mkF(); for(let s=P0+8;s<P1-8;s+=22){ frame(s,f,bt); teal.push(f.p.x,f.p.y+R0*.82,f.p.z); [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(R0-.4)); amber.push(p.x,p.y+2.2,p.z); }); }
   const pts=(arr,c,sz)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3)); S.add(new THREE.Points(g,new THREE.PointsMaterial({map:glowTex,color:c,size:sz,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}))); };
   pts(teal,0x48e8d8,4.5); pts(amber,0xffa040,2.2);
@@ -6671,7 +6677,7 @@ function buildLastCall(){
   K.frontage(sBr1+120,sT0-140,-1,{set:9,h:[7,14],dep:[14,22],len:[20,40],space:8,gap:.3,styles:['brick','stone'],ok:c=>roadFree(c.x,c.z,12)});
   lcBattleship(K,km);
   // ---- the Harbor Line tunnel: white tile tube under the river (chunked so it culls), LED lines, amber kerbs ----
-  const bore=BR_(2), cutBore=(s,sd)=>sd===bore.side&&(inR(s,bore.s0-4,bore.s0+bore.peel+30)||inR(s,bore.s1-bore.peel-30,bore.s1+4));
+  const bore=BR_(2), cutBore=(s,sd)=>sd===bore.side&&(inR(s,bore.s0-4,bore.s0+bore.peel-1)||inR(s,bore.s1-bore.peel+1,bore.s1+4)); // the wall opens only while the ramp is beside it, at road level
   const tun=lcTube(K,tr,s=>inR(s,sT0,sHalo0-24),{w:W+1.6,h:7.4,tile:true,cut:cutBore});
   lcPortal(K,km,sT0+6,false);
   lcServiceBore(K,BR_(2));
@@ -7581,7 +7587,7 @@ if(DEV) window.AHDEV={
   free:()=>{ DEV.hold=null; DEV.scam=null; },
   car:()=>{ if(!player||!player.m) return null; const g=player.m.group, d=new THREE.Vector3(0,0,1).applyQuaternion(g.quaternion); return {p:g.position.toArray(),d:d.toArray()}; }, // look-dev: where the player car sits and faces
   scam:(p,l,fov)=>{ DEV.scam={p,l,roll:0,fov:fov||30}; },
-  ev:()=>EV,
+  ev:()=>EV, camera:()=>cam, // look-dev: raycast probes from the chase camera
   page:id=>{ const i=CARS.findIndex(c=>c.id===id); if(i<0||mode!=='select') return false; page=i; renderPage(0); return true; },
   yaw:a=>{ studioYaw=a; applyStudioOrbit(); return a; }}; // look-dev: jump the car-select studio to a car / turn it on the turntable
 /* track report: the ZER0-G course checker (tools/track_design.py check()/draw(), MIT, witnesstodark/zer0-g) applied to our

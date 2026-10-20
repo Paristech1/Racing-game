@@ -1,0 +1,154 @@
+<title>Last Call Course Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,300..900;1,62..125,300..900&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+/* AFTERHOURS magazine spread: one dark night page, the plan as the cover image, the run sheet as the article.
+   Single-theme on purpose: it is the game's own look. */
+:root{
+  --night:#06070a; --ink:#eef2f6; --dim:#97a0ab; --rule:#232833; --panel:#0d1016; --stamp:#ff4a3d; --warm:#ffb070;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif; --hand:"Caveat","Bradley Hand","Segoe Print",cursive;
+  color-scheme:dark;
+}
+body{background:var(--night);color:var(--ink);font-family:var(--display);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto;padding-block:28px 64px;display:grid;gap:40px}
+.wrap>*{min-width:0}
+.kick{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--stamp);font-weight:700}
+h1{margin:6px 0 0;font-weight:900;font-stretch:125%;font-size:clamp(46px,11vw,118px);line-height:.82;letter-spacing:-.025em;text-wrap:balance}
+.specs{margin-top:14px;font-stretch:75%;font-weight:600;letter-spacing:.06em;font-size:14px;color:var(--dim);font-variant-numeric:tabular-nums}
+.specs b{color:var(--ink)}
+.lede{max-width:62ch;color:#c9d0d8;margin:14px 0 0}
+.note{font-family:var(--hand);color:var(--warm);font-size:22px;line-height:1.1}
+h2{font-weight:800;font-stretch:112%;font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--rule);display:flex;justify-content:space-between;gap:12px}
+h2 span{color:var(--dim);font-weight:500;letter-spacing:.06em;text-transform:none;font-stretch:90%}
+.plan{position:relative;background:radial-gradient(120% 90% at 60% 40%,#0e1320,var(--night));border:1px solid var(--rule);overflow:hidden}
+.plan svg{display:block;width:100%;height:auto}
+.river{fill:#0d1d33}
+.sec{fill:none;stroke-width:22;stroke-linecap:round;stroke-linejoin:round;transition:opacity .2s,stroke-width .2s}
+.br{fill:none;stroke:#eef2f6;stroke-width:9;stroke-dasharray:26 20;opacity:.85}
+.brl{fill:#eef2f6;font:600 44px var(--display);font-stretch:80%}
+.loopmk circle{fill:none;stroke:#ff3fb8;stroke-width:12}
+.loopmk text{fill:#ff3fb8;font:900 54px var(--display);font-stretch:110%}
+.rivt{fill:#2c4f78;font:800 44px var(--display);letter-spacing:.3em}
+.sf{fill:#3cff8a}.sft{fill:#3cff8a;font:800 46px var(--display)}
+svg.dim .sec{opacity:.18}svg.dim .sec.on{opacity:1;stroke-width:30}
+.pnote{position:absolute;left:16px;bottom:12px;max-width:min(320px,70%)}
+.prof{border:1px solid var(--rule);padding:14px 14px 6px 34px;overflow-x:auto;background:var(--panel)}
+.prof svg{display:block;width:100%;min-width:640px;height:auto;overflow:visible}
+.band{opacity:.07;transition:opacity .2s}.band.on{opacity:.28}
+.grid{stroke:var(--rule);stroke-width:1}.ax{fill:var(--dim);font:500 11px var(--display);font-variant-numeric:tabular-nums}
+.pl{fill:none;stroke:var(--ink);stroke-width:1.6}.lpl{fill:#ff3fb8;font:800 11px var(--display);letter-spacing:.04em}
+.rows{display:grid}
+.row{all:unset;cursor:pointer;display:grid;grid-template-columns:14px minmax(0,1.3fr) 56px 76px minmax(0,3fr) minmax(0,.9fr);gap:12px;align-items:baseline;padding:12px 6px;border-bottom:1px solid var(--rule)}
+.row:hover,.row.on{background:#11151d}.row:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.sw{width:12px;height:12px;background:var(--c);align-self:center}
+.rn{font-weight:800;font-stretch:105%}.rk,.rl{font-variant-numeric:tabular-nums;color:var(--dim);font-stretch:85%}.rl{color:var(--ink)}
+.rt{color:#c9d0d8;min-width:0}.rs{font-size:12px;color:var(--dim);letter-spacing:.04em;text-transform:uppercase;font-stretch:80%}
+.rowh{display:grid;grid-template-columns:14px minmax(0,1.3fr) 56px 76px minmax(0,3fr) minmax(0,.9fr);gap:12px;padding:0 6px 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.loop{border-top:3px solid #ff3fb8;padding-top:12px;display:grid;gap:6px}
+.loop h3{margin:0;font-weight:900;font-stretch:120%;font-size:30px;letter-spacing:-.01em}
+.loop .m{font-stretch:80%;font-weight:600;color:var(--dim);letter-spacing:.05em;font-variant-numeric:tabular-nums}
+.loop p{margin:0;color:#c9d0d8;max-width:60ch}
+.scs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.sc{background:var(--night);padding:16px;display:grid;gap:6px;align-content:start}
+.sch{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sc h4{margin:0;font-weight:900;font-stretch:115%;font-size:17px;letter-spacing:.02em}
+.save{font-weight:900;font-stretch:120%;font-size:22px;color:var(--warm);font-variant-numeric:tabular-nums}
+.sc p{margin:0;color:#c9d0d8}.sc .risk{color:var(--dim)}.scm{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.lt{display:grid;grid-template-columns:90px repeat(3,minmax(0,1fr));gap:8px;padding:7px 0;border-bottom:1px solid var(--rule);align-items:center}
+.lth{font-weight:900;font-stretch:115%;font-size:15px}.lth small{display:block;font-weight:500;color:var(--dim);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.slot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.gem{display:flex;gap:8px;align-items:center;font-stretch:90%;font-weight:600;min-width:0}
+.gem i{width:10px;height:10px;transform:rotate(45deg);background:var(--g);box-shadow:0 0 10px var(--g);flex:none}
+.drops{columns:2;column-gap:28px;padding:0;margin:0;list-style:none}
+.drops li{break-inside:avoid;padding:7px 0;border-bottom:1px solid var(--rule);color:#c9d0d8}
+.drops b{color:var(--ink);font-stretch:105%}.dsl{color:var(--dim);font-size:12px;letter-spacing:.04em}
+.next{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;counter-reset:n}
+.next div{border-top:1px solid var(--ink);padding-top:10px}
+.next b{display:block;font-weight:900;font-stretch:115%}.next span{color:var(--dim);font-size:14px}
+.next .done{border-color:#3cff8a}.next .done b::after{content:"  ✓";color:#3cff8a}
+@media (max-width:760px){
+  .row,.rowh{grid-template-columns:12px minmax(0,1fr) 64px}.rowh span:nth-child(n+4){display:none}
+  .row .rk,.row .rs{display:none}.row .rt{grid-column:2 / 4;font-size:14px}
+  .two,.scs{grid-template-columns:1fr}.drops{columns:1}.next{grid-template-columns:1fr 1fr}
+  .lt{grid-template-columns:62px repeat(3,minmax(0,1fr));font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="kick">AFTERHOURS · Event 16 · Course design</div>
+  <h1>Last Call</h1>
+  <div class="specs"><b>%L% KM</b> LAP · <b>3</b> LAPS · <b>%RACE% KM</b> RACE · <b>2</b> LOOPS · <b>4</b> SHORTCUTS · <b>%CLIMB% M</b> OF CLIMB · TIGHTEST R %MINR% M</div>
+  <p class="lede">The Bridge Run, Harbor Line, Roosevelt Blvd and Mt Airy joined into one clockwise lap of the city at 1:45 AM. Fast and technical sectors alternate, and each loop sits at the end of a long straight, so you see it coming.</p>
+</header>
+
+<section>
+  <h2>The lap <span>tap a sector</span></h2>
+  <div class="plan">
+    <svg id="map" viewBox="-1700 -2780 4000 2960" role="img" aria-label="Plan of the Last Call lap">
+      <rect class="river" x="1030" y="-2780" width="700" height="2960"/>
+      <text class="rivt" x="1380" y="-2560" text-anchor="middle">DELAWARE</text>
+      %BR%%PATHS%%LOOPS%%BRL%
+      <circle class="sf" cx="0" cy="20" r="28"/><text class="sft" x="-60" y="120">START · FINISH</text>
+    </svg>
+    <div class="pnote note">clockwise. dashed = shortcuts. pink rings = the loops.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Elevation <span>metres, along the lap (km)</span></h2>
+  <div class="prof"><svg id="prof" viewBox="0 -14 %PW% 254">%BANDS%%TICKS%<path class="pl" d="%PROF%"/>%LOOPL%%KMS%</svg></div>
+</section>
+
+<section>
+  <h2>Run sheet <span>11 sectors</span></h2>
+  <div class="rowh"><span></span><span>Sector</span><span>km</span><span>Length</span><span>What happens</span><span>From</span></div>
+  <div class="rows" id="rows">%ROWS%</div>
+</section>
+
+<section>
+  <h2>The loops <span>both mandatory, both on the racing line</span></h2>
+  <div class="two">
+    <div class="loop"><h3>The Halo</h3><div class="m">57 M TALL · 260 M OF ROAD · KM 4.7 · INSIDE THE PORT RICHMOND VENT TOWER</div>
+      <p>The tunnel climbs out from under the river into a glass and steel ventilation shaft, and the road goes up and over inside it. From outside the tower glows like a lantern on the waterfront.</p><p class="note">Overdrive gem on the crown.</p></div>
+    <div class="loop"><h3>The Ring</h3><div class="m">66 M TALL · 300 M OF ROAD · KM 7.5 · HUNTING PARK, END OF THE BOULEVARD</div>
+      <p>An open-air steel loop on twin pylons, lit edge to edge. It stands on the line of the Boulevard, so it is in front of you for the whole mile.</p><p class="note">Slingshot on the crown.</p></div>
+  </div>
+  <p style="color:var(--dim);max-width:70ch;margin:18px 0 0">Both loops ease in and out (the pitch rate builds from zero, peaks at the crown, and fades), so there is no jolt at the bottom. Each exit runs 17 m to the side of its entry, and you pass under the loop you just drove. Gravity is real: you lose speed climbing and get it back coming down.</p>
+</section>
+
+<section>
+  <h2>Shortcuts <span>each one costs you something</span></h2>
+  <div class="scs">%SC%</div>
+</section>
+
+<section>
+  <h2>Power-up drops <span>the gems change every lap</span></h2>
+  %LT%
+  <p style="color:var(--dim);margin:16px 0 18px;max-width:70ch">Each drop has a slot instead of a fixed gem, and the slot draws from the lap the leader is on. Lap 1 is friendly, lap 3 is all teeth. The game still adds its own jam, oil, payback and ghost gems on top.</p>
+  <ul class="drops">%DROPS%</ul>
+</section>
+
+<section>
+  <h2>What happens next</h2>
+  <div class="next">
+    <div class="done"><b>Course path</b><span>This sheet. Layout data and checker in the repo.</span></div>
+    <div><b>Engine</b><span>Loops (rolling up vector) and branching roads.</span></div>
+    <div><b>Midjourney</b><span>Key frames per sector, the Halo and the Ring.</span></div>
+    <div><b>Blender, then build</b><span>Hero kit from the frames, then assemble and race it.</span></div>
+  </div>
+</section>
+</div>
+<script>
+(function(){
+  var map=document.getElementById('map'), rows=[].slice.call(document.querySelectorAll('.row')), cur=-1;
+  function pick(k){ cur=(cur===k)?-1:k; map.classList.toggle('dim',cur>=0);
+    [].forEach.call(document.querySelectorAll('.sec,.band,.row'),function(e){ e.classList.toggle('on',+e.dataset.k===cur); }); }
+  rows.forEach(function(r){ r.addEventListener('click',function(){ pick(+r.dataset.k); }); });
+  [].forEach.call(document.querySelectorAll('.sec'),function(p){ p.style.cursor='pointer'; p.addEventListener('click',function(){ pick(+p.dataset.k); }); });
+})();
+</script>

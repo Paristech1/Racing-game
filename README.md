@@ -91,7 +91,7 @@ The car accelerates on its own. Boost refills over time, faster while you slide 
   - **Highway 9:** an elevated viaduct along the ridge past the white Belvedere pavilion, a 360 m straight and a big 180-degree sweeper behind sound walls.
   - **Calder Tunnel:** 600 m through the hill in a long curve, white panel tube with light lines and amber kerbs, a hex-lattice gallery in the middle, sculpted portals with light rings; then the S-bends back to the quay.
 
-- **Event 16: Last Call.** Every level in one 12.2 km lap at 1:45 AM, 3 laps, 12 cars. Designed in `tools/lastcall_design.py` (course sheet: `docs/lastcall/course-sheet.html`), look from 14 Midjourney key frames (`docs/lastcall/mj-prompts.md`), set pieces built in Blender (`tools/blender/lastcall_kit.py` -> `models/lastcall_kit.glb`, downloaded after boot):
+- **Event 16: Last Call.** Every level in one 12.2 km lap at 1:45 AM, 3 laps, 12 cars. Course drawings exported from the game code (`tools/lastcall_export.cjs`, `lastcall_design.py`, `lastcall_sheet.py` -> `docs/lastcall/`), look from 14 Midjourney key frames (`docs/lastcall/mj-prompts.md`), set pieces built in Blender (`tools/blender/lastcall_kit.py` -> `models/lastcall_kit.glb`, downloaded after boot):
   - **The Bridge Run** out of Center City, over the Ben Franklin Bridge (cable light show) to the Camden waterfront and the Battleship.
   - **The Harbor Line tunnel** under the Delaware, up into **The Halo**: a 57 m vertical loop inside a glass vent hall wrapped in magenta and cyan light.
   - The **I-95 viaduct** past the riverside casino (the expansion-joint crest throws you), then **Roosevelt Blvd's** mile with live traffic to **The Ring**: a 66 m open-air loop on twin pylons.

@@ -6106,7 +6106,7 @@ function buildCalder(){
     resetTraffic(){ [.05,.26,.48,.7,.9].forEach((u,i)=>{ const o=obst[i]; o.dist=u*tr.L; o.x=i%2?3.6:-3.6; o.v=o.v0=13+Math.random()*5; }); }};
 }
 
-/* ---- Event 16: Last Call — route geometry (mirrors tools/lastcall_design.py; layout data in tools/lastcall_layout.py) ----
+/* ---- Event 16: Last Call — route geometry (the source of truth; tools/lastcall_export.cjs exports it for the course drawings) ----
    The lap is a fillet path through LC_CORNERS lifted by LC_KEYS. Each vertical loop is spliced in on a straight: the plan
    road jogs sideways by -drift/2 on the way in and +drift/2 on the way out, and the eased loop (pitch rate
    2pi/Ll*(1-cos(2pi s/Ll)), so no jolt at the bottom) lands ~0.44 x its length further on, drifting across onto the exit
@@ -6117,7 +6117,7 @@ const LC_KEYS=[[0,20,0],[700,20,0],[720,-280,0,10],[770,-300,0,24],[1070,-300,30
 const LC_LOOPS=[{name:'THE HALO',at:[886,-1420],len:260,drift:17,side:1},{name:'THE RING',at:[-560,-2500],len:300,drift:17,side:1}];
 // grip, AI take-rate and the toasts per shortcut
 // shortcuts: fork and merge points on the lap, which side they leave from, anchors for the middle, a height profile over the
-// middle (relative to the road), and the catch. Tuned in tools/lastcall_design.py terms with the branch checker (min R, clearance).
+// middle (relative to the road), and the catch. Checked with tools/lastcall_export.cjs (min R, clearance, end angles).
 const LC_BRANCHES=[
   {id:1,name:'FRANKLIN SQUARE',w:4.5,side:-1,start:[400,20],end:[720,-250],anchors:[[602,-16]],keys:[[0,0],[1,0]],grip:.84,aiP:.35,msgIn:'Franklin Square. Park paths, less grip.'},
   {id:2,name:'SERVICE BORE',w:4,side:1,start:[1650,-790],end:[900,-1290],anchors:[[1470,-1050],[1290,-1078],[1110,-1088],[1010,-1085]],keys:[[0,0],[0.2,-9],[0.8,-9],[1,0]],grip:.88,aiP:.3,msgIn:'Service Bore. Narrow, dark and wet.'},
@@ -6471,7 +6471,7 @@ function lcForkGantry(K,km,b){ const S=K.S, tr=K.tr, f=mkF(), s=b.s0-70;
   for(let u=4;u<b.tr.L*.5;u+=2){ frame(u,f,b.tr); const ms=K.sNear(f.p.x,f.p.z); K.at(ms,0,0); const d=f.p.clone().sub(K.f.p), lat=d.x*K.f.r.x+d.z*K.f.r.z;
     if(Math.abs(lat)>tr.W+b.w+1.5){ const p=K.f.p.clone().addScaledVector(K.f.r,Math.sign(lat)*(tr.W+.6)).lerp(f.p.clone().addScaledVector(f.r,-Math.sign(lat)*(b.w+.6)),.5);
       kitInst(S,'Cushion',km,[new THREE.Matrix4().compose(new THREE.Vector3(p.x,K.f.p.y,p.z),K.q,new THREE.Vector3(1,1,1))]); K.glow(0xffc030,5,p.x,K.f.p.y+1.3,p.z); break; } } }
-/* ---- drops: style + slot from tools/lastcall_layout.py; the slot draws its gem from the lap table the leader is on ---- */
+/* ---- drops: style + slot per drop; the slot draws its gem from the lap table the leader is on ---- */
 const LC_TABLES={'Happy Hour':{calm:'refill',speed:'long',guard:'shield',launch:'over',hit:'shield',grip:'grip',ghost:'ghost',catchup:'refill'},
   'Rush':{calm:'refill',speed:'over',guard:'shield',launch:'sling',hit:'shock',grip:'grip',ghost:'ghost',catchup:'payback'},
   'Last Call':{calm:'long',speed:'over',guard:'payback',launch:'sling',hit:'shock',grip:'jam',ghost:'ghost',catchup:'desperate'}};

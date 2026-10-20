@@ -3157,7 +3157,6 @@ function rFrameAt(r,d,o){ if(r.br){ const u=(d-r.brBase)/r.br.ratio; if(u<r.br.t
 function branchStep(r,prevDist){ const brs=TR&&TR.branches; if(!brs) return; const L=TR.L;
   if(r.br){ if((r.dist-r.brBase)/r.br.ratio>=r.br.tr.L){ const b=r.br; r.x+=b.off1; r.br=null; r.dist=r.brBase+(b.s1-b.s0); if(r.isP&&b.msgOut) toast(b.msgOut); } return; }
   const a=((prevDist%L)+L)%L, d=r.dist-prevDist;
-  if(DEV&&!r.isP) for(const b of brs){ let u=b.s0-a; if(u<0) u+=L; if(u<=d&&u>=0){ const st=window.AHDEV_LC||(window.AHDEV_LC={br:{},loopMin:{},air:0}); st.cross=st.cross||{}; (st.cross[b.name]=st.cross[b.name]||[]).push([+r.x.toFixed(1),r.aiBr&&r.aiBr[b.id]===Math.floor(r.dist/L)?1:0]); } }
   for(const b of brs){ let u=b.s0-a; if(u<0) u+=L; if(u<=d&&u>=0&&b.side*(r.x-b.split)>0&&!(r.aiNoBr&&!r.isP&&r.aiNoBr[b.id]===Math.floor(r.dist/L))){
       if(DEV){ const st=window.AHDEV_LC||(window.AHDEV_LC={br:{},loopMin:{},air:0}); st.br[b.name]=(st.br[b.name]||0)+1; }
       r.br=b; r.brBase=prevDist+u; r.dist=r.brBase+(r.dist-r.brBase)*b.ratio; r.x-=b.off0; r.hy=undefined; if(r.isP&&b.msgIn) toast(b.msgIn); return; } } }
@@ -3166,8 +3165,8 @@ function aiBranchTx(r,tx){ const brs=TR&&TR.branches; if(!brs||r.br) return tx; 
   for(const b of brs){ let u=b.s0-s; if(u<0) u+=L; if(u>180) continue;
     r.aiBr=r.aiBr||{}; r.aiNoBr=r.aiNoBr||{};
     if(r.aiBr[b.id]!==lap&&r.aiNoBr[b.id]!==lap){ const want=Math.random()<(b.aiP*(r.mood&&r.mood.mood!=='lead'?1.25:.8)); if(want) r.aiBr[b.id]=lap; else r.aiNoBr[b.id]=lap; }
-    if(r.aiBr[b.id]===lap) return b.side>0?Math.max(tx,b.split+1.6):Math.min(tx,b.split-1.6);
-    if(u<90) return b.side>0?Math.min(tx,b.split-1.6):Math.max(tx,b.split+1.6); }
+    if(r.aiBr[b.id]===lap) return b.side>0?Math.max(tx,b.split+1.4):Math.min(tx,b.split-1.4);
+    if(u<170) return b.side>0?Math.min(tx,b.split-1.8):Math.max(tx,b.split+1.8); }
   return tx; }
 
 function ribbon(tr,S,offA,offB,yA,yB,mat,vScale){
@@ -6188,7 +6187,7 @@ function lcBranch(tr,spec){ const f=mkF(), W=tr.W, w=spec.w, PEEL=spec.peel||90,
   // smooth the profile so the drops ease in
   for(let pass=0;pass<4;pass++){ const y=R.pts.map(p=>p.y); for(let i=Lp+2;i<N-Lp-2;i++){ R.pts[i].y=(y[i-2]+y[i-1]+y[i]+y[i+1]+y[i+2])/5; } }
   const btr=makeTrack(R.pts,w,6,{open:true});
-  return {id:spec.id,name:spec.name,tr:btr,s0,s1,side,off0:off,off1:off,split:side*2.4,ratio:(((s1-s0)%tr.L)+tr.L)%tr.L/btr.L,
+  return {id:spec.id,name:spec.name,tr:btr,s0,s1,side,off0:off,off1:off,split:side*2.9,ratio:(((s1-s0)%tr.L)+tr.L)%tr.L/btr.L,
     grip:spec.grip,aiP:spec.aiP,msgIn:spec.msgIn,w,peel:PEEL,sep:SEP}; }
 
 /* ---- Last Call set pieces (each falls back to procedural geometry if models/lastcall_kit.glb has not loaded) ---- */
@@ -6299,12 +6298,24 @@ function lcLoopSet(K,km,tr,i,o){ const S=K.S, W=tr.W, z=tr.loops[i], f=mkF(), pa
     pool.position.set(mid.x,mid.y+.08,mid.z); pool.rotation.y=Math.atan2(t0.x,t0.z); S.add(pool); }
   if(o.pylons||o.tower){ const rimO=new THREE.MeshBasicMaterial({color:o.pylons?0xff7a2a:0xff2fb4,toneMapped:false,side:THREE.DoubleSide}), rimI=new THREE.MeshBasicMaterial({color:o.pylons?0xfff2e0:0x3fe6ff,toneMapped:false,side:THREE.DoubleSide});
     [-1,1].forEach(sd=>{ ribbonU(tr,S,rimO,(k)=>inZ(k*tr.ds)?[sd*(W+1.25),-1.9,sd*(W+1.25),-1.2]:null,20); ribbonU(tr,S,rimI,(k)=>inZ(k*tr.ds)?[sd*(W+1.26),-.9,sd*(W+1.26),-.7]:null,20); });
-    ribbonU(tr,S,rimO,(k)=>inZ(k*tr.ds)?[-(W+1.2),-1.95,W+1.2,-1.95]:null,20); }
+  }
   if(o.pylons){ K.at(z[0],0,0); const m=lcPlace(new THREE.Vector3(K.f.p.x,K.f.p.y,K.f.p.z),t0);
     kitInst(S,'RingPylon',km,[m]);
     frame(top,f,tr); K.sign(signCanvas('THE RING',{bg:'#06070a',color:'#ffb070',size:72,glow:22}),30,4,f.p.x,f.p.y+21,f.p.z,Math.atan2(t0.x,t0.z)+Math.PI);
   }
   return {top,update:T=>{ ledA.map.offset.y=-T*1.6; ledB.map.offset.y=T*.9; if(o.tower){ const k=.75+.25*Math.sin(T*2.4); km.LEDA.color.setRGB(k,.18*k,.7*k); } }}; }
+function lcPort(K,roadFree){ const S=K.S, R=rng(2121), place=(x,y,z,yaw)=>new THREE.Matrix4().makeTranslation(x,y,z).multiply(new THREE.Matrix4().makeRotationY(yaw||0));
+  const pm=Object.assign({},kitMats(),{CRANE:new THREE.MeshStandardMaterial({color:0xa8281a,metalness:.55,roughness:.42,envMapIntensity:1.1}),STEEL:new THREE.MeshStandardMaterial({color:0x4a4f56,metalness:.85,roughness:.35}),
+    REDLAMP:new THREE.MeshBasicMaterial({color:0xff2a1a,toneMapped:false}),PAINT:new THREE.MeshStandardMaterial({color:0xffffff,metalness:.35,roughness:.6}),LAMP:new THREE.MeshBasicMaterial({color:0xfff0d0,toneMapped:false})});
+  const CC=[0x8a2a1e,0x1f4a7a,0x2f6a3a,0x6a6e74,0xc0661e,0xd8d8d2,0x7a1e3a,0x0f5a6a,0x9a7a2a,0x2a5a8a], boxes=[], cols=[];
+  for(let bx=600;bx<880;bx+=17) for(let bz=-2340;bz<-1540;bz+=42){ if(!roadFree(bx+6,bz+19,30)||R()<.18) continue;
+    for(let r=0;r<5;r++) for(let l=0;l<3;l++){ const x=bx+r*2.8, z=bz+l*12.8; if(!roadFree(x,z,8)) continue; const h=2+((R()*5)|0); for(let k=0;k<h;k++){ boxes.push(place(x,k*2.62,z,0)); cols.push(CC[(R()*CC.length)|0]); } } }
+  kitInst(S,'Container',pm,boxes,cols,'PAINT',{far:110,keys:['PAINT']});
+  const cr=[-1560,-1720,-1880,-2040].map(z=>place(1046,0,z,kitYawTo(1,0)));
+  kitInst(S,'GantryCrane',pm,cr); [-1560,-1720,-1880,-2040].forEach(z=>{ K.glow(0xff3020,5,1046,63,z); K.glow(0xffd8a0,22,1046,33,z); });
+  K.box(60,3,560,new THREE.MeshStandardMaterial({color:0x2a2c30,roughness:.85}),1040,-1.3,-1800);                       // the wharf
+  const masts=[]; for(let z=-2300;z<-1560;z+=110) for(const x of [640,780]){ if(!roadFree(x,z,6)) continue; masts.push(place(x,0,z,0)); K.glow(0xffe2b8,24,x,31,z); }
+  kitInst(S,'FloodMast',pm,masts); }
 function lcCasino(K,km,s){ const S=K.S; const x=1095, z=-1990;
   K.box(60,2,48,km.DARK,x,1,z); if(!kitInst(S,'CasinoTower',km,[new THREE.Matrix4().makeTranslation(x,2,z).multiply(new THREE.Matrix4().makeRotationY(Math.PI/2))])) K.box(36,118,28,km.GLASS,x,61,z);
   K.glow(0xff3f9a,70,x,40,z).material.opacity=.35; K.sign(signCanvas('RIVERS',{bg:'#0a0610',color:'#ff4fae',size:80,glow:24}),20,3.4,x-15,22,z,-Math.PI/2); }
@@ -6587,7 +6598,7 @@ function buildLastCall(){
   ribbonF(tr,S,waterM,(k,p)=>inKelly(sOf(k))?[W+30,-2.4,W+260,-2.4]:null,30);
 
   // ---- the road: the lap, then each shortcut on its own surface ----
-  K.road({tex:{center:'rgba(255,205,60,.85)'},walk:0x4a4c50,curb:0x7a7e84,skip:noWalk});
+  K.road({tex:{center:'rgba(255,205,60,.85)'},walk:0x2a2c31,curb:0x5c6068,skip:noWalk});
   K.start('EVENT 16 · LAST CALL');
   const parkT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#3a2a22'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=6) for(let x=-((y/6)%2)*6;x<w;x+=12){ const v=70+((x*31+y*17)%30); g.fillStyle=`rgb(${v+18},${v-4},${v-16})`; g.fillRect(x+1,y+1,10,4); } }),true);
   const gravelT=CT(canvasTex(128,128,(g,w,h)=>{ g.fillStyle='#4a4236'; g.fillRect(0,0,w,h); const Rg=rng(5); for(let i=0;i<2600;i++){ const v=50+Rg()*70; g.fillStyle=`rgba(${v+10},${v+4},${v-8},.8)`; g.fillRect(Rg()*w,Rg()*h,1.6,1.6); } }),true);
@@ -6631,8 +6642,8 @@ function buildLastCall(){
   // ---- the Ben Franklin Bridge: deck, towers, cables and the light show ----
   const steel=new THREE.MeshStandardMaterial({color:0x2f5d9e,emissive:0x0a1a33,emissiveIntensity:1,metalness:.6,roughness:.45,side:THREE.DoubleSide});
   const stoneM=new THREE.MeshStandardMaterial({color:0x5a5650,roughness:.95,side:THREE.DoubleSide}), concM=new THREE.MeshStandardMaterial({color:0x6a6c70,roughness:.9,side:THREE.DoubleSide});
-  const deck=(ok,girder,wide)=>{ const o=wide||W+3.2; [-1,1].forEach(sd=>{ ribbonF(tr,S,girder,(k,p)=>ok(sOf(k))?[sd*o,p.y-2.6,sd*o,p.y+.3]:null);
-      ribbonF(tr,S,girder,(k,p)=>ok(sOf(k))?[sd*(o-.1),p.y+1.0,sd*(o-.1),p.y+1.2]:null); ribbonF(tr,S,concM,(k,p)=>ok(sOf(k))?[sd*W,p.y+.012,sd*(o-.1),p.y+.012]:null); });
+  const deck=(ok,girder,wide,shoulder)=>{ const o=wide||W+3.2, shM=shoulder||concM; [-1,1].forEach(sd=>{ ribbonF(tr,S,girder,(k,p)=>ok(sOf(k))?[sd*o,p.y-2.6,sd*o,p.y+.3]:null);
+      ribbonF(tr,S,girder,(k,p)=>ok(sOf(k))?[sd*(o-.1),p.y+1.0,sd*(o-.1),p.y+1.2]:null); ribbonF(tr,S,shM,(k,p)=>ok(sOf(k))?[sd*W,p.y+.012,sd*(o-.1),p.y+.012]:null); });
     ribbonF(tr,S,girder,(k,p)=>ok(sOf(k))?[-o,p.y-2.6,o,p.y-2.6]:null); };
   const onBr=s=>inBridge(s)&&tr.pts[Math.round(s/tr.ds)%tr.N].y>.6;
   deck(onBr,steel,36);
@@ -6656,7 +6667,8 @@ function buildLastCall(){
   K.gantry(sBr0+90,'BEN FRANKLIN BRIDGE','CAMDEN · NEW JERSEY  ↑');
 
   // ---- Camden: the waterfront, the Battleship, the aquarium; the lens portal into the tunnel ----
-  K.frontage(sBr1+60,sT0-80,1,{set:7,h:[10,26],dep:[16,24],len:[18,34],styles:['brick','glass']});
+  K.frontage(sBr1+60,sT0-80,1,{set:7,h:[10,26],dep:[16,24],len:[18,34],styles:['brick','glass'],ok:c=>roadFree(c.x,c.z,12)});
+  K.frontage(sBr1+120,sT0-140,-1,{set:9,h:[7,14],dep:[14,22],len:[20,40],space:8,gap:.3,styles:['brick','stone'],ok:c=>roadFree(c.x,c.z,12)});
   lcBattleship(K,km);
   // ---- the Harbor Line tunnel: white tile tube under the river (chunked so it culls), LED lines, amber kerbs ----
   const bore=BR_(2), cutBore=(s,sd)=>sd===bore.side&&(inR(s,bore.s0-4,bore.s0+bore.peel+30)||inR(s,bore.s1-bore.peel-30,bore.s1+4));
@@ -6666,11 +6678,12 @@ function buildLastCall(){
   // ---- THE HALO: the loop inside the Port Richmond vent tower ----
   const halo=lcLoopSet(K,km,tr,0,{a:0xff3fb8,b:0x3fe6ff,tower:true});
   // ---- Port Richmond and the I-95 viaduct along the river ----
-  deck(s=>inViad(s)&&tr.pts[Math.round(s/tr.ds)%tr.N].y>2.2,concM);
+  { const vm=new THREE.MeshStandardMaterial({color:0x34363a,roughness:.88,side:THREE.DoubleSide}); deck(s=>inViad(s)&&tr.pts[Math.round(s/tr.ds)%tr.N].y>2.2,concM,null,vm); }
   { const piers=[], caps=[]; for(let s=sV0+20;s<sV1-10;s+=34){ K.at(s,0,0); const y=K.f.p.y-2.6; if(y<2) continue; m4.compose(pv.set(K.f.p.x,y/2,K.f.p.z),K.q,new THREE.Vector3(2.4,y,2.4)); piers.push(m4.clone());
       m4.compose(pv.set(K.f.p.x,y-.6,K.f.p.z),K.q,new THREE.Vector3(2*W+6,1.4,3)); caps.push(m4.clone()); }
     const white=upLit(new THREE.MeshStandardMaterial({color:0xd8d8d4,roughness:.6}),{k:.35,h:10,a:0xffa050}); K.inst(new THREE.BoxGeometry(1,1,1),white,piers); K.inst(new THREE.BoxGeometry(1,1,1),white,caps); }
   lcCasino(K,km,at(1000,-2080));
+  lcPort(K,roadFree);
   K.gantry(sV0+160,'I-95 NORTH','COTTMAN AVE · RT 1  ↑');
   // ---- Roosevelt Blvd: the mile, the local lanes and the express trench ----
   lcBlvd(K,km,sBlvd0,sRingIn-40,BR_(3));

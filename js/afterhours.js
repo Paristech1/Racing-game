@@ -6263,7 +6263,11 @@ function lcPortal(K,km,s,exit){ const S=K.S; K.at(s,0,0); const q=K.q.clone(); i
 function lcServiceBore(K,b){ const S=K.S, f0=mkF(), bt=b.tr, R0=b.w+1.4, n=14, P0=b.peel-2, P1=bt.L-b.peel+2, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
   const linT=CT(canvasTex(64,128,(g,w,h)=>{ g.fillStyle='#2a2e30'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=8){ const gr=g.createLinearGradient(0,y,0,y+8); gr.addColorStop(0,'#3a3f42'); gr.addColorStop(.5,'#1a1d1f'); gr.addColorStop(1,'#3a3f42'); g.fillStyle=gr; g.fillRect(0,y,w,8); }
     for(let i=0;i<120;i++){ g.fillStyle=`rgba(90,70,40,${Math.random()*.25})`; g.fillRect(Math.random()*w,Math.random()*h,3,6); } }),true);
-  const linM=new THREE.MeshStandardMaterial({map:linT,roughness:.35,metalness:.6,side:THREE.DoubleSide});
+  // the liner glows faintly by itself (the bore has no real lights) so its rings read at speed instead of a black void
+  const linM=new THREE.MeshStandardMaterial({map:linT,roughness:.35,metalness:.6,side:THREE.DoubleSide,emissive:0xffffff,emissiveMap:linT,emissiveIntensity:.45});
+  const ell=a=>[Math.cos(a)*R0*.985,Math.sin(a)*R0*.85*.985], tealM=new THREE.MeshBasicMaterial({color:0x48e8d8,toneMapped:false,side:THREE.DoubleSide}), ambM=new THREE.MeshBasicMaterial({color:0xffa040,toneMapped:false,side:THREE.DoubleSide});
+  [[Math.PI*.43,Math.PI*.47,tealM],[Math.PI*.53,Math.PI*.57,tealM],[Math.PI*.1,Math.PI*.115,ambM],[Math.PI*.885,Math.PI*.9,ambM]].forEach(([a0,a1,m])=>{ const A=ell(a0), B=ell(a1);
+    ribbonUC(bt,S,m,(k)=>inMid(k)?[A[0],A[1],B[0],B[1]]:null,3,80); });
   for(let i=0;i<n/2+1;i++){ const a0=Math.PI*i/(n/2+1)*1.0-.0, a1=Math.PI*(i+1)/(n/2+1);
     ribbonUC(bt,S,linM,(k)=>inMid(k)?[Math.cos(a0)*R0,Math.sin(a0)*R0*.85,Math.cos(a1)*R0,Math.sin(a1)*R0*.85]:null,3,80); }
   const so=b.side, rampK=k=>!inMid(k);

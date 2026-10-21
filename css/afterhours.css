@@ -117,10 +117,13 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .toast{position:absolute;left:18%;right:18%;top:calc(env(safe-area-inset-top,0px) + 232px);line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.7);text-align:center;font-family:var(--hand);font-size:30px;opacity:0;transition:opacity .3s}
 .pads{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;justify-content:space-between;align-items:flex-end}
 .pads .grp{display:flex;gap:10px}
-.pad{width:78px;height:96px;border:1px solid rgba(255,255,255,.35);background:rgba(8,12,18,.3)!important;font-size:26px;font-weight:700} /* perf: no backdrop blur, it re-blurred the canvas under every pad each frame */
-.pad.sm{width:74px;height:74px;font-size:13px;font-weight:800;font-stretch:80%}
+#hud .spd,#hud .board{transition:opacity .35s}
+#hud.lcam .spd,#hud.lcam .board{opacity:.22} /* loop cam: let the shot breathe */
+.pad{width:84px;height:84px;border-radius:50%;border:1.5px solid rgba(255,255,255,.38);display:grid;place-items:center;padding:0;line-height:1;background:rgba(8,12,18,.3)!important;font-size:26px;font-weight:700} /* perf: no backdrop blur, it re-blurred the canvas under every pad each frame */
+.pad.sm{width:72px;height:72px;font-size:13px;font-weight:800;font-stretch:80%}
 .pad.nos{border-color:var(--nos);color:var(--nos-dim)}
-.pad.on{background:rgba(255,255,255,.22)!important}
+.pad.on{background:rgba(255,255,255,.22)!important;transform:scale(.94)}
+.pad{transition:transform .08s}
 @media (hover:hover) and (pointer:fine){ .pads{opacity:.35} }
 
 /* RESULTS */
@@ -136,6 +139,11 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .epick.on{border-color:var(--ice);box-shadow:0 0 0 1px rgba(159,211,255,.35) inset;color:var(--ice)}
 .egrid{display:flex;gap:6px;margin:8px 0 2px;overflow-x:auto;padding-bottom:2px;pointer-events:auto;-webkit-overflow-scrolling:touch}
 .egrid::-webkit-scrollbar{height:3px}
+.ctypes{display:flex;gap:6px;margin:0 0 10px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ctypes::-webkit-scrollbar{display:none}
+.ctypes button{flex:0 0 auto;padding:7px 12px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:rgba(6,8,12,.45);font-size:12px;font-weight:800;font-stretch:80%;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
+.ctypes button em{font-style:normal;font-weight:600;opacity:.6;margin-left:3px;font-variant-numeric:tabular-nums}
+.ctypes button.on{border-color:var(--ink);color:var(--ink);background:rgba(242,245,248,.1)}
 .egrid button{flex:0 0 auto;min-width:2.6em;padding:9px 12px;border:1px solid rgba(255,255,255,.35);background:rgba(6,8,12,.45);font-size:13px;font-weight:800;font-stretch:80%;font-variant-numeric:tabular-nums}
 .egrid button.on{border-color:var(--ice);box-shadow:0 0 0 1px rgba(159,211,255,.35) inset;color:var(--ice)}
 #hud .board{position:absolute;left:18px;top:calc(env(safe-area-inset-top,0px) + 74px);list-style:none;margin:0;padding:0;font-size:11px;font-weight:700;font-stretch:80%;line-height:1.45;color:var(--dim);pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.6)}
@@ -249,7 +257,7 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .board .team{color:var(--ink);font-size:10px;letter-spacing:.04em}
 #hud .board .team.last{margin-bottom:5px}
 .pad.tagb{display:none;border-color:#ffd23b;color:#ffe9a8}
-.tagmode .pad.tagb{display:block;position:absolute;right:0;bottom:84px;height:52px} /* sits over Boost so the row still fits a phone */
+.tagmode .pad.tagb{display:grid;position:absolute;right:8px;bottom:80px;width:56px;height:56px} /* sits over Boost so the row still fits a phone */
 
 /* short landscape windows: keep the event footer (roster, specs, copy) clear of the headline */
 @media (max-height:640px) and (min-aspect-ratio:1/1){
@@ -275,7 +283,7 @@ button:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 #hud .fw.full i{background:#fff;box-shadow:0 0 6px var(--warm)}
 #hud .fwt{font-size:10px;font-weight:800;font-stretch:80%;letter-spacing:.1em;color:var(--warm);min-height:12px;margin-top:2px}
 #hud .fw.lost+.fwt{color:var(--stamp)}
-.pad.drb{position:absolute;right:84px;bottom:84px;height:52px;border-color:#ffb347;color:#ffd9a8}
+.pad.drb{position:absolute;right:82px;bottom:80px;width:56px;height:56px;border-color:#ffb347;color:#ffd9a8}
 
 /* —— Neon + Glass hybrid (menus) —— */
 body.ui-neon-glass #grain{opacity:.13}

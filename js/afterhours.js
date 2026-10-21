@@ -278,6 +278,15 @@ const SHEETS={
 const LAPS=2; // default; an event can set its own laps
 function laps(){ return EV.laps||LAPS; }
 const FIELD_SIZE_PRESETS=[4,7,12,20];
+/* car types: the archive is browsed type by type (Settings-free: a row of type tabs on the car page, and prev / next walk
+   the roster in type order, so every type's cars sit together). CARS keeps its own order (saves and hist are by id). */
+const CAR_TYPES=[['hyper','Hypercars'],['super','Supercars'],['tuner','Tuners'],['muscle','Muscle'],['gt','GT & Saloon'],['offroad','Off-road'],['outlaw','Outlaws']];
+const CAR_TYPE={kage:'hyper',overload:'hyper',zephyr:'hyper',volcano:'hyper',stratos:'hyper',bell:'hyper',vanta:'hyper',
+  noctis:'super',kern:'super',lumen:'super', hikari:'tuner',zenkai:'tuner',wisp:'tuner',passyunk:'tuner',needle:'tuner',
+  split:'muscle',vandal:'muscle', sovereign:'gt',granfour:'gt',brigline:'gt',pulse2:'gt', dune:'offroad',richmond:'offroad'};
+const carType=c=>c.outlaw?'outlaw':(CAR_TYPE[c.id]||'super');
+const CAR_ORDER=CAR_TYPES.flatMap(([t])=>CARS.map((c,i)=>i).filter(i=>carType(CARS[i])===t));
+const carStep=(p,dir)=>{ const k=CAR_ORDER.indexOf(p); return CAR_ORDER[(k+dir+CAR_ORDER.length)%CAR_ORDER.length]; };
 function maxRaceFieldSize(){ return CARS.filter(c=>!c.outlaw).length; }
 function clampFieldSize(n,max){ const cap=Math.max(4,max), v=Math.round(n), base=Number.isFinite(v)&&v>0?v:7; return Math.max(4,Math.min(cap,base)); }
 function fieldSizeChoices(max){ const cap=Math.max(4,max), out=FIELD_SIZE_PRESETS.filter(v=>v<=cap); if(!out.length||out[out.length-1]!==cap) out.push(cap); return out; }
@@ -7704,6 +7713,7 @@ if(DEV){ window.AHDEV.trackReport=(id,o)=>{ const e=EVENTS.find(x=>x.id===id); i
   window.AHDEV.tp=(s,x,v,keepPack)=>{ if(!player) return null; const d0=player.dist; racers.forEach(r=>{ if(r!==player&&!keepPack) return; r.br=null; r.dist=r===player?s:s+(r.dist-d0); r.hy=undefined; if(r===player){ r.x=x||0; r.vx=0; if(v) r.v=v; } }); camSnap=true; return player.dist; };
   window.AHDEV.poseStep=r=>poseRacer(r,1/60);
   window.AHDEV.poseProbe=r=>{ poseRacer(r,0); const g=r.m.group, h=new THREE.Vector3(0,0,1).applyQuaternion(g.quaternion); const p=g.position.clone(); if(EV.airtime&&r.hy!==undefined) p.y=r.hy; return {p,h}; };
+  window.AHDEV.loopCam=st=>{ LOOPCAM.force=st; LOOPCAM.loop=-1; return LOOPCAM; };
   window.AHDEV.lcS=()=>EV&&EV.lcS; window.AHDEV.racers=()=>racers;
   window.AHDEV.player=()=>player; window.AHDEV.raceT=()=>raceT; window.AHDEV.skipCount=()=>{ countdown=0; $('#hMsg').textContent=''; racers.forEach(r=>r.startDelay=0); }; }
 const CULL_V=new THREE.Vector3(); let DRAW_RACING=false;
@@ -8787,6 +8797,12 @@ const TEMPER={apex:{temper:.55,bank:.35,defend:.45},wall:{temper:.7,bank:.45,def
   bruiser:{temper:1,bank:.15,defend:.6},closer:{temper:.6,bank:.6,defend:.5},wild:{temper:1.1,bank:.05,defend:.2},
   grudge:{temper:1,bank:.2,defend:.3},hunter:{temper:.85,bank:.3,defend:.4},rabbit:{temper:.4,bank:.5,defend:.7},weaver:{temper:.6,bank:.3,defend:.3}};
 const MOOD_TAG={lead:'LEAD',defend:'DEFEND',attack:'ATTACK',push:'PUSH',allin:'ALL-IN'};
+// race board: at most 10 rows. The leaders, then you if you are further back; in a knockout the cars about to go stay on
+// the board too. Rival mood tags (ATTACK, PUSH...) are a dev read-out, off by default: Settings -> Rival tags.
+const TAGS_ON=()=>SAVE.tags==='on';
+function boardRows(st,nOn){ const n=st.length, MAX=10; if(n<=MAX) return st.map((r,i)=>i); const keep=new Set(), me=st.findIndex(r=>r.isP);
+  if(EV.knockout&&KO&&!KO.done){ const ko=koMod('double')?2:1; for(let i=Math.max(0,nOn-ko);i<nOn;i++) keep.add(i); }
+  if(me>=0) keep.add(me); for(let i=0;keep.size<MAX&&i<n;i++) keep.add(i); return [...keep].sort((a,b)=>a-b); }
 function updateMood(r,order){
   const T=TEMPER[r.def.id]||TEMPER.apex, n=EV.knockout?order.filter(o=>!o.out).length:order.length, place=order.indexOf(r)+1, vRef=Math.max(r.v,30);
   const ahead=order[place-2]||null, behind=order[place]||null;
@@ -9470,6 +9486,10 @@ function setupAttract(def){
 }
 let STUDIO_WARM=false;
 function enter(){ initAudio(); closeSheet(); closeSettings(); sfx.shutter(); flash(1,'peel'); mode='select'; show('select'); if(!STUDIO_WARM){ STUDIO_WARM=true; try{ renderer.compile(studio,cam); }catch(err){} } renderPage(0); } // A3: studio shaders compile once, behind the flash
+function renderCarTypes(t){ const el=$('#sTypes'); if(!el) return;
+  if(!el.childElementCount){ el.innerHTML=CAR_TYPES.filter(([k])=>CARS.some(c=>carType(c)===k)).map(([k,n])=>`<button type="button" role="tab" data-t="${k}">${n} <em>${CARS.filter(c=>carType(c)===k).length}</em></button>`).join('');
+    el.querySelectorAll('button').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const i=CAR_ORDER.find(i=>carType(CARS[i])===b.dataset.t); if(i===undefined||i===page) return; const dir=CAR_ORDER.indexOf(i)>CAR_ORDER.indexOf(page)?1:-1; page=i; sfx.page(); flash(.95,false); renderPage(dir); if(sheetOpen) renderSheet(dir); }); }
+  el.querySelectorAll('button').forEach(b=>{ const on=b.dataset.t===t; b.classList.toggle('on',on); b.setAttribute('aria-selected',on); if(on) b.scrollIntoView({block:'nearest',inline:'center'}); }); }
 function renderPage(dir){
   const d=CARS[page], h=hist(d.id);
   setWorld(d.world);
@@ -9485,7 +9505,7 @@ function renderPage(dir){
   const bars=[['Speed',d.top/94],['Grip',d.grip/36],['Boost',d.nitro/1.3]];
   $('#sStats').innerHTML=bars.map(b=>`<div>${b[0]}<i><b style="width:${Math.min(100,Math.round(b[1]*100))}%"></b></i></div>`).join('');
   $('#sCap').textContent=d.caption; $('#sRival').textContent=d.rival;
-  $('#sPg').innerHTML=`${String(page+1).padStart(2,'0')} <em>/ ${String(CARS.length).padStart(2,'0')}</em>`;
+  { const t=carType(d), inT=CAR_ORDER.filter(i=>carType(CARS[i])===t); $('#sPg').innerHTML=`${String(inT.indexOf(page)+1).padStart(2,'0')} <em>/ ${String(inT.length).padStart(2,'0')}</em>`; renderCarTypes(t); }
   const w=$('#sWin');
   if(h.wins>0){ w.style.display=''; w.innerHTML=`Won ${h.wins>1?h.wins+' times':''}<small>${esc(h.winAt||'Harbor Line')}</small>`; w.style.top=portrait?'52%':'44%'; w.style.right='26px'; w.style.left=''; w.style.transform='rotate(9deg)'; }
   else w.style.display='none';
@@ -9543,7 +9563,7 @@ function renderShowcase(dir){
 }
 function openShowcase(){ initAudio(); closeSheet(); closeSettings(); sfx.shutter(); flash(.85); mode='showcase'; show('showcase'); renderShowcase(0); const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=true; }
 function backFromShowcase(){ const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; mode='select'; show('select'); flash(.85); sfx.shutter(); renderPage(0); camSnap=true; }
-function turnShowcase(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75,false); renderShowcase(dir); if(sheetOpen) renderSheet(dir); }
+function turnShowcase(dir){ page=carStep(page,dir); sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.75,false); renderShowcase(dir); if(sheetOpen) renderSheet(dir); }
 let sheetOpen=false;
 function renderSheet(dir){
   const d=CARS[page], sh=SHEETS[d.id]||{};
@@ -9561,7 +9581,7 @@ function closeSheet(){ sheetOpen=false; $('#sheet').classList.remove('open'); $(
 let settingsOpen=false;
 function openSettings(){ closeSheet(); settingsOpen=true; const sh=$('#settingsSheet'),bd=$('#settingsBackdrop'); sh.classList.add('open'); bd.classList.add('open'); sh.setAttribute('aria-hidden','false'); bd.setAttribute('aria-hidden','false'); document.body.classList.add('settings-open'); sfx.page(); }
 function closeSettings(){ if(!settingsOpen) return; settingsOpen=false; const sh=$('#settingsSheet'),bd=$('#settingsBackdrop'); sh.classList.remove('open'); bd.classList.remove('open'); sh.setAttribute('aria-hidden','true'); bd.setAttribute('aria-hidden','true'); document.body.classList.remove('settings-open'); }
-function turn(dir){ page=(page+dir+CARS.length)%CARS.length; sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95,false); renderPage(dir); if(sheetOpen) renderSheet(dir); }
+function turn(dir){ page=carStep(page,dir); sfx.page(); setTimeout(()=>sfx.shutter(),60); flash(.95,false); renderPage(dir); if(sheetOpen) renderSheet(dir); }
 function openEvents(){ initAudio(); closeSheet(); closeSettings(); sel=page; const oc=ensureShowcaseOrbit(); if(oc) oc.enabled=false; sfx.shutter(); flash(1,'peel'); mode='events'; show('events'); renderEvent(0,true); }
 function eventPageHtml(){ return `${EVI+1} <em>/ ${EVENTS.length}</em>`; }
 function renderEventRoster(){
@@ -9650,6 +9670,10 @@ if($('#vox')){ if(typeof speechSynthesis==='undefined') $('#vox').style.display=
 $('#glow').onclick=()=>{ glowOn=!glowOn; $('#glow').textContent=glowOn?'Glow on':'Glow off'; };
 if($('#look')){ const lookLabel=()=>{ $('#look').textContent='Look: '+(CLEAR?'Clear':'Cinematic'); document.body.classList.toggle('clear',CLEAR); };
   lookLabel(); $('#look').onclick=()=>{ CLEAR=!CLEAR; SAVE.look=CLEAR?'clear':'cine'; persist(); lookLabel(); }; }
+if($('#rain')){ const rainLabel=()=>{ $('#rain').textContent='Rain '+(SAVE.rain==='off'?'off':'on'); };
+  rainLabel(); $('#rain').onclick=()=>{ SAVE.rain=SAVE.rain==='off'?'on':'off'; persist(); rainLabel(); if(SAVE.rain==='off'&&LOOK.wet) setWeather(false); }; }
+if($('#tags')){ const tagsLabel=()=>{ $('#tags').textContent='Rival tags '+(TAGS_ON()?'on':'off'); };
+  tagsLabel(); $('#tags').onclick=()=>{ SAVE.tags=TAGS_ON()?'off':'on'; persist(); tagsLabel(); }; }
 if($('#diff')){ const diffLabel=()=>{ $('#diff').textContent='Rivals: '+DIFF[diffId()].name; }; // ROOKIE / STREET / OUTLAW pace bands (see DIFF)
   diffLabel(); $('#diff').onclick=()=>{ SAVE.diff=DIFF_ORDER[(DIFF_ORDER.indexOf(diffId())+1)%DIFF_ORDER.length]; persist(); diffLabel(); }; }
 $('#tap').onclick=()=>{ if(bootReady) enter(); };
@@ -9737,14 +9761,14 @@ function startLoading(){
   closeSettings(); initAudio(); sfx.shutter(); flash(1);
   if(mode!=='events') { const rs=resolveEventForStart(EVENTS[EVI],koMapI); if(rs.bindKo) bindKoTrack(rs.koMap); else setEvent(EVI); setupAttract(CARS[sel]); }
   mode='loading'; modeT=0; show('loading');
-  setWeather(EV.id!=='tunnel'&&Math.random()<.45);
+  setWeather(SAVE.rain!=='off'&&EV.id!=='tunnel'&&Math.random()<.45); // Settings: Rain off keeps every race dry
   const mate=tagPick&&!EV.knockout?CARS.find(c=>c.id===tagPick.partner):null;
   const gridNote=EV.knockout?'Twelve cars.':`${raceGridSize()} cars.`;
   $('#ldwhere').textContent=EV.name+(mate?' · Tag team':''); $('#ldsub').textContent=`${EV.load} ${gridNote} You're in the ${CARS[sel].name}${mate?`, tagging with the ${mate.name}`:''}.${LOOK.wet?' Rain tonight, the roads are wet.':''}`;
 }
 function endGhost(){ if(ghostCar){ ghostCar.scene.remove(ghostCar.group); ghostCar=null; } }
 function startRace(){
-  clearRacers(); resetSkids();
+  clearRacers(); resetSkids(); LOOPCAM.loop=-1; LOOPCAM.w=0; LOOPCAM.hud=null; $('#hud').classList.remove('lcam');
   const me=CARS[sel], R_=id=>RIVALS.find(r=>r.id===id), taken=[me.id]; RIVAL_BOSS=Math.random()<.15; TAG=null;
   if(tagPick&&!EV.knockout) tagGrid(me);
   else if(EV.knockout){ // every car in the archive on one grid; the six personas spread across the eleven rivals
@@ -9819,7 +9843,7 @@ const KO_MODS=[
  {id:'shock',name:'Shock Season',txt:'Every pickup is a Shockwave this lap.',pu:'shock'},
  {id:'sling',name:'Slingshot Alley',txt:'Every pickup is a Slingshot this lap.',pu:'sling'},
  {id:'ghost',name:'Ghost Lap',txt:'No contact. Cars pass straight through each other.'},
- {id:'rain',name:'Downpour',txt:'The sky opens up. Everyone loses grip.',on(){ if(!LOOK.wet) setWeather(true); KO.gripMul=.86; },off(){ KO.gripMul=1; }},
+ {id:'rain',name:'Downpour',txt:'The sky opens up. Everyone loses grip.',on(){ if(!LOOK.wet&&SAVE.rain!=='off') setWeather(true); KO.gripMul=.86; },off(){ KO.gripMul=1; }},
  {id:'jackpot',name:'Jackpot Lap',txt:'Every pickup is a jackpot.'},
  {id:'turbo',name:'Turbo Round',txt:'Everyone gets 12% more top speed.',on(){ KO.topMul=1.12; },off(){ KO.topMul=1; }},
  {id:'draft',name:'Draft Frenzy',txt:'Slipstreams reach twice as far and pull twice as hard.'}
@@ -10008,6 +10032,36 @@ function chaseCam(dt,r,inp){
   const h=78+26*(1-Math.exp(-r.v/75))+boost*8; // widens with speed, then levels off instead of fish-eyeing past 300 mph
   cam.fov=lerp(cam.fov,clamp(hfovToV(h),52,98),1-Math.exp(-dt*4)); cam.updateProjectionMatrix();
 }
+/* loop cams: while you run a vertical loop (the Halo, the Ring) the chase camera hands over to an action camera, a
+   different style each time (never the same one twice in a row, across races too):
+     orbit   - a fixed camera off to the side of the loop, the car carving the whole circle in one frame
+     onboard - a roof cam that rolls with the road, so the city turns over the top of the screen
+     pivot   - the camera hangs in the middle of the loop and turns to keep the car in frame as it goes round
+   It cuts in at the loop's foot and eases back into the chase cam after the exit. */
+const LOOPCAM={style:null,loop:-1,w:0,last:null,pos:new THREE.Vector3(),look:new THREE.Vector3(),up:new THREE.Vector3()}, LC_STYLES=['orbit','onboard','pivot'];
+const lcF=mkF(), lcV=new THREE.Vector3(), lcV2=new THREE.Vector3();
+function loopInfo(i){ const T=TR; T._lcam=T._lcam||[]; if(T._lcam[i]) return T._lcam[i]; const z=T.loops[i];
+  let top=z[0]; for(let s=z[0];s<z[1];s+=T.ds) if(frame(s,lcF).p.y>frame(top,F2).p.y) top=s;
+  frame(top,lcF); const h=lcF.p.y-frame(z[0],F2).p.y, R=h/2, c=lcF.p.clone().addScaledVector(lcF.u,R); frame(z[0],lcF); const side=lcF.r.clone().setY(0).normalize(), fwd=lcF.t.clone().setY(0).normalize();
+  frame(z[1],F2); const drift=F2.p.clone().sub(lcF.p).dot(side); // which way the exit lane moves over
+  return T._lcam[i]={z,R,c,side,fwd,drift}; }
+function loopCam(dt,r){
+  const T=TR; if(!T.loops||r.br) { LOOPCAM.w=Math.max(0,LOOPCAM.w-dt*2.2); return blendLoopCam(); }
+  const s=trackS(r.dist); let at=-1; T.loops.forEach((z,i)=>{ if(s>z[0]-18&&s<z[1]+6) at=i; });
+  if(at>=0&&LOOPCAM.loop!==at){ const pool=LC_STYLES.filter(x=>x!==LOOPCAM.last); LOOPCAM.style=LOOPCAM.force||pool[(Math.random()*pool.length)|0]; LOOPCAM.last=LOOPCAM.style; LOOPCAM.loop=at; LOOPCAM.w=1; LOOPCAM.t=0; }
+  if(at<0){ if(LOOPCAM.loop>=0&&!(s>T.loops[LOOPCAM.loop][0]-18&&s<T.loops[LOOPCAM.loop][1]+6)) LOOPCAM.loop=-1; LOOPCAM.w=Math.max(0,LOOPCAM.w-dt*1.8); if(LOOPCAM.w<=0) return; return blendLoopCam(); }
+  LOOPCAM.t+=dt; const L=loopInfo(at), pos=r.m.group.position; rFrame(r,lcF);
+  if(LOOPCAM.style==='orbit'){ const sd=L.drift>0?-1:1; LOOPCAM.pos.copy(L.c).addScaledVector(L.side,sd*L.R*1.75).addScaledVector(L.fwd,-L.R*.2); LOOPCAM.pos.y=L.c.y-L.R*.45;
+    LOOPCAM.look.copy(pos).lerp(L.c,.2); LOOPCAM.up.copy(UP); LOOPCAM.fov=46; }
+  else if(LOOPCAM.style==='onboard'){ headV.copy(lcF.t); LOOPCAM.pos.copy(pos).addScaledVector(lcF.u,1.25).addScaledVector(headV,.2);
+    rFrameAt(r,r.dist+26,F2); LOOPCAM.look.copy(F2.p).addScaledVector(F2.r,r.x).addScaledVector(F2.u,1.2); LOOPCAM.up.copy(lcF.u); LOOPCAM.fov=hfovToV(112); }
+  else { const sd=L.drift>0?1:-1; LOOPCAM.pos.copy(L.c).addScaledVector(L.side,sd*L.R*.9+Math.sin(LOOPCAM.t*.9)*1.5).addScaledVector(L.fwd,-L.R*.1);
+    LOOPCAM.look.copy(pos).addScaledVector(lcF.u,.6); lcV.subVectors(L.c,pos).normalize(); LOOPCAM.up.copy(UP).lerp(lcV,.35).normalize(); LOOPCAM.fov=64; }
+  return blendLoopCam(); }
+function blendLoopCam(){ const w=LOOPCAM.w, on=w>.5; if(LOOPCAM.hud!==on){ LOOPCAM.hud=on; $('#hud').classList.toggle('lcam',on); } if(w<=0) return; const e=w*w*(3-2*w);
+  lcV2.copy(camLook); lcV.copy(cam.up);
+  cam.position.lerp(LOOPCAM.pos,e); lcV2.lerp(LOOPCAM.look,e); lcV.lerp(LOOPCAM.up,e).normalize(); cam.up.copy(lcV); cam.lookAt(lcV2);
+  cam.fov=lerp(cam.fov,LOOPCAM.fov||cam.fov,e); cam.updateProjectionMatrix(); }
 /* countdown reveal for boards that ask for it (EV.introCrane): the crane shot from the blender-skills set, adapted to a
    road tube. Starts low in front of the car looking back at it, then rises and swings round into the chase position
    by the time the lights go green, easing out so the hand-off to chaseCam is seamless. */
@@ -10127,6 +10181,7 @@ function loop(now){
         else ghostCar.group.visible=false; }
       const focus=EV.knockout&&player.out?(koLeader()||player):player;
       updateFx(sdt,focus); chaseCam(dt,focus,player.out?null:inp);
+      if(TR.loops&&focus===player&&countdown<=0) loopCam(dt,player); else if(LOOPCAM.w){ LOOPCAM.w=0; blendLoopCam(); }
       if(countdown>0&&EV.introCrane&&focus===player) craneIntro(player);
       if(EV.knockout&&KO&&KO.bannerT>0){ KO.bannerT-=uiDt; if(KO.bannerT<=0) $('#hRound').className='round'; }
       const place=standings().indexOf(player)+1, nOn=EV.knockout?koActive().length:racers.length;
@@ -10140,7 +10195,7 @@ function loop(now){
           st.map((r,i)=>`<li class="${r.isP?'me':''}"><b>${i+1}</b><i class="tm" style="background:${TEAMS[r.team].color}"></i>${r.isP?'YOU':r===m?'PARTNER':esc(r.def.tag)}</li>`).join('');
         const el=$('#hTag'); el.className='tagbox on'+(hot&&ready&&countdown<=0?' hot':'');
         el.innerHTML=m?`<span>PARTNER · ${esc(m.def.name)}</span><b>${m.finished?'finished':(gap>=0?'+':'−')+Math.abs(Math.round(gap))+' m'}</b><em>${m.finished?'anchor leg':!ready?`tag in ${Math.ceil(TAG.cd-raceT)}s`:hot?'HOT TAG · T':'cold tag · T'}</em>`:''; }
-      else if(boardT<=0){ boardT=.25; tapeWatchStandings(); const st=standings(); $('#hBoard').innerHTML=st.map((r,i)=>`<li class="${r.isP?'me':''}${r.out?' out':''}"><b>${i+1}</b>${r.isP?'YOU':esc(r.def.tag)}${r.out?'':(EV.knockout&&KO&&!KO.done&&countdown<=0&&i>=nOn-(koMod('double')?2:1)?'<em class="m-ko">KO</em>':(!r.isP&&r.mood&&countdown<=0?`<em class="m-${r.mood.mood}">${MOOD_TAG[r.mood.mood]}</em>`:''))}</li>`).join(''); }
+      else if(boardT<=0){ boardT=.25; tapeWatchStandings(); const st=standings(), rows=boardRows(st,nOn); $('#hBoard').innerHTML=rows.map(i=>{ const r=st[i]; return `<li class="${r.isP?'me':''}${r.out?' out':''}"><b>${i+1}</b>${r.isP?'YOU':esc(r.def.tag)}${r.out?'':(EV.knockout&&KO&&!KO.done&&countdown<=0&&i>=nOn-(koMod('double')?2:1)?'<em class="m-ko">KO</em>':(TAGS_ON()&&!r.isP&&r.mood&&countdown<=0?`<em class="m-${r.mood.mood}">${MOOD_TAG[r.mood.mood]}</em>`:''))}</li>`; }).join(''); }
       if(EV.knockout&&KO){
         if(KO.done) setT($('#hLap'),'Tournament over');
         else if(koUsesSectors()) setT($('#hLap'),`Round ${KO.round} / Sector ${KO.round} · ${nOn} left`);

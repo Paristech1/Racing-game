@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,300..900;1,62..125,300..900&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/afterhours.css?v=45">
+<link rel="stylesheet" href="css/afterhours.css?v=46">
 </head>
 <body>
 <canvas id="gl"></canvas>
@@ -37,6 +37,8 @@
     <div class="settings-list" role="group" aria-label="Game settings">
       <button type="button" id="glow" class="settings-row">Glow on</button>
       <button type="button" id="look" class="settings-row">Look: Clear</button>
+      <button type="button" id="rain" class="settings-row">Rain on</button>
+      <button type="button" id="tags" class="settings-row" title="Show what each rival is doing (attack, defend...) on the race board">Rival tags off</button>
       <button type="button" id="diff" class="settings-row" title="How fast the rivals drive">Rivals: Street</button>
       <button type="button" id="mus" class="settings-row">Music on</button>
       <button type="button" id="track" class="settings-row">Track: Auto</button>
@@ -60,6 +62,7 @@
   <div class="stamp red" id="sWin" style="display:none"></div>
   <div class="hand" id="sNote"></div>
   <div class="foot" id="sFoot">
+    <div class="ctypes" id="sTypes" role="tablist" aria-label="Car types"></div>
     <div class="specs" id="sSpecs"></div>
     <div class="stats" id="sStats"></div>
     <div class="rule"></div>
@@ -166,7 +169,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/meshopt_decoder.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="js/afterhours.js?v=139"></script>
+<script src="js/afterhours.js?v=140"></script>
 <script type="module" src="js/ui-fx.js?v=2"></script>
 </body>
 </html>

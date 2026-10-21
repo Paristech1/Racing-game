@@ -6179,6 +6179,10 @@ function lcBranch(tr,spec){ const f=mkF(), W=tr.W, w=spec.w, PEEL=spec.peel||90,
   const M=Q.map((q,i)=>{ if(i===0) return t0.clone(); if(i===Q.length-1) return t1.clone(); return Q[i+1].clone().sub(Q[i-1]).normalize(); });
   for(let i=0;i<Q.length-1;i++){ const d=Q[i].distanceTo(Q[i+1]); H(Q[i],Q[i+1],M[i].clone().multiplyScalar(d*1.1),M[i+1].clone().multiplyScalar(d*1.1),Math.max(4,Math.round(d))); }
   P.pop(); for(let u=0;u<=PEEL;u+=1) P.push(at(s1-PEEL+u,off+side*SEP*(1-sm(u/PEEL))));
+  // resample in plan only: the ramp points carry the road's height and the spline between them sits at 0, so resampling
+  // in 3D bunched ~1 point per metre of that height step into a few cm of ground at each ramp end (the car stalled,
+  // then its heading snapped). Heights are put back below.
+  P.forEach(p=>{ p.y=0; });
   const U=P.map(()=>UP.clone()), R=lcResample(P,U,true), N=R.pts.length;
   // heights: lerp the road's height at the two ends, then the relative profile; the ends (peel and join) stay on the road
   frame(s0,f,tr); const ya=f.p.y; frame(s1,f,tr); const yb=f.p.y, Lp=PEEL, Lb=(N-1)*R.L/(N-1);
@@ -8185,7 +8189,7 @@ if(DEV) window.AHDEV.sim=(id,nLaps,opts)=>{
     mode='race'; raceT=0; countdown=0;
     const h=opts.dt||1/120, maxT=opts.maxT||(laps()*TR.L/25+90), L=TR.L, touch=new Set(), ttouch=new Set();
     let capSteps=0, brkSteps=0, contacts=0, trafficHits=0, nan=0, vTop=0, step=0;
-    const wall0=racers.map(r=>r.hits), hitAt={}, fastAt={}, airAt={}, airLog=[];
+    const wall0=racers.map(r=>r.hits), hitAt={}, fastAt={}, airAt={}, airLog=[], jags=[];
     while(raceT<maxT&&!racers.every(r=>r.finished)){
       raceT+=h; ghostT+=h; step++;
       for(const r of racers) stepRacer(r,h,null);
@@ -8200,12 +8204,16 @@ if(DEV) window.AHDEV.sim=(id,nLaps,opts)=>{
       if(step%6===0){ worldFx(h*6); if(ev.update) try{ ev.update(h*6,cam.position); }catch(e){} }
       for(const r of racers){ if(r.aiWait) capSteps++; if(r.brk>.12) brkSteps++; }
       for(const r of racers){ if(!Number.isFinite(r.v+r.x+r.dist)){ nan++; r.v=0; r.x=0; r.vx=0; } if(r.v>vTop) vTop=r.v; }
+      if(opts.jag){ racers.forEach((r,i)=>{ const sl=((r.dist%L)+L)%L; if(!(sl>opts.jag[0]&&sl<opts.jag[1])){ r._jp=null; return; } rFrame(r,F2); const P=F2.p.clone().addScaledVector(F2.r,r.x); if(r.hy!==undefined) P.y=r.hy; const H=F2.t.clone();
+          if(r._jp){ const d=P.distanceTo(r._jp), want=r.v*h, lat=Math.abs(P.clone().sub(r._jp).dot(F2.r)), dy=P.y-r._jp.y, dh=H.angleTo(r._jh);
+            if(d<want*.6||d>want*1.6+.1||lat>.25||Math.abs(dy-(r._jdy||0))>.08||dh>.05) jags.length<120&&jags.push({who:i,s:Math.round(sl),br:r.br?r.br.id:0,x:+r.x.toFixed(2),d:+d.toFixed(2),want:+want.toFixed(2),lat:+lat.toFixed(2),dy:+dy.toFixed(3),ddy:+(dy-(r._jdy||0)).toFixed(3),dh:+dh.toFixed(3)}); r._jdy=dy; }
+          r._jp=P; r._jh=H; }); }
       if(opts.where){ racers.forEach((r,i)=>{ if(r.hits>(r._h0===undefined?(r._h0=r.hits):r._h0)){ r._h0=r.hits; const b=Math.floor(((r.dist%L)+L)%L/50)*50; hitAt[b]=(hitAt[b]||0)+1; } if(r.airT>0&&!r._inAir){ const sl=((r.dist%L)+L)%L, b=Math.floor(sl/25)*25; airAt[b]=(airAt[b]||0)+1; if(opts.airLog&&sl>opts.airLog[0]&&sl<opts.airLog[1]&&airLog.length<80) airLog.push([Math.round(sl),+r.x.toFixed(2),r.br?r.br.id||1:0,Math.round(r.v),+r.vy.toFixed(2),+(r.prevVg||0).toFixed(2)]); } r._inAir=r.airT>0; if(r.v>150){ const b=Math.floor(((r.dist%L)+L)%L/100)*100; fastAt[b]=Math.max(fastAt[b]||0,Math.round(r.v*2.237)); } }); }
     }
     const order=racers.slice().sort((a,b)=>(a.finished?a.finishT:1e9-a.dist)-(b.finished?b.finishT:1e9-b.dist));
     const f2=v=>Math.round(v*100)/100;
     out={event:id,laps:laps(),L:Math.round(L),n,diff:typeof diffId==='function'?diffId():'n/a',simT:f2(raceT),ms:Math.round(performance.now()-t0),steps:step,
-      finished:racers.filter(r=>r.finished).length,hitAt:opts.where?hitAt:undefined,fastAt:opts.where?fastAt:undefined,airAt:opts.where?airAt:undefined,airLog:opts.airLog?airLog:undefined,contacts,trafficHits,wallHits:racers.reduce((s,r,i)=>s+r.hits-wall0[i],0),waitPct:Math.round(capSteps/Math.max(1,step*n)*1000)/10,brakePct:Math.round(brkSteps/Math.max(1,step*n)*1000)/10,nan,topMph:Math.round(vTop*2.237),
+      finished:racers.filter(r=>r.finished).length,hitAt:opts.where?hitAt:undefined,fastAt:opts.where?fastAt:undefined,airAt:opts.where?airAt:undefined,airLog:opts.airLog?airLog:undefined,jags:opts.jag?jags:undefined,contacts,trafficHits,wallHits:racers.reduce((s,r,i)=>s+r.hits-wall0[i],0),waitPct:Math.round(capSteps/Math.max(1,step*n)*1000)/10,brakePct:Math.round(brkSteps/Math.max(1,step*n)*1000)/10,nan,topMph:Math.round(vTop*2.237),
       order:order.map((r,i)=>({p:i+1,who:r.isP?'PLAYER':r.def.tag,car:r.def.car||r.def.name,t:r.finished?f2(r.finishT):null,laps:r.laps.map(f2),top:Math.round(r.top*2.237),walls:r.hits,cls:r.cls?f2(r.cls):undefined}))};
     ev.laps=laps0;
   }catch(e){ out={error:String(e&&e.stack||e)}; }

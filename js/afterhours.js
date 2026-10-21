@@ -6116,7 +6116,7 @@ function buildCalder(){
    lane. Every point carries an up vector; inside a loop it rolls with the road. Shortcuts are open fillet paths whose
    ends sit on the edge of the main road at the fork and the merge. */
 const LC_CORNERS=[[720,20,42],[720,-300,46],[2140,-300,88],[2140,-780,104],[1760,-660,180],[1480,-1000,150],[1180,-740,150],[920,-1040,120],[880,-1640,160],[1010,-2050,160],[960,-2500,118],[620,-2500,90],[450,-2640,90],[70,-2640,90],[-100,-2500,90],[-960,-2500,60],[-1450,-2532,62],[-1530,-2432,62],[-1550,-2192,60],[-1540,-2042,60],[-1470,-1932,55],[-1330,-1950,50],[-1225,-1840,54],[-1105,-1945,54],[-985,-1835,54],[-860,-1925,56],[-660,-1720,160],[-720,-1180,220],[-470,-620,150],[-300,-470,70],[-80,-340,58],[-80,20,44]];
-const LC_KEYS=[[0,20,0],[700,20,0],[720,-280,0,10],[770,-300,0,24],[1070,-300,30,45],[1380,-300,31.5,60],[1690,-300,30,45],[1990,-300,0,24],[2140,-500,0],[2120,-780,0,10],[2040,-760,0,24],[1785,-672,-24,45],[1480,-1000,-29],[1180,-740,-28.5],[1010,-930,-28,30],[905,-1200,0,30],[890,-1330,2,10],[880,-1500,2,10],[885,-1700,2,25],[940,-1900,12,25],[1000,-2080,13,4],[1008,-2110,15,4],[1005,-2140,13,25],[985,-2340,3,20],[960,-2500,0],[-960,-2500,0,10],[-1000,-2500,3],[-1150,-2512,6],[-1450,-2532,13],[-1530,-2432,14],[-1550,-2192,13],[-1540,-2042,12],[-1470,-1932,8],[-1330,-1950,-1],[-1225,-1840,-3],[-1105,-1945,-5],[-985,-1835,-6],[-860,-1925,-7],[-660,-1720,-4],[-720,-1180,-2],[-470,-620,1],[-300,-470,6],[-180,-400,3],[-80,-340,1],[-80,20,0]];
+const LC_KEYS=[[0,20,0],[700,20,0],[720,-280,0,40],[770,-300,0,55],[1070,-300,30,45],[1380,-300,31.5,60],[1690,-300,30,45],[1990,-300,0,55],[2140,-500,0,30],[2120,-780,0,40],[2040,-760,0,55],[1785,-672,-24,55],[1480,-1000,-29],[1180,-740,-28.5],[1010,-930,-28,55],[905,-1200,0,55],[890,-1330,2,30],[880,-1500,2,10],[885,-1700,2,25],[940,-1900,12,25],[1000,-2080,13,4],[1008,-2110,15,4],[1005,-2140,13,25],[985,-2340,3,20],[960,-2500,0],[-960,-2500,0,40],[-1000,-2500,3,40],[-1150,-2512,6],[-1450,-2532,13],[-1530,-2432,14],[-1550,-2192,13],[-1540,-2042,12],[-1470,-1932,8],[-1330,-1950,-1],[-1225,-1840,-3],[-1105,-1945,-5],[-985,-1835,-6],[-860,-1925,-7],[-660,-1720,-4],[-720,-1180,-2],[-470,-620,1],[-300,-470,6],[-180,-400,3],[-80,-340,1],[-80,20,0]];
 const LC_LOOPS=[{name:'THE HALO',at:[886,-1420],len:260,drift:17,side:1},{name:'THE RING',at:[-560,-2500],len:300,drift:17,side:1}];
 // grip, AI take-rate and the toasts per shortcut
 // shortcuts: fork and merge points on the lap, which side they leave from, anchors for the middle, a height profile over the
@@ -6124,8 +6124,8 @@ const LC_LOOPS=[{name:'THE HALO',at:[886,-1420],len:260,drift:17,side:1},{name:'
 const LC_BRANCHES=[
   {id:1,name:'FRANKLIN SQUARE',w:4.5,side:-1,start:[400,20],end:[720,-250],anchors:[[602,-16]],keys:[[0,0],[1,0]],grip:.84,aiP:.35,msgIn:'Franklin Square. Park paths, less grip.'},
   {id:2,name:'SERVICE BORE',w:4,side:1,start:[1650,-790],end:[900,-1290],anchors:[[1470,-1050],[1290,-1078],[1110,-1088],[1010,-1085]],keys:[[0,0],[0.2,-9],[0.8,-9],[1,0]],grip:.88,aiP:.3,msgIn:'Service Bore. Narrow, dark and wet.'},
-  {id:3,name:'EXPRESS LANES',w:5,side:-1,start:[700,-2500],end:[-330,-2500],anchors:[[230,-2485]],keys:[[0,0],[0.15,-6.5],[0.85,-6.5],[1,0]],grip:1,aiP:.6,msgIn:'Express lanes. No traffic, no gems. Cameras.'},
-  {id:4,name:'FORBIDDEN DRIVE',w:4,side:1,start:[-1312,-1930],end:[-700,-1480],anchors:[[-1175,-1795],[-1060,-1768],[-940,-1762],[-845,-1752]],keys:[[0,0],[0.2,-9],[0.47,-9.2],[0.5,-6.8],[0.53,-9.3],[0.8,-9.5],[1,0]],peel:80,grip:.8,aiP:.3,msgIn:'Forbidden Drive. Gravel.'}];
+  {id:3,name:'EXPRESS LANES',w:5,side:-1,start:[700,-2500],end:[-330,-2500],anchors:[[230,-2485]],keys:[[0,0],[0.28,-6.5],[0.72,-6.5],[1,0]],grip:1,aiP:.6,msgIn:'Express lanes. No traffic, no gems. Cameras.'},
+  {id:4,name:'FORBIDDEN DRIVE',w:4,side:1,start:[-1312,-1930],end:[-700,-1480],anchors:[[-1175,-1795],[-1060,-1768],[-940,-1762],[-845,-1752]],keys:[[0,0],[0.26,-9],[0.74,-9.5],[1,0]],jump:[0.5,2.4,45],peel:80,grip:.8,aiP:.3,msgIn:'Forbidden Drive. Gravel.'}];
 function lcHeights(P,keys){ const n=P.length, near=(x,z)=>{ let bi=0,bd=1e18; for(let i=0;i<n;i++){ const d=(P[i].x-x)**2+(P[i].z-z)**2; if(d<bd){ bd=d; bi=i; } } return bi; };
   const K=keys.map(k=>[near(k[0],k[1]),k[2],k[3]||20]).sort((a,b)=>a[0]-b[0]), raw=new Float32Array(n), win=new Float32Array(n);
   for(let i=0;i<n;i++){ let j=K.findIndex(k=>k[0]>i); const a=j<=0?K[K.length-1]:K[j-1], b=j<0?K[0]:K[j];
@@ -6184,15 +6184,22 @@ function lcBranch(tr,spec){ const f=mkF(), W=tr.W, w=spec.w, PEEL=spec.peel||90,
   // then its heading snapped). Heights are put back below.
   P.forEach(p=>{ p.y=0; });
   const U=P.map(()=>UP.clone()), R=lcResample(P,U,true), N=R.pts.length;
-  // heights: lerp the road's height at the two ends, then the relative profile; the ends (peel and join) stay on the road
-  frame(s0,f,tr); const ya=f.p.y; frame(s1,f,tr); const yb=f.p.y, Lp=PEEL, Lb=(N-1)*R.L/(N-1);
-  const keys=spec.keys||[[0,0],[1,0]];
-  R.pts.forEach((p,i)=>{ const d=i*R.L/(N-1);
-    if(d<=Lp){ frame(s0+d,f,tr); p.y=f.p.y; return; } if(d>=R.L-Lp){ frame(s1-(R.L-d),f,tr); p.y=f.p.y; return; }
-    const u=(d-Lp)/Math.max(1,R.L-2*Lp); let k=keys.findIndex(q=>q[0]>=u); if(k<=0) k=1; const A=keys[k-1], B=keys[k];
-    const base=lerp(at(s0+Lp,0).y,at(s1-Lp,0).y,u); p.y=base+lerp(A[1],B[1],clamp((u-A[0])/Math.max(1e-6,B[0]-A[0]),0,1)); });
-  // smooth the profile so the drops ease in
-  for(let pass=0;pass<4;pass++){ const y=R.pts.map(p=>p.y); for(let i=Lp+2;i<N-Lp-2;i++){ R.pts[i].y=(y[i-2]+y[i-1]+y[i]+y[i+1]+y[i+2])/5; } }
+  // heights. The ends ride on the lap's surface for as long as the ramp lane still shares it (PIN m); between them the
+  // spec's relative profile (keys over the middle, eased key to key) over a base that runs from one end's height to the
+  // other's, then a wide low-pass so every change of grade is a long, even curve (the old 5-point smooth left 6-13 g
+  // kinks at 100 m/s where the drops started and ended). A jump (spec.jump: [u, height, run-up m]) is added after the
+  // smoothing so it keeps its lip.
+  const L_=R.L, ds_=L_/(N-1), PIN=Math.round(PEEL*.62), BL=130, keys=spec.keys||[[0,0],[1,0]], ys=new Float64Array(N), road=new Float64Array(N);
+  frame(s0+PIN,f,tr); const yA=f.p.y; frame(s1-PIN,f,tr); const yB=f.p.y;
+  R.pts.forEach((p,i)=>{ const d=i*ds_; frame(d<L_/2?s0+d:s1-(L_-d),f,tr); road[i]=f.p.y; // the lap's own height alongside
+    if(d<=PIN||d>=L_-PIN){ ys[i]=road[i]; return; }
+    const u=(d-PIN)/Math.max(1,L_-2*PIN); let k=keys.findIndex(q=>q[0]>=u); if(k<=0) k=1; const A=keys[k-1], B=keys[k], e=clamp((u-A[0])/Math.max(1e-6,B[0]-A[0]),0,1);
+    ys[i]=lerp(yA,yB,u)+lerp(A[1],B[1],e*e*(3-2*e)); });
+  const Wn=Math.max(2,Math.round(42/ds_)); for(let pass=0;pass<4;pass++){ const y0=Float64Array.from(ys); for(let i=0;i<N;i++){ let sum=0,c=0; for(let j=i-Wn;j<=i+Wn;j++){ sum+=y0[clamp(j,0,N-1)]; c++; } ys[i]=sum/c; } }
+  // hand over from the lap's surface to the profile with an eased blend (C1), so the ramp leaves and rejoins without a kink
+  for(let i=0;i<N;i++){ const d=i*ds_, e=Math.min(d,L_-d), t=clamp((e-PIN)/BL,0,1), w=t*t*(3-2*t); ys[i]=lerp(road[i],ys[i],w); }
+  if(spec.jump){ const [ju,jh,jr]=spec.jump, dj=PIN+ju*(L_-2*PIN); for(let i=0;i<N;i++){ const d=i*ds_, t=(d-(dj-jr))/jr; if(t>0&&t<=1) ys[i]+=jh*t*t*(3-2*t)*(1-.15*(1-t)); else if(d>dj&&d<dj+4) ys[i]+=jh*(1-(d-dj)/4); } }
+  R.pts.forEach((p,i)=>{ p.y=ys[i]; });
   const btr=makeTrack(R.pts,w,6,{open:true});
   return {id:spec.id,name:spec.name,tr:btr,s0,s1,side,off0:off,off1:off,split:side*2.9,ratio:(((s1-s0)%tr.L)+tr.L)%tr.L/btr.L,
     grip:spec.grip,aiP:spec.aiP,msgIn:spec.msgIn,w,peel:PEEL,sep:SEP}; }
@@ -7695,6 +7702,8 @@ if(DEV){ window.AHDEV.trackReport=(id,o)=>{ const e=EVENTS.find(x=>x.id===id); i
   // look-dev: start a race on an event straight from code, and teleport the player (and the pack round it) along the lap
   window.AHDEV.race=id=>{ const i=EVENTS.findIndex(e=>e.id===id); if(i<0) return false; EVI=i; mode='title'; startLoading(); startRace(); return true; };
   window.AHDEV.tp=(s,x,v,keepPack)=>{ if(!player) return null; const d0=player.dist; racers.forEach(r=>{ if(r!==player&&!keepPack) return; r.br=null; r.dist=r===player?s:s+(r.dist-d0); r.hy=undefined; if(r===player){ r.x=x||0; r.vx=0; if(v) r.v=v; } }); camSnap=true; return player.dist; };
+  window.AHDEV.poseStep=r=>poseRacer(r,1/60);
+  window.AHDEV.poseProbe=r=>{ poseRacer(r,0); const g=r.m.group, h=new THREE.Vector3(0,0,1).applyQuaternion(g.quaternion); const p=g.position.clone(); if(EV.airtime&&r.hy!==undefined) p.y=r.hy; return {p,h}; };
   window.AHDEV.lcS=()=>EV&&EV.lcS; window.AHDEV.racers=()=>racers;
   window.AHDEV.player=()=>player; window.AHDEV.raceT=()=>raceT; window.AHDEV.skipCount=()=>{ countdown=0; $('#hMsg').textContent=''; racers.forEach(r=>r.startDelay=0); }; }
 const CULL_V=new THREE.Vector3(); let DRAW_RACING=false;
@@ -9187,7 +9196,9 @@ function poseAt(g,dist,x,yaw,vx,r){
   if(vx) g.rotateZ(clamp(-vx*.006,-.06,.06));
 }
 function poseRacer(r,dt){
-  r.yaw=Math.atan2(r.vx,Math.max(r.v,4))+r.slip*.12*Math.sign(r.vx||r.steer);
+  // visual heading, eased: a wall scrape flips vx (and with it the sign of the slip term), which snapped the body and
+  // the chase camera up to ~25 degrees in one frame
+  { const yt=Math.atan2(r.vx,Math.max(r.v,4))+r.slip*.12*Math.sign(r.vx||r.steer); r.yaw=r.yaw===undefined||!(dt>0)?yt:lerp(r.yaw,yt,1-Math.exp(-dt*14)); }
   r.driftVis=lerp(r.driftVis||0,r.drift?r.driftAng*.62:0,1-Math.exp(-dt*(r.drift?10:6))); // the body swung past its path (camera keeps r.yaw)
   poseAt(r.m.group,r.dist,r.x,r.yaw+r.driftVis,r.vx,r);
   skidStep(r,BODIES[r.def.body||'wedge']);

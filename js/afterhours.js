@@ -6311,6 +6311,21 @@ function lcLoopSet(K,km,tr,i,o){ const S=K.S, W=tr.W, z=tr.loops[i], f=mkF(), pa
   }
   if(o.pylons){ K.at(z[0],0,0); const m=lcPlace(new THREE.Vector3(K.f.p.x,K.f.p.y,K.f.p.z),t0);
     kitInst(S,'RingPylon',km,[m]);
+    // frame 04: from the Boulevard the Ring has to read as a clean ring of orange light at the end of the straight. The
+    // girder's underside carries an ember light band (bright at both edges, softer down the middle, so it still reads as a
+    // structure when you are driving under it), the inner edge gets a broad white LED strip, and glow beads run round both
+    // rims so bloom draws the circle from a kilometer away.
+    const bandT=CT(canvasTex(64,8,(g,w,h)=>{ for(let x=0;x<w;x++){ const e=Math.abs(x/(w-1)*2-1), v=.1+.9*Math.pow(e,6); g.fillStyle=`rgba(255,255,255,${v})`; g.fillRect(x,0,1,h); } }));
+    const band=new THREE.MeshBasicMaterial({color:0xff7a2a,map:bandT,toneMapped:false,fog:false,side:THREE.DoubleSide}); // no fog: the landmark holds from the far end of the mile
+    ribbonU(tr,S,band,(k)=>inZ(k*tr.ds)?[-(W+1.2),-1.96,W+1.2,-1.96]:null,10);
+    const ledW=new THREE.MeshBasicMaterial({color:0xfff4e6,toneMapped:false,fog:false,side:THREE.DoubleSide});
+    [-1,1].forEach(sd=>ribbonU(tr,S,ledW,(k)=>inZ(k*tr.ds)?[sd*(W+1.27),-1.15,sd*(W+1.27),-.35]:null,20));
+    const beads=[], cols=[]; for(let s=z[0];s<z[1];s+=3.2){ frame(s,f,tr); [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(W+1.3)).addScaledVector(f.u,-1.5); beads.push(p.x,p.y,p.z); cols.push(1,.5,.18); }); }
+    const bg=new THREE.BufferGeometry(); bg.setAttribute('position',new THREE.Float32BufferAttribute(beads,3)); bg.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+    S.add(new THREE.Points(bg,new THREE.PointsMaterial({map:glowTex,size:4.2,vertexColors:true,fog:false,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})));
+    // a warm wash on the road under the Ring, and uplight on the pylon feet
+    const pool=new THREE.Mesh(new THREE.PlaneGeometry(90,160).rotateX(-Math.PI/2),fogAdd(new THREE.MeshBasicMaterial({map:poolTex,color:0x8a3a12,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false})));
+    pool.position.set(mid.x,mid.y+.08,mid.z); pool.rotation.y=Math.atan2(t0.x,t0.z); S.add(pool);
     frame(top,f,tr); K.sign(signCanvas('THE RING',{bg:'#06070a',color:'#ffb070',size:72,glow:22}),30,4,f.p.x,f.p.y+21,f.p.z,Math.atan2(t0.x,t0.z)+Math.PI);
   }
   return {top,update:T=>{ ledA.map.offset.y=-T*1.6; ledB.map.offset.y=T*.9; if(o.tower){ const k=.75+.25*Math.sin(T*2.4); km.LEDA.color.setRGB(k,.18*k,.7*k); } }}; }
@@ -6444,8 +6459,20 @@ function lcKelly(K,PK,km,s0,s1){ const S=K.S, tr=K.tr, W=tr.W, f=mkF(), HUES=[0x
 // the Parkway: flags of the world down both sides, the Art Museum on Fairmount
 function lcParkway(K,PK,s0,s1){ const S=K.S, tr=K.tr, W=tr.W, f=mkF(), FL=[0xd42020,0x1d4fa0,0xf2f2f2,0x14943c,0xffc21a,0x0b0b0c,0xff7a1a,0x6a1fa0], flags=[], cols=[];
   const a=s1-30, b=Math.min(tr.L-80,s1+560);
-  for(let s=a;s<b;s+=13){ frame(s,f,tr); [-1,1].forEach((sd,j)=>{ const p=f.p.clone().addScaledVector(f.r,sd*(W+5.5)); flags.push(new THREE.Matrix4().compose(new THREE.Vector3(p.x,f.p.y,p.z),new THREE.Quaternion().setFromAxisAngle(UP,Math.atan2(f.t.x,f.t.z)+Math.PI/2+(sd<0?Math.PI:0)),new THREE.Vector3(1,1,1))); cols.push(FL[(Math.round(s/13)*2+j)%FL.length]); }); }
+  // frame 13: a double row of flags down both sides (the inner row staggered half a bay), lit from below
+  const ups=[]; for(let s=a;s<b;s+=13){ frame(s,f,tr); [-1,1].forEach((sd,j)=>[[W+5.5,0],[W+10.5,6.5]].forEach(([o,ds],r)=>{ if(s+ds>=b) return; if(ds) frame(s+ds,f,tr);
+      const p=f.p.clone().addScaledVector(f.r,sd*o); flags.push(new THREE.Matrix4().compose(new THREE.Vector3(p.x,f.p.y,p.z),new THREE.Quaternion().setFromAxisAngle(UP,Math.atan2(f.t.x,f.t.z)+Math.PI/2+(sd<0?Math.PI:0)),new THREE.Vector3(1,1,1)));
+      cols.push(FL[(Math.round(s/13)*4+j*2+r)%FL.length]); ups.push(p.x,f.p.y+10.6,p.z); if(ds) frame(s,f,tr); })); }
   kitInst(S,'FlagPole',lcKitMats(),flags,cols,'PAINT');
+  { const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(ups,3)); S.add(new THREE.Points(g,fogAdd(new THREE.PointsMaterial({map:glowTex,color:0xffe6c0,size:3.2,transparent:true,opacity:.55,blending:THREE.AdditiveBlending,depthWrite:false})))); }
+  // lawns and old trees behind the flags, where the city blocks used to crowd the road
+  const trees=[], R=rng(1918); for(let s=a+20;s<b-10;s+=11) [-1,1].forEach(sd=>{ frame(s+R()*5,f,tr); [17+R()*4,27+R()*6].forEach(o=>{ const p=f.p.clone().addScaledVector(f.r,sd*(W+o));
+      trees.push(new THREE.Matrix4().compose(new THREE.Vector3(p.x,f.p.y-.2,p.z),new THREE.Quaternion().setFromAxisAngle(UP,R()*6),new THREE.Vector3().setScalar(1.2+R()*.5))); }); });
+  kitInst(S,'Broadleaf',kitMats(),trees);
+  // Logan Circle: the Swann fountain beside the road, its jets lit cyan, a cool pool round the basin
+  { frame(s1+250,f,tr); const c=f.p.clone().addScaledVector(f.r,-(W+38)); kitInst(S,'Fountain',lcKitMats(),[new THREE.Matrix4().makeTranslation(c.x,f.p.y,c.z).multiply(new THREE.Matrix4().makeScale(1.5,1.5,1.5))]);
+    K.glow(0x7fe8ff,46,c.x,f.p.y+5,c.z).material.opacity=.5; [0,1,2,3,4,5].forEach(i=>{ const an=i*Math.PI/3; K.glow(0x9ff0ff,9,c.x+Math.cos(an)*13,f.p.y+1.4,c.z+Math.sin(an)*13); });
+    const pool=new THREE.Mesh(new THREE.PlaneGeometry(70,70).rotateX(-Math.PI/2),fogAdd(new THREE.MeshBasicMaterial({map:poolTex,color:0x1a6a80,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}))); pool.position.set(c.x,f.p.y+.06,c.z); S.add(pool); }
   // the museum on Fairmount, at the head of the Parkway, facing down it toward City Hall
   const x=-445, z=-455, yaw=-.53, tY=7.6;
   for(let i=0;i<18;i++){ const h=(i+1)*.42, st=K.box(1.5,h,60,new THREE.MeshStandardMaterial({color:0x8a8070,roughness:.85}),0,h/2,0); st.position.set(x+Math.cos(yaw)*(64-i*1.5),h/2,z-Math.sin(yaw)*(64-i*1.5)); st.rotation.y=yaw; }
@@ -6644,7 +6671,7 @@ function buildLastCall(){
   // ---- Center City: Market St, 6th St, the Parkway and 15th St between towers; City Hall; Franklin Square ----
   const outside=c=>!(c.x>470&&c.x<715&&c.z>-300&&c.z<12)&&!(c.x>-50&&c.x<45&&c.z>-120&&c.z<-25)&&Math.hypot(c.x+445,c.z+455)>110&&roadFree(c.x,c.z,12); // Franklin Square, City Hall, the Art Museum, any other road
   const cityF=(s0,s1,o)=>[-1,1].forEach(sd=>K.frontage(s0,s1,sd,Object.assign({set:6.5,h:[16,46],dep:[18,30],len:[16,30],space:1.2,styles:['glass','stone','brick','glass'],ok:outside},o||{})));
-  cityF(40,sBr0-60); cityF(sPk0+60,L-40,{h:[14,38]});
+  cityF(40,sBr0-60); cityF(sPk0+500,L-40,{h:[14,38]}); // the Parkway's first 500 m stay open (lawns, flags, Logan Circle)
   kitInst(S,'CityHall',PK,[new THREE.Matrix4().makeTranslation(-3,0,-72)]) || (()=>{ const hall=new THREE.MeshStandardMaterial({color:0x8a7a62,roughness:.85}); K.box(84,34,84,hall,-3,17,-72); K.box(26,62,26,hall,-3,65,-72); })();
   const skyOk=(x,z,r)=>roadFree(x,z,r+30)&&Math.hypot(x+445,z+455)>r+120;
   K.skyline({n:60,cx:-60,cz:420,sx:820,sz:240,h:[60,240],seed:61,ok:skyOk}); K.skyline({n:40,cx:-760,cz:-200,sx:260,sz:420,h:[40,160],seed:62,ok:skyOk});
@@ -8146,7 +8173,7 @@ if(DEV) window.AHDEV.sim=(id,nLaps,opts)=>{
     mode='race'; raceT=0; countdown=0;
     const h=opts.dt||1/120, maxT=opts.maxT||(laps()*TR.L/25+90), L=TR.L, touch=new Set(), ttouch=new Set();
     let capSteps=0, brkSteps=0, contacts=0, trafficHits=0, nan=0, vTop=0, step=0;
-    const wall0=racers.map(r=>r.hits);
+    const wall0=racers.map(r=>r.hits), hitAt={}, fastAt={};
     while(raceT<maxT&&!racers.every(r=>r.finished)){
       raceT+=h; ghostT+=h; step++;
       for(const r of racers) stepRacer(r,h,null);
@@ -8161,11 +8188,12 @@ if(DEV) window.AHDEV.sim=(id,nLaps,opts)=>{
       if(step%6===0){ worldFx(h*6); if(ev.update) try{ ev.update(h*6,cam.position); }catch(e){} }
       for(const r of racers){ if(r.aiWait) capSteps++; if(r.brk>.12) brkSteps++; }
       for(const r of racers){ if(!Number.isFinite(r.v+r.x+r.dist)){ nan++; r.v=0; r.x=0; r.vx=0; } if(r.v>vTop) vTop=r.v; }
+      if(opts.where){ racers.forEach((r,i)=>{ if(r.hits>(r._h0===undefined?(r._h0=r.hits):r._h0)){ r._h0=r.hits; const b=Math.floor(((r.dist%L)+L)%L/50)*50; hitAt[b]=(hitAt[b]||0)+1; } if(r.v>150){ const b=Math.floor(((r.dist%L)+L)%L/100)*100; fastAt[b]=Math.max(fastAt[b]||0,Math.round(r.v*2.237)); } }); }
     }
     const order=racers.slice().sort((a,b)=>(a.finished?a.finishT:1e9-a.dist)-(b.finished?b.finishT:1e9-b.dist));
     const f2=v=>Math.round(v*100)/100;
     out={event:id,laps:laps(),L:Math.round(L),n,diff:typeof diffId==='function'?diffId():'n/a',simT:f2(raceT),ms:Math.round(performance.now()-t0),steps:step,
-      finished:racers.filter(r=>r.finished).length,contacts,trafficHits,wallHits:racers.reduce((s,r,i)=>s+r.hits-wall0[i],0),waitPct:Math.round(capSteps/Math.max(1,step*n)*1000)/10,brakePct:Math.round(brkSteps/Math.max(1,step*n)*1000)/10,nan,topMph:Math.round(vTop*2.237),
+      finished:racers.filter(r=>r.finished).length,hitAt:opts.where?hitAt:undefined,fastAt:opts.where?fastAt:undefined,contacts,trafficHits,wallHits:racers.reduce((s,r,i)=>s+r.hits-wall0[i],0),waitPct:Math.round(capSteps/Math.max(1,step*n)*1000)/10,brakePct:Math.round(brkSteps/Math.max(1,step*n)*1000)/10,nan,topMph:Math.round(vTop*2.237),
       order:order.map((r,i)=>({p:i+1,who:r.isP?'PLAYER':r.def.tag,car:r.def.car||r.def.name,t:r.finished?f2(r.finishT):null,laps:r.laps.map(f2),top:Math.round(r.top*2.237),walls:r.hits,cls:r.cls?f2(r.cls):undefined}))};
     ev.laps=laps0;
   }catch(e){ out={error:String(e&&e.stack||e)}; }

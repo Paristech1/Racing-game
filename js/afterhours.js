@@ -4044,11 +4044,14 @@ function levelPhysics(r,prevDist){
 }
 // Manayunk: follow the road until it drops away faster than gravity can pull you down, then fly until you land
 function airStep(r,dt){
-  const gy=rFrame(r,F2).p.y+F2.r.y*r.x;
+  const gy=rFrame(r,F2).p.y+F2.r.y*r.x, gyP=r.gyP; r.gyP=gy;
   if(!r.br&&inLoop(r.dist,TR,25)){ r.hy=gy; r.vy=0; r.airT=0; return; } // the loop holds you to the road
+  if(EV.noAir&&EV.noAir(r)){ r.hy=gy; r.vy=gyP!==undefined&&dt>0?(gy-gyP)/dt:0; r.airT=0; return; } // tunnels: there is a ceiling, nothing to jump
   if(r.hy===undefined||!(dt>0)){ r.hy=gy; r.vy=0; r.airT=0; return; }
   if(r.airT>0){ r.vy-=AIR_G*dt; r.hy+=r.vy*dt; r.airT+=dt;
-    if(r.hy<=gy){ const hard=-r.vy, t=r.airT; r.hy=gy; r.vy=0; r.airT=0;
+    // land onto the road's own vertical speed (it was 0, so a car that touched down on a downhill took off again on the
+    // next step and hopped all the way down the slope)
+    if(r.hy<=gy){ const vgr=gyP!==undefined?(gy-gyP)/dt:0, hard=vgr-r.vy, t=r.airT; r.hy=gy; r.vy=vgr; r.airT=0;
       if(t>.25){ r.slip+=.35; r.bumpT=.16; r.vx*=.6; if(hard>9) r.v*=.94;
         tmpV.copy(F2.p).addScaledVector(F2.r,r.x); emitSparks(tmpV,F2.t,18,r.v*.2);
         if(t>.5) r.nitro=Math.min(Math.max(1,r.nitro),r.nitro+Math.min(.35,t*.2));
@@ -6272,6 +6275,14 @@ function lcServiceBore(K,b){ const S=K.S, f0=mkF(), bt=b.tr, R0=b.w+1.4, n=14, P
     ribbonUC(bt,S,linM,(k)=>inMid(k)?[Math.cos(a0)*R0,Math.sin(a0)*R0*.85,Math.cos(a1)*R0,Math.sin(a1)*R0*.85]:null,3,80); }
   const so=b.side, rampK=k=>!inMid(k);
   ribbonU(bt,S,linM,(k)=>rampK(k)?[so*R0,0,so*R0,7.4]:null,6); ribbonU(bt,S,linM,(k)=>rampK(k)?[-so*(b.w+3),7.4,so*R0,7.4]:null,6);
+  // the ramp bays (where the bore leaves and rejoins the Harbor Line) carry the main tube's lighting, so the split reads as
+  // a lit exit lane instead of a black hole in the wall: amber kerb line on the outer wall, a white LED line down the
+  // ceiling, and cool pools on the floor
+  { const kerbM=new THREE.MeshBasicMaterial({color:0xffa040,toneMapped:false,side:THREE.DoubleSide}), ledM=new THREE.MeshBasicMaterial({color:0xeaf4ff,toneMapped:false,side:THREE.DoubleSide});
+    ribbonU(bt,S,kerbM,(k)=>rampK(k)?[so*(R0-.03),.25,so*(R0-.03),.38]:null,6);
+    ribbonU(bt,S,ledM,(k)=>rampK(k)?[so*.2,7.37,-so*.2,7.37]:null,6);
+    const rp=[], fr=mkF(); for(let s=4;s<bt.L-4;s+=14){ if(!rampK(Math.round(s/bt.ds))) continue; frame(s,fr,bt); rp.push(new THREE.Matrix4().makeTranslation(fr.p.x,fr.p.y+.06,fr.p.z)); }
+    K.inst(new THREE.PlaneGeometry(10,10).rotateX(-Math.PI/2),fogAdd(new THREE.MeshBasicMaterial({map:lampPoolTex,color:0x6a7fa0,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false})),rp); }
   // bulkheads where the ramp's box (open to the main tube) becomes the round liner: a U-shaped plate, so nothing past the liner
   // (the void around it, or the sky above the river) shows through the gap
   const bh=new THREE.Shape(), xl=-(b.w+3.2), xr=R0+.2; bh.moveTo(xl,-.4); bh.lineTo(xl,7.6); bh.lineTo(xr,7.6); bh.lineTo(xr,-.4); bh.lineTo(R0,-.4);
@@ -6506,7 +6517,7 @@ function lcForkGantry(K,km,b){ const S=K.S, tr=K.tr, f=mkF(), s=b.s0-70;
   const sg=K.sign(c,10.4,3.4,sp.x,K.f.p.y+8.2,sp.z,0); sg.quaternion.copy(K.q); sg.rotateY(Math.PI); sg.position.addScaledVector(K.f.t,-.9);
   // gore point: where the branch's edge leaves the main road's edge
   for(let u=4;u<b.tr.L*.5;u+=2){ frame(u,f,b.tr); const ms=K.sNear(f.p.x,f.p.z); K.at(ms,0,0); const d=f.p.clone().sub(K.f.p), lat=d.x*K.f.r.x+d.z*K.f.r.z;
-    if(Math.abs(lat)>tr.W+b.w+1.5){ const p=K.f.p.clone().addScaledVector(K.f.r,Math.sign(lat)*(tr.W+.6)).lerp(f.p.clone().addScaledVector(f.r,-Math.sign(lat)*(b.w+.6)),.5);
+    if(Math.abs(lat)>tr.W+b.w+(b.id===2?5.5:3.6)){ const p=K.f.p.clone().addScaledVector(K.f.r,Math.sign(lat)*(tr.W+.6)).lerp(f.p.clone().addScaledVector(f.r,-Math.sign(lat)*(b.w+.6)),.5);
       kitInst(S,'Cushion',km,[new THREE.Matrix4().compose(new THREE.Vector3(p.x,K.f.p.y,p.z),K.q,new THREE.Vector3(1,1,1))]); K.glow(0xffc030,5,p.x,K.f.p.y+1.3,p.z); break; } } }
 /* ---- drops: style + slot per drop; the slot draws its gem from the lap table the leader is on ---- */
 const LC_TABLES={'Happy Hour':{calm:'refill',speed:'long',guard:'shield',launch:'over',hit:'shield',grip:'grip',ghost:'ghost',catchup:'refill'},
@@ -6653,7 +6664,8 @@ function buildLastCall(){
     ribbonU(bt,S,rampM,(k)=>ramp(k)?[-w-.3,.025,w+.3,.025]:null,24);
     // gore: the painted wedge between the lap's edge and the ramp's inner edge, once they have separated
     const goreX=k=>{ const d=k*bt.ds, u=d<P?d/P:(bt.L-d<P?(bt.L-d)/P:1), gap=b.sep*sm(u)-2*w; return u<1&&gap>.2?gap:0; };
-    ribbonU(bt,S,goreM,(k)=>{ const g=goreX(k); return g?[-b.side*(w+.3),.02,-b.side*(w+.3+g),.02]:null; },6); });
+    // under the river the gore is plain floor: the zebra wedge read as a loose strip in the dark
+    ribbonU(bt,S,b.id===2?rampM:goreM,(k)=>{ const g=goreX(k); return g?[-b.side*(w+.3),.02,-b.side*(w+.3+g),.02]:null; },6); });
 
   /* ======== the set pieces, sector by sector ======== */
   KIT_LOG=[];
@@ -6769,7 +6781,7 @@ function buildLastCall(){
     if(mode==='race'&&racers.length){ const lead=racers.reduce((a,b)=>b.dist>a.dist?b:a), lap=clamp(Math.floor(lead.dist/L)||0,0,2);
       if(lap!==lastTable){ lastTable=lap; lcRetypeDrops(lapTables[lap]); if(lap>0&&player) toast(lap===2?'Last Call. The drops bite now.':'Rush. Lap 2 drops.'); } } };
   return {scene:S,track:tr,traffic:obst,update,sNear:K.sNear,cams:[{s:at(380,20)},{s:at(-380,-2500)}],slopeG:1,airtime:true,roadHazards,resetTraffic,
-    clashes,tunS:[[sT0,sHalo0-30]],surf:[{s0:sG0+20,s1:sG1-10,grip:.88,name:'cobble',msg:'Cobbles and trolley rails. Less grip.'}],lcS:{sBr0,sBr1,sT0,sT1,sHalo0,sHalo1,sRingIn,sRingOut,sV0,sV1,sBlvd0,sG0,sG1,sAve1,sLin1,sKel1,sPk0}};
+    clashes,tunS:[[sT0,sHalo0-30]],noAir:r=>r.br?r.br.id===2:inR(trackS(r.dist),sT0-160,sHalo0-30),surf:[{s0:sG0+20,s1:sG1-10,grip:.88,name:'cobble',msg:'Cobbles and trolley rails. Less grip.'}],lcS:{sBr0,sBr1,sT0,sT1,sHalo0,sHalo1,sRingIn,sRingOut,sV0,sV1,sBlvd0,sG0,sG1,sAve1,sLin1,sKel1,sPk0}};
 }
 
 /* ---------------- EVENTS ---------------- */
@@ -6856,7 +6868,7 @@ function releaseEvent(e){ const S=e.scene; if(!S) return; if(fxGroup.parent===S)
   S.traverse(o=>{ if(o.geometry&&inOwn(e,1,o.geometry.id)&&!o.geometry.userData.shared) o.geometry.dispose(); (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(!m||!inOwn(e,0,m.id)||(m.userData&&m.userData.shared)) return;
     ['map','emissiveMap','normalMap','roughnessMap','bumpMap'].forEach(k=>disp(m[k])); m.dispose(); }); });
   disp(S.background);
-  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','tunS','calderS','dawn','introCrane','legS','padsHit','_own'].forEach(k=>delete e[k]); e._ready=false; }
+  ['scene','track','traffic','update','cams','resetTraffic','sNear','koScreen','pickups','chevrons','turns','roadHazards','pads','surf','slopeG','airtime','pillars','crossing','tunS','noAir','calderS','dawn','introCrane','legS','padsHit','_own'].forEach(k=>delete e[k]); e._ready=false; }
 function releaseOthers(){ EVENTS.forEach(e=>{ if(e.scene&&e.scene!==RS) releaseEvent(e); }); }
 ensureEvent(EVENTS[0]);
 const KO_MAPS=[
@@ -8173,7 +8185,7 @@ if(DEV) window.AHDEV.sim=(id,nLaps,opts)=>{
     mode='race'; raceT=0; countdown=0;
     const h=opts.dt||1/120, maxT=opts.maxT||(laps()*TR.L/25+90), L=TR.L, touch=new Set(), ttouch=new Set();
     let capSteps=0, brkSteps=0, contacts=0, trafficHits=0, nan=0, vTop=0, step=0;
-    const wall0=racers.map(r=>r.hits), hitAt={}, fastAt={};
+    const wall0=racers.map(r=>r.hits), hitAt={}, fastAt={}, airAt={}, airLog=[];
     while(raceT<maxT&&!racers.every(r=>r.finished)){
       raceT+=h; ghostT+=h; step++;
       for(const r of racers) stepRacer(r,h,null);
@@ -8188,12 +8200,12 @@ if(DEV) window.AHDEV.sim=(id,nLaps,opts)=>{
       if(step%6===0){ worldFx(h*6); if(ev.update) try{ ev.update(h*6,cam.position); }catch(e){} }
       for(const r of racers){ if(r.aiWait) capSteps++; if(r.brk>.12) brkSteps++; }
       for(const r of racers){ if(!Number.isFinite(r.v+r.x+r.dist)){ nan++; r.v=0; r.x=0; r.vx=0; } if(r.v>vTop) vTop=r.v; }
-      if(opts.where){ racers.forEach((r,i)=>{ if(r.hits>(r._h0===undefined?(r._h0=r.hits):r._h0)){ r._h0=r.hits; const b=Math.floor(((r.dist%L)+L)%L/50)*50; hitAt[b]=(hitAt[b]||0)+1; } if(r.v>150){ const b=Math.floor(((r.dist%L)+L)%L/100)*100; fastAt[b]=Math.max(fastAt[b]||0,Math.round(r.v*2.237)); } }); }
+      if(opts.where){ racers.forEach((r,i)=>{ if(r.hits>(r._h0===undefined?(r._h0=r.hits):r._h0)){ r._h0=r.hits; const b=Math.floor(((r.dist%L)+L)%L/50)*50; hitAt[b]=(hitAt[b]||0)+1; } if(r.airT>0&&!r._inAir){ const sl=((r.dist%L)+L)%L, b=Math.floor(sl/25)*25; airAt[b]=(airAt[b]||0)+1; if(opts.airLog&&sl>opts.airLog[0]&&sl<opts.airLog[1]&&airLog.length<80) airLog.push([Math.round(sl),+r.x.toFixed(2),r.br?r.br.id||1:0,Math.round(r.v),+r.vy.toFixed(2),+(r.prevVg||0).toFixed(2)]); } r._inAir=r.airT>0; if(r.v>150){ const b=Math.floor(((r.dist%L)+L)%L/100)*100; fastAt[b]=Math.max(fastAt[b]||0,Math.round(r.v*2.237)); } }); }
     }
     const order=racers.slice().sort((a,b)=>(a.finished?a.finishT:1e9-a.dist)-(b.finished?b.finishT:1e9-b.dist));
     const f2=v=>Math.round(v*100)/100;
     out={event:id,laps:laps(),L:Math.round(L),n,diff:typeof diffId==='function'?diffId():'n/a',simT:f2(raceT),ms:Math.round(performance.now()-t0),steps:step,
-      finished:racers.filter(r=>r.finished).length,hitAt:opts.where?hitAt:undefined,fastAt:opts.where?fastAt:undefined,contacts,trafficHits,wallHits:racers.reduce((s,r,i)=>s+r.hits-wall0[i],0),waitPct:Math.round(capSteps/Math.max(1,step*n)*1000)/10,brakePct:Math.round(brkSteps/Math.max(1,step*n)*1000)/10,nan,topMph:Math.round(vTop*2.237),
+      finished:racers.filter(r=>r.finished).length,hitAt:opts.where?hitAt:undefined,fastAt:opts.where?fastAt:undefined,airAt:opts.where?airAt:undefined,airLog:opts.airLog?airLog:undefined,contacts,trafficHits,wallHits:racers.reduce((s,r,i)=>s+r.hits-wall0[i],0),waitPct:Math.round(capSteps/Math.max(1,step*n)*1000)/10,brakePct:Math.round(brkSteps/Math.max(1,step*n)*1000)/10,nan,topMph:Math.round(vTop*2.237),
       order:order.map((r,i)=>({p:i+1,who:r.isP?'PLAYER':r.def.tag,car:r.def.car||r.def.name,t:r.finished?f2(r.finishT):null,laps:r.laps.map(f2),top:Math.round(r.top*2.237),walls:r.hits,cls:r.cls?f2(r.cls):undefined}))};
     ev.laps=laps0;
   }catch(e){ out={error:String(e&&e.stack||e)}; }

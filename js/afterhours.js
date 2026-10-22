@@ -6283,7 +6283,7 @@ function lcPortal(K,km,s,exit){ const S=K.S; K.at(s,0,0); const q=K.q.clone(); i
   if(!kitInst(S,'LCPortal',km,[m])) K.box(32,12,3,km.WHITE,K.f.p.x,K.f.p.y+6,K.f.p.z);
   const g=K.glow(0xdff4ff,30,K.f.p.x,K.f.p.y+7,K.f.p.z); g.material.opacity=.35; }
 // the Service Bore: a round corrugated liner along the branch, teal work lights in the crown, amber lamps on the walls
-function lcServiceBore(K,b){ const S=K.S, f0=mkF(), bt=b.tr, R0=b.w+1.4, n=14, P0=b.peel-2, P1=bt.L-b.peel+2, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
+function lcServiceBore(K,b){ const S=K.S, f0=mkF(), bt=b.tr, R0=b.w+1.4, n=30, P0=b.peel-2, P1=bt.L-b.peel+2, inMid=k=>k*bt.ds>P0&&k*bt.ds<P1;
   const linT=CT(canvasTex(64,128,(g,w,h)=>{ g.fillStyle='#2a2e30'; g.fillRect(0,0,w,h); for(let y=0;y<h;y+=8){ const gr=g.createLinearGradient(0,y,0,y+8); gr.addColorStop(0,'#3a3f42'); gr.addColorStop(.5,'#1a1d1f'); gr.addColorStop(1,'#3a3f42'); g.fillStyle=gr; g.fillRect(0,y,w,8); }
     for(let i=0;i<120;i++){ g.fillStyle=`rgba(90,70,40,${Math.random()*.25})`; g.fillRect(Math.random()*w,Math.random()*h,3,6); } }),true);
   // the liner glows faintly by itself (the bore has no real lights) so its rings read at speed instead of a black void
@@ -6306,7 +6306,7 @@ function lcServiceBore(K,b){ const S=K.S, f0=mkF(), bt=b.tr, R0=b.w+1.4, n=14, P
   // bulkheads where the ramp's box (open to the main tube) becomes the round liner: a U-shaped plate, so nothing past the liner
   // (the void around it, or the sky above the river) shows through the gap
   const bh=new THREE.Shape(), xl=-(b.w+3.2), xr=R0+.2; bh.moveTo(xl,-.4); bh.lineTo(xl,7.6); bh.lineTo(xr,7.6); bh.lineTo(xr,-.4); bh.lineTo(R0,-.4);
-  for(let i=0;i<=24;i++){ const a=Math.PI*i/24; bh.lineTo(Math.cos(a)*R0,Math.sin(a)*R0*.85); } bh.lineTo(-R0,-.4); bh.lineTo(xl,-.4);
+  for(let i=0;i<=64;i++){ const a=Math.PI*i/64; bh.lineTo(Math.cos(a)*R0,Math.sin(a)*R0*.85); } bh.lineTo(-R0,-.4); bh.lineTo(xl,-.4);
   const bhG=new THREE.ShapeGeometry(bh); if(so<0) bhG.scale(-1,1,1);
   [P0,P1].forEach(u=>{ frame(u,f0,bt); const m=new THREE.Mesh(bhG,linM), z=new THREE.Vector3().crossVectors(f0.r,f0.u); m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(f0.r,f0.u,z)); m.position.copy(f0.p); S.add(m); });
   const teal=[], amber=[], f=mkF(); for(let s=P0+8;s<P1-8;s+=22){ frame(s,f,bt); teal.push(f.p.x,f.p.y+R0*.82,f.p.z); [-1,1].forEach(sd=>{ const p=f.p.clone().addScaledVector(f.r,sd*(R0-.4)); amber.push(p.x,p.y+2.2,p.z); }); }
@@ -6638,23 +6638,39 @@ function buildLastCall(){
   const surf=[]; for(let k=0;k<tr.N;k+=6){ const s=sOf(k); if(inTun(s)||inLoopS(s)||inBridge(s)||inViad(s)||inRingZ(s)||inHaloT(s)) continue; surf.push(tr.pts[k]); }
   const bucket=new Map(), BK=120, key=(x,z)=>Math.floor(x/BK)+','+Math.floor(z/BK); surf.forEach(p=>{ const k=key(p.x,p.z); if(!bucket.has(k)) bucket.set(k,[]); bucket.get(k).push(p); });
   const nearSurf=(x,z,rad)=>{ const out=[], n=Math.ceil(rad/BK), cx=Math.floor(x/BK), cz=Math.floor(z/BK); for(let a=-n;a<=n;a++) for(let b=-n;b<=n;b++){ const l=bucket.get((cx+a)+','+(cz+b)); if(l) for(const p of l) out.push(p); } return out; };
-  const allSub=[]; for(let k=0;k<tr.N;k+=4) allSub.push(k);
-  const nearRoad=(x,z)=>{ let bd=1e18,bk=0; for(const k of allSub){ const p=tr.pts[k], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bk=k; } } return {d:Math.sqrt(bd),k:bk,p:tr.pts[bk],s:sOf(bk)}; };
+  // nearest lap point: a 60 m hash searched ring by ring (the flat scan over every 4th point was most of the terrain's
+  // build time, and the terrain is 4x finer now)
+  const RH=new Map(), RK=60, rkey=(i,j)=>i*100003+j; for(let k=0;k<tr.N;k+=2){ const p=tr.pts[k], h=rkey(Math.floor(p.x/RK),Math.floor(p.z/RK)); if(!RH.has(h)) RH.set(h,[]); RH.get(h).push(k); }
+  const FAR={d:1e9,k:-1,p:null,s:NaN}; // nothing within ~400 m: no road-hugging rule reaches that far
+  const nearRoad=(x,z)=>{ let bd=1e18,bk=-1; const ci=Math.floor(x/RK), cj=Math.floor(z/RK), cell=(a,b)=>{ const l=RH.get(rkey(ci+a,cj+b)); if(l) for(const k of l){ const p=tr.pts[k], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; bk=k; } } };
+    for(let ring=0;ring<=7;ring++){ if(!ring) cell(0,0); else for(let t=-ring;t<ring;t++){ cell(t,-ring); cell(ring,t); cell(-t,ring); cell(-ring,-t); }
+      if(bk>=0&&(ring*RK)**2>bd) break; }
+    return bk<0?FAR:{d:Math.sqrt(bd),k:bk,p:tr.pts[bk],s:sOf(bk)}; };
   const delaware=(x,z)=>x>1040&&x<1720, schuyl=(x,z)=>{ const nr=nearRoad(x,z); if(!inKelly(nr.s)) return false; frame(nr.s,f,tr); const sd=(x-nr.p.x)*f.r.x+(z-nr.p.z)*f.r.z; return sd>W+26&&sd<W+240; };
-  const X0=-1900, X1=2500, Z0=-2900, Z1=300, NX=176, NZ=128;
+  const X0=-1900, X1=2500, Z0=-2900, Z1=300, NX=352, NZ=256; // 12.5 m cells (v1: 25 m)
   const tg=new THREE.PlaneGeometry(X1-X0,Z1-Z0,NX,NZ); tg.rotateX(-Math.PI/2); tg.translate((X0+X1)/2,0,(Z0+Z1)/2);
   const tp=tg.attributes.position, tcol=[];
-  for(let i=0;i<tp.count;i++){ const x=tp.getX(i), z=tp.getZ(i); let ws=0, ys=0;
-    for(const p of nearSurf(x,z,360)){ const d=Math.hypot(p.x-x,p.z-z); if(d>360) continue; const w=1/Math.pow(d+6,3); ws+=w; ys+=w*p.y; }
-    let y=(ws?ys/ws:0)-.5; const nr=nearRoad(x,z), s=nr.s;
+  // the smooth base (an inverse-distance blend of the surface roads) is wide and slow, so it is solved on the v1 25 m grid
+  // and interpolated; everything that has to hug a road (the clamp under the kerb, the gorge, berms, rivers) runs per vertex
+  const GX=NX/2, GZ=NZ/2, base=new Float32Array((GX+1)*(GZ+1));
+  for(let j=0;j<=GZ;j++) for(let i=0;i<=GX;i++){ const x=X0+(X1-X0)*i/GX, z=Z0+(Z1-Z0)*j/GZ; let ws=0, ys=0;
+    for(const p of nearSurf(x,z,360)){ const d=Math.hypot(p.x-x,p.z-z); if(d>360) continue; const w=1/Math.pow(d+6,3); ws+=w; ys+=w*p.y; } base[j*(GX+1)+i]=ws?ys/ws:0; }
+  const baseAt=(x,z)=>{ const fx=clamp((x-X0)/(X1-X0)*GX,0,GX), fz=clamp((z-Z0)/(Z1-Z0)*GZ,0,GZ), i=Math.min(GX-1,Math.floor(fx)), j=Math.min(GZ-1,Math.floor(fz)), u=fx-i, v=fz-j, B=(a,b)=>base[b*(GX+1)+a];
+    return lerp(lerp(B(i,j),B(i+1,j),u),lerp(B(i,j+1),B(i+1,j+1),u),v); };
+  for(let i=0;i<tp.count;i++){ const x=tp.getX(i), z=tp.getZ(i);
+    let y=baseAt(x,z)-.5; const nr=nearRoad(x,z), s=nr.s;
     if(inLin(s)&&nr.d<160){ frame(s,f,tr); const sd=(x-nr.p.x)*f.r.x+(z-nr.p.z)*f.r.z; if(sd>W+2) y-=Math.min(12,(sd-W-2)*.4); else if(sd<-(W+2)) y+=Math.min(14,(-sd-W-2)*.3); }
-    if(!(inTun(s)||inLoopS(s)||inBridge(s)||inViad(s)||inRingZ(s)||inHaloT(s))) y=Math.min(y,nr.p.y-.45+Math.max(0,nr.d-(W+1))*.12);
+    if(nr.p&&!(inTun(s)||inLoopS(s)||inBridge(s)||inViad(s)||inRingZ(s)||inHaloT(s))) y=Math.min(y,nr.p.y-.45+Math.max(0,nr.d-(W+1))*.12);
     // berms over the tube where it is still near the surface: at the Camden portal and up to the Halo's door
-    if((inR(s,sT0,sT0+240)||inR(s,sHalo0-300,sHalo0-10))&&nr.d<110) y=Math.max(y,Math.max(nr.p.y,0)+9.5-Math.max(0,nr.d-22)*.12);
+    // (the berm rises over the first 26 m inside each mouth: on the 12.5 m grid a full-height berm at the mouth itself
+    //  folded a slope down across the portal opening)
+    if((inR(s,sT0,sT0+240)||inR(s,sHalo0-300,sHalo0-10))&&nr.d<110){ const inT=Math.min(((s-sT0)%L+L)%L,((sHalo0-10-s)%L+L)%L), e=clamp(inT/26,0,1);
+      if(e>0) y=Math.max(y,lerp(y,Math.max(nr.p.y,0)+9.5-Math.max(0,nr.d-22)*.12,e*e*(3-2*e))); }
     if(delaware(x,z)) y=-7; else if(schuyl(x,z)) y=-6;
     tp.setY(i,y); const g=.05+.025*Math.sin(x*.05)*Math.cos(z*.04), park=inLin(s)||inKelly(s)||(nr.d>60&&x<-600); tcol.push(park?g*.8:g, park?g*1.25:g*1.02, park?g*.75:g*1.08); }
   // cut the terrain down around each surface shortcut (the trench, the bridle path, the park paths)
-  tr.branches.forEach(b=>{ if(b.id===2) return; for(let i=0;i<tp.count;i++){ const x=tp.getX(i), z=tp.getZ(i); let bd=1e9, by=0;
+  tr.branches.forEach(b=>{ if(b.id===2) return; let bx0=1e9,bx1=-1e9,bz0=1e9,bz1=-1e9; b.tr.pts.forEach(p=>{ bx0=Math.min(bx0,p.x); bx1=Math.max(bx1,p.x); bz0=Math.min(bz0,p.z); bz1=Math.max(bz1,p.z); }); const mg=b.w+42;
+    for(let i=0;i<tp.count;i++){ const x=tp.getX(i), z=tp.getZ(i); if(x<bx0-mg||x>bx1+mg||z<bz0-mg||z>bz1+mg) continue; let bd=1e9, by=0;
       for(let k=0;k<b.tr.N;k+=3){ const p=b.tr.pts[k], d=(p.x-x)**2+(p.z-z)**2; if(d<bd){ bd=d; by=p.y; } } bd=Math.sqrt(bd);
       if(bd<b.w+40) tp.setY(i,Math.min(tp.getY(i),b.id===4&&bd<b.w+26?by-1.8:by-.45+Math.max(0,bd-(b.w+1))*(b.id===3?.35:.12))); } });
   tg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3)); tg.computeVertexNormals();
@@ -6727,7 +6743,7 @@ function buildLastCall(){
   const cY=x=>{ const [t1,t2]=BT, top=104, mid=37; if(x<=t1){ const y0=dAt(BR.anch[0])+3.5, u=(x-BR.anch[0])/(t1-BR.anch[0]); return lerp(y0,top,u)-6*4*u*(1-u); }
     if(x>=t2){ const y0=dAt(BR.anch[1])+3.5, u=(BR.anch[1]-x)/(BR.anch[1]-t2); return lerp(y0,top,u)-6*4*u*(1-u); } const c=(t1+t2)/2, h=(t2-t1)/2; return mid+(top-mid)*Math.pow((x-c)/h,2); };
   const cableLED=[]; CZ.forEach(z=>{ const pts=[]; for(let x=BR.anch[0];x<=BR.anch[1];x+=10) pts.push(new THREE.Vector3(x,cY(x),z));
-    K.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),420,.55,6,false),steel,0,0,0); for(let x=BR.anch[0]+4;x<BR.anch[1]-4;x+=3) cableLED.push(x,cY(x)+.6,z);
+    K.mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),960,.55,16,false),steel,0,0,0); for(let x=BR.anch[0]+4;x<BR.anch[1]-4;x+=3) cableLED.push(x,cY(x)+.6,z);
     const hang=[]; for(let x=BR.anch[0]+12;x<BR.anch[1]-8;x+=8){ if(BT.some(t=>Math.abs(t-x)<5)) continue; const y0=dAt(x)-.5, y1=cY(x); if(y1-y0<1) continue; m4.compose(pv.set(x,(y0+y1)/2,z),new THREE.Quaternion(),new THREE.Vector3(1,y1-y0,1)); hang.push(m4.clone()); }
     K.inst(new THREE.BoxGeometry(.14,1,.14),steel,hang); });
   BR.anch.forEach(x=>CZ.forEach(z=>{ const y=dAt(x)+4; K.box(16,y,6,stoneM,x,y/2,z+(z>-300?2.5:-2.5)); }));

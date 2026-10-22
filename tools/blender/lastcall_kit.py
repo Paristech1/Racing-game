@@ -31,6 +31,16 @@ ARGV = sys.argv
 OUT = ARGV[ARGV.index('--out') + 1] if '--out' in ARGV else None
 RENDER = ARGV[ARGV.index('--render') + 1] if '--render' in ARGV else None
 R = random.Random(16)
+# detail policy (v2): every round part gets SEG x the segments it was drawn with, tubes (LED lines, cables, rails) twice the
+# sides, hard edges a 3-segment rounded bevel; the Halo's drum, the portal's arches and the battleship's hull are
+# re-sampled finer. Nothing moves: same shapes and layout, more triangles where curves were faceted.
+SEG = 2.5
+_cyl, _lathe, _tube = Acc.cyl, Acc.lathe, Acc.tube
+def _cyl2(self, m, cx, y0, cz, r0, y1, r1=None, seg=16, cap=True, sides=None, rot=0.):
+    return _cyl(self, m, cx, y0, cz, r0, y1, r1, seg=seg if sides else max(seg, round(seg * SEG)), cap=cap, sides=sides, rot=rot)
+def _lathe2(self, m, cx, cz, prof, n=16, smooth=True, rot=0.): return _lathe(self, m, cx, cz, prof, max(n, round(n * SEG)), smooth, rot)
+def _tube2(self, m, pts, r, n=6): return _tube(self, m, pts, r, max(n, round(n * 2)))
+Acc.cyl, Acc.lathe, Acc.tube = _cyl2, _lathe2, _tube2
 if OUT: bpy.ops.wm.read_factory_settings(use_empty=True)
 new_scene('LastCall Kit')
 
@@ -54,7 +64,7 @@ mat('STONE', (.46, .43, .38), 0, .9); mat('STONE2', (.36, .34, .31), 0, .92); ma
 mat('TRIM', (.86, .82, .74), 0, .6); mat('YELLOW', (1, .78, .05), .1, .45); mat('NEONA', (1, .25, .6), 0, .3, (1, .2, .6), 12.)
 mat('SIGNBACK', (.18, .2, .22), .6, .4)
 
-def bevel_obj(obs, keys, off=.05, seg=2):
+def bevel_obj(obs, keys, off=.05, seg=3):
     """round the hard edges of the listed material parts so corners catch the night rig (kit detail policy)"""
     for ob in obs:
         if ob.data.materials[0].name.split('.')[0] not in keys: continue
@@ -72,7 +82,7 @@ def beam(a, m, p0, p1, w0, w1, d0, d1):
         for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1)): V.append(tuple(P + u * sx * w / 2 + v * sz * d / 2))
     a.poly(m, V, [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)])
 roots = {}
-def done(acc, bev=('STEEL', 'CONCRETE', 'WHITE', 'STONE', 'STONE2', 'DARK', 'HULL', 'TRIM'), off=.05):
+def done(acc, bev=('STEEL', 'CONCRETE', 'WHITE', 'STONE', 'STONE2', 'DARK', 'HULL', 'TRIM', 'HULLDARK', 'YELLOW', 'SIGNBACK', 'TEAK', 'SLATE', 'BRASS'), off=.06):
     obs = acc.build(); bevel_obj(obs, bev, off); roots[acc.name] = obs[0].parent; return obs
 
 def ellipse(a, b, n, t0=0.):
@@ -92,7 +102,7 @@ def loop_pts(Ll, drift, side=1):
 # ================================================================== HaloTower
 def halo_tower():
     a = Acc('HaloTower'); A, B, H, DOME = 76., 31., 60., 13.          # semi-axes along / across the road, wall height, dome rise
-    NF = 96; pts = ellipse(A, B, NF)
+    NF = 288; pts = ellipse(A, B, NF)                                  # 3x the v1 drum (96): same fins, ribs and lamps (every 6 / 12 / 36)
     door = lambda x, z: abs(z) > A * .86 and abs(x) < 21               # road openings at both ends (entry lane -8.5 m, exit +8.5 m)
     # plinth: dark concrete band 4 m, with the doors cut
     for k in range(NF):
@@ -112,7 +122,7 @@ def halo_tower():
         x0, z0 = pts[k]; x1, z1 = pts[(k + 1) % NF]; xm, zm = (x0 + x1) / 2, (z0 + z1) / 2
         ylo = 15.4 if door(xm, zm) else 4
         a.poly('GLASS', [(x0, ylo, z0), (x1, ylo, z1), (x1, H, z1), (x0, H, z0)], [(0, 1, 2, 3)])
-        if k % 2 == 0 and not door(x0, z0):
+        if k % 6 == 0 and not door(x0, z0):
             l = math.hypot(x0 / B / B, z0 / A / A) or 1; nx, nz = x0 / B / B / l, z0 / A / A / l   # outward normal
             ry = math.atan2(nx, nz)
             a.box('STEEL', x0 + nx * .6, (4 + H) / 2, z0 + nz * .6, .5, H - 4, 1.4, ry)
@@ -138,7 +148,7 @@ def halo_tower():
         if len(cur) > 1: segs.append(cur)
         for sg in segs: a.tube('STEEL', sg, .16, 4)
     # ribbed glass dome, crown ring, aviation lamps
-    NR = 12
+    NR = 24
     for j in range(NR):
         y0 = H + DOME * math.sin(math.pi / 2 * j / NR); y1 = H + DOME * math.sin(math.pi / 2 * (j + 1) / NR)
         s0 = math.cos(math.pi / 2 * j / NR); s1 = math.cos(math.pi / 2 * (j + 1) / NR)
@@ -146,13 +156,13 @@ def halo_tower():
         for k in range(NF):
             x0, z0 = pts[k]; x1, z1 = pts[(k + 1) % NF]
             a.poly('GLASS', [(x0 * s0, y0, z0 * s0), (x1 * s0, y0, z1 * s0), (x1 * s1, y1, z1 * s1), (x0 * s1, y1, z0 * s1)], [(0, 1, 2, 3)])
-    for k in range(0, NF, 4):
-        x0, z0 = pts[k]; rib = [(x0 * max(.08, math.cos(math.pi / 2 * j / 24)), H + DOME * math.sin(math.pi / 2 * j / 24), z0 * max(.08, math.cos(math.pi / 2 * j / 24))) for j in range(25)]
+    for k in range(0, NF, 12):
+        x0, z0 = pts[k]; rib = [(x0 * max(.08, math.cos(math.pi / 2 * j / 48)), H + DOME * math.sin(math.pi / 2 * j / 48), z0 * max(.08, math.cos(math.pi / 2 * j / 48))) for j in range(49)]
         a.tube('STEEL', rib, .3, 5)
     crown = [(x * .1, H + DOME + .2, z * .1) for x, z in pts] + [(pts[0][0] * .1, H + DOME + .2, pts[0][1] * .1)]
     a.tube('LEDB', crown, .35, 6)
     a.tube('STEEL', [(x, H + .2, z) for x, z in pts] + [(pts[0][0], H + .2, pts[0][1])], .5, 6)
-    for k in range(0, NF, 12):
+    for k in range(0, NF, 36):
         x, z = pts[k]; a.cyl('DARK', x, H + .5, z, .3, H + 2.2, seg=8); a.cyl('REDLAMP', x, H + 2.2, z, .45, H + 2.9, seg=8)
     # name band over the entry door
     a.box('SIGNBACK', 0, 18.4, -A * .995, 30, 4, .4)
@@ -194,12 +204,12 @@ def ring_pylon():
 # ================================================================== LCPortal
 def lc_portal():
     a = Acc('LCPortal'); W2, H2, D = 12.5, 10.5, 16.           # half width and height of the mouth, hood depth (back along -z)
-    def arc(scale, z, n=40, y0=0.):
+    def arc(scale, z, n=120, y0=0.):
         return [(W2 * scale * math.cos(math.pi * k / n), y0 + H2 * scale * math.sin(math.pi * k / n), z) for k in range(n + 1)]
     # shell: lofted from the mouth (leaning out over the road, frame 05) back into the hill
     rings = [arc(1.32, 2.5), arc(1.22, 0), arc(1.14, -4), arc(1.1, -D)]
     inner = [arc(1.0, 1.2), arc(1.0, -D)]
-    n = 41
+    n = 121
     def loft(m, A_, B_, flip=False):
         V = A_ + B_; F = [((k, k + 1, n + k + 1, n + k) if not flip else (k, n + k, n + k + 1, k + 1)) for k in range(n - 1)]
         a.poly(m, V, F, smooth=True)
@@ -224,7 +234,7 @@ def battleship():
         return Bh / 2
     def deck_y(z):
         u = (z + Lh / 2) / Lh; return 9.5 + 5.5 * max(0, (u - .6) / .4) ** 2      # sheer rising to the bow
-    NZ, NS = 90, 10
+    NZ, NS = 220, 26
     secs = []
     for i in range(NZ + 1):
         z = -Lh / 2 + Lh * i / NZ; hb = half_beam(z); dy = deck_y(z)
@@ -354,16 +364,18 @@ def stone_arch():
     Rr = (span ** 2 / 4 + rise ** 2) / (2 * rise); half = math.asin(span / 2 / Rr); y0 = -rise - 1.1   # springing line below the deck
     cy = y0 + rise - Rr; n = 20; th = 1.1; D = 0.                                                      # deck at y = 0
     arc = lambda t, r: (cy + r * math.cos(t), r * math.sin(t))                                         # (y, z)
+    SUB = 4                                                                                            # each voussoir drawn as 4 facets (v2)
     for i in range(n):
-        t0 = -half + 2 * half * i / n; t1 = -half + 2 * half * (i + 1) / n
-        (yi0, zi0), (yi1, zi1) = arc(t0, Rr), arc(t1, Rr); (yo0, zo0), (yo1, zo1) = arc(t0, Rr + th), arc(t1, Rr + th)
         m = 'STONE2' if i % 2 else 'STONE'
-        for sx in (-1, 1):
-            q = [(sx * w / 2, yi0, zi0), (sx * w / 2, yi1, zi1), (sx * w / 2, yo1, zo1), (sx * w / 2, yo0, zo0)]
-            a.poly(m, q, [(0, 1, 2, 3) if sx > 0 else (3, 2, 1, 0)])
-            # spandrel: from the extrados straight up to the deck
-            a.poly('STONE', [(sx * w / 2, yo0, zo0), (sx * w / 2, yo1, zo1), (sx * w / 2, D, zo1), (sx * w / 2, D, zo0)], [(0, 1, 2, 3) if sx > 0 else (3, 2, 1, 0)])
-        a.poly('STONE2', [(-w / 2, yi0, zi0), (w / 2, yi0, zi0), (w / 2, yi1, zi1), (-w / 2, yi1, zi1)], [(0, 1, 2, 3)])   # soffit
+        for j in range(SUB):
+            t0 = -half + 2 * half * (i + j / SUB) / n; t1 = -half + 2 * half * (i + (j + 1) / SUB) / n
+            (yi0, zi0), (yi1, zi1) = arc(t0, Rr), arc(t1, Rr); (yo0, zo0), (yo1, zo1) = arc(t0, Rr + th), arc(t1, Rr + th)
+            for sx in (-1, 1):
+                q = [(sx * w / 2, yi0, zi0), (sx * w / 2, yi1, zi1), (sx * w / 2, yo1, zo1), (sx * w / 2, yo0, zo0)]
+                a.poly(m, q, [(0, 1, 2, 3) if sx > 0 else (3, 2, 1, 0)])
+                # spandrel: from the extrados straight up to the deck
+                a.poly('STONE', [(sx * w / 2, yo0, zo0), (sx * w / 2, yo1, zo1), (sx * w / 2, D, zo1), (sx * w / 2, D, zo0)], [(0, 1, 2, 3) if sx > 0 else (3, 2, 1, 0)])
+            a.poly('STONE2', [(-w / 2, yi0, zi0), (w / 2, yi0, zi0), (w / 2, yi1, zi1), (-w / 2, yi1, zi1)], [(0, 1, 2, 3)])   # soffit
     for sz in (-1, 1):                    # abutments down into the creek bed and wing walls
         a.box('STONE', 0, (y0 - 6 + D) / 2, sz * (span / 2 + 3), w + .6, D - y0 + 6, 6)
         for sx in (-1, 1): a.box('STONE', sx * (w / 2 + 1.5), -2.5, sz * (span / 2 + 7), 1, 5, 8, sx * sz * .35)
@@ -393,7 +405,7 @@ def inn():
     a.prism_z('SLATE', -w / 2 + .6, w / 2 - .6, [(d / 2, 3.9), (d / 2 + 4, 3.3), (d / 2 + 4, 3.5), (d / 2, 4.2)])
     for z in range(-10, 11, 4): a.cyl('TRIM', d / 2 + 3.6, .7, z, .12, 3.3, seg=6)
     for z in (-8, 0, 8): a.box('LAMP', d / 2 + 3.2, 3.0, z, .3, .45, .3)
-    return done(a, bev=('STONE',), off=.06)
+    return done(a, bev=('STONE', 'SLATE', 'TEAK', 'TRIM'), off=.06)
 
 # ================================================================== ForkGantry + Cushion
 def fork_gantry():
@@ -409,7 +421,7 @@ def fork_gantry():
             a.tube('DARK', [(x0, y0, zz), (x1, y1, zz)], .07, 4)
     a.box('SIGNBACK', 7, Hg - .2, .9, 10.6, 3.6, .25)                     # sign box (face added in game)
     a.box('LED', 7, Hg - 2.1, 1.05, 10, .1, .1)
-    return done(a, bev=('DARK',), off=.03)
+    return done(a, bev=('DARK', 'CONCRETE'), off=.03)
 def cushion():
     a = Acc('Cushion')
     for i in range(7):
@@ -419,7 +431,7 @@ def cushion():
     for k, (dx, m) in enumerate(((-.3, 'DARK'), (.0, 'YELLOW'), (.3, 'DARK'))):
         a.box(m, dx, .55, .52, .2, .9, .04)
     a.box('LAMP', 0, 1.25, .2, .25, .25, .25)
-    return done(a, bev=())
+    return done(a, bev=('YELLOW', 'DARK'), off=.04)
 
 # ================================================================== CasinoTower
 def casino():
@@ -437,13 +449,13 @@ def casino():
     for y in (h + 3, h + 8, h + 12): a.tube('NEONA', [(x, y, z) for x, z in [(-w * .43 + (h + 14 - y) * 0, -d * .43), (w * .43, -d * .43), (w * .43, d * .43), (-w * .43, d * .43), (-w * .43, -d * .43)]], .25, 5)
     a.cyl('REDLAMP', 0, h + 14, 0, .6, h + 15, seg=8)
     a.box('NEONA', 0, 13, d / 2 + 1.2, 22, 3.2, .3)                 # marquee
-    return done(a, bev=('DARK',))
+    return done(a, bev=('DARK', 'STEEL', 'GLASS'))
 
 # ================================================================== FlagPole
 def flag_pole():
     a = Acc('FlagPole'); hp = 12.
     a.cyl('STEEL', 0, 0, 0, .09, hp, .06, seg=8); a.cyl('BRASS', 0, hp, 0, .16, hp + .3, seg=8)
-    V = []; F = []; nw, nh = 8, 3
+    V = []; F = []; nw, nh = 24, 8
     for j in range(nh + 1):
         for i in range(nw + 1):
             u = i / nw; y = hp - .3 - 1.8 * j / nh; V.append((.1, y, -u * 2.8 + 0) if False else (math.sin(u * 4.2) * .25 * u, y, -.08 - u * 2.8))

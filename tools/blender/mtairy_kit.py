@@ -43,7 +43,9 @@ def add(name, bm, m, a, smooth=False):
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); me.materials.append(MATS[m])
     if smooth: me.shade_smooth()
     ob = bpy.data.objects.new(name, me); scene.collection.objects.link(ob); ob.parent = root(a); return ob
+# detail policy v2: every Mt Airy asset is a hero (shops, theatre, twins): one more bevel segment, 2x round segments
 def bevel_bm(bm, off, seg=2):   # round every hard edge (same call as volcano_p1.py) so corners catch the night rig's highlights
+    seg = seg + 1
     es = [e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6]
     if es and off > 0: bmesh.ops.bevel(bm, geom=es, offset=off, segments=seg, affect='EDGES', profile=.5, clamp_overlap=True)
     return bm
@@ -56,6 +58,7 @@ def B(a, name, m, sx, sy, sz, gx, gy, gz, bevel=None, seg=1):
     if bevel is None: bevel = .03 if m in TRIM_BV else 0.
     return add(name, box(sx, sy, sz, gx, gy, gz, bevel, seg), m, a)
 def cylv(r, h, gx, gy, gz, seg=36):
+    seg = seg * 2
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r, radius2=r, depth=h)
     for v in bm.verts: v.co = v.co + G(gx, gy + h / 2, gz)
     return bm

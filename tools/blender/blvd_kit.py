@@ -46,11 +46,16 @@ def add_mesh(name, bm, m, asset, smooth=True):
     ob = bpy.data.objects.new(name, me); scene.collection.objects.link(ob); ob.parent = root(asset); return ob
 def xform(bm, M):
     for v in bm.verts: v.co = M @ v.co
+# detail policy v2 (hero pass): assets flagged HD (few instances, seen up close in Last Call) get one more bevel segment
+# and 2.5x the round segments; high-count props (trees, lamps, rails, parked cars, containers) keep v1 density.
+HD = 0
 def bevel_bm(bm, off, seg=2):   # round every hard edge (same call as volcano_p1.py) so corners catch the night rig's highlights
+    seg = seg + 1 if HD else seg
     es = [e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6]
     if es and off > 0: bmesh.ops.bevel(bm, geom=es, offset=off, segments=seg, affect='EDGES', profile=.5, clamp_overlap=True)
     return bm
 def cyl(r1, r2, h, seg=24):
+    seg = round(seg * 2.5) if HD else seg
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r1, radius2=r2, depth=h)
     xform(bm, Matrix.Translation((0, 0, h / 2))); return bm
 def boxbm(sx, sy, sz, gx=0, gy=0, gz=0, bevel=0.):
@@ -58,6 +63,7 @@ def boxbm(sx, sy, sz, gx=0, gy=0, gz=0, bevel=0.):
     for v in bm.verts: v.co = Vector((v.co.x * sx, v.co.y * sz, v.co.z * sy)) + G(gx, gy, gz)
     return bevel_bm(bm, min(bevel, .45 * min(sx, sy, sz)))
 def tube(name, pts, r, m, asset, res=8):
+    res = res * 2 if HD else res
     cu = bpy.data.curves.new(name, 'CURVE'); cu.dimensions = '3D'; cu.bevel_depth = r; cu.bevel_resolution = 2; cu.resolution_u = res; cu.use_fill_caps = True
     sp = cu.splines.new('NURBS'); sp.points.add(len(pts) - 1)
     for p, q in zip(sp.points, pts): p.co = (*G(*q), 1)
@@ -195,7 +201,7 @@ car('ParkSedan', 4.7, 1.84, 1.44, .92, .84, 1.7, -.2)
 car('ParkSUV', 4.8, 1.92, 1.76, 1.08, 1.04, 2.5, -.35, ride=.22, wr=.37, wb=1.42, suv=True)
 
 # gas station: pitched canopy on stone-clad columns, exposed white trusses, recessed downlights, pump islands, bollards
-A = 'GasStation'
+A = 'GasStation'; HD = 1
 CW, CD, CH = 24., 14., 5.6          # canopy length (z), depth (x), clearance
 b = bmesh.new()
 for sgn in (1, -1):                 # two roof planes meeting at a ridge along z
@@ -231,7 +237,7 @@ add_mesh('gs_awn', boxbm(1.4, .12, 18, SX + .7, 3.0, 0, bevel=.03), 'WHITE', A, 
 add_mesh('gs_sroof', boxbm(12, .05, 20, SX - 6, 4.63, 0), 'ROOF', A, smooth=False)
 
 # strip-mall bay: 10 m wide, 18 m deep, brick piers, storefront glass with a door, sign fascia, coping, canopy with downlights
-A = 'StripBay'
+A = 'StripBay'; HD = 1
 add_mesh('sb_box', boxbm(18, 6., 10, -9, 3., 0, bevel=.12), 'BRICK', A, smooth=False)
 add_mesh('sb_glass', boxbm(.05, 3.0, 7.6, .02, 1.65, .4), 'STOREGLASS', A, smooth=False)
 add_mesh('sb_door', boxbm(.06, 2.4, 1.6, .03, 1.2, -3.8), 'TRIM_DARK', A, smooth=False)
@@ -243,7 +249,7 @@ for z in (-3, 0, 3): add_mesh(f'sb_dl{z}', boxbm(.5, .03, .5, 1.6, 3.44, z), 'LA
 add_mesh('sb_roof', boxbm(18, .05, 10, -9, 6.02, 0), 'ROOF', A, smooth=False)
 
 # mall anchor (department-store box): precast panels, dark fascia band, glass entry vestibule with a canopy
-A = 'MallAnchor'
+A = 'MallAnchor'; HD = 0
 add_mesh('ma_box', boxbm(40, 11, 64, -20, 5.5, 0, bevel=.2), 'PRECAST', A, smooth=False)
 for z in [-30 + k * 6 for k in range(11)]: add_mesh(f'ma_rev{z}', boxbm(.18, 10.6, .22, .05, 5.3, z, bevel=.03), 'CONCRETE', A, smooth=False)   # panel reveals
 add_mesh('ma_band', boxbm(.3, 2.2, 64, .1, 9.4, 0, bevel=.05), 'FASCIA', A, smooth=False)

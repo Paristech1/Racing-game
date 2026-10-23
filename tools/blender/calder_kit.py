@@ -58,7 +58,11 @@ def add(name, bm, m, a, smooth=False):
     me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free(); me.materials.append(MATS[m])
     if smooth: me.shade_smooth()
     ob = bpy.data.objects.new(name, me); scene.collection.objects.link(ob); ob.parent = root(a); return ob
+# detail policy v2 (hero pass): assets flagged HD (few instances, seen up close in Last Call) get one more bevel segment
+# and 2.5x the round segments; high-count props (trees, lamps, rails, parked cars, containers) keep v1 density.
+HD = 0
 def bevel_bm(bm, off, seg=1):
+    seg = seg + 1 if HD else seg
     es = [e for e in bm.edges if len(e.link_faces) == 2 and e.calc_face_angle(0) > .6]
     if es and off > 0: bmesh.ops.bevel(bm, geom=es, offset=off, segments=seg, affect='EDGES', profile=.5, clamp_overlap=True)
     return bm
@@ -77,6 +81,7 @@ def beam(a, name, m, p, q, w, h=None, bevel=.03):
     for vv in bm.verts: vv.co = M @ vv.co + (P + Q) / 2
     return add(name, bevel_bm(bm, min(bevel, .4 * min(w, h))), m, a)
 def cylv(r, h, gx, gy, gz, seg=16, r2=None):
+    seg = round(seg * 2.5) if HD else seg
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=seg, radius1=r, radius2=r if r2 is None else r2, depth=h)
     for v in bm.verts: v.co = v.co + G(gx, gy + h / 2, gz)
     return bm
@@ -87,7 +92,7 @@ def pyramid(w, h, gx, gy, gz):
     return bm
 
 # ---------------- GantryCrane (ship-to-shore, ~62 m to the apex) ----------------
-A = 'GantryCrane'
+A = 'GantryCrane'; HD = 1
 LX, LZ = 9., 14.                  # legs at x = +-9 (landside / waterside rail), z = +-14
 for sx in (-1, 1):
     for sz in (-1, 1):
@@ -123,6 +128,7 @@ mat('PANEL', (.86, .88, .9), .1, .3); mat('AMBER', (1, .6, .2), 0, .3, emit=(1.,
 mat('CONCRETE', (.5, .5, .49), 0, .85); mat('WOODSH', (.12, .22, .2), 0, .8); mat('LEAF', (.08, .16, .09), 0, .95); mat('BARK', (.16, .12, .09), 0, 1)
 
 def lathe(prof, n, gx, gy, gz, sx=1., sz=1.):
+    n = round(n * 2.5) if HD else n
     """surface of revolution around the vertical axis; prof = [(r, y)] bottom -> top"""
     bm = bmesh.new(); rings = []
     for r, y in prof:
@@ -131,6 +137,7 @@ def lathe(prof, n, gx, gy, gz, sx=1., sz=1.):
         for k in range(n): bm.faces.new((a[k], a[(k + 1) % n], b[(k + 1) % n], b[k]))
     bm.normal_update(); return bm
 def disc(rx, rz, y0, y1, gx, gz, n=40):
+    n = round(n * 2.5) if HD else n
     """elliptical slab (plan rx by rz), y0..y1"""
     bm = bmesh.new(); bmesh.ops.create_cone(bm, cap_ends=True, segments=n, radius1=1, radius2=1, depth=1)
     for v in bm.verts: v.co = Vector((gx + v.co.x * rx, -(gz + v.co.y * rz), (y0 + y1) / 2 + v.co.z * (y1 - y0)))
@@ -145,7 +152,7 @@ def strip(a, name, m, pts, w, t, z0, z1):
 
 # ---------------- TrussArch: one 120 m span, K-truss through-arch (Midjourney bridge frames: deep red-orange truss arch,
 # lower chord following the arch, K web between the chords, X bracing overhead, portal frames at the ends) ----------------
-A = 'TrussArch'
+A = 'TrussArch'; HD = 0
 HALF, RISE, DEPTH, X = 60., 26., 5.2, 9.6
 def up(z): return RISE * (1 - (z / HALF) ** 2) + 1.2                      # top chord
 def lo(z): return max(1.2, up(z) - DEPTH * (1 - .55 * (abs(z) / HALF) ** 2))  # bottom chord, meets the deck at the ends
@@ -280,12 +287,12 @@ for k in range(6): bm.faces.new((V[k], V[(k + 1) % 6], V[6 + (k + 1) % 6], V[6 +
 bm.normal_update(); add('cap', bevel_bm(bm, .08), 'CONCRETE', A)
 
 # ---------------- yard + ridge props ----------------
-A = 'FloodMast'                                                            # yard flood-light mast (Midjourney container frames)
+A = 'FloodMast'; HD = 1                                                            # yard flood-light mast (Midjourney container frames)
 add('pole', cylv(.45, 30, 0, 0, 0, seg=10, r2=.3), 'STEEL', A, smooth=True)
 B(A, 'frame', 'STEEL', 1.2, 2.4, 5.4, 0, 30.6, 0, .03)
 for z in (-2, -.7, .7, 2):
     for y in (30, 31.2): B(A, f'fl{z}{y}', 'LAMP', .3, .9, 1.1, .55, y, z, 0.)
-A = 'Cypress'                                                              # tall narrow Mediterranean cypress (ridge frames)
+A = 'Cypress'; HD = 0                                                              # tall narrow Mediterranean cypress (ridge frames)
 add('trunk', cylv(.22, 2.2, 0, 0, 0, seg=6), 'BARK', A)
 add('crown', lathe([(.2, 1.2), (1.3, 3), (1.6, 6), (1.3, 10), (.7, 13), (0, 15)], 9, 0, 0, 0), 'LEAF', A)
 

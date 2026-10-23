@@ -37,11 +37,12 @@ M = {'STONE': mat('STONE', (.78, .72, .6), 0, .75, (.35, .26, .15), .6), 'STONEH
      'LED': mat('LED', (1, 1, 1), 0, .3, (1, 1, 1), 8.), 'WOOD': mat('WOOD', (.13, .12, .12), 0, .8),
      'TRIM_LIGHT': mat('TRIM_LIGHT', (.75, .75, .72), 0, .6), 'STEEL': mat('STEEL', (.18, .36, .62), .6, .45)}
 
-SEG_DETAIL = 2.25   # round parts (columns, urns, statue, LED tubes) get this many times the segments they ask for;
+SEG_DETAIL = 4.0    # (v2 hero pass, was 2.25) round parts (columns, urns, statue, LED tubes) get this many times the segments they ask for;
                     # deliberately faceted ones (sides=, n<=4 steel sections, the square/octagonal slate domes) are left alone
 BEVEL_MATS = {'STONE', 'STONEHI', 'GRANITE', 'SAND', 'WOOD', 'TRIM_LIGHT', 'SLATE', 'ROOFBLUE', 'STEEL'}   # windows, gaps, LEDs stay crisp
 def _bevel(verts, faces, off, seg=2):
     """Bevel the hard edges of a closed polyhedron (game coords) with the same bmesh call as volcano_p1.py; returns (verts, faces)."""
+    if off >= .1: seg = seg + 1   # v2 hero pass: one more segment on the big masses (all of them blew the 10 MB boot budget)
     bm = bmesh.new(); vs = [bm.verts.new(v) for v in verts]
     for f in faces: bm.faces.new([vs[i] for i in f])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)

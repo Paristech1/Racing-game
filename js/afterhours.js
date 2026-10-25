@@ -9479,7 +9479,7 @@ function queueMenuScene(){
 }
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id)); }
 function flash(strength,kind){ if(kind!==false&&window.AH_FX&&mode!=='race'&&mode!=='highlight'&&AH_FX.play(kind||'shutter')) return; const f=$('#flash'); /* menu changes: Shaders paper transition (js/ui-fx.js) when WebGPU is up, else the white flash */ f.classList.remove('go'); f.style.opacity=strength||1; void f.offsetWidth; f.classList.add('go'); f.style.opacity=0; }
-function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
+function fmt(t){ if(!(t>0)||!isFinite(t)) return '0:00.0'; const totalTenths=Math.round(t*10), m=Math.floor(totalTenths/600), tenths=totalTenths%600, s=Math.floor(tenths/10), d=tenths%10; return m+':'+(s<10?'0':'')+s+'.'+d; }
 let toastT=0; function toast(s){ const t=$('#hToast'); t.textContent=s; t.style.opacity=1; toastT=1.8; }
 function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 function animIn(list,dir){ list.forEach(([s,c])=>{ const e=$(s); e.style.setProperty('--dx',(dir*40)+'px'); e.classList.remove('enter','d1','d2','d3'); void e.offsetWidth; e.classList.add('enter'); if(c) e.classList.add(c); }); }

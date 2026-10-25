@@ -16,9 +16,12 @@ export function rng(seed) {
 
 export function fmt(t) {
   if (!(t > 0) || !isFinite(t)) return '0:00.0';
-  const m = Math.floor(t / 60);
-  const s = t - m * 60;
-  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+  const totalTenths = Math.round(t * 10);
+  const m = Math.floor(totalTenths / 600);
+  const tenths = totalTenths % 600;
+  const s = Math.floor(tenths / 10);
+  const d = tenths % 10;
+  return m + ':' + (s < 10 ? '0' : '') + s + '.' + d;
 }
 
 export function esc(s) {

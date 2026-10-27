@@ -37,6 +37,7 @@ Before changing 3D code, read **`afterhours-threejs`** and the most relevant `th
 2. Hard-refresh or bump `?v=` on script/css in `index.html` after JS/CSS changes.
 3. For track/event work: open event picker, load the new event, confirm no console errors and correct headline/lap loading text.
 4. For car-select / canvas gestures: verify swipe changes cars without breaking orbit.
+5. For any change to a level, car kit, materials or post FX: run `node tools/perf_report.mjs <eventId>` before and after and put the counts in the PR (budgets and rules: "Render and performance rules" in `afterhours-threejs`).
 
 ## Git
 

@@ -64,6 +64,104 @@ Open http://localhost:8080 — needs egress to cdnjs, jsDelivr, and Google Fonts
 4. New events: add config object, `buildX()` wrapper, `EVENTS` entry, README event line; test by opening events screen and loading the track (watch console for ReferenceErrors).
 5. Keep diffs minimal; match naming and formatting of surrounding code.
 
+## Render and performance rules
+
+Adopted 2026-10-27 from the Utsubo "100 Three.js tips" (r186), threejs-game-skills, Threejs-Awesome-Graphics-Agent-Skills,
+nixie-fx, the WebGPU/TSL skill and ai-dev-kit, filtered to what r128 can actually do here. Sources and what was left out:
+the Project doc `upgrades/threejs-principles.md`.
+
+### 1. Measure before and after every graphics change
+
+- Open with `?dev` and call `AHDEV.perf()` in a race. It holds `renderer.info`'s reset for one whole `draw()`, so the
+  counts cover the scene plus every composer pass (a plain `renderer.info` read only shows the last pass). It also
+  returns a scene inventory: objects, instanced meshes and instance count, unique materials, transparent materials, lights.
+- Run `node tools/perf_report.mjs [eventId ...]` for the table in `docs/perf-report.md` (all events, worst of three
+  points on the lap, plus an A → B → A leak check). Counts are exact headless; frame times are not, so never quote
+  headless FPS. Real frame time comes from a real device (`AHDEV.pace()` shows what the frame pacer did).
+- Report before/after counts in the PR or level doc for any change to a level, a car kit, materials or post.
+
+### 2. Budgets (desktop, worst active-play view)
+
+| Metric | Budget | Why |
+|---|---|---|
+| Draw calls | ≤ 300 | CPU submit cost per call; triangles are cheaper than calls |
+| Triangles | ≤ 750k | silhouettes near the camera, LOD or impostors behind |
+| GPU geometries | ≤ 300 | `info.memory.geometries` |
+| Textures | ≤ 60 | canvas textures included |
+| Unique materials | ≤ 150 | each unique material is a state change and often a program |
+| Transparent materials | ≤ 40 | no early depth reject, sorted every frame, overdraw |
+
+Phones (`PHONE`): roughly half of each. Going over is allowed when it is written down as a tradeoff in the level doc;
+silently going over is not. Baseline on 2026-10-27 (`docs/perf-report.md`): every event is over on materials and
+transparent materials; Roosevelt Blvd is the worst on draw calls (about 2,000 to 2,650), Last Call on triangles (about
+9 M), Calder second on both. The causes measured on Blvd: 1,510 instanced meshes of which 584 hold four copies or fewer,
+and 1,165 materials of which 790 duplicate another one's parameters.
+
+### 3. Draw calls first
+
+- An `InstancedMesh` only pays when it holds many instances. Dozens of instanced meshes holding a handful of copies each
+  cost as many calls as plain meshes; batch by (geometry, material) across the whole level, not per block or per prop.
+- Static geometry that shares a material: merge it into one mesh per material at build time (`mergeGeos`, or
+  `mergeByMaterial` as the cars already do). Keep collision data separate from the merged visual.
+- One material per role, shared across the level (`bodyPrimary`, `trim`, `glass`, `emissiveSignal`, `groundContact`, …).
+  Never `new THREE.Mesh*Material` inside a per-building or per-prop loop; look it up in a cache keyed by its parameters.
+- `transparent:true` only when the material really blends (the 2026-10-27 audit found none left at opacity 1 with
+  normal blending; keep it that way). Cut-outs (fences, foliage
+  cards, decals with hard edges) → `alphaTest` instead of blending. Additive light (pools, beams, flares) stays
+  transparent and tagged `FOG_ADD`.
+- Static world objects: `matrixAutoUpdate=false` and one `updateMatrix()` after placement, so the scene graph stops
+  recomposing thousands of matrices every frame. Anything that moves (traffic, racers, doors, lamps that sway) keeps it on.
+- Culling: the custom fog-depth cull (`CULL`) only works with correct bounding spheres; recompute bounds after moving
+  instances or editing positions.
+
+### 4. Frame loop hygiene
+
+- No allocation in per-frame code (`loop`, `stepRacer`, `poseRacer`, cameras, `updateFx`): reuse module-level scratch
+  vectors. `new THREE.Vector3()` in a per-frame path is a GC hitch on phones.
+- Simulation randomness goes through a seedable source (`AHDEV.sim` already swaps `Math.random` for a seeded one; new
+  gameplay code should take a passed-in `rng` so replays, ghosts and future multiplayer stay reproducible).
+- Physics currently substeps the render delta (`stepPhysics`). Before online multiplayer, move to a fixed step
+  (e.g. 1/120 s accumulator) with render interpolation, so 60 Hz and 144 Hz players run the same simulation.
+- Keep: delta capped at 33 ms, audio suspended on `visibilitychange`, `renderer.compile()` warm-up during loading,
+  context-loss reload, frame pacer on pixel ratio. These already match the sources' advice.
+
+### 5. Image pipeline
+
+- Tone-map once (renderer ACES), bloom before grading, grain/lens last. Do not add a second tone mapper in a pass.
+- No-post baseline: every level must read with post off. Fog, bloom, grain or tint never stand in for missing geometry;
+  this is also why Clear is the default look.
+- Every image effect gets a named on/off and its strength in the event's `userData` (`bloom`, `grade`, `lens`), so a
+  pass can be isolated when tuning.
+
+### 6. VFX (particles, sparks, skid marks, rain)
+
+From nixie-fx's runtime contract, applied to our own code: one owner per effect system; update it exactly once per frame
+with seconds; pool meshes and reuse geometry and material; seed anything random; stop ticking when hidden; free it with
+the event in `releaseEvent`. Sharing a material does not merge draws on its own; a pooled system should render as one
+instanced or points mesh.
+
+### 7. Assets
+
+- GLBs stay geometry-only, meshopt + quantized (`tools/optimize_models.sh`). Textures, if ever added: ≤ 1024 px, WebP or
+  Basis (r128 has `BasisTextureLoader`, not `KTX2Loader`).
+- Canvas textures: size to their largest on-screen footprint, power of two where mipmaps matter, `anisotropy` only on
+  road and ground surfaces seen at grazing angles.
+- Disposal: everything an event builds is freed by `releaseEvent` through `_own` windows; anything meant to survive
+  (shared kit geometry, car materials) sets `userData.shared`. The perf report's leak check must not grow.
+
+### Not for this repo (and why)
+
+- WebGPU renderer, TSL, compute shaders, `BatchedMesh`, `Timer`, `compileAsync`, `KTX2Loader`, occlusion queries: all
+  need r150+ ES modules. r128 globals, the fog `ShaderChunk` override and the `onBeforeCompile` patches would all have to
+  be rewritten. Revisit only if draw calls stay over budget after section 3 is done, as a planned migration.
+- nixie-fx as a library (ESM, modern three peer): use its contract (section 6), not the package.
+- React Three Fiber tips, CDN/caching advice, AI asset generators (we use Midjourney → Blender).
+
+## Learnings
+
+Read `learnings.md` in this folder before 3D work and add one dated line at the end (symptom → cause → fix, with the
+measured counts) whenever a rendering bug or perf fix lands. Merge or delete lines that stop being true.
+
 ## Related skills
 
 Load from `.cursor/skills/` as needed:

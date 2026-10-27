@@ -7780,6 +7780,18 @@ function pace(ms){ if(!(ms>0)||ms>250||document.hidden){ PACE.over=PACE.hold=0; 
   else { PACE.over=Math.max(0,PACE.over-ms*.5);
     if(PACE.ema<17.3){ PACE.hold+=ms; if(PACE.hold>4000){ PACE.hold=0; if(pr<PACE.ceil&&setPR(pr+.1)) PACE.lastUp=PACE.clock; } } else PACE.hold=0; } }
 if(DEV) window.AHDEV.pace=()=>({pr:renderer.getPixelRatio(),ema:+PACE.ema.toFixed(2),ceil:PACE.ceil,max:PR_MAX});
+/* perf probe (?dev): one whole frame's renderer counts plus a scene inventory. renderer.info resets on every render() call,
+   so with the composer (scene + bloom mips + grade + lens) it would only show the last pass: hold the reset for one draw.
+   calls include the post passes' fullscreen quads. Budgets and how to read it: .cursor/skills/afterhours-threejs/SKILL.md */
+if(DEV) window.AHDEV.perf=()=>{ const I=renderer.info, sc=mode==='race'||mode==='highlight'?RS:studio; if(!sc) return null;
+  I.autoReset=false; I.reset(); draw(sc); const f={calls:I.render.calls,tris:I.render.triangles,points:I.render.points,lines:I.render.lines}; I.autoReset=true;
+  const mats=new Set(), geos=new Set(); let meshes=0,vis=0,inst=0,instN=0,transp=0,lights=0,shadow=0;
+  sc.traverse(o=>{ if(o.isLight){ lights++; if(o.castShadow) shadow++; } if(!o.isMesh&&!o.isPoints&&!o.isLine&&!o.isSprite) return; meshes++;
+    let v=true; for(let p=o;p;p=p.parent) if(!p.visible){ v=false; break; } if(v) vis++;
+    if(o.isInstancedMesh){ inst++; instN+=o.count; } if(o.geometry) geos.add(o.geometry.uuid);
+    (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{ if(m&&!mats.has(m.uuid)){ mats.add(m.uuid); if(m.transparent) transp++; } }); });
+  return {mode,ev:EV&&EV.id,pr:renderer.getPixelRatio(),...f,geometries:I.memory.geometries,textures:I.memory.textures,programs:I.programs?I.programs.length:0,
+    objects:meshes,visible:vis,instanced:inst,instances:instN,materials:mats.size,transparent:transp,uniqueGeos:geos.size,lights,shadowLights:shadow}; };
 // HUD writes only when the value changes: no per-frame DOM churn (style recalcs and garbage) while racing
 function setT(el,t){ if(el.textContent!==t) el.textContent=t; }
 function setH(el,h){ if(el._h===h&&el.innerHTML===el._s) return; el.innerHTML=h; el._h=h; el._s=el.innerHTML; }

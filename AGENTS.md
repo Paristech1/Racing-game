@@ -30,6 +30,10 @@ This repo vendors Three.js agent skills under **`.cursor/skills/`**, symlinked i
 
 Before changing 3D code, read **`afterhours-threejs`** and the most relevant `threejs-*` skill, then adapt examples to **global THREE r128** (not ESM `three/addons/`).
 
+## Planned fixes (audit handoff)
+
+Gameplay/UX bugs (post-race menu stalls, Gauntlet map picker, transition hitches) and dead-code cleanup are documented in **`docs/AUDIT-menu-stalls-dead-code.md`**. Follow **Part C** in that file when implementing; read **`afterhours-threejs`** before 3D changes.
+
 ## Testing
 
 0. **Unit tests:** `npm test` (Node built-in test runner; pure logic in `js/logic.mjs`, specs in `tests/`).

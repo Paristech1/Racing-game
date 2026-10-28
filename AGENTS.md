@@ -8,7 +8,16 @@ Browser-only street racing game (`index.html`, `js/afterhours.js`, `css/afterhou
 
 ## Environment
 
-See `.cursor/environment.json`: static site served with `python3 -m http.server 8080`. No build step.
+See `.cursor/environment.json`. There is no application build step.
+
+- `install` (`.cursor/install.sh`) puts Node.js 22 on `/usr/local/bin` if it is missing. It is safe to run twice. The game has no root npm packages.
+- `start` (`.cursor/start.sh`) serves the static site with `python3 -m http.server 8080` and exits immediately if that port is already open.
+
+## Cursor Cloud specific instructions
+
+- After boot, the game is at http://localhost:8080. Do not start a second server when that port is already open.
+- Unit tests: `npm test` (Node.js 22, no `npm install`).
+- three.js r128 and Google Fonts load from cdnjs, jsDelivr, and fonts.googleapis.com. A blank page after the boot screen usually means those hosts were blocked.
 
 ## Three.js skills
 

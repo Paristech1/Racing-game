@@ -30,6 +30,33 @@ This repo vendors Three.js agent skills under **`.cursor/skills/`**, symlinked i
 
 Before changing 3D code, read **`afterhours-threejs`** and the most relevant `threejs-*` skill, then adapt examples to **global THREE r128** (not ESM `three/addons/`).
 
+## Other agent skills
+
+Vendored under **`.cursor/skills/`** (symlinked from **`.claude/skills/`**). See `.cursor/skills/ATTRIBUTION.md` for licenses and sources.
+
+### Skill security review (SkillSpector)
+
+| Skill | Use when |
+| --- | --- |
+| **`skill-inspector`** | Deciding if a skill folder or download is safe to install — static scan + source review |
+
+### Engineering habits (Waza)
+
+| Skill | Use when |
+| --- | --- |
+| `think` | Before building something new — pressure-test design and produce an implementation plan |
+| `ui` | Distinctive frontend UI (not generic defaults) |
+| `check` | After a task — diff review, verification, release/maintainer actions |
+| `hunt` | Bugs/regressions — root cause before any fix |
+| `write` | Natural Chinese/English prose edits |
+| `learn` | Six-phase research in an unfamiliar domain |
+| `read` | Summarize or extract Markdown from URLs/PDFs |
+| `health` | Agent/project health audit (instructions, verifiers, maintainability) |
+
+### Cybersecurity (818 skills)
+
+Flat layout: `.cursor/skills/<skill-name>/SKILL.md`. Scan descriptions or use `.cursor/skills/cybersecurity-index.json`. Covers DFIR, cloud, AppSec, threat hunting, GRC, etc. **Lawful, authorized use only** (pen testing, IR, research with permission). For MCP server trust, prefer **`skill-inspector`** or `auditing-mcp-servers-for-tool-poisoning` over generic debugging skills.
+
 ## Testing
 
 0. **Unit tests:** `npm test` (Node built-in test runner; pure logic in `js/logic.mjs`, specs in `tests/`).

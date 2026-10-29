@@ -3584,7 +3584,7 @@ function facWin(mat,style){ const S=FW_STYLE[style]; if(!S) return mat;
   vec3 paneD=mix(mix(mix(vec3(.01,.012,.016),coverC*.35*(1.-litR),cover),frameC,sash),acC,ac);
   diffuseColor.rgb=mix(diffuseColor.rgb,paneD,pane*(1.-lod*.85));
   roughnessFactor=mix(roughnessFactor,.3,glassM); metalnessFactor=mix(metalnessFactor,.1,glassM);
-  totalEmissiveRadiance=mix(totalEmissiveRadiance,emissive*(winE+skyR),pane); }`); };
+  totalEmissiveRadiance+=emissive*((winE+skyR)*pane-1.0); }`); };
   mat.customProgramCacheKey=function(){ return (prevKey?prevKey.call(this):'')+'|facWin'+(PHONE?'F':''); };
   return mat; }
 let KIT_MATS=null; // one shared material set for the Blender kits

@@ -3465,6 +3465,128 @@ function upLit(mat,o){ o=Object.assign({},UP_DEF,o); const U={uUp:{value:o.k},uU
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vUpW; uniform float uUp,uUpH,uUpMix; uniform vec3 uUpA,uUpB;').replace('#include <emissivemap_fragment>',
       '#include <emissivemap_fragment>\n{ float hU=fract(sin(dot(floor(vUpW.xz/38.0),vec2(12.9898,78.233)))*43758.5453); vec3 upC=mix(uUpA,uUpB,step(1.0-uUpMix,hU));\n  totalEmissiveRadiance+=upC*exp(-max(vUpW.y,0.0)/uUpH)*uUp*(0.25+diffuseColor.rgb*2.2); }'); };
   mat.customProgramCacheKey=()=>'upLit'; return mat; }
+/* WINDOWS WITH DEPTH (threejs-shaders via onBeforeCompile; technique ported from mrdoob's Slop New York, MIT,
+   js/tsl-materials.js evaluateApartmentInterior / distantWindowLight, itself after SkyscraperGenerator interior()).
+   Every pane of a facadeTex material is drawn in the shader instead of the canvas emissive map:
+   - interior mapping: a room 2-4 bays wide and one floor tall sits behind the glass; per pixel the view ray is
+     intersected with its back wall, side walls, floor and ceiling, so rooms shift with parallax as you drive past.
+     Partitions land behind mullions (whole-bay rooms, a bay phase per floor).
+   - per room: lit or dark, warm tungsten/LED or cool fluorescent, the odd TV glow in a dark room; offices light whole
+     floors (cleaning crews); ceilings carry the lamp and the walls fade down from it.
+   - drapes (left/right, pass ~20% of the glow so they silhouette), venetian blinds, ~12% window AC units on brick.
+   - dark rooms read as dark glass: dielectric, low roughness, the env map's sky in the reflection plus a faint tint.
+   - once a window is 1-2 px (fw = pixel footprint in cells) lit rooms merge into world-anchored, box-filtered clusters
+     that keep the mean brightness, so distant towers don't shimmer. Phones skip the ray/box (flat back wall).
+   One program for all facade styles: style lives in uniforms. Chains any onBeforeCompile already on the material. */
+const FW_STYLE={glass:{grid:[16,10],win:[1.5/32,1-1.5/32,3/51.2,1-3/51.2],p:.3,warm:.25,kind:0,seed:3.1},
+  brick:{grid:[12,10],win:[.22,.78,.2,.8],p:.3,warm:.85,kind:1,seed:7.7},
+  stone:{grid:[12,10],win:[.22,.78,.2,.8],p:.28,warm:.7,kind:2,seed:11.3},
+  hall:{grid:[8,8],win:[.22,.78,.2,.8],p:.8,warm:1,kind:3,seed:5.9}};
+const FW_GLSL=`
+varying vec3 vFwP; varying vec3 vFwN;
+uniform vec2 uFwGrid, uFwCell; uniform vec4 uFwWin, uFwP;
+float fwH(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+float fwI(float t,float a,float b){ return floor(t)*(b-a)+clamp(fract(t),a,b)-a; }
+float fwPulse(float x,float a,float b,float w){ float hw=max(w,1e-4)*.5; return (fwI(x+hw,a,b)-fwI(x-hw,a,b))/(2.*hw); }
+float fwCluster(vec2 g,vec2 fw,float p,float seed,float sz){ vec2 c=g/sz, w=fw/sz;
+  return step(1.-p,fwH(floor(c)+vec2(seed,73.1)))*fwPulse(c.x,.25,.75,w.x)*fwPulse(c.y,.25,.75,w.y)*4.; }
+`;
+function facWin(mat,style){ const S=FW_STYLE[style]; if(!S) return mat;
+  const U={uFwGrid:{value:new THREE.Vector2(...S.grid)},uFwCell:{value:new THREE.Vector2(32/S.grid[0],32/S.grid[1])},
+    uFwWin:{value:new THREE.Vector4(...S.win)},uFwP:{value:new THREE.Vector4(S.p,S.warm,S.kind,S.seed)}};
+  mat.userData.fw=U; mat.emissiveMap=null; mat.extensions=Object.assign({},mat.extensions,{derivatives:true}); // panes are drawn in the shader; the canvas emissive map is never uploaded
+  const prev=mat.onBeforeCompile, prevKey=Object.prototype.hasOwnProperty.call(mat,'customProgramCacheKey')?mat.customProgramCacheKey:null;
+  mat.onBeforeCompile=function(sh,r){ if(prev) prev.call(this,sh,r); Object.assign(sh.uniforms,U);
+    sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vFwP; varying vec3 vFwN;').replace('#include <project_vertex>',
+      '#include <project_vertex>\nvFwP=(modelMatrix*vec4(transformed,1.0)).xyz; vFwN=normalize(mat3(modelMatrix)*objectNormal);');
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\n'+(PHONE?'#define FW_FLAT\n':'')+FW_GLSL).replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>
+{ vec3 N=normalize(vFwN); float kind=uFwP.z, office=step(kind,.5), resi=1.-office;
+  vec2 g=vUv*uFwGrid, cid=floor(g), cuv=g-cid, fw=max(fwidth(g),vec2(1e-4));
+  float lod=smoothstep(.3,.8,max(fw.x,fw.y)), roof=step(.75,abs(N.y));
+  float seed=uFwP.w+floor(dot(vFwP,N)*.5+.25)*7.13; // per wall plane, so neighbouring buildings don't repeat
+  // pane mask, box-filtered so it settles to its coverage at distance
+  float pane=fwPulse(g.x,uFwWin.x,uFwWin.y,fw.x)*fwPulse(g.y,uFwWin.z,uFwWin.w,fw.y)*(1.-roof);
+  float aa=max(fw.x,fw.y);
+  if(kind>2.5) pane*=1.-step(.52,cuv.y)*smoothstep(.28-aa,.28+aa,length(cuv-vec2(.5,.52))); // arched hall windows
+  vec2 wuv=clamp((cuv-uFwWin.xz)/(uFwWin.yw-uFwWin.xz),0.,1.);
+  // room module: whole bays, phase per floor, so partitions sit behind mullions
+  float fl=cid.y, f1=fwH(vec2(fl,seed)), f2=fwH(vec2(fl*1.7+3.1,seed+11.));
+  float bays=mix(mix(2.,3.,step(.5,f1)),mix(3.,4.,step(.5,f1)),office), roomU=(g.x+floor(f2*bays))/bays;
+  vec2 rid=vec2(floor(roomU),fl);
+  float s1=fwH(rid+vec2(seed,19.4)), s2=fwH(rid+vec2(seed*1.9,83.1)), s3=fwH(rid+vec2(63.2,seed*.7));
+  float floorLit=office*step(.9,fwH(vec2(fl,seed+5.))), litR=max(step(1.-uFwP.x,s3),floorLit*step(.15,s1));
+  float tv=(1.-litR)*step(.9,s2)*resi;
+  vec3 warmC=mix(vec3(1.,.55,.24),vec3(1.,.78,.5),s1), coolC=mix(vec3(.78,.86,1.),vec3(.9,.95,1.),s2);
+  vec3 lightC=mix(mix(coolC,warmC,step(1.-uFwP.y,fract(s2*7.31))),coolC,floorLit);
+  // view ray in the wall frame (across, up, into the building); across follows increasing u
+  vec3 T=vec3(N.z,0.,-N.x); vec3 dPx=dFdx(vFwP), dPy=dFdy(vFwP);
+  T*=(dot(dPx,T)*dFdx(g.x)+dot(dPy,T)*dFdy(g.x))<0.?-1.:1.;
+  vec3 ray=normalize(vFwP-cameraPosition);
+  float dX=dot(ray,T), dY=ray.y, dZ=max(-dot(ray,N),.05);
+  float roomW=bays*uFwCell.x, roomH=uFwCell.y*.9, depth=uFwCell.y*1.6, setb=.15;
+#ifdef FW_FLAT
+  vec3 q=vec3(fract(roomU),wuv.y*.7+.15,1.); float onBack=1., onCeil=0., onFloor=0., isY=0.;
+#else
+  float oX=(fract(roomU)-.5)*roomW, oY=clamp((cuv.y-.5)*uFwCell.y,-roomH*.49,roomH*.49);
+  float tX=(roomW*.5-oX*sign(dX))/max(abs(dX),1e-4), tY=(roomH*.5-oY*sign(dY))/max(abs(dY),1e-4), tZ=(setb+depth)/dZ;
+  float t=min(min(tX,tY),tZ); vec3 hit=vec3(oX+dX*t,oY+dY*t,dZ*t);
+  vec3 q=clamp(vec3(hit.x/roomW+.5,hit.y/roomH+.5,(hit.z-setb)/depth),0.,1.);
+  float onBack=step(tZ,tX)*step(tZ,tY), isY=step(tY,tX)*step(tY,tZ), onCeil=isY*step(0.,dY), onFloor=isY-onCeil;
+#endif
+  // room shell: plaster walls + skirting, boards and a rug (homes) or grey carpet (offices), lamp or panel ceiling
+  vec3 wallB=mix(mix(mix(vec3(.32,.27,.2),vec3(.2,.23,.25),s1),vec3(.46,.43,.37),s2*.6),vec3(.5,.5,.48),office);
+  vec3 wallC=mix(wallB,wallB*.5,smoothstep(.06,.04,q.y));
+  vec3 floorC=mix(mix(vec3(.1,.06,.035),vec3(.17,.11,.06),s1),vec3(.12,.12,.13),office);
+  floorC=mix(floorC,mix(vec3(.25,.07,.05),vec3(.06,.14,.16),s2),step(abs(q.x-.5),.28)*step(abs(q.z-.55),.25)*.85*resi);
+  float lampH=smoothstep(.17,.1,length(q.xz-vec2(.5,.45)));
+  float panel=step(abs(fract(q.x*bays)-.5),.16)*step(abs(fract(q.z*3.)-.5),.22);
+  float lamp=mix(lampH,panel,office)*(1.-lod);
+  vec3 ceilC=mix(wallB,vec3(.75,.72,.66),.35);
+  float doorX=mix(.24,.76,s1), inDoor=step(abs(q.x-doorX),.09)*step(abs(q.y-.34),.34)*resi;
+  float picX=mix(.72,.28,step(.5,s1)), inPic=step(abs(q.x-picX),.085)*step(abs(q.y-.56),.095)*resi;
+  vec3 backC=mix(mix(wallC,mix(vec3(.2,.15,.1),vec3(.12,.12,.13),step(.5,s2)),inDoor),mix(vec3(.04),mix(vec3(.1,.16,.24),vec3(.36,.24,.14),fract(s1+s2)),step(abs(q.x-picX),.065)*step(abs(q.y-.56),.075)),inPic);
+  backC=mix(backC,vec3(.06,.07,.08),office*step(q.y,.3)*step(.08,fract(q.x*bays*2.))); // office desks against the back wall
+  vec3 shell=mix(mix(mix(wallC,floorC,onFloor),ceilC,onCeil),backC,onBack);
+  float aoX=smoothstep(0.,.16,q.x)*smoothstep(0.,.16,1.-q.x), aoY=smoothstep(0.,.16,q.y)*smoothstep(0.,.16,1.-q.y), aoZ=smoothstep(0.,.16,q.z)*smoothstep(0.,.16,1.-q.z);
+  float ao=mix(.62,1.,mix(mix(aoY*aoZ,aoX*aoZ,isY),aoX*aoY,onBack));
+  // light falls from the ceiling: walls fade downward and with depth, the lamp itself is the brightest thing
+  vec3 roomL=(shell*1.3+.05)*ao*mix(1.,.5,q.z)*(.35+.9*q.y*q.y)+lamp*onCeil*.8;
+  vec3 tvG=vec3(.22,.36,1.)*shell*(.15+1.1*smoothstep(.55,0.,length(vec2(q.x-mix(.3,.7,s1),q.y-.3))))*(onBack+.5*onFloor+.3*(1.-onBack-isY));
+  // drapes (homes) and venetian blinds (offices, some stone fronts), hung just behind the glass
+  float cux=clamp(wuv.x+dX/dZ*.04,0.,1.), w1=fwH(cid+vec2(seed*.8,41.2)), w2=fwH(cid+vec2(17.9,seed*1.3)), w3=fwH(cid+vec2(seed,5.3));
+  float sL=smoothstep(.18,1.,w1), sR=smoothstep(.18,1.,w2), lw=sL*sL*.48, rw=sR*sR*.48, daa=fwidth(cux)+.012;
+  float useBl=max(office,(kind>1.5&&kind<2.5)?step(.5,w3):0.);
+  float drape=clamp(max(smoothstep(lw+daa,lw-daa,cux)*step(.03,lw),smoothstep(1.-rw-daa,1.-rw+daa,cux)*step(.03,rw)),0.,1.)*(1.-useBl);
+  float blF=useBl*w2*w2*.85, blind=smoothstep(1.-blF-daa,1.-blF+daa,wuv.y)*step(.04,blF);
+  float slat=mix(.75+.25*step(.35,fract(wuv.y*uFwCell.y*7.)),.85,clamp(fwidth(wuv.y)*uFwCell.y*14.,0.,1.));
+  float cover=mix(max(drape,blind),.29*resi+.2*office,lod);
+  float pick=fract(s1*5.7)*5.;
+  vec3 fab=mix(mix(mix(mix(vec3(.6,.55,.45),vec3(.34,.28,.21),step(1.,pick)),vec3(.22,.28,.31),step(2.,pick)),vec3(.27,.3,.2),step(3.,pick)),vec3(.36,.18,.12),step(4.,pick));
+  fab*=(.945+.2*sin(cux*48.+w1*6.28)*(1.-smoothstep(.6,1.6,daa*48.)));
+  vec3 coverC=mix(fab,vec3(.62,.6,.56)*slat,useBl);
+  // AC units on brick fronts: a box on the sill, louvered, no glow behind it
+  float ac=step(kind,1.5)*resi*step(.88,fwH(cid+vec2(seed,7.7)))*step(.5,fl)*step(abs(wuv.x-.5),.2)*step(wuv.y,.24)*(1.-lod);
+  // sash bars / mullion: crisp dark lines that fade out before they'd alias
+  float lx=fwidth(wuv.x)+1e-4, ly=fwidth(wuv.y)+1e-4;
+  float sash=max((1.-smoothstep(.012,.012+ly,abs(wuv.y-.52)))*resi,1.-smoothstep(.01,.01+lx,abs(wuv.x-.5)))*(1.-lod);
+  sash=clamp(sash,0.,1.);
+  // emission: near rooms, far clusters (cross-faded between two world-anchored cluster scales)
+  vec3 nearE=litR*lightC*mix(roomL,coverC*.2,cover)+tv*tvG*(1.-cover*.8);
+  float lev=log2(max(max(fw.x,fw.y)*4.,2.)), scl=exp2(floor(lev));
+  float far=mix(fwCluster(g,fw,uFwP.x,seed,scl),fwCluster(g,fw,uFwP.x,seed,scl*2.),smoothstep(0.,1.,fract(lev)));
+  vec3 avgC=mix(vec3(.85,.9,1.),vec3(1.,.7,.42),uFwP.y)*.5;
+  vec3 winE=mix(nearE,far*avgC,lod)*mix(1.,.2,cover*lod)*(1.-sash)*(1.-ac);
+  float fres=pow(1.-clamp(abs(dot(ray,N)),0.,1.),3.);
+  vec3 skyR=vec3(.006,.009,.016)*(.4+2.*fres)*(1.-litR*(1.-lod))*(1.-cover);
+  float glassM=pane*(1.-sash)*(1.-ac)*(1.-lod*.85);
+  vec3 frameC=mix(vec3(.03,.035,.045),diffuseColor.rgb*.5,resi);
+  vec3 acC=vec3(.18,.19,.2)*(.75+.25*step(.5,fract(wuv.y*30.)));
+  vec3 paneD=mix(mix(mix(vec3(.01,.012,.016),coverC*.35*(1.-litR),cover),frameC,sash),acC,ac);
+  diffuseColor.rgb=mix(diffuseColor.rgb,paneD,pane*(1.-lod*.85));
+  roughnessFactor=mix(roughnessFactor,.3,glassM); metalnessFactor=mix(metalnessFactor,.1,glassM);
+  totalEmissiveRadiance=mix(totalEmissiveRadiance,emissive*(winE+skyR),pane); }`); };
+  mat.customProgramCacheKey=function(){ return (prevKey?prevKey.call(this):'')+'|facWin'+(PHONE?'F':''); };
+  return mat; }
 let KIT_MATS=null; // one shared material set for the Blender kits
 function kitMats(){ if(KIT_MATS) return KIT_MATS;
   const lamp=new THREE.MeshBasicMaterial({color:0xfff1dc,toneMapped:false});
@@ -4160,9 +4282,9 @@ function buildCity(C){
 
   // ---- city blocks, merged into a few draw calls ----
   const UPL=Object.assign({},UP_DEF,C.uplight||{});
-  const FAC={}; ['glass','brick','stone','hall'].forEach(k=>{ const t=facadeTex(k); FAC[k]={mat:upLit(new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:k==='hall'?1.0:.85,roughness:k==='glass'?.35:.85,metalness:k==='glass'?.5:.05}),k==='glass'?Object.assign({},UPL,{k:UPL.k*.5}):UPL),pos:[],nor:[],uv:[]}; });
+  const FAC={}; ['glass','brick','stone','hall'].forEach(k=>{ const t=facadeTex(k); FAC[k]={mat:facWin(upLit(new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:k==='hall'?1.0:.85,roughness:k==='glass'?.35:.85,metalness:k==='glass'?.5:.05}),k==='glass'?Object.assign({},UPL,{k:UPL.k*.5}):UPL),k),pos:[],nor:[],uv:[]}; });
   const trims=[]; // cornices and string courses: silhouette and a ledge that catches the street light
-  const skyMat=FAC.glass.mat.clone(); skyMat.fog=false; FAC.sky={mat:skyMat,pos:[],nor:[],uv:[]};
+  const skyMat=facWin(FAC.glass.mat.clone(),'glass'); skyMat.fog=false; FAC.sky={mat:skyMat,pos:[],nor:[],uv:[]};
   FAC.roof={mat:new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:1}),pos:[],nor:[],uv:[]};
   // storefronts, four kinds stacked in one atlas (light as art): 0 a warm deli, 1 a cold-white pharmacy/convenience store,
   // 2 closed for the night behind a roll-down grille with light leaking through the slats, 3 a dim amber tavern with a
@@ -4826,7 +4948,7 @@ function sceneKit(o){
     const ban=new THREE.Mesh(new THREE.PlaneGeometry(10,1.4),new THREE.MeshBasicMaterial({map:CT(signCanvas('AFTERHOURS  ·  '+banner,{bg:'#07080a',color:'#f4f7ff',size:50})),toneMapped:false}));
     ban.position.set(f.p.x,f.p.y+7.2,f.p.z); ban.quaternion.copy(K.q); ban.rotateY(Math.PI); S.add(ban); };
   // merged night buildings at any angle: facades from facadeTex, one draw call per style
-  K.facM=(style)=>{ if(!K.fac[style]){ const t=facadeTex(style); K.fac[style]={mat:new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:.95,roughness:style==='glass'?.35:.85,metalness:style==='glass'?.5:.05}),pos:[],nor:[],uv:[]}; }
+  K.facM=(style)=>{ if(!K.fac[style]){ const t=facadeTex(style); K.fac[style]={mat:facWin(new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:.95,roughness:style==='glass'?.35:.85,metalness:style==='glass'?.5:.05}),style),pos:[],nor:[],uv:[]}; }
     return K.fac[style]; };
   const roofB={mat:new THREE.MeshStandardMaterial({color:0x0b0c0f,roughness:1}),pos:[],nor:[],uv:[]};
   const quad=(b,A,B,C,D,n,uv)=>{ const e1=[B[0]-A[0],B[1]-A[1],B[2]-A[2]], e2=[D[0]-A[0],D[1]-A[1],D[2]-A[2]], cr=[e1[1]*e2[2]-e1[2]*e2[1],e1[2]*e2[0]-e1[0]*e2[2],e1[0]*e2[1]-e1[1]*e2[0]];
@@ -4840,7 +4962,7 @@ function sceneKit(o){
     quad(roofB,[pts[0][0],y1,pts[0][1]],[pts[1][0],y1,pts[1][1]],[pts[2][0],y1,pts[2][1]],[pts[3][0],y1,pts[3][1]],[0,1,0],[[0,0],[1,0],[1,1],[0,1]]); };
   // a distant skyline: towers drawn without fog so they read as a silhouette of lit windows on the horizon
   // (keep them inside the camera's 1600 m far plane)
-  K.skyline=(o)=>{ if(!K.fac.skyfar){ const t=facadeTex('glass'); K.fac.skyfar={mat:new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:.55,roughness:.35,metalness:.5,fog:false}),pos:[],nor:[],uv:[]}; }
+  K.skyline=(o)=>{ if(!K.fac.skyfar){ const t=facadeTex('glass'); K.fac.skyfar={mat:facWin(new THREE.MeshStandardMaterial({map:t.map,emissive:0xffffff,emissiveMap:t.emis,emissiveIntensity:.55,roughness:.35,metalness:.5,fog:false}),'glass'),pos:[],nor:[],uv:[]}; }
     const R=rng(o.seed||11), tops=[];
     for(let i=0;i<o.n;i++){ const u=(R()-.5)*2, v=(R()-.5)*2, core=1-Math.abs(u)*.7, h=(o.h[0]+(o.h[1]-o.h[0])*Math.pow(R(),1.6))*core, wd=o.wd||[22,48], w=wd[0]+R()*(wd[1]-wd[0]), d=wd[0]+R()*(wd[1]-wd[0])*.8;
       const x=o.cx+u*o.sx, z=o.cz+v*o.sz; if(o.ok&&!o.ok(x,z,Math.hypot(w,d)/2)) continue; K.obox('skyfar',x,z,(R()-.5)*.3,w,d,h,0); if(h>o.h[1]*.6) tops.push([x,h,z]); }

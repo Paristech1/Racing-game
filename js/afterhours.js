@@ -7662,18 +7662,28 @@ function aspect(){ return innerWidth/innerHeight; }
 let composer=null, renderPass=null, bloomPass=null, flarePass=null, gradePass=null, glowOn=true;
 /* LOOK: "Clear" (default) tones the haze down in every race: no grain, half bloom, thinner fog, neutral tint, lighter vignette and fringing.
    "Cinematic" keeps each level's authored look. The car-select studio always keeps its magazine grade. Saved in SAVE.look. */
-let CLEAR=SAVE.look!=='cine';
+let CLEAR=SAVE.look!=='cine'&&!(/[?&]dev\b/.test(location.search)&&window.__AH_CINE); // dev look-dev: window.__AH_CINE (set before load, ?dev only) starts in Cinematic
 const UI_NEON_GLASS=SAVE.ui!=='classic'; // Neon + Glass hybrid menus (CSS + paper transitions; 3D grade stays neutral)
-const CLR={bloom:.5,bloomR:.8,bloomT:.14,fog:.6,shadow:.15,high:.4,sat:.5,vig:.4,ca:.3,wet:.3};
+const CLR={bloom:.5,bloomR:.8,bloomT:.14,bloomW:.45,fog:.6,shadow:.15,high:.4,sat:.5,vib:.6,vig:.3,lift:.35,ca:.3,wet:.3};
 document.body.classList.toggle('clear',CLEAR);
 document.body.classList.toggle('ui-neon-glass',UI_NEON_GLASS);
 /* POST STACK (one MSAA scene pass, then): bloom (UnrealBloom, soft knee) -> lens pass (quarter-res: anamorphic streak, ghosts, halo,
    all read from the bloom's own blurred mips, no extra scene renders) -> grade (rain-on-lens refraction, radial speed blur with
    spectral chromatic aberration, flare + lens dirt, split tone, filmic contrast/lift, highlight shoulder, vignette, grain, dither, sRGB).
    Flares key off point lights only: a narrow bloom mip minus a wide one cancels big bright surfaces (white paint, lit walls) and keeps lamps.
-   Per event: scene.userData.grade {shadow,high,sat,vig,grain,con,lift}, .bloom {strength,radius,threshold,knee},
-   .lens {streak,ghost,halo,dirt,th,tint}. PHONE skips the lens pass and compiles the lens/rain code out of the grade. */
-const GRADE_DEF={shadow:[.9,1,1.14],high:[1.1,1.02,.9],sat:1.12,vig:.42,grain:0,con:.16,lift:.012}; // scenes override with userData.grade
+   Per event: scene.userData.grade {wb,shadow,high,contrast,sat,vib,knee,keep,vig,grain,lift}, .bloom {strength,radius,threshold,knee,hue,wide},
+   .lens {streak,ghost,halo,dirt,th,tint}. PHONE skips the lens pass and compiles the lens/rain code out of the grade.
+   Tone mapping happens once: renderer ACES inside each lit material during the scene pass (toneMapped:false lamps and signs skip it).
+   No pass after that runs a tone mapper; the grade only rolls off what bloom/flare push past 1, then encodes sRGB once.
+   Bloom keeps hue (ported from mrdoob's Slop New York, MIT): the high-pass keys on max(luma, peak channel) by bloom.hue so saturated
+   lamps, tail lights and neon bloom in their own colour, scales RGB together, and the bloom is added inside the grade in float
+   (UnrealBloom's own additive copy into the 8-bit target clipped each channel separately, which turned sodium and red lights white).
+   Grade (Slop order): white balance -> split tone by multiplication (cool shadows fade out by mid-grey, warm highlights fade in, midtones
+   neutral, no black lift) -> contrast pivoted on middle grey applied to luma (no hue shift) -> saturation + vibrance (lifts low-chroma
+   pixels only) -> hue-keeping highlight shoulder -> vignette normalised by the corner radius (same in portrait and landscape). */
+const GRADE_DEF={wb:[1,1,1],shadow:[.9,1,1.14],high:[1.1,1.02,.9],contrast:1.08,sat:1.12,vib:.1,knee:.86,keep:.85,vig:.42,grain:0,lift:.012}; // scenes override with userData.grade
+const BLOOM_DEF={strength:.5,radius:.4,threshold:.85,knee:.1,hue:.85,wide:.55}; // scenes override with userData.bloom (hue: 0 luma key .. 1 peak-channel key; wide: weight of the two widest mips)
+let BLOOM_NORM=2; // 8-bit fallback: the bloom composite (five mips, factors summing to 3) is stored at 1/BLOOM_NORM and scaled back in the grade; 1 on half-float targets
 const LENS_DEF={streak:.4,ghost:.8,halo:.6,dirt:.7,th:.06,tint:[.78,.86,1]}; // scenes override with userData.lens (0 turns a part off)
 const FLARE_SHADER={uniforms:{t1:{value:null},t2:{value:null},t3:{value:null},t4:{value:null},uTexel:{value:new THREE.Vector2(1/320,1/180)},
   uTh:{value:.02},uStreak:{value:1},uGhost:{value:1},uHalo:{value:1},uAspect:{value:16/9},uTint:{value:new THREE.Vector3(.78,.86,1)}},
@@ -7698,13 +7708,14 @@ const FLARE_SHADER={uniforms:{t1:{value:null},t2:{value:null},t3:{value:null},t4
     gl_FragColor=vec4(acc,1.);
   }`};
 const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{value:0},uHit:{value:0},uWet:{value:0},
-  uShadow:{value:new THREE.Vector3(.9,1,1.14)},uHigh:{value:new THREE.Vector3(1.1,1.02,.9)},uSat:{value:1.12},uVig:{value:.42},uGrain:{value:0},uTime:{value:0},
-  uCon:{value:.16},uLift:{value:.012},uCA:{value:1},tFlare:{value:null},tWide:{value:null},tDirt:{value:null},tDrops:{value:null},uFlare:{value:0},uDirt:{value:0},uRain:{value:0},uClock:{value:0},uAspect:{value:16/9}},
+  uShadow:{value:new THREE.Vector3(.9,1,1.14)},uHigh:{value:new THREE.Vector3(1.1,1.02,.9)},uWB:{value:new THREE.Vector3(1,1,1)},uSat:{value:1.12},uVib:{value:.1},uVig:{value:.42},uGrain:{value:0},uTime:{value:0},
+  uCon:{value:1.08},uLift:{value:.012},uKnee:{value:.86},uKeep:{value:.85},uLiftTint:{value:1},tBloom:{value:null},uBloom:{value:0},uCA:{value:1},tFlare:{value:null},tWide:{value:null},tDirt:{value:null},tDrops:{value:null},uFlare:{value:0},uDirt:{value:0},uRain:{value:0},uClock:{value:0},uAspect:{value:16/9}},
   defines:{LENS:PHONE?0:1},
   vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader:`uniform sampler2D tDiffuse,tFlare,tWide,tDirt,tDrops; uniform float uSpeed,uBoost,uHit,uWet,uSat,uVig,uGrain,uTime,uCon,uLift,uFlare,uDirt,uRain,uClock,uAspect,uCA;
-  uniform vec3 uShadow,uHigh; varying vec2 vUv;
+  fragmentShader:`uniform sampler2D tDiffuse,tFlare,tWide,tDirt,tDrops,tBloom; uniform float uLiftTint,uSpeed,uBoost,uHit,uWet,uSat,uVib,uVig,uGrain,uTime,uCon,uLift,uKnee,uKeep,uBloom,uFlare,uDirt,uRain,uClock,uAspect,uCA;
+  uniform vec3 uShadow,uHigh,uWB; varying vec2 vUv;
   float h12(vec2 p){ vec3 p3=fract(vec3(p.xyx)*.1031); p3+=dot(p3,p3.yzx+33.33); return fract((p3.x+p3.y)*p3.z); }
+  float sh1(float x){ float o=max(x-uKnee,0.); return min(x,uKnee)+o/(1.+o/(1.-uKnee)); } // shoulder: linear to the knee, then eases toward 1, never clips
   void main(){
     vec2 uv=vUv; float drop=0.; vec2 dn=vec2(0.);
   #if LENS
@@ -7727,14 +7738,19 @@ const GRADE_SHADER={uniforms:{tDiffuse:{value:null},uSpeed:{value:0},uBoost:{val
       col+=fl*uFlare*(1.+dirt*uDirt*3.)+texture2D(tWide,vUv).rgb*dirt*uDirt*.55; } // lens dirt lights up only where bright light falls on it
     if(drop>.001){ col*=1.-.22*drop*clamp(length(dn)*1.6,0.,1.); col+=drop*.05*pow(max(dot(normalize(dn+1e-4),vec2(-.45,.89)),0.),6.)*vec3(.9,.95,1.); }
   #endif
+    col+=texture2D(tBloom,uv).rgb*uBloom; // bloom added here in float, so lamps keep their hue instead of clipping per channel in an 8-bit target
+    col*=uWB; // white balance (camera, per event)
     float l=dot(col,vec3(.2126,.7152,.0722));
     vec3 shadowTint=mix(uShadow,vec3(.86,.98,1.18),uWet), highTint=uHigh;
-    col*=mix(shadowTint,highTint,smoothstep(.04,.55,l));
-    col=max(mix(vec3(l),col,uSat),0.);
-    vec3 ov=max(col-.82,0.); col=min(col,.82)+ov/(1.+ov*2.2); // highlight shoulder: bloom and flares roll off instead of clipping flat
-    vec3 p=sqrt(clamp(col,0.,1.)); col=mix(p,p*p*(3.-2.*p),uCon); col*=col; // filmic S-curve in perceptual space
-    col=col*(1.-uLift)+uLift*shadowTint*.8; // printed-page blacks: a hair lifted and tinted, never crushed
-    col*=1.-(uVig+uBoost*.1)*smoothstep(.38,.92,r*1.2);
+    col*=mix(shadowTint,vec3(1.),smoothstep(.01,.4,l))*mix(vec3(1.),highTint,smoothstep(.4,1.,l)); // split tone by multiplication: cool shadows, neutral mids, warm highlights, black stays black
+    col*=pow(max(l,1e-4)/.18,uCon-1.); // contrast pivoted on middle grey, on luma: RGB scale together so hue never shifts
+    float g=dot(col,vec3(.2126,.7152,.0722)), mx=max(max(col.r,col.g),col.b), cr=(mx-min(min(col.r,col.g),col.b))/max(mx,1e-4);
+    col=max(mix(vec3(g),col,1.+(uSat-1.+uVib*(1.-cr))*smoothstep(.002,.03,g)),0.); // saturation + vibrance (vibrance lifts low-chroma pixels, leaves neon alone); both fade out near black so night skies don't turn blue
+    float pk=max(max(max(col.r,col.g),col.b),1e-4);
+    col=mix(vec3(sh1(col.r),sh1(col.g),sh1(col.b)),col*(sh1(pk)/pk),uKeep); // highlight shoulder, mostly hue-keeping (keep=1: RGB scaled together; 0: per channel, hot cores go white)
+    col=col*(1.-uLift)+uLift*mix(vec3(.8),shadowTint*.8,uLiftTint); // printed-page blacks: a hair lifted (Clear: less, and neutral, so it never reads as a blue haze)
+    float vr=length(c*vec2(uAspect,1.))/length(vec2(uAspect,1.)*.5); // 0 centre .. 1 corner, whatever the aspect
+    col*=1.-(uVig+uBoost*.1)*smoothstep(.35,1.,vr);
     float gn=h12(gl_FragCoord.xy+fract(uTime)*317.)-.5;
     col+=gn*uGrain*(.35+.65*(1.-smoothstep(0.,.6,l)));
     gl_FragColor=LinearTosRGB(vec4(col,1.)); // perf: gamma folded in here, one full-screen pass fewer
@@ -7762,6 +7778,33 @@ try{
     renderPass=new THREE.RenderPass(studio,cam); composer.addPass(renderPass);
     bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.8,.45,.8); composer.addPass(bloomPass);
     { const bs=bloomPass.setSize.bind(bloomPass); bloomPass.setSize=()=>bs(innerWidth,innerHeight); } // bloom stays at screen-pixel size whatever the render scale, so the glow never changes width
+    { // hue-keeping bloom: high-pass keys on mix(luma, peak channel, uHue) and scales RGB together (a red tail light at full red passes
+      // like a white lamp of the same peak, and blooms red); the composite is left in its own target for the grade to add in float
+      if(renderer.capabilities.isWebGL2&&renderer.extensions.get('EXT_color_buffer_float')){ // float bloom chain: faint glow edges stay smooth on true-black skies
+        [bloomPass.renderTargetBright,...bloomPass.renderTargetsHorizontal,...bloomPass.renderTargetsVertical].forEach(t=>{ t.texture.type=THREE.HalfFloatType; }); BLOOM_NORM=1; }
+      bloomPass.separableBlurMaterials.forEach((m,i)=>{ // r128's Gaussian stops at 1 sigma, so every mip ends in a visible square on dark skies:
+        // taps spread i?2:1 texels with sigma = reach/2.6, so the same reach fades to ~2% at its end instead of ~60%
+        m.uniforms.uStep={value:i?2:1}; m.fragmentShader=`varying vec2 vUv; uniform sampler2D colorTexture; uniform vec2 texSize,direction; uniform float uStep;
+          void main(){ vec2 d=direction/texSize*uStep; float sg=float(KERNEL_RADIUS)/2.6, ws=1.; vec3 s=texture2D(colorTexture,vUv).rgb;
+            for(int i=1;i<KERNEL_RADIUS;i++){ float x=float(i), w=exp(-.5*x*x/(sg*sg)); s+=(texture2D(colorTexture,vUv+d*x).rgb+texture2D(colorTexture,vUv-d*x).rgb)*w; ws+=2.*w; }
+            gl_FragColor=vec4(s/ws,1.); }`; m.needsUpdate=true; });
+      const hp=bloomPass.materialHighPassFilter; hp.uniforms.uHue={value:BLOOM_DEF.hue};
+      hp.fragmentShader=`uniform sampler2D tDiffuse; uniform float luminosityThreshold,smoothWidth,uHue; varying vec2 vUv;
+        void main(){ vec3 c=texture2D(tDiffuse,vUv).rgb; float pk=max(max(c.r,c.g),c.b), v=mix(dot(c,vec3(.2126,.7152,.0722)),pk,uHue);
+          gl_FragColor=vec4(c*smoothstep(luminosityThreshold,luminosityThreshold+smoothWidth,v),1.); }`;
+      hp.needsUpdate=true; bloomPass.hueUniform=hp.uniforms.uHue;
+      bloomPass.render=function(r){ // r128 UnrealBloomPass.render minus the final additive copy (the grade adds tBloom instead): one full-screen pass fewer
+        const oc=r.getClearColor(this._oldClearColor), oa=r.getClearAlpha(), ac=r.autoClear; r.autoClear=false; r.setClearColor(this.clearColor,0);
+        this.highPassUniforms.tDiffuse.value=arguments[2].texture; this.highPassUniforms.luminosityThreshold.value=this.threshold;
+        this.fsQuad.material=this.materialHighPassFilter; r.setRenderTarget(this.renderTargetBright); r.clear(); this.fsQuad.render(r);
+        let inp=this.renderTargetBright;
+        for(let i=0;i<this.nMips;i++){ const m=this.separableBlurMaterials[i]; this.fsQuad.material=m;
+          m.uniforms.colorTexture.value=inp.texture; m.uniforms.direction.value=THREE.UnrealBloomPass.BlurDirectionX; r.setRenderTarget(this.renderTargetsHorizontal[i]); r.clear(); this.fsQuad.render(r);
+          m.uniforms.colorTexture.value=this.renderTargetsHorizontal[i].texture; m.uniforms.direction.value=THREE.UnrealBloomPass.BlurDirectionY; r.setRenderTarget(this.renderTargetsVertical[i]); r.clear(); this.fsQuad.render(r);
+          inp=this.renderTargetsVertical[i]; }
+        const cu=this.compositeMaterial.uniforms; this.fsQuad.material=this.compositeMaterial; cu.bloomStrength.value=1/BLOOM_NORM; cu.bloomRadius.value=this.radius; cu.bloomTintColors.value=this.bloomTintColors;
+        r.setRenderTarget(this.renderTargetsHorizontal[0]); r.clear(); this.fsQuad.render(r);
+        r.setClearColor(oc,oa); r.autoClear=ac; }; }
     if(!PHONE){ // lens pass: quarter-res, fixed to screen pixels like the bloom, so the frame pacer's scale changes never touch it
       class LensPass extends THREE.Pass{
         constructor(){ super(); this.needsSwap=false; this.rt=new THREE.WebGLRenderTarget(4,4,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,format:THREE.RGBAFormat,depthBuffer:false});
@@ -7771,6 +7814,7 @@ try{
           r.setRenderTarget(this.rt); this.q.render(r); } }
       flarePass=new LensPass(); flarePass.setSize(); composer.addPass(flarePass); }
     gradePass=new THREE.ShaderPass(GRADE_SHADER); composer.addPass(gradePass); // last pass: grades, then encodes to sRGB on screen
+    gradePass.uniforms.tBloom.value=bloomPass.renderTargetsHorizontal[0].texture;
     if(flarePass){ const u=gradePass.uniforms; u.tFlare.value=flarePass.rt.texture; u.tWide.value=bloomPass.renderTargetsVertical[3].texture; u.tDirt.value=lensDirtTex(); u.tDrops.value=lensDropTex(); }
   }
 }catch(e){ composer=null; flarePass=null; }
@@ -7865,19 +7909,21 @@ function draw(scene){
   if(gradePass){ const u=gradePass.uniforms, pl=mode==='race'&&player?player:null;
     u.uSpeed.value=lerp(u.uSpeed.value,pl?STAGE.blur[pl.stage||0]*.85:0,.06); u.uBoost.value=lerp(u.uBoost.value,pl&&pl.nosOn?1:0,.12);
     u.uHit.value=Math.min(1,shake); u.uWet.value=(LOOK.wet&&scene!==studio?1:0)*(clr?CLR.wet:1); u.uCA.value=clr?CLR.ca:1;
-    const gd=scene.userData.grade||GRADE_DEF, sh=gd.shadow||GRADE_DEF.shadow, hi=gd.high||GRADE_DEF.high;
-    const sat=gd.sat!==undefined?gd.sat:GRADE_DEF.sat, vig=gd.vig!==undefined?gd.vig:GRADE_DEF.vig;
+    const gd=scene.userData.grade||GRADE_DEF, G=k=>gd[k]!==undefined?gd[k]:GRADE_DEF[k], sh=G('shadow'), hi=G('high'), wb=G('wb'), sat=G('sat'), vig=G('vig');
     if(clr){ u.uShadow.value.set(1+(sh[0]-1)*CLR.shadow,1+(sh[1]-1)*CLR.shadow,1+(sh[2]-1)*CLR.shadow); u.uHigh.value.set(1+(hi[0]-1)*CLR.high,1+(hi[1]-1)*CLR.high,1+(hi[2]-1)*CLR.high);
-      u.uSat.value=1+(sat-1)*CLR.sat; u.uVig.value=vig*CLR.vig; u.uGrain.value=0; }
-    else { u.uShadow.value.fromArray(sh); u.uHigh.value.fromArray(hi); u.uSat.value=sat; u.uVig.value=vig; u.uGrain.value=Math.max(gd.grain||0,DRAW_RACING?.022:0); }
-    u.uTime.value=(u.uTime.value+.137)%1;
-    u.uCon.value=gd.con!==undefined?gd.con:GRADE_DEF.con; u.uLift.value=gd.lift!==undefined?gd.lift:GRADE_DEF.lift;
+      u.uSat.value=1+(sat-1)*CLR.sat; u.uVib.value=G('vib')*CLR.vib; u.uVig.value=vig*CLR.vig; u.uGrain.value=0; u.uLift.value=G('lift')*CLR.lift; u.uLiftTint.value=0; }
+    else { u.uShadow.value.fromArray(sh); u.uHigh.value.fromArray(hi); u.uSat.value=sat; u.uVib.value=G('vib'); u.uVig.value=vig; u.uGrain.value=Math.max(gd.grain||0,DRAW_RACING?.022:0); u.uLift.value=G('lift'); u.uLiftTint.value=1; }
+    u.uTime.value=(u.uTime.value+.137)%1; u.uWB.value.fromArray(wb);
+    u.uCon.value=G('contrast'); u.uKnee.value=G('knee'); u.uKeep.value=G('keep');
     if(flarePass){ const ln=scene.userData.lens||LENS_DEF, f=flarePass.mat.uniforms, st=scene===studio; // studio: the lens is cleaner, no rain on it
       f.uStreak.value=ln.streak!==undefined?ln.streak:LENS_DEF.streak; f.uGhost.value=ln.ghost!==undefined?ln.ghost:LENS_DEF.ghost; f.uHalo.value=ln.halo!==undefined?ln.halo:LENS_DEF.halo; f.uTh.value=ln.th!==undefined?ln.th:LENS_DEF.th;
       f.uTint.value.fromArray(ln.tint||LENS_DEF.tint); u.uFlare.value=(st?.45:1+u.uBoost.value*.25)*(clr?.7:1); u.uDirt.value=(ln.dirt!==undefined?ln.dirt:1)*(st?.25:LOOK.wet?.8:.5);
       u.uRain.value=lerp(u.uRain.value,LOOK.wet&&!st&&(mode==='race'||mode==='loading'||mode==='highlight')&&!inTunnel()?1:0,.03); u.uClock.value=performance.now()/1000; u.uAspect.value=aspect(); } }
-  if(composer&&glowOn){ renderPass.scene=scene; const b=scene.userData.bloom||{strength:.5,radius:.4,threshold:.85};
-    bloomPass.strength=clr?b.strength*CLR.bloom:b.strength; bloomPass.radius=clr?b.radius*CLR.bloomR:b.radius; bloomPass.threshold=clr?Math.min(.95,b.threshold+CLR.bloomT):b.threshold; bloomPass.highPassUniforms.smoothWidth.value=b.knee!==undefined?b.knee:.1; // soft knee: glow eases in instead of snapping on at the threshold
+  if(composer&&glowOn){ renderPass.scene=scene; const b=scene.userData.bloom||BLOOM_DEF, B=k=>b[k]!==undefined?b[k]:BLOOM_DEF[k];
+    bloomPass.strength=clr?B('strength')*CLR.bloom:B('strength'); bloomPass.radius=clr?B('radius')*CLR.bloomR:B('radius'); bloomPass.threshold=clr?Math.min(.95,B('threshold')+CLR.bloomT):B('threshold');
+    bloomPass.highPassUniforms.smoothWidth.value=clr?Math.min(.06,B('knee')):B('knee'); // soft knee: glow eases in instead of snapping on at the threshold (Clear: tighter)
+    bloomPass.hueUniform.value=B('hue'); { const w=clr?B('wide')*CLR.bloomW:B('wide'), t=bloomPass.bloomTintColors; t[3].setScalar(w); t[4].setScalar(w); } // r128 blur kernels stop at 1 sigma: the wide mips end in a square edge, so keep them low
+    if(gradePass) gradePass.uniforms.uBloom.value=bloomPass.strength*BLOOM_NORM;
     composer.render(); }
   else renderer.render(scene,cam);
   if(fd0) fog0.density=fd0;
